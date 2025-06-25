@@ -1,0 +1,39 @@
+project:
+  type: book
+  output-dir: _site
+
+book:
+  title: "The Q100 Variant Benchmark"
+  author: "[Author Names]"
+  date: "6/25/2025"
+  chapters:
+    - index.qmd
+    - manuscript/introduction.qmd
+    - manuscript/methods.qmd
+    - manuscript/results.qmd
+    - manuscript/discussion.qmd
+  references: manuscript/references.bib
+  
+bibliography: manuscript/references.bib
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    include-in-header: header.html
+    toc: true
+    number-sections: true
+  pdf:
+    documentclass: article
+    classoption: [a4paper, 11pt]
+    geometry: margin=1in
+    fontsize: 11pt
+    linestretch: 1.2
+    colorlinks: true
+    linkcolor: blue
+    urlcolor: blue
+    citecolor: blue
+    toc: true
+    number-sections: true
+    lof: true
+    lot: true

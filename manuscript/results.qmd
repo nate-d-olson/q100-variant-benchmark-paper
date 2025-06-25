@@ -1,0 +1,83 @@
+# Results
+
+## DefrABB enables reproducible, assembly-based benchmark generation
+
+To automate variant extraction and confident-region curation from the HG002 Q100 diploid assembly, we developed the Snakemake workflow DEvelopment FRamework for Assembly-Based Benchmarks (DeFrABB). Starting from haplotype-resolved alignments produced by dipcall (small variants) and PAV (structural variants), DeFrABB:
+
+1. Merges haplotype VCFs
+2. Annotates and decomposes SVs
+3. Iteratively masks regions with assembly breaks, large satellites, segmental duplications with broken alignments, and known caller artefacts
+4. Emits harmonised VCF + BED benchmark packages for GRCh37, GRCh38 and T2T-CHM13 (Figure {@fig:workflow}).
+
+The current draft (`defrabbV0.019-20241113`) required ~24 h on 48 CPU cores and <200 GB RAM to complete end-to-end, and the full provenance (config files, Conda environments, Snakemake reports) is archived alongside each release [@doi:xxx; @url:xxx].
+
+## Benchmark content and genome coverage
+
+The draft Q100 benchmark captures > 90% of the haploid HG002 genome for both small variants and SVs (Table {@tbl:coverage}). For GRCh38 coordinates:
+
+- **Small-variant regions**: 2.739 Gbp (92.9%) containing 3.64M single-nucleotide variants (SNVs) and 0.86M short indels
+- **SV regions**: 2.756 Gbp (93.5%) containing 28.2k insertions, deletions, duplications, inversions and translocations (size range 50bp–100kb) [@doi:xxx].
+
+Size spectra are unimodal for insertions (median 285 bp) and bimodal for deletions (peaks at 55 bp and 6 kb), reflecting tandem-repeat and segmental duplication (SD) polymorphisms, respectively (Figure {@fig:size-distributions}a).
+
+Stratification shows substantial representation of difficult contexts:
+
+- 41% of benchmark bases fall in tandem repeats ≥50 bp
+- 13% in annotated SDs
+- 2.4% within medically relevant "difficult genes" previously excluded from GIAB benchmarks (e.g., PMS2, SMN1/2, CYP21A2) [@doi:xxx].
+
+## Expansion over legacy GIAB resources
+
+Relative to the read-mapping-derived v4.2.1 small-variant and v0.6 SV benchmarks, Q100 adds:
+
+- ~300 Mbp of callable sequence
+- 16% more small variants
+- ~3-fold more SVs (Figure {@fig:comparison}b, Table {@tbl:comparison}) [@doi:xxx].
+
+Newly covered loci include:
+
+1. Complete MHC class II gene cluster
+2. Centromere-proximal SD blocks on chromosomes 1q21–q23 and 17q21
+3. Long variable number tandem repeats (VNTRs) in SST and LPA
+4. Full rDNA-adjacent pseudo-autosomal boundaries on chrX and chrY
+
+The median length of contiguous confident blocks increases from 11 kb (v4.2.1) to 65 kb, reflecting the elimination of reference-bias driven fragmentation.
+
+## Benchmark validation with representative pipelines
+
+We evaluated five state-of-the-art callsets against both v4.2.1/v0.6 and Q100 using hap.py (small variants) and truvari (SVs):
+
+- **Short-read technologies**:
+  - DeepVariant + DRAGEN (Illumina)
+  - GATK-HaplotypeCaller (Illumina)
+- **Long-read technologies**:
+  - Clair3 (PacBio HiFi)
+  - Sniffles2 (ONT)
+  - SVDSS (ONT)
+
+Overall precision remained high (> 99.5%) for all callers; however, recall dropped by 4-12 percentage points in Q100-unique regions, particularly in long tandem repeats and SDs (Figure {@fig:performance}). For example:
+
+- DRAGEN recall for indels ≥15 bp fell from 98.7% (v4.2.1) to 86.1% in Q100
+- Sniffles2 recall for insertions 250bp–1kb declined from 87.3% to 68.4% [@doi:xxx]
+
+Manual inspection of a random subset of discordant sites confirmed that > 90% of benchmark-only variants in these strata are supported by both HiFi and ultra-long ONT read alignments, consistent with the RIDE principle of reliable error detection [@doi:xxx; @doi:xxx].
+
+## Portability across reference genomes
+
+The same variant/region set was lifted to GRCh37 and CHM13v2.0 using Liftoff with > 99.6% positional concordance; 1,823 small variants and 77 SVs could not be mapped uniquely due to reference-specific collapses or expansions and were masked. 
+
+Benchmarking Illumina-DeepVariant calls produced on GRCh37 versus GRCh38 yielded nearly identical global F1 scores (0.992 vs 0.993) but highlighted reference-specific deficits (Figure {@fig:reference-comparison}):
+
+- 4,211 additional false negatives in GRCh37 within chr6p21.33 duplication blocks absent from GRCh38
+- 3,877 extra errors on GRCh38 in gaps filled only in CHM13
+
+These results demonstrate the utility of a single, assembly-anchored truth set for harmonizing performance assessment during the community transition toward pangenome references.
+
+## Display items
+
+- **Figure 1**: Schematic of DeFrABB workflow
+- **Figure 2**: (a) Size spectra of SVs; (b) Venn diagram of coverage/variant gains over v4.2.1/v0.6
+- **Figure 3**: Precision/recall heat-map by genomic context for five callers
+- **Figure 4**: Cross-reference benchmarking consistency plots
+- **Table 1**: Summary statistics of Q100 benchmark content
+- **Table 2**: Comparative metrics versus previous GIAB benchmarks

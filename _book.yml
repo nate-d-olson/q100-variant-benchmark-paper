@@ -1,0 +1,43 @@
+project:
+  type: book
+  output-dir: _site
+
+book:
+  title: "The Q100 Variant Benchmark"
+  subtitle: "A Comprehensive, Assembly-Based Resource for Genome Analysis"
+  author: "[Author Names]"
+  date: "`r format(Sys.Date(), '%B %d, %Y')`"
+  chapters:
+    - index.qmd
+    - manuscript/introduction.qmd
+    - manuscript/methods.qmd
+    - manuscript/results.qmd
+    - manuscript/discussion.qmd
+  appendices:
+    - label: "References"
+      file: manuscript/references.bib
+  bibliography: manuscript/references.bib
+  site: _site
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    toc-depth: 2
+    number-sections: true
+  pdf:
+    documentclass: article
+    classoption: [a4paper, 11pt]
+    geometry: margin=1in
+    fontsize: 11pt
+    linestretch: 1.2
+    colorlinks: true
+    linkcolor: blue
+    urlcolor: blue
+    citecolor: blue
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    lof: true
+    lot: true

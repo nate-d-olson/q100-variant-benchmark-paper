@@ -1,0 +1,121 @@
+---
+format: html
+execute: 
+  echo: false
+  warning: false
+  message: false
+title: "Title of Your Manuscript"
+author: 
+  - name: First Author
+    affiliation: Institution
+  - name: Second Author
+    affiliation: Institution
+date: "\today"
+---
+
+# Abstract
+
+{#abstract}
+
+::: {.abstract}
+Write your abstract here. The abstract should be a concise summary of the research.
+:::
+
+# Introduction
+
+{#intro}
+
+::: {.section}
+Write your introduction here. This section should provide background information
+and state the research question.
+:::
+
+# Methods
+
+{#methods}
+
+::: {.section}
+Write your methods section here. This should include:
+
+## Data
+
+{#methods-data}
+
+Describe your data sources and preprocessing.
+
+## Analysis
+
+{#methods-analysis}
+
+Describe your analysis methods and statistical approaches.
+:::
+
+# Results
+
+{#results}
+
+::: {.section}
+This section will include code chunks for generating figures and tables.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 8,
+  fig.height = 6,
+  dpi = 300
+)
+```
+
+## Example Figure
+
+```{r example-plot}
+# Example plot generation code
+plot(1:10, 1:10, main = "Example Plot")
+```
+
+## Example Table
+
+```{r example-table}
+# Example table generation code
+data <- data.frame(
+  Variable = c("A", "B", "C"),
+  Value = c(1, 2, 3)
+)
+knitr::kable(data, caption = "Example Table")
+```
+:::
+
+# Discussion
+
+{#discussion}
+
+::: {.section}
+Write your discussion section here. This should interpret the results and
+place them in context.
+:::
+
+# Acknowledgments
+
+{#acknowledgments}
+
+::: {.section}
+Acknowledge any funding sources, contributors, or institutions here.
+:::
+
+# References
+
+{#references}
+
+::: {.section}
+References will be automatically generated from references.bib
+:::
+
+# Supplemental Material
+
+{#supplemental}
+
+::: {.section}
+Include any additional supporting information here.
+:::
