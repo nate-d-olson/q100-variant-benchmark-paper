@@ -2,7 +2,7 @@
 
 All software versions, command lines, and intermediate artefacts are archived in the
 Zenodo-released Snakemake report that accompanies draft benchmark
-`defrabbV0.019-20241113` [2].
+`defrabbV0.019-20241113` [@defrabb2024].
 
 ## 1. Biological materials and sequencing data  
 
@@ -15,7 +15,7 @@ canonical GIAB reference specimen.
 PacBio HiFi (≈170×, CLR revio chemistry), Oxford Nanopore
 ultra-long (≈209×, R10.4.1 + Kit V14), Hi-C, Strand-seq and 10× Genomics
 linked-reads were combined as previously described for the Q100 project
-[3].
+[@english2025].
 
 ### 1.3 Sequencing data used for external validation  
 Independent datasets were downloaded from the GIAB FTP:
@@ -37,7 +37,7 @@ polishing rounds:
 
 Consensus accuracy was estimated with Merqury (`merqury.sh
 31mers.meryl assembly.fasta`) and Yak (`yak qv -t48 -m31
-reads.yak assembly.fasta`), yielding a median QV of 78.4 [3].
+reads.yak assembly.fasta`), yielding a median QV of 78.4 [@english2025].
 
 ## 3. Assembly-to-reference variant calling  
 
@@ -45,7 +45,7 @@ reads.yak assembly.fasta`), yielding a median QV of 78.4 [3].
 Each haplotype FASTA was aligned to GRCh37, GRCh38 and CHM13 v2.0
 with minimap2 v2.26 (`-ax asm5 -z200000,10000`).
 Variants and 1:1 aligned blocks were extracted with dipcall v0.3
-(`dipcall [options]`) [2].
+(`dipcall [options]`) [@defrabb2024].
 
 ### 3.2 PAV for structural variants  
 For SV discovery, assemblies were remapped with paftools (`-xasm20`),
@@ -61,7 +61,7 @@ Dipcall (SNV/indel) and PAV (SV) VCFs were merged with
 
 The Snakemake-based DeFrABB pipeline (commit `0.019`;
 https://github.com/usnistgov/giab-defrabb) orchestrates
-four major stages (Figure 1) [1,2]:
+four major stages (Figure 1) [@giabOutline2024; @defrabb2024]:
 
 1. **Variant pre-filtering** – remove dipcall artefacts (adjacent INS/DEL),
    flag inversions and ALT=`*` records.  
@@ -69,7 +69,7 @@ four major stages (Figure 1) [1,2]:
    subtract:  
    * assembly gaps + 2 kb flanks  
    * satellites & segdups (>10 kb) containing a break in either haplotype  
-   * VDJ loci, TSPY2 translocation, and curated error sites [2].  
+   * VDJ loci, TSPY2 translocation, and curated error sites [@defrabb2024].  
 3. **BED/VCF packaging** – produce reference-specific
    `{smvar,stvar}.{benchmark.bed,vcf.gz}` with bgzip + tabix indices.  
 4. **Provenance capture** – store DAG, Conda `environment.yml`,
@@ -130,7 +130,7 @@ truvari refine --recount --use-region-coords \
 ```
 
 Variants with `ALT=*` were filtered (`bcftools view -e 'ALT="."'`) to
-avoid mis-classification [2].
+avoid mis-classification [@defrabb2024].
 
 ### 7.3 Stratified performance metrics  
 Results were summarised per GIAB v3.5 stratification
@@ -157,20 +157,20 @@ AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/
 
 HG002 Q100 v1.1 assemblies are deposited at NCBI (GCA_018852605.3,
 GCA_018852615.3) and mirrored at
-https://github.com/marbl/hg002 [3].
+https://github.com/marbl/hg002 [@english2025].
 
 ## 10. Code availability  
 
-  * DeFrABB pipeline: https://github.com/usnistgov/giab-defrabb [6]  
-  * Benchmarking utilities (`q100bench`): https://github.com/nhansen/q100bench [4]  
+  * DeFrABB pipeline: https://github.com/usnistgov/giab-defrabb [@defrabbRepo]  
+  * Benchmarking utilities (`q100bench`): https://github.com/nhansen/q100bench [@q100bench2024]  
   * Snakemake provenance archive: Zenodo DOI 10.5281/zenodo.XXXXXXX  
 
 ---
 
 **References**  
-[1] GIAB HG002 Q100 Assembly-Based Variant Benchmark outline.  
-[2] NIST_HG002_DraftBenchmark_defrabbV0.019-20241113_README.md.  
-[3] Q100 Benchmark Manuscript Draft.pdf.  
-[4] ASHG-2024_Q100 poster.  
-[5] DeFrABB supplementary note on variant benchmarking.  
-[6] DeFrABB GitHub repository.  
+[@giabOutline2024] GIAB HG002 Q100 Assembly-Based Variant Benchmark outline.  
+[@defrabb2024] NIST_HG002_DraftBenchmark_defrabbV0.019-20241113_README.md.  
+[@english2025] Q100 Benchmark Manuscript Draft.pdf.  
+[@q100bench2024] ASHG-2024_Q100 poster.  
+[@defrabbSuppNote] DeFrABB supplementary note on variant benchmarking.  
+[@defrabbRepo] DeFrABB GitHub repository.  

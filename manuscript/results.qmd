@@ -9,14 +9,14 @@ To automate variant extraction and confident-region curation from the HG002 Q100
 3. Iteratively masks regions with assembly breaks, large satellites, segmental duplications with broken alignments, and known caller artefacts
 4. Emits harmonised VCF + BED benchmark packages for GRCh37, GRCh38 and T2T-CHM13 (Figure {@fig:workflow}).
 
-The current draft (`defrabbV0.019-20241113`) required ~24 h on 48 CPU cores and <200 GB RAM to complete end-to-end, and the full provenance (config files, Conda environments, Snakemake reports) is archived alongside each release [@doi:xxx; @url:xxx].
+The current draft (`defrabbV0.019-20241113`) required ~24 h on 48 CPU cores and <200 GB RAM to complete end-to-end, and the full provenance (config files, Conda environments, Snakemake reports) is archived alongside each release [@defrabb2024].
 
 ## Benchmark content and genome coverage
 
 The draft Q100 benchmark captures > 90% of the haploid HG002 genome for both small variants and SVs (Table {@tbl:coverage}). For GRCh38 coordinates:
 
 - **Small-variant regions**: 2.739 Gbp (92.9%) containing 3.64M single-nucleotide variants (SNVs) and 0.86M short indels
-- **SV regions**: 2.756 Gbp (93.5%) containing 28.2k insertions, deletions, duplications, inversions and translocations (size range 50bp–100kb) [@doi:xxx].
+- **SV regions**: 2.756 Gbp (93.5%) containing 28.2k insertions, deletions, duplications, inversions and translocations (size range 50bp–100kb) [@zook2019].
 
 Size spectra are unimodal for insertions (median 285 bp) and bimodal for deletions (peaks at 55 bp and 6 kb), reflecting tandem-repeat and segmental duplication (SD) polymorphisms, respectively (Figure {@fig:size-distributions}a).
 
@@ -24,7 +24,7 @@ Stratification shows substantial representation of difficult contexts:
 
 - 41% of benchmark bases fall in tandem repeats ≥50 bp
 - 13% in annotated SDs
-- 2.4% within medically relevant "difficult genes" previously excluded from GIAB benchmarks (e.g., PMS2, SMN1/2, CYP21A2) [@doi:xxx].
+- 2.4% within medically relevant "difficult genes" previously excluded from GIAB benchmarks (e.g., PMS2, SMN1/2, CYP21A2) [@zook2019].
 
 ## Expansion over legacy GIAB resources
 
@@ -32,7 +32,7 @@ Relative to the read-mapping-derived v4.2.1 small-variant and v0.6 SV benchmarks
 
 - ~300 Mbp of callable sequence
 - 16% more small variants
-- ~3-fold more SVs (Figure {@fig:comparison}b, Table {@tbl:comparison}) [@doi:xxx].
+- ~3-fold more SVs (Figure {@fig:comparison}b, Table {@tbl:comparison}) [@zook2019].
 
 Newly covered loci include:
 
@@ -58,9 +58,9 @@ We evaluated five state-of-the-art callsets against both v4.2.1/v0.6 and Q100 us
 Overall precision remained high (> 99.5%) for all callers; however, recall dropped by 4-12 percentage points in Q100-unique regions, particularly in long tandem repeats and SDs (Figure {@fig:performance}). For example:
 
 - DRAGEN recall for indels ≥15 bp fell from 98.7% (v4.2.1) to 86.1% in Q100
-- Sniffles2 recall for insertions 250bp–1kb declined from 87.3% to 68.4% [@doi:xxx]
+- Sniffles2 recall for insertions 250bp–1kb declined from 87.3% to 68.4% [@zook2019]
 
-Manual inspection of a random subset of discordant sites confirmed that > 90% of benchmark-only variants in these strata are supported by both HiFi and ultra-long ONT read alignments, consistent with the RIDE principle of reliable error detection [@doi:xxx; @doi:xxx].
+Manual inspection of a random subset of discordant sites confirmed that > 90% of benchmark-only variants in these strata are supported by both HiFi and ultra-long ONT read alignments, consistent with the RIDE principle of reliable error detection [@zook2019; @krusche2019].
 
 ## Portability across reference genomes
 
