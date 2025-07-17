@@ -1,0 +1,22 @@
+---
+editor:
+  markdown:
+    wrap: 80
+---
+
+## Data and Code availability
+
+All benchmark VCFs, BEDs, and auxiliary files are hosted on the GIAB FTP under
+
+```         
+https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/
+AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/
+```
+
+HG002 Q100 v1.1 assemblies are deposited at NCBI (GCA_018852605.3,
+GCA_018852615.3) and mirrored at https://github.com/marbl/hg002 [@english2025].
+
+-   DeFrABB pipeline: https://github.com/usnistgov/defrabb [@defrabbRepo]\
+-   Benchmarking utilities (`q100bench`): https://github.com/nhansen/q100bench
+    [@q100bench2024]\
+-   Snakemake provenance archive: data.nist.gov

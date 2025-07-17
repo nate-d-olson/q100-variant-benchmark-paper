@@ -1,121 +1,98 @@
 ---
-format: html
-execute: 
-  echo: false
-  warning: false
-  message: false
-title: "Title of Your Manuscript"
-author: 
-  - name: First Author
-    affiliation: Institution
-  - name: Second Author
-    affiliation: Institution
-date: "\today"
+title: "The Q100 Variant Benchmark"
+subtitle: "A Comprehensive, Assembly-Based Resource for Genome Analysis"
+author:
+  - name: "[Author Names]"
+    affiliations:
+      - institution: "[Institution 1]"
+        department: "[Department]"
+        location: "[Location]"
+      - institution: "[Institution 2]"
+        department: "[Department]"
+        location: "[Location]"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+format: 
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+  pdf:
+    toc: true
+    number-sections: true
+    documentclass: article
+    classoption: [a4paper, 11pt]
+    geometry: margin=1in
+    fontsize: 11pt
+bibliography: manuscript/references.bib
+link-citations: true
+editor:
+  markdown:
+    wrap: 80
 ---
+
+```{=latex}
+\usepackage{lineno}
+\linenumbers
+```
 
 # Abstract
 
-{#abstract}
+High-accuracy benchmark sets have been fundamental to the Genome in a Bottle
+(GIAB) Consortium's success in evaluating and improving sequencing technologies.
+However, existing benchmarks are limited by their reliance on short-read mapping
+to a single linear reference, omitting complex genomic regions. Here, we present
+the Q100 benchmark, a comprehensive variant benchmark derived from a
+high-quality, fully phased diploid assembly of the HG002 sample. Our approach
+leverages recent advances in long-read sequencing and assembly to provide
+confident variant calls across previously inaccessible regions, including
+segmental duplications, centromeres, and complex immune loci. The Q100 benchmark
+significantly expands the callable genome, adding \~300 Mbp of sequence and
+increasing variant detection by 16% for small variants and 3-fold for structural
+variants compared to previous benchmarks. We demonstrate the utility of this
+resource by evaluating multiple sequencing technologies and variant calling
+pipelines, revealing systematic differences in variant detection across genomic
+contexts. The Q100 benchmark provides a critical resource for the development
+and validation of next-generation sequencing technologies and analysis methods.
 
-::: {.abstract}
-Write your abstract here. The abstract should be a concise summary of the research.
-:::
+# Keywords
+
+Variant calling, genome assembly, benchmarking, structural variation, genome in
+a bottle, Q100
 
 # Introduction
 
-{#intro}
-
-::: {.section}
-Write your introduction here. This section should provide background information
-and state the research question.
-:::
+{{< include manuscript/introduction.qmd >}}
 
 # Methods
 
-{#methods}
-
-::: {.section}
-Write your methods section here. This should include:
-
-## Data
-
-{#methods-data}
-
-Describe your data sources and preprocessing.
-
-## Analysis
-
-{#methods-analysis}
-
-Describe your analysis methods and statistical approaches.
-:::
+{{< include manuscript/methods.qmd >}}
 
 # Results
 
-{#results}
-
-::: {.section}
-This section will include code chunks for generating figures and tables.
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo = FALSE,
-  warning = FALSE,
-  message = FALSE,
-  fig.width = 8,
-  fig.height = 6,
-  dpi = 300
-)
-```
-
-## Example Figure
-
-```{r example-plot}
-# Example plot generation code
-plot(1:10, 1:10, main = "Example Plot")
-```
-
-## Example Table
-
-```{r example-table}
-# Example table generation code
-data <- data.frame(
-  Variable = c("A", "B", "C"),
-  Value = c(1, 2, 3)
-)
-knitr::kable(data, caption = "Example Table")
-```
-:::
+{{< manuscript/results.qmd >}}
 
 # Discussion
 
-{#discussion}
+{{< manuscript/discussion.qmd >}}
 
-::: {.section}
-Write your discussion section here. This should interpret the results and
-place them in context.
-:::
+# Data and Code availability
 
-# Acknowledgments
+All benchmark VCFs, BEDs, and auxiliary files are hosted on the GIAB FTP under
 
-{#acknowledgments}
+```         
+https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/
+AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/
+```
 
-::: {.section}
-Acknowledge any funding sources, contributors, or institutions here.
-:::
+HG002 Q100 v1.1 assemblies are deposited at NCBI (GCA_018852605.3,
+GCA_018852615.3) and mirrored at https://github.com/marbl/hg002 [@english2025].
+
+-   DeFrABB pipeline: https://github.com/usnistgov/defrabb [@defrabbRepo]\
+-   Benchmarking utilities (`q100bench`): https://github.com/nhansen/q100bench
+    [@q100bench2024]\
+-   Snakemake provenance archive: data.nist.gov
 
 # References
 
-{#references}
-
-::: {.section}
-References will be automatically generated from references.bib
-:::
-
-# Supplemental Material
-
-{#supplemental}
-
-::: {.section}
-Include any additional supporting information here.
+::: {#refs}
 :::

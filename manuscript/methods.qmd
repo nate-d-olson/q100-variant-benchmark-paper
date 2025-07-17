@@ -1,176 +1,52 @@
-# Methods  
+## Methods
 
-All software versions, command lines, and intermediate artefacts are archived in the
-Zenodo-released Snakemake report that accompanies draft benchmark
-`defrabbV0.019-20241113` [@defrabb2024].
+### HG002 and Q100 assembly
 
-## 1. Biological materials and sequencing data  
+-   Genome In A Bottle HG002 RM
+-   Q100 assembly
+    -   sequencing data used
+    -   assembly methods
+    -   cuaration
+    -   Q100 assembly / genome benchmarking paper.
 
-### 1.1 Reference sample  
-Genomic DNA was obtained from the Coriell Institute
-cell line GM24385 (HG002), an Ashkenazi Jewish male that is the
-canonical GIAB reference specimen.
-
-### 1.2 Long- and short-read datasets used for assembly  
-PacBio HiFi (≈170×, CLR revio chemistry), Oxford Nanopore
-ultra-long (≈209×, R10.4.1 + Kit V14), Hi-C, Strand-seq and 10× Genomics
-linked-reads were combined as previously described for the Q100 project
-[@english2025].
-
-### 1.3 Sequencing data used for external validation  
-Independent datasets were downloaded from the GIAB FTP:
-
-* Illumina NovaSeq PCR-free 2 × 150 bp (≈300×)  
-* PacBio HiFi CCS (≈35×)  
-* ONT ultra-long (≈60×)  
-
-## 2. Generation of the HG002 Q100 v1.1 diploid assembly  
-
-Assembly followed the T2T Verkko workflow with three iterative
-polishing rounds:
-
-1.  Verkko v1.4 (`verkko --hifi hifi.fofn --nano ont.fofn -o HG002v0.7`)
-2.  Crowd-curated correction of consensus errors (GitHub issues
-    #1–#708) using k-mer evidence from Illumina, HiFi and ONT reads
-3.  Final polishing with `yahs`, `racon`, and `medaka`, producing
-    HG002v1.1 (GenBank GCA_018852605.3, GCA_018852615.3)
-
-Consensus accuracy was estimated with Merqury (`merqury.sh
-31mers.meryl assembly.fasta`) and Yak (`yak qv -t48 -m31
-reads.yak assembly.fasta`), yielding a median QV of 78.4 [@english2025].
-
-## 3. Assembly-to-reference variant calling  
-
-### 3.1 dipcall for small variants  
-Each haplotype FASTA was aligned to GRCh37, GRCh38 and CHM13 v2.0
-with minimap2 v2.26 (`-ax asm5 -z200000,10000`).
-Variants and 1:1 aligned blocks were extracted with dipcall v0.3
-(`dipcall [options]`) [@defrabb2024].
-
-### 3.2 PAV for structural variants  
-For SV discovery, assemblies were remapped with paftools (`-xasm20`),
-and variants ≥50 bp were called with PAV v1.2
-(`pav annotate --min_size 50 --threads 32`).
-
-### 3.3 Merging and normalisation  
-Dipcall (SNV/indel) and PAV (SV) VCFs were merged with
-`bcftools concat` and left-aligned / decomposed with
-`vt decompose_blocksub`.  Per-haplotype genotypes were retained.
-
-## 4. DeFrABB benchmark workflow  
+### DeFrABB
 
 The Snakemake-based DeFrABB pipeline (commit `0.019`;
-https://github.com/usnistgov/giab-defrabb) orchestrates
-four major stages (Figure 1) [@giabOutline2024; @defrabb2024]:
+https://github.com/usnistgov/giab-defrabb) orchestrates four major stages
+(Figure 1) [@giabOutline2024; @defrabb2024]:
 
-1. **Variant pre-filtering** – remove dipcall artefacts (adjacent INS/DEL),
-   flag inversions and ALT=`*` records.  
-2. **Confident-region derivation** – start from dipcall `*.dip.bed`, then
-   subtract:  
-   * assembly gaps + 2 kb flanks  
-   * satellites & segdups (>10 kb) containing a break in either haplotype  
-   * VDJ loci, TSPY2 translocation, and curated error sites [@defrabb2024].  
+1. **assembly-based** - variant calling, defining parameters, reference genomes
+1. **Variant Proprocessing** – variant format, annotations, filtering
+2. **Exclusions** - defining and removing intervals to exclude from benchmark regions
 3. **BED/VCF packaging** – produce reference-specific
-   `{smvar,stvar}.{benchmark.bed,vcf.gz}` with bgzip + tabix indices.  
-4. **Provenance capture** – store DAG, Conda `environment.yml`,
-   and resource manifest (`analyses_*.tsv`).
+    `{smvar,stvar}.{benchmark.bed,vcf.gz}` with bgzip + tabix indices.
+4. **Evaluations** hap.py and truvari refine, stratifications, target regions, defining truth/ baseline
+5. **Report** snakemake for run information, quarto analysis
+6. **Provenance capture** – store DAG, Conda `environment.yml`, and resource
+    manifest (`analyses_*.tsv`).
 
-Runtime on a 48-core, 512 GB machine was
-≈ 24 h; peak RAM 140 GB.
+-   Q100 specific configuration and methods used for individual steps
+    -   dipcall: parameters
+    -   vcf processing: formatting, normalization, annotations
+    -   exclusions: stratification based, reference-based, assembly-dependent,
+        variant overlap
+        -   list of excluded regions and reason for exclusion
+    -   evaluation
 
-## 5. Lifting benchmarks to alternate references  
+### External callset generation
 
-Confident regions and variants were lifted from GRCh38 coordinates
-using Liftoff v1.6 (`liftoff -sc 0.95 -copies -polish`) followed by
-`paftools liftover` refinement.  Variants that failed unique placement
-(1,823 SNVs, 77 SVs) were masked in the target reference package.
+- variant callset submission methods (supplemental)
+-   Benchmarking methods and pipelines used to run comparisons and generate
+    variant lists for external evaluations
+-   Variant list strata
 
-## 6. External callset generation  
+### Code, analysis, and data
 
-| Platform | Caller / version | Command highlights |
-|----------|-----------------|---------------------|
-| Illumina | DRAGEN 4.3 + DeepVariant 1.6 | `--mapping-edm` `--sv` |
-| Illumina | GATK 4.4 HC | `--pcr-indel-model AGGRESSIVE` |
-| HiFi     | Clair3 v0.1-r11 | `--platform hifi` |
-| ONT      | Sniffles2 v2.2 | `--ccs-ignore` |
-| ONT      | SVDSS v0.4     | default |
-
-Small-variant benchmarking callsets were exported as gVCFs where
-available to ensure coverage annotation.
-
-## 7. Benchmarking procedures  
-
-### 7.1 Small variants  
-`hap.py` v0.3.15 with RTG-tools vcf-eval engine:
-
-```bash
-hap.py -r ${ref}.fa \
-       -f smvar.benchmark.bed \
-       --engine vcfeval \
-       --gender male \
-       --stratification giab_strat.tsv \
-       -o outprefix \
-       smvar.vcf.gz test.vcf.gz
-```
-
-### 7.2 Structural variants  
-`truvari bench` + `truvari refine` (v4.1):
-
-```bash
-truvari bench -b stvar.vcf.gz -c test.vcf.gz \
-              -f ${ref}.fa -o truv_out \
-              --passonly -r 2000 -C 5000 \
-              --includebed stvar.benchmark.bed
-
-truvari refine --recount --use-region-coords \
-               --use-original-vcfs \
-               --align mafft \
-               --reference ${ref}.fa \
-               truv_out/candidate.refine.bed truv_out
-```
-
-Variants with `ALT=*` were filtered (`bcftools view -e 'ALT="."'`) to
-avoid mis-classification [@defrabb2024].
-
-### 7.3 Stratified performance metrics  
-Results were summarised per GIAB v3.5 stratification
-(homopolymers, tandem repeats, SDs, low-mappability, GC extremes) using
-`hap.py stats` and custom R scripts.
-
-## 8. Statistical analyses and visualisation  
-
-All summary statistics were computed in R 4.3 with packages
-`data.table`, `ggplot2`, `cowplot`.  Confidence intervals for precision
-and recall were estimated via Wilson score.  Size distributions were
-plotted on log10 axes; p-values from two-sided Wilcoxon rank-sum tests
-are reported without multiple-testing correction.
-
-## 9. Data availability  
-
-All benchmark VCFs, BEDs, and auxiliary files are hosted on the GIAB
-FTP under
-
-```
-https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/
-AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.019-20241113/
-```
-
-HG002 Q100 v1.1 assemblies are deposited at NCBI (GCA_018852605.3,
-GCA_018852615.3) and mirrored at
-https://github.com/marbl/hg002 [@english2025].
-
-## 10. Code availability  
-
-  * DeFrABB pipeline: https://github.com/usnistgov/giab-defrabb [@defrabbRepo]  
-  * Benchmarking utilities (`q100bench`): https://github.com/nhansen/q100bench [@q100bench2024]  
-  * Snakemake provenance archive: Zenodo DOI 10.5281/zenodo.XXXXXXX  
-
----
-
-**References**  
-[@giabOutline2024] GIAB HG002 Q100 Assembly-Based Variant Benchmark outline.  
-[@defrabb2024] NIST_HG002_DraftBenchmark_defrabbV0.019-20241113_README.md.  
-[@english2025] Q100 Benchmark Manuscript Draft.pdf.  
-[@q100bench2024] ASHG-2024_Q100 poster.  
-[@defrabbSuppNote] DeFrABB supplementary note on variant benchmarking.  
-[@defrabbRepo] DeFrABB GitHub repository.  
+-   Code used
+    -   defrabb
+    -   external evaluation
+    -   publication figures and results
+-   data
+    -   assembly: Q100
+    -   benchmark: ftp
+    -   external evaluation: ftp, data.nist.gov

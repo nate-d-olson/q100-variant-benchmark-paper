@@ -4,17 +4,20 @@ project:
 
 book:
   title: "The Q100 Variant Benchmark"
+  subtitle: "A Comprehensive, Assembly-Based Resource for Genome Analysis"
   author: "[Author Names]"
-  date: "6/25/2025"
+  date: "`r format(Sys.Date(), '%B %d, %Y')`"
   chapters:
-    - index.qmd
+    - manuscript/index.qmd
     - manuscript/introduction.qmd
     - manuscript/methods.qmd
     - manuscript/results.qmd
     - manuscript/discussion.qmd
-  references: manuscript/references.bib
-  
-bibliography: manuscript/references.bib
+    - manuscript/data.qmd
+  appendices:
+    - label: "References"
+      file: "manuscript/references.bib"
+  bibliography: manuscript/references.bib
 
 format:
   html:

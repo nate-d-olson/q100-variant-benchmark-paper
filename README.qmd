@@ -1,0 +1,236 @@
+---
+title: "Directory Structure for Quarto-based Scientific Manuscripts"
+author: "Your Name"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    highlight-style: github
+  pdf:
+    toc: true
+    number-sections: true
+    documentclass: article
+bibliography: references.bib
+---
+
+# Introduction
+
+Organizing a scientific manuscript project with Quarto requires thoughtful directory structure planning. A well-structured project facilitates collaboration, improves reproducibility, and streamlines the publishing workflow. This document outlines recommended practices for setting up a Quarto-based scientific manuscript project.
+
+# Recommended Directory Structure
+
+Below is an ideal structure for a scientific manuscript using Quarto:
+
+```
+project-root/
+├── _quarto.yml          # Main configuration file
+├── index.qmd            # Main landing page/abstract
+├── manuscript/          # Core manuscript files
+│   ├── introduction.qmd
+│   ├── methods.qmd
+│   ├── results.qmd
+│   ├── discussion.qmd
+│   └── references.bib   # Bibliography file
+├── sections/            # Supplementary sections or appendices
+│   ├── appendix-a.qmd
+│   ├── appendix-b.qmd
+│   └── ...
+├── data/                # Data files (if not too large)
+│   └── ...
+├── figures/             # Generated or static figures
+│   └── ...
+├── tables/              # Tables or data for tables
+│   └── ...
+├── scripts/             # Analysis scripts
+│   └── ...
+├── styles.css           # Custom CSS for HTML output
+├── templates/           # Custom templates for output formats
+│   └── ...
+└── .gitignore           # Version control ignore file
+```
+
+# Key Components and Best Practices
+
+## Configuration Files
+
+The `_quarto.yml` file is the central configuration file for your project. It defines project-wide settings, output formats, and navigation structure:
+
+```yaml
+project:
+  type: book
+  output-dir: _output
+
+book:
+  title: "Your Manuscript Title"
+  author: "Author Names"
+  date: "last-modified"
+  chapters:
+    - index.qmd
+    - manuscript/introduction.qmd
+    - manuscript/methods.qmd
+    - manuscript/results.qmd
+    - manuscript/discussion.qmd
+  appendices:
+    - sections/appendix-a.qmd
+    - sections/appendix-b.qmd
+
+bibliography: manuscript/references.bib
+
+format:
+  html:
+    theme: cosmo
+    code-fold: true
+  pdf:
+    documentclass: article
+    geometry:
+      - margin=1in
+    keep-tex: true
+```
+
+## Content Organization
+
+### Main Manuscript
+
+The core content of your manuscript should be organized in the `manuscript/` directory:
+
+- `introduction.qmd`: Background, research questions, and objectives
+- `methods.qmd`: Study design, data collection, and analysis procedures
+- `results.qmd`: Primary findings with figures and tables
+- `discussion.qmd`: Interpretation of results, limitations, and implications
+
+### Supporting Content
+
+Additional materials should be organized in dedicated directories:
+
+- `sections/`: Supplementary information and appendices
+- `figures/`: All visualizations, either statically saved or generated during rendering
+- `tables/`: Data tables and supporting tabular information
+- `data/`: Raw or processed datasets (if not too large)
+- `scripts/`: Analysis code and data processing scripts
+
+## Cross-referencing
+
+Quarto provides robust cross-referencing capabilities. Use labels and references throughout your documents:
+
+```markdown
+@fig-example shows the relationship between variables.
+
+![Example visualization](figures/example_plot.png){#fig-example}
+
+As shown in @tbl-results, the correlation was significant.
+
+| Variable | Coefficient | p-value |
+|----------|-------------|---------|
+| X        | 0.75        | 0.001   |
+| Y        | 0.32        | 0.04    |
+: Results of correlation analysis {#tbl-results}
+```
+
+## Version Control Integration
+
+Include a proper `.gitignore` file to exclude build artifacts and large files:
+
+```
+# Quarto build directories
+/.quarto/
+/_site/
+/_output/
+/_freeze/
+
+# Large data files
+/data/*.csv
+/data/*.xlsx
+
+# Generated PDF/Word outputs
+/*.pdf
+/*.docx
+
+# System files
+.DS_Store
+Thumbs.db
+```
+
+# Example _quarto.yml Configuration
+
+Here's a more detailed example of a configuration file for a scientific manuscript:
+
+```yaml
+project:
+  type: book
+  output-dir: _output
+
+book:
+  title: "Effects of Climate Change on Marine Ecosystems"
+  author: "Researcher Name"
+  date: last-modified
+  date-format: "MMMM D, YYYY"
+  chapters:
+    - index.qmd
+    - manuscript/introduction.qmd
+    - manuscript/methods.qmd
+    - manuscript/results.qmd
+    - manuscript/discussion.qmd
+    - manuscript/conclusion.qmd
+    - manuscript/acknowledgments.qmd
+  appendices:
+    - sections/appendix-data-sources.qmd
+    - sections/appendix-statistical-methods.qmd
+  
+bibliography: manuscript/references.bib
+csl: templates/journal-of-ecology.csl
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+    embed-resources: true
+  pdf:
+    documentclass: article
+    classoption: [12pt, onecolumn]
+    geometry:
+      - margin=1in
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    colorlinks: true
+    keep-tex: true
+```
+
+# Workflow Recommendations
+
+## Collaborative Editing
+
+When working with collaborators:
+
+1. Use version control (Git) to track changes
+2. Consider a branching strategy for major revisions
+3. Implement clear commenting conventions in the Qmd files
+
+## Reproducibility
+
+Ensure your manuscript is reproducible:
+
+1. Include all code needed to regenerate results
+2. Document computational environment (e.g., using `renv` for R projects)
+3. Consider using Docker for complete environment reproducibility
+
+## Citation Management
+
+For managing references:
+
+1. Maintain a single `references.bib` file
+2. Use citation keys consistently
+3. Consider tools like Zotero with Better BibTeX for reference management
+
+# Conclusion
+
+A well-organized Quarto project structure enhances collaboration, maintainability, and reproducibility. By following these recommendations, you can create a scientific manuscript that meets modern standards for computational publishing while streamlining your workflow.
+
+# References
+
+<!-- References will be automatically generated from your .bib file -->

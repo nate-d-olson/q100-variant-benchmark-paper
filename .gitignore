@@ -1,4 +1,46 @@
+# Quarto
 /.quarto/
 _site/
-backup_manuscript/
+/_freeze/
+*.html
+!index.html
 
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.rds
+.Rproj
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project-specific
+/backup_manuscript/
+/_temp/
+/drafts/
+/.env
+
+# LaTeX/PDF intermediate files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.run.xml
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.toc
+*.lof
+*.lot
+*.out
+_bookdown_files/

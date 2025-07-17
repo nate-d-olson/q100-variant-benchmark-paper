@@ -1,6 +1,4 @@
 ---
-title: "The Q100 Variant Benchmark"
-subtitle: "A Comprehensive, Assembly-Based Resource for Genome Analysis"
 author:
   - name: "[Author Names]"
     affiliations:
@@ -10,21 +8,10 @@ author:
       - institution: "[Institution 2]"
         department: "[Department]"
         location: "[Location]"
-date: "`r format(Sys.Date(), '%B %d, %Y')`"
-format: 
-  html:
-    toc: true
-    toc-depth: 2
-    number-sections: true
-  pdf:
-    toc: true
-    number-sections: true
-    documentclass: article
-    classoption: [a4paper, 11pt]
-    geometry: margin=1in
-    fontsize: 11pt
-bibliography: manuscript/references.bib
 link-citations: true
+editor:
+  markdown:
+    wrap: 80
 ---
 
 ```{=latex}
@@ -34,33 +21,24 @@ link-citations: true
 
 # Abstract
 
-High-accuracy benchmark sets have been fundamental to the Genome in a Bottle (GIAB) Consortium's success in evaluating and improving sequencing technologies. However, existing benchmarks are limited by their reliance on short-read mapping to a single linear reference, omitting complex genomic regions. Here, we present the Q100 benchmark, a comprehensive variant benchmark derived from a high-quality, fully phased diploid assembly of the HG002 sample. Our approach leverages recent advances in long-read sequencing and assembly to provide confident variant calls across previously inaccessible regions, including segmental duplications, centromeres, and complex immune loci. The Q100 benchmark significantly expands the callable genome, adding ~300 Mbp of sequence and increasing variant detection by 16% for small variants and 3-fold for structural variants compared to previous benchmarks. We demonstrate the utility of this resource by evaluating multiple sequencing technologies and variant calling pipelines, revealing systematic differences in variant detection across genomic contexts. The Q100 benchmark provides a critical resource for the development and validation of next-generation sequencing technologies and analysis methods.
+High-accuracy benchmark sets have been fundamental to the Genome in a Bottle
+(GIAB) Consortium's success in evaluating and improving sequencing technologies.
+However, existing benchmarks are limited by their reliance on short-read mapping
+to a single linear reference, omitting complex genomic regions. Here, we present
+the Q100 benchmark, a comprehensive variant benchmark derived from a
+high-quality, fully phased diploid assembly of the HG002 sample. Our approach
+leverages recent advances in long-read sequencing and assembly to provide
+confident variant calls across previously inaccessible regions, including
+segmental duplications, centromeres, and complex immune loci. The Q100 benchmark
+significantly expands the callable genome, adding \~300 Mbp of sequence and
+increasing variant detection by 16% for small variants and 3-fold for structural
+variants compared to previous benchmarks. We demonstrate the utility of this
+resource by evaluating multiple sequencing technologies and variant calling
+pipelines, revealing systematic differences in variant detection across genomic
+contexts. The Q100 benchmark provides a critical resource for the development
+and validation of next-generation sequencing technologies and analysis methods.
 
 # Keywords
 
-Variant calling, genome assembly, benchmarking, structural variation, genome in a bottle, Q100
-
-# Introduction
-
-```{r child='manuscript/introduction.qmd'}
-```
-
-# Methods
-
-```{r child='manuscript/methods.qmd'}
-```
-
-# Results
-
-```{r child='manuscript/results.qmd'}
-```
-
-# Discussion
-
-```{r child='manuscript/discussion.qmd'}
-```
-
-# References
-
-::: {#refs}
-:::
+Variant calling, genome assembly, benchmarking, structural variation, genome in
+a bottle, Q100

@@ -1,39 +1,14 @@
+---
+editor:
+  markdown:
+    wrap: 80
+---
+
 ## Discussion  
 
-### Benchmark advances and their immediate implications  
-The HG002 Q100 assembly–based benchmark represents the most comprehensive GIAB resource to date, unifying small- and structural-variant truth sets across >90 % of the genome.  By removing the reference-mapping bottleneck and leveraging a near–telomere-to-telomere diploid assembly, the benchmark (i) adds ~300 Mbp of difficult sequence, (ii) triples the number of curated SVs and (iii) delivers coordinate-matched packages for GRCh37, GRCh38 and CHM13.  These gains translate directly into more informative performance curves for state-of-the-art pipelines, which now display double-digit recall deficits in repeat-rich contexts that were invisible to v4.2.1/v0.6.  In practice, the Q100 benchmark therefore re-opens a performance head-room that had appeared saturated—especially for Illumina-based callers whose F1 values flirted with 0.999 in “easy” regions [@zook2019].  
-
-Beyond method development, immediate beneficiaries include translational laboratories seeking orthogonal confirmation of complex alleles in medically relevant genes.  Over 99 % of exons in the 250-gene GIAB “difficult-to-map” set are now covered, allowing validation of pathogenic indels in loci such as PMS2, SMN1/2 and CYP21A2 that were previously out of scope.  In population-scale studies, the availability of a single benchmark portable across linear references streamlines comparisons during the ongoing migration to pangenome graphs.  
-
-### Residual limitations  
-Despite these advances, several caveats warrant emphasis:  
-
-1. **Draft status and assembly artefacts.**  The benchmark inherits any residual errors in HG002 Q100 v1.1.  While k-mer and read-based validation suggest Q > 78, 23 regions remain under investigation by the T2T-Q100 team, and we purposely exclude obvious mis-assemblies (e.g., the chrY inversion polymorphism) [@defrabb2024].  
-
-2. **Masked contexts and caller idiosyncrasies.**  To ensure robust comparison with current tools, defrabb masks inversions, break-rich SD blocks and the TSPY2 translocation because mainstream comparators still struggle with these representations [@defrabb2024].  As algorithms mature, we anticipate unmasking a subset of these loci.  
-
-3. **Complex variant classes not yet benchmarked.**  Multi-allelic CNVs, large tandem repeat expansions (>10 kb), transposable-element insertions and low-level mosaic variants are outside the current confident BED.  Early tests with Truvari refine and Hap-Eval indicate promising concordance, but objective truth generation for such events will require improved assembly–assembly aligners and graph-aware comparison engines [@krusche2019].  
-
-4. **Limited phasing and zygosity assessment.**  Although the benchmark VCFS are haplotype-separated, we have not yet integrated phase-block confidence or switch-error annotation.  As downstream users begin to assess compound heterozygosity or allele-specific expression, explicit phasing quality metrics will be essential.  
-
-5. **Single-sample generalisability.**  HG002 is an extensively characterised Ashkenazi Jewish individual; performance patterns may differ in genomes with larger heterozygosity, substantial aneuploidy or complex population-specific duplications.  
-
-### Future directions  
-
-#### Refinement and community curation  
-We view `defrabbV0.019-20241113` as a community release candidate.  Crowdsourced manual review via GIAB’s MIQA interface, coupled with automated anomaly detectors, will remove residual false positives/negatives and iteratively shrink exclusion regions.  Parallel polishing of the underlying Q100 assembly (issues #696-708) will be back-ported to the benchmark.  
-
-#### Expansion to additional GIAB samples  
-With DeFrABB now automated, the obvious next step is to generate equivalent benchmarks for the other GIAB reference materials (HG001, HG005, HG007, HG02723, HG03098) as their phased assemblies reach Q70+.  This will enable ancestry-balanced method evaluation and pave the way for a full benchmark panel suitable for clinical validation studies.  
-
-#### Incorporation of graph and pangenome coordinates  
-Portal scripts already lift Q100 calls to CHM13; ongoing work will project them onto the Human Pangenome Reference Consortium (HPRC-Pan-v2) graph via vg and PGGB, publishing GAM/GBZ representations for graph-aware callers.  Success here will require consensus on graph-based comparison metrics and stratifications—an area where GIAB hopes to collaborate with the GA4GH Benchmarking team.  
-
-#### Broadening variant classes and performance metrics  
-We are prototyping benchmark modules for (i) tandem-repeat expansions using tandem-genotype truth derived from the assembly, (ii) somatic and germline mosaic variants identified by deep trio sequencing and (iii) telomere length and sequence composition.  At the same time, we advocate for genome-centric accuracy metrics—substitution/indel QV, phase-switch rate, collapse/duplication counts—that map more directly to assembly truth than traditional precision-recall curves.  These metrics are already implemented in the accompanying `q100bench` software package [@q100bench2024].  
-
-#### Improved tooling for complex comparison  
-Current SNP/indel benchmarking hinges on hap.py with RTG-vcfeval, and SV comparison relies on Truvari refine or Hap-Eval.  Both assume reasonably concordant breakpoints and 1:1 reference mapping.  We are evaluating alignment-free approaches (e.g., seqwish/Jaccard graphs) and generative models that replay variant calls into sequence space before alignment to the benchmark genome.  Such frameworks should eventually negate the need for exclusion of inversion clusters or complex SD regions.  
-
-### Conclusions  
-The HG002 Q100 assembly-based benchmark marks a pivotal transition from reference-biased, mapping-derived truth sets to sequence-anchored, genome-wide evaluation.  By exposing deficiencies in current pipelines within the most challenging 10 % of the genome, it offers a renewed performance gradient for innovation.  Continued refinement, expansion to additional samples and integration with graph references will establish a family of benchmarks commensurate with the era of complete genomes.  We invite the community to adopt, scrutinise and help perfect this resource as the foundation for the next decade of genomic accuracy improvement.
+- advancement this benchmark set represents
+    - already being used
+- value of defrabb
+- limitations
+- Benchmark sets for other GIAB RMs and genomes
+- Conclusion and impact statement
