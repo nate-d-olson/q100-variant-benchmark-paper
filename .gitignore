@@ -4,6 +4,7 @@ _site/
 /_freeze/
 *.html
 !index.html
+_manuscript/*
 
 # R
 .Rproj.user/
