@@ -1,31 +1,17 @@
 project:
-  type: book
-  output-dir: _site
-
-book:
-  title: "The Q100 Variant Benchmark"
-  subtitle: "A Comprehensive, Assembly-Based Resource for Genome Analysis"
-  author: "[Author Names]"
-  date: "`r format(Sys.Date(), '%B %d, %Y')`"
-  chapters:
-    - manuscript/index.qmd
-    - manuscript/introduction.qmd
-    - manuscript/methods.qmd
-    - manuscript/results.qmd
-    - manuscript/discussion.qmd
-    - manuscript/data.qmd
-  appendices:
-    - label: "References"
-      file: "manuscript/references.bib"
-  bibliography: manuscript/references.bib
-
+  type: manuscript
+bibliography: manuscript/references.bib
+citations-hover: true
 format:
   html:
     theme: cosmo
     css: styles.css
-    include-in-header: header.html
     toc: true
     number-sections: true
+    comments:
+      hypothesis: true
+  docx: default
+  jats: default
   pdf:
     documentclass: article
     classoption: [a4paper, 11pt]
@@ -40,3 +26,53 @@ format:
     number-sections: true
     lof: true
     lot: true
+
+## Additional Header Info to include
+# manuscript:
+#   # Abstract and keywords
+#   abstract: |
+#     Your abstract text here
+#   keywords: [keyword1, keyword2]
+  
+#   # Author details
+#   author:
+#     - name: "Author Name"
+#       affiliations:
+#         - id: org1
+#           name: "Organization"
+#           department: "Department"
+#           address: "Address"
+#           city: "City"
+#           country: "Country"
+#       email: "email@example.com"
+#       orcid: "0000-0000-0000-0000"
+#       corresponding: true
+      
+#   # Additional sections
+#   acknowledgements: |
+#     Acknowledgements text
+  
+#   # Supplementary materials
+#   supplements:
+#     - file: supplements/extra.qmd
+#       label: "Supplementary Material"
+  
+#   # Journal submission
+#   journal:
+#     name: "Journal Name"
+#     doi: "10.xxxx/xxxxx"
+#     publisher: "Publisher Name"
+#     epub-ppub: true
+    
+#   # Citation settings
+#   cite-method: citeproc
+#   biblio-style: apa
+#   link-citations: true
+  
+#   # Language and locale
+#   lang: en
+  
+#   # Figure and table settings
+#   fig-format: png
+#   fig-dpi: 300
+#   tbl-cap-location: top
