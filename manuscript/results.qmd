@@ -32,7 +32,9 @@ editor:
 ## Display items
 
 - **Figure 1**: Schematic of DeFrABB workflow
-- **Figure 2**: Small variant counts, coverage, and comparison to previous benchmark sets. Stratified, annotation based
+**Figure 2**: Small variant counts, coverage, and comparison to previous benchmark sets. Stratified, annotation based
+[Fig2](https://github.com/usnistgov/2024-11-04_ASHG_NDO_GIAB-Q100-benchmark/blob/main/poster/figs/q100_v4_comp.pdf)
+
 - **Figure 3**: SV counts, characteristics, coverage
 - **Figure 4**: External evaluation summary
 - **Table 1**: Summary statistics of Q100 benchmark content and comparisons (related to Figure 2/3)
