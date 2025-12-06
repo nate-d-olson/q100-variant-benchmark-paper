@@ -45,3 +45,4 @@ Thumbs.db
 *.lot
 *.out
 _bookdown_files/
+**/*.quarto_ipynb
