@@ -48,14 +48,6 @@ get_rtg_metrics <- function(rtg_stats_file) {
     col_types = "cc"
   )
 }
-
-## Using variant size from vcf files
-# get_rtg_var_lengths <- function(rtg_stats_file) {
-#   var_row_start <- get_var_allele_start(rtg_stats_file)
-#   read_tsv(rtg_stats_file, skip = var_row_start, col_types = "cddddd") %>%
-#     rename(var_length = length)
-# }
-
 ```
 
 ## Variant Characterization

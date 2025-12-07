@@ -30,11 +30,19 @@ editor:
   - structural variants
 
 ## Display items
+<!--  -->
+[Figure 1](manuscript/figs/giab_development_cycle.pdf)
+**Figure 1**: Schematic of DeFrABB workflow
 
-- **Figure 1**: Schematic of DeFrABB workflow
-**Figure 2**: Small variant counts, coverage, and comparison to previous benchmark sets. Stratified, annotation based
-[Fig2](https://github.com/usnistgov/2024-11-04_ASHG_NDO_GIAB-Q100-benchmark/blob/main/poster/figs/q100_v4_comp.pdf)
 
-- **Figure 3**: SV counts, characteristics, coverage
-- **Figure 4**: External evaluation summary
+[Figure 2A](manuscript/figs/q100_v4_comp.pdf)
+[Figure 2B](manuscript/figs/bench_cov_comparison.pdf)
+[Figure 2C](manuscript/figs/q100_v0.6_comp.pdf)
+[Figure 2D](manuscript/figs/med_gene_coverage.pdf)
+[Figure 2E](exclusion.pdf)
+**Figure 2**: Small and structural variant counts, coverage, and comparison to previous benchmark sets. %%TODO%% Stratified, annotation based???
+
+[Figure 3](manuscript/figs/external_evaluation_process.png)
+**Figure 3**: External evaluation summary
+
 - **Table 1**: Summary statistics of Q100 benchmark content and comparisons (related to Figure 2/3)
