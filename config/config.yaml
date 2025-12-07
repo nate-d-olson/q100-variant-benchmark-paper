@@ -1,0 +1,10 @@
+# Q100 Variant Benchmark Analysis Pipeline Configuration
+
+vcf_files:
+  chm13_stvar: "data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.vcf.gz"
+
+bed_files:
+  chm13_stvar: "data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.benchmark.bed"
+
+outputs:
+  sv_len: "sv_len.tsv"

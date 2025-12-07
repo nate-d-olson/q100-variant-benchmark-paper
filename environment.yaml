@@ -1,0 +1,9 @@
+name: q100-smk
+channels:
+  - conda-forge
+  - bioconda
+channel_priority: strict
+dependencies:
+  - snakemake>=8.0
+  - snakefmt
+  - mamba

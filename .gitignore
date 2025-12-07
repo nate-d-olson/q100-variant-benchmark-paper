@@ -32,6 +32,15 @@ Thumbs.db
 /data/
 /scratch
 
+# Snakemake
+logs/
+.snakemake/
+results/
+resources/
+benchmarks/
+*.pyc
+__pycache__/
+
 # LaTeX/PDF intermediate files
 *.aux
 *.bbl

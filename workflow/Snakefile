@@ -1,0 +1,21 @@
+"""
+Q100 Variant Benchmark Analysis Pipeline
+"""
+
+from snakemake.utils import min_version, validate
+
+min_version("8.0")
+
+
+configfile: "../config/config.yaml"
+
+
+wrapper_prefix = "v3.3.3"
+
+
+rule all:
+    input:
+        config["outputs"]["sv_len"],
+
+
+include: "rules/vcf_processing.smk"
