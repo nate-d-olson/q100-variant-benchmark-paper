@@ -26,6 +26,7 @@ library(tidyverse)
 library(DT)
 library(sessioninfo)
 library(here)
+library(assertthat)
 # source(here("scripts", "happy_giab.R"))
 ```
 
@@ -79,25 +80,16 @@ bench_var_metrics_df <- bench_var_rtg_stat_files %>%
   ) %>%
   select(-asm_varcall) %>%
   add_column(bench_version = "v5.0q", .before = "ref")
-# var_lengths_df <- bench_var_rtg_stat_files %>%
-#   map_dfr(get_rtg_var_lengths, .id = "benchmarkset") %>%
-#   separate(col = benchmarkset, into = c("ref", "asm_varcall", "bench_type"), sep = "_") %>%
-#   select(-asm_varcall) %>%
-#   add_column(bench_version = "v5.0q", .before = "ref")
-# 
-# var_len_fig_df <- var_lengths_df %>%
-#   pivot_longer(cols = c(Delete, Insert), names_to = "var_type", values_to = "Count") %>%
-#   mutate(
-#     var_length = as.integer(str_remove(var_length, "-.*")),
-#     var_length = if_else(var_type == "Delete", -var_length, var_length)
-#   )
-# glimpse(var_len_fig_df)
-```
 
-Tibble data structure
-```{r}
-# %TODO% add data frame assertions in place of glimpse
-glimpse(bench_var_metrics_df)
+# Validate bench_var_metrics_df structure
+assert_that(
+ is_tibble(bench_var_metrics_df),
+ has_name(bench_var_metrics_df, c("bench_version", "ref", "bench_type", "metric", "value")),
+ nrow(bench_var_metrics_df) > 0,
+ all(bench_var_metrics_df$bench_version == "v5.0q"),
+ all(bench_var_metrics_df$ref %in% c("GRCh37", "GRCh38", "CHM13v2.0")),
+ all(bench_var_metrics_df$bench_type %in% c("smvar", "stvar"))
+)
 ```
 
 ### Variant Counts
@@ -116,39 +108,41 @@ var_cnt_df <- bench_var_metrics_df %>%
   filter(metric %in% cnt_metrics) %>%
   mutate(value = as.integer(value))
 
-```
-
-```{r}
-# %TODO% add data frame assertions in place of glimpse
-glimpse(var_cnt_df)
+# Validate var_cnt_df structure
+assert_that(
+ is_tibble(var_cnt_df),
+ has_name(var_cnt_df, c("bench_version", "ref", "bench_type", "metric", "value")),
+ nrow(var_cnt_df) > 0,
+ is.integer(var_cnt_df$value),
+ all(var_cnt_df$metric %in% cnt_metrics)
+)
 ```
 
 #### Small Variant Counts
 
 
 ```{r}
-(
-  smvar_cnt_table <- var_cnt_df %>%
-    ## MNPs filtered - all zeros
-    filter(bench_type == "smvar", metric != "MNPs") %>%
-    select(-bench_type) %>%
-    ## %TODO% How to include insertions, deletions, INDELs
-    mutate(metric = if_else(metric == "SNPs", "SNVs", "INDELs")) %>%
-    pivot_wider(names_from = metric, values_from = value, values_fn = sum) %>%
-    mutate(Total = SNVs + INDELs)
-)
+smvar_cnt_table <- var_cnt_df %>%
+  ## MNPs filtered - all zeros
+  filter(bench_type == "smvar", metric != "MNPs") %>%
+  select(-bench_type) %>%
+  ## %TODO% How to include insertions, deletions, INDELs
+  mutate(metric = if_else(metric == "SNPs", "SNVs", "INDELs")) %>%
+  pivot_wider(names_from = metric, values_from = value, values_fn = sum) %>%
+  mutate(Total = SNVs + INDELs)
 ```
 
 #### Structural Variant Counts
 
 ```{r}
-(
-  stvar_cnt_table <- var_cnt_df %>%
-    filter(bench_type == "stvar", metric %in% c("Insertions", "Deletions", "Indels")) %>%
-    select(-bench_type) %>%
-    pivot_wider(names_from = metric, values_from = value, values_fn = sum) %>%
-    mutate(Total = Insertions + Deletions + Indels)
-)
+stvar_cnt_table <- var_cnt_df %>%
+  filter(
+    bench_type == "stvar",
+    metric %in% c("Insertions", "Deletions", "Indels")
+  ) %>%
+  select(-bench_type) %>%
+  pivot_wider(names_from = metric, values_from = value, values_fn = sum) %>%
+  mutate(Total = Insertions + Deletions + Indels)
 ```
 
 %%TODO%% Combine and get overall totals
@@ -178,8 +172,14 @@ sv_len_fig_df <- sv_len_df %>%
     TRUE ~ "Other Repeat"
   ))
 
-# %TODO% add data frame assertions in place of glimpse
-glimpse(sv_len_df)
+# Validate sv_len_df structure
+assert_that(
+ is_tibble(sv_len_df),
+ has_name(sv_len_df, c("CHROM", "POS", "SVTYPE", "SVLEN", "TRF", "TRFstart", "TRFend", "TRFlen")),
+ nrow(sv_len_df) > 0,
+ is.integer(sv_len_df$SVLEN),
+ all(sv_len_df$SVTYPE %in% c("INS", "DEL"))
+)
 ```
 
 ```{r}
@@ -274,11 +274,16 @@ regions_df <- c(bench_region_list, v5q_region_list) %>%
     chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
   )
 
-```
-```{r}
-# %TODO% add assertions to replace glimpse and FIXME checks
-glimpse(regions_df)
-regions_df %>% filter(bench_version == "FIXME" | var_type == "FIXME" | ref == "FIXME")
+# Validate regions_df structure and no FIXME values
+assert_that(
+ is_tibble(regions_df),
+ has_name(regions_df, c("benchmarkset", "chrom", "start", "end", "interval_size", "bench_version", "var_type", "ref")),
+ nrow(regions_df) > 0,
+ !any(regions_df$bench_version == "FIXME"),
+ !any(regions_df$var_type == "FIXME"),
+ !any(regions_df$ref == "FIXME"),
+ all(regions_df$interval_size > 0)
+)
 ```
 
 
@@ -290,19 +295,24 @@ regions_df %>% filter(bench_version == "FIXME" | var_type == "FIXME" | ref == "F
 - CHM13v2.0: [GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/914/755/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz), md5: 9e6bf6b586bc8954208d1cc1d5f2fc99. Using seqkit command `seqkit grep -r -p "chromosome ([1-9]|1[0-9]|2[0-2]|[XY])$" GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz]| seqkit fx2tab -inlsH -j 4 -C N > CHM13_size.tsv`. Sanity check from NCBI [assembly report](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/914/755/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_assembly_stats.txt) 3117275501.
 
 ```{r}
-hg002q100v1.1_size <- read_tsv(here("data/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"),
-                               col_names = c("chrom", "length", "offset", "line_bases", "line_bytes"),
-                               col_types = "ciiii") %>%
+hg002q100v1.1_size <- read_tsv(
+  here("data/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"),
+  col_names = c("chrom", "length", "offset", "line_bases", "line_bytes"),
+  col_types = "ciiii"
+) %>%
   filter(chrom %in% paste0("chr", c(1:22, "X", "Y"), "_MATERNAL")) %>%
-  summarise(genome_size = sum(length)) %>% 
+  summarise(genome_size = sum(length)) %>%
   pull(genome_size)
 
-get_nongap_genome_size <- function(size_tsv){
+get_nongap_genome_size <- function(size_tsv) {
   # %%TODO%% add sanity check for extra chromosomes
-  read_tsv(size_tsv,
-                           col_names = c("chrom", "length","Ns","seq.hash"),
-                           col_types = "ciic",skip = 1) %>%
-  summarise(genome_size = sum(length) -sum(Ns)) %>% 
+  read_tsv(
+    size_tsv,
+    col_names = c("chrom", "length", "Ns", "seq.hash"),
+    col_types = "ciic",
+    skip = 1
+  ) %>%
+    summarise(genome_size = sum(length) - sum(Ns)) %>%
     pull(genome_size)
 }
 
@@ -312,25 +322,34 @@ CHM13_size <- get_nongap_genome_size(here("data/CHM13v2.0_size.tsv"))
 
 ref_size <- data.frame(
   ref = c("GRCh37", "GRCh38", "CHM13", "HG002Q100v1.1"),
-  genome_size = c(GRCh37_size, 
-                  GRCh38_size, 
-                  CHM13_size,
-                  hg002q100v1.1_size)
+  genome_size = c(GRCh37_size, GRCh38_size, CHM13_size, hg002q100v1.1_size)
 )
 
 regions_df %>%
   filter(bench_version %in% c("v5q", "v4.2.1", "v0.6")) %>%
-  left_join(ref_size) %>% 
-  mutate(chrom_group = if_else(chrom %in% paste0("chr", c("X", "Y")), "sexchrom", "autosome")) %>%
+  left_join(ref_size) %>%
+  mutate(
+    chrom_group = if_else(
+      chrom %in% paste0("chr", c("X", "Y")),
+      "sexchrom",
+      "autosome"
+    )
+  ) %>%
   group_by(var_type, ref, genome_size, chrom_group, bench_version) %>%
   summarise(total_bases = sum(interval_size), .groups = "drop") %>%
-  pivot_wider(names_from = chrom_group, values_from = total_bases, values_fill = 0) %>% 
-    mutate(total_bp = autosome + sexchrom,
-           pct_ref_cvg = round(100*(total_bp/genome_size),0),
-           pct_q100_cvg = round(100*(total_bp/hg002q100v1.1_size), 0),
-           total_bp = format(total_bp, big.mark = ","),
-           autosome = format(autosome, big.mark = ","),
-           sexchrom = format(sexchrom, big.mark = ",")) %>% 
+  pivot_wider(
+    names_from = chrom_group,
+    values_from = total_bases,
+    values_fill = 0
+  ) %>%
+  mutate(
+    total_bp = autosome + sexchrom,
+    pct_ref_cvg = round(100 * (total_bp / genome_size), 0),
+    pct_q100_cvg = round(100 * (total_bp / hg002q100v1.1_size), 0),
+    total_bp = format(total_bp, big.mark = ","),
+    autosome = format(autosome, big.mark = ","),
+    sexchrom = format(sexchrom, big.mark = ",")
+  ) %>%
   arrange(var_type, bench_version, ref)
 ```
 
