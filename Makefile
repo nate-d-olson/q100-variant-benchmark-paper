@@ -1,4 +1,4 @@
-.PHONY: help dry-run lint format test clean dag
+.PHONY: help dry-run lint format test clean dag run
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  format    - Format Snakemake files with snakefmt"
 	@echo "  test      - Run all tests (lint + format check + dry-run)"
 	@echo "  dag       - Generate pipeline DAG visualization (PDF + DOT)"
+	@echo "  run       - Execute the pipeline with conda environments"
 	@echo "  clean     - Remove logs and temporary files"
 	@echo ""
 	@echo "Usage:"
@@ -18,6 +19,7 @@ help:
 	@echo "  make lint"
 	@echo "  make test"
 	@echo "  make dag"
+	@echo "  make run"
 
 # Dry-run workflow validation
 dry-run:
@@ -50,6 +52,12 @@ dag:
 	dot -Tpdf results/dag/pipeline.dot > results/dag/pipeline.pdf
 	echo "==> PDF visualization: results/dag/pipeline.pdf"
 	@echo "==> DAG generation complete"
+
+# Run the pipeline
+run:
+	@echo "==> Running pipeline with conda environments..."
+	snakemake --cores 4 --sdm conda --conda-frontend conda
+	@echo "==> Pipeline execution complete"
 
 # Clean logs and temporary files
 clean:
