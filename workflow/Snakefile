@@ -7,7 +7,7 @@ from snakemake.utils import min_version, validate
 min_version("8.0")
 
 
-configfile: "../config/config.yaml"
+configfile: "config/config.yaml"
 
 
 wrapper_prefix = "v3.3.3"

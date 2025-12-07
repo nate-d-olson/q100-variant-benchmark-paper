@@ -7,3 +7,4 @@ dependencies:
   - snakemake>=8.0
   - snakefmt
   - mamba
+  - graphviz

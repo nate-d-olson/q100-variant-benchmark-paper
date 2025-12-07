@@ -44,10 +44,11 @@ test: lint dry-run
 dag:
 	@echo "==> Generating pipeline DAG..."
 	@mkdir -p results/dag
-	snakemake --dag | dot -Tpdf > results/dag/pipeline.pdf
-	@echo "==> PDF visualization: results/dag/pipeline.pdf"
 	snakemake --dag > results/dag/pipeline.dot
 	@echo "==> Machine-readable DOT: results/dag/pipeline.dot"
+	@echo "==> Generating PDF visualization..."
+	dot -Tpdf results/dag/pipeline.dot > results/dag/pipeline.pdf
+	echo "==> PDF visualization: results/dag/pipeline.pdf"
 	@echo "==> DAG generation complete"
 
 # Clean logs and temporary files
