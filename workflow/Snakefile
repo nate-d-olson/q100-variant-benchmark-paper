@@ -1,5 +1,5 @@
 """
-Q100 Variant Benchmark Analysis Pipeline
+Pipeline to generate and download input files for v5q variant benchmark set manuscript
 """
 
 from snakemake.utils import min_version, validate
@@ -16,6 +16,13 @@ wrapper_prefix = "v3.3.3"
 rule all:
     input:
         config["outputs"]["sv_len"],
+        # RTG vcfstats for all benchmark sets
+        expand(
+            "{rtg_dir}/{{benchmark}}_vcfstats.txt".format(
+                rtg_dir=config["outputs"]["rtg_stats_dir"]
+            ),
+            benchmark=config["benchmarksets"].keys(),
+        ),
 
 
 include: "rules/vcf_processing.smk"

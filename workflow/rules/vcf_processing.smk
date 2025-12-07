@@ -28,3 +28,101 @@ rule generate_sv_len:
             exit 1
         fi
         """
+
+
+rule subset_vcf_to_benchmark_regions:
+    """
+    Subset VCF to benchmark regions for historical benchmarks.
+    
+    For benchmark sets that have separate VCF and BED files,
+    filter the VCF to only include variants within benchmark regions.
+    Draft benchmarks that are already filtered are simply symlinked.
+    """
+    input:
+        vcf=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"],
+    output:
+        vcf=ensure(
+            "{subset_dir}/{{benchmark}}.vcf.gz".format(
+                subset_dir=config["outputs"]["subset_vcf_dir"]
+            ),
+            non_empty=True,
+        ),
+        tbi="{subset_dir}/{{benchmark}}.vcf.gz.tbi".format(
+            subset_dir=config["outputs"]["subset_vcf_dir"]
+        ),
+    params:
+        bed=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["bed"],
+    log:
+        "logs/vcf_processing/{benchmark}_subset.log",
+    threads: 2
+    resources:
+        mem_mb=4096,
+    conda:
+        "../envs/bcftools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Subsetting {wildcards.benchmark} to benchmark regions" > {log}
+        echo "Started at $(date)" >> {log}
+        
+        if [ -z "{params.bed}" ] || [ "{params.bed}" = "None" ]; then
+            # No BED file - VCF is already filtered, create symlink
+            echo "No BED file provided, creating symlink to original VCF" >> {log}
+            ln -sf $(realpath {input.vcf}) {output.vcf}
+            ln -sf $(realpath {input.vcf}).tbi {output.tbi}
+        else
+            # Filter VCF to benchmark regions
+            echo "Filtering VCF to benchmark regions" >> {log}
+            bcftools view -R {params.bed} {input.vcf} -Oz -o {output.vcf} 2>> {log}
+            
+            # Index filtered VCF
+            bcftools index -t {output.vcf} 2>> {log}
+        fi
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output: {output.vcf}" >> {log}
+        """
+
+
+rule rtg_vcfstats:
+    """
+    Generate RTG vcfstats for a benchmark set.
+    
+    Calculates comprehensive variant statistics using RTG Tools vcfstats
+    on VCFs that have been filtered to benchmark regions.
+    """
+    input:
+        vcf="{subset_dir}/{{benchmark}}.vcf.gz".format(
+            subset_dir=config["outputs"]["subset_vcf_dir"]
+        ),
+        tbi="{subset_dir}/{{benchmark}}.vcf.gz.tbi".format(
+            subset_dir=config["outputs"]["subset_vcf_dir"]
+        ),
+    output:
+        stats=ensure(
+            "{rtg_dir}/{{benchmark}}_vcfstats.txt".format(
+                rtg_dir=config["outputs"]["rtg_stats_dir"]
+            ),
+            non_empty=True,
+        ),
+    log:
+        "logs/vcf_processing/{benchmark}_rtg_vcfstats.log",
+    threads: 1
+    resources:
+        mem_mb=4096,
+    conda:
+        "../envs/rtg-tools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Running RTG vcfstats for {wildcards.benchmark}" > {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Run RTG vcfstats
+        rtg vcfstats {input.vcf} > {output.stats} 2>> {log}
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output size: $(wc -l < {output.stats}) lines" >> {log}
+        """
