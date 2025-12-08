@@ -1,83 +1,5 @@
 # Q100 Variant Benchmark Analysis Pipeline Configuration
 
-# Chromosomes for per-chromosome analysis
-chromosomes:
-  chm13:
-    - chr1
-    - chr2
-    - chr3
-    - chr4
-    - chr5
-    - chr6
-    - chr7
-    - chr8
-    - chr9
-    - chr10
-    - chr11
-    - chr12
-    - chr13
-    - chr14
-    - chr15
-    - chr16
-    - chr17
-    - chr18
-    - chr19
-    - chr20
-    - chr21
-    - chr22
-    - chrX
-    - chrY
-  grch37:
-    - "1"
-    - "2"
-    - "3"
-    - "4"
-    - "5"
-    - "6"
-    - "7"
-    - "8"
-    - "9"
-    - "10"
-    - "11"
-    - "12"
-    - "13"
-    - "14"
-    - "15"
-    - "16"
-    - "17"
-    - "18"
-    - "19"
-    - "20"
-    - "21"
-    - "22"
-    - "X"
-    - "Y"
-  grch38:
-    - chr1
-    - chr2
-    - chr3
-    - chr4
-    - chr5
-    - chr6
-    - chr7
-    - chr8
-    - chr9
-    - chr10
-    - chr11
-    - chr12
-    - chr13
-    - chr14
-    - chr15
-    - chr16
-    - chr17
-    - chr18
-    - chr19
-    - chr20
-    - chr21
-    - chr22
-    - chrX
-    - chrY
-
 # Benchmark sets for RTG vcfstats analysis
 benchmarksets:
   # Draft v1.1 benchmark sets (already filtered to benchmark regions)
@@ -106,13 +28,13 @@ benchmarksets:
   cmrg_grch38_smvar:
     vcf: "data/benchmarksets/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz"
     bed: "data/benchmarksets/HG002_GRCh38_CMRG_smallvar_v1.00.bed"
-  cmrg_grch38_sv:
+  cmrg_grch38_stvar:
     vcf: "data/benchmarksets/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz"
     bed: "data/benchmarksets/HG002_GRCh38_CMRG_SV_v1.00.bed"
-  v06_grch38_sv:
+  v06_grch37_stvar:
     vcf: "data/benchmarksets/HG002_SVs_Tier1_v0.6.vcf.gz"
     bed: "data/benchmarksets/HG002_SVs_Tier1_noVDJorXorY_v0.6.2.bed"
-  tr_grch38_smvar:
+  tr_grch38_trvar:
     vcf: "data/benchmarksets/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz"
     bed: "data/benchmarksets/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz"
 
@@ -126,5 +48,5 @@ bed_files:
 
 outputs:
   sv_len: "sv_len.tsv"
-  rtg_stats_dir: "results/rtg_stats"
+  rtg_stats_dir: "results/vcfstats"
   subset_vcf_dir: "results/subset_vcfs"

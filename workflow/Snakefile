@@ -13,16 +13,12 @@ configfile: "config/config.yaml"
 wrapper_prefix = "v3.3.3"
 
 
+include: "rules/common.smk"
+
+
 rule all:
     input:
-        config["outputs"]["sv_len"],
-        # RTG vcfstats for all benchmark sets
-        expand(
-            "{rtg_dir}/{{benchmark}}_vcfstats.txt".format(
-                rtg_dir=config["outputs"]["rtg_stats_dir"]
-            ),
-            benchmark=config["benchmarksets"].keys(),
-        ),
-
+        get_sv_len_inputs,
+        get_subset_stats_inputs,
 
 include: "rules/vcf_processing.smk"

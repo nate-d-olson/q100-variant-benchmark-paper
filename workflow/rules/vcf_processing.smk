@@ -3,14 +3,24 @@ VCF processing rules for variant characterization
 """
 
 
-rule generate_sv_len:
+rule generate_svlen:
+    """
+    Generate SV length table for structural variant benchmark sets.
+    
+    Extracts variant information including chromosome, position, end, SV type,
+    VKX annotation, SV length, tandem repeat features, and repeat masker classification
+    from VCF files filtered to benchmark regions.
+    """
     input:
-        vcf=config["vcf_files"]["chm13_stvar"],
-        bed=config["bed_files"]["chm13_stvar"],
+        vcf="results/subset_vcfs/{benchmark}.vcf.gz",
+        tbi="results/subset_vcfs/{benchmark}.vcf.gz.tbi",
     output:
-        tsv=config["outputs"]["sv_len"],
+        tsv=ensure(
+            "results/sv_len/{benchmark}_svlen.tsv",
+            non_empty=True,
+        ),
     log:
-        "logs/vcf_processing/sv_len.log",
+        "logs/sv_len/{benchmark}_svlen.log",
     threads: 1
     resources:
         mem_mb=4096,
@@ -18,15 +28,25 @@ rule generate_sv_len:
         "../envs/bcftools.yaml"
     shell:
         """
+        # Log execution start
+        echo "Generating SV length table for {wildcards.benchmark}" > {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Extract SV information from VCF
         bcftools query -HH \
             -f '%CHROM\\t%POS0\\t%END\\t%SVTYPE\\t%VKX\\t%SVLEN\\t%TRF\\t%TRFstart\\t%TRFend\\t%RM_clsfam\\n' \
-            -R {input.bed} {input.vcf} \
-            > {output.tsv} 2> {log}
+            {input.vcf} \
+            > {output.tsv} 2>> {log}
         
+        # Verify output is not empty
         if [ ! -s {output.tsv} ]; then
             echo "ERROR: Output file is empty" >> {log}
             exit 1
         fi
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output size: $(wc -l < {output.tsv}) lines" >> {log}
         """
 
 
@@ -68,15 +88,13 @@ rule subset_vcf_to_benchmark_regions:
         tbi=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"] + ".tbi",
     output:
         vcf=ensure(
-            "{subset_dir}/{{benchmark}}.vcf.gz".format(
-                subset_dir=config["outputs"]["subset_vcf_dir"]
-            ),
+            "results/subset_vcfs/{benchmark}.vcf.gz",
             non_empty=True,
         ),
     params:
         bed=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["bed"],
     log:
-        "logs/vcf_processing/{benchmark}_subset.log",
+        "logs/subset_vcfs/{benchmark}_subset.log",
     threads: 2
     resources:
         mem_mb=4096,
@@ -106,40 +124,40 @@ rule subset_vcf_to_benchmark_regions:
 
 rule rtg_vcfstats:
     """
-    Generate RTG vcfstats for a benchmark set.
+    Generate per-chromosome RTG vcfstats for a benchmark set.
     
     Calculates comprehensive variant statistics using RTG Tools vcfstats
-    on VCFs that have been filtered to benchmark regions.
+    on VCFs that have been filtered to benchmark regions, for a single chromosome.
+    
+    Chromosome naming:
+    - CHM13/GRCh38: chr1-chr22, chrX, chrY
+    - GRCh37: 1-22, X, Y
     """
     input:
-        vcf="{subset_dir}/{{benchmark}}.vcf.gz".format(
-            subset_dir=config["outputs"]["subset_vcf_dir"]
-        ),
-        tbi="{subset_dir}/{{benchmark}}.vcf.gz.tbi".format(
-            subset_dir=config["outputs"]["subset_vcf_dir"]
-        ),
+        vcf="results/subset_vcfs/{benchmark}.vcf.gz",
+        tbi="results/subset_vcfs/{benchmark}.vcf.gz.tbi",
     output:
         stats=ensure(
-            "{rtg_dir}/{{benchmark}}_vcfstats.txt".format(
-                rtg_dir=config["outputs"]["rtg_stats_dir"]
-            ),
+            "results/vcfstats/{benchmark}_{chrom}_vcfstats.txt",
             non_empty=True,
         ),
     log:
-        "logs/vcf_processing/{benchmark}_rtg_vcfstats.log",
+        "logs/vcfstats/{benchmark}_{chrom}_vcfstats.log",
     threads: 1
     resources:
-        mem_mb=4096,
+        mem_mb=2048,
     conda:
         "../envs/rtg-tools.yaml"
     shell:
         """
         # Log execution start
-        echo "Running RTG vcfstats for {wildcards.benchmark}" > {log}
+        echo "Running RTG vcfstats for {wildcards.benchmark} chromosome {wildcards.chrom}" > {log}
         echo "Started at $(date)" >> {log}
         
-        # Run RTG vcfstats
-        rtg vcfstats {input.vcf} > {output.stats} 2>> {log}
+        # Run RTG vcfstats for specific chromosome
+        rtg vcfsubset --region={wildcards.chrom} -i {input.vcf} -o - |
+            rtg vcfstats - \
+            > {output.stats} 2>> {log}
         
         # Log completion
         echo "Completed at $(date)" >> {log}
