@@ -46,10 +46,12 @@ rule index_vcf:
     threads: 1
     resources:
         mem_mb=2048
+    conda:
+        "../envs/bcftools.yaml"
     params:
-        extra=""  # Optional bcftools index parameters
-    wrapper:
-        f"{wrapper_prefix}/bio/bcftools/index"
+        extra="-t"  # Optional bcftools index parameters
+    shell:
+        "bcftools index --threads {threads} {params.extra} {input} > {log} 2>&1"
 
 
 rule subset_vcf_to_benchmark_regions:

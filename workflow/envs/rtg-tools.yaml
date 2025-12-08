@@ -2,5 +2,5 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - rtg-tools
-  - bcftools
+  - rtg-tools=3.13
+  - bcftools=1.22
