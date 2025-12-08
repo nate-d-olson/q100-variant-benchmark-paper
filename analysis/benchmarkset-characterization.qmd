@@ -13,10 +13,17 @@ execute:
   warning: false
 ---
 
+## TODO
+
 Snakemake pipeline
-- run rtg-tools vcfstats on benchmark VCFs, excluding variants outside benchmark regions
-- get counts for autosomes and sex chromosomes separately, potentially by chromosome (additional compute upfront but eaiser analysis later)
+- add rules and code to download input files
+- additional rules for region intersections
+- variant counts for difficult genomic context
+- benchmark set difficult region coverage
+
+Analyses
 - Look for small intervals in v5q
+
 
 
 ```{r setup}
@@ -38,7 +45,12 @@ get_var_allele_start <- function(rtg_stats_file) {
 }
 
 get_rtg_metrics <- function(rtg_stats_file) {
-  n_stat_rows <- get_var_allele_start(rtg_stats_file) - 3
+  n_stat_rows <- -1
+  var_len_start <- get_var_allele_start(rtg_stats_file)
+  if(length(var_len_start) > 0) {
+    n_stat_rows <- var_len_start - 3
+  }
+  
   read_delim(
     rtg_stats_file,
     n_max = n_stat_rows,
@@ -53,9 +65,6 @@ get_rtg_metrics <- function(rtg_stats_file) {
 
 ## Variant Characterization
 
-%TODO% rtg stats for v4, v0.6, CMRG, TR
-%TODO% counts excluding XY for more direct comparison to previous versions
-
 - Number of SNVs, INDELs, and SVs in v5 compared to v4 and v0.6
 - Size distributions of INDELs and SVs in v5 compared to v4 and v0.6
 - Breakdown of variants in different genomic contexts (e.g., repeats, segmental duplications, etc.)
@@ -64,31 +73,55 @@ get_rtg_metrics <- function(rtg_stats_file) {
 ```{r}
 #| warning: false
 bench_var_rtg_stat_files <- list.files(
-  path = here("data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets"),
-  pattern = "rtg_stats.txt",
+  path = here("results/vcfstats"),
+  pattern = "vcfstats.txt",
   recursive = TRUE,
   full.names = TRUE
 ) %>%
-  set_names(str_extract(., "(?<=benchmarksets/).*(?=-excluded/)"))
+  set_names(str_extract(., "(?<=vcfstats/).*(?=_vcfstats)"))
 
 bench_var_metrics_df <- bench_var_rtg_stat_files %>%
   map_dfr(get_rtg_metrics, .id = "benchmarkset") %>%
   separate(
     col = benchmarkset,
-    into = c("ref", "asm_varcall", "bench_type"),
+    into = c("bench_version", "ref", "bench_type", "chrom"),
     sep = "_"
   ) %>%
-  select(-asm_varcall) %>%
-  add_column(bench_version = "v5.0q", .before = "ref")
+  mutate(
+    bench_version = case_when(
+      bench_version == "v5q" ~ "v5.0q",
+      bench_version == "v421" ~ "v4.2.1",
+      bench_version == "v06" ~ "v0.6",
+      bench_version == "cmrg" ~ "CMRG",
+      bench_version == "tr" ~ "TR",
+      TRUE ~ "FIXME"
+    ),
+    ref = case_when(
+      ref == "grch37" ~ "GRCh37",
+      ref == "grch38" ~ "GRCh38",
+      ref == "chm13" ~ "CHM13v2.0",
+      TRUE ~ "FIXME"
+    ),
+    bench_type = if_else(bench_type == "sv", "stvar", bench_type),
+    bench_type = if_else(bench_version == "TR", "trvar", bench_type)
+  )
+```
 
-# Validate bench_var_metrics_df structure
+Validate bench_var_metrics_df structure
+```{r}
 assert_that(
- is_tibble(bench_var_metrics_df),
- has_name(bench_var_metrics_df, c("bench_version", "ref", "bench_type", "metric", "value")),
- nrow(bench_var_metrics_df) > 0,
- all(bench_var_metrics_df$bench_version == "v5.0q"),
- all(bench_var_metrics_df$ref %in% c("GRCh37", "GRCh38", "CHM13v2.0")),
- all(bench_var_metrics_df$bench_type %in% c("smvar", "stvar"))
+  is_tibble(bench_var_metrics_df),
+  has_name(
+    bench_var_metrics_df,
+    c("bench_version", "ref", "bench_type", "metric", "value")
+  ),
+  nrow(bench_var_metrics_df) > 0,
+  all(
+    bench_var_metrics_df$bench_version %in%
+      c("v5.0q", "v4.2.1", "v0.6", "CMRG", "TR")
+  ),
+  all(bench_var_metrics_df$ref %in% c("GRCh37", "GRCh38", "CHM13v2.0")),
+  all(bench_var_metrics_df$bench_type %in% c("smvar", "stvar", "trvar"))
 )
 ```
 
@@ -107,8 +140,10 @@ cnt_metrics <- c("SNPs", "MNPs", "Insertions", "Deletions", "Indels")
 var_cnt_df <- bench_var_metrics_df %>%
   filter(metric %in% cnt_metrics) %>%
   mutate(value = as.integer(value))
+```
 
-# Validate var_cnt_df structure
+Validate var_cnt_df structure
+```{r}
 assert_that(
  is_tibble(var_cnt_df),
  has_name(var_cnt_df, c("bench_version", "ref", "bench_type", "metric", "value")),
@@ -117,7 +152,6 @@ assert_that(
  all(var_cnt_df$metric %in% cnt_metrics)
 )
 ```
-
 #### Small Variant Counts
 
 
@@ -128,8 +162,11 @@ smvar_cnt_table <- var_cnt_df %>%
   select(-bench_type) %>%
   ## %TODO% How to include insertions, deletions, INDELs
   mutate(metric = if_else(metric == "SNPs", "SNVs", "INDELs")) %>%
-  pivot_wider(names_from = metric, values_from = value, values_fn = sum) %>%
+  pivot_wider(id_cols = c(ref, bench_version), names_from = metric, values_from = value, values_fn = sum) %>%
   mutate(Total = SNVs + INDELs)
+
+smvar_cnt_table %>% 
+  arrange(ref)
 ```
 
 #### Structural Variant Counts
@@ -141,45 +178,63 @@ stvar_cnt_table <- var_cnt_df %>%
     metric %in% c("Insertions", "Deletions", "Indels")
   ) %>%
   select(-bench_type) %>%
-  pivot_wider(names_from = metric, values_from = value, values_fn = sum) %>%
+  pivot_wider(id_cols = c("ref", "bench_version"), names_from = metric, values_from = value, values_fn = sum) %>%
   mutate(Total = Insertions + Deletions + Indels)
-```
 
-%%TODO%% Combine and get overall totals
+stvar_cnt_table %>% 
+  arrange(ref)
+```
 
 ### Variant Size Distributions
 
+%%TODO%% review Truvari TRF and repeat masker annotations to make sure appropriately using for Alu and LINE annotations
+
 ```{r}
 ## TSV generate using make_sv_len.sh script
-sv_len_df <- read_tsv("../sv_len.tsv", show_col_types = FALSE) %>%
+sv_len_df <- list.files(path = here("results", "sv_len"), pattern = "svlen.tsv",recursive = TRUE,
+  full.names = TRUE
+) %>%
+  set_names(str_extract(., "(?<=sv_len/).*(?=_svlen.tsv)")) %>% 
+  
+  map_dfr(read_tsv, col_types = "ciicciciic", na = ".", .id = "benchmarkset") %>% 
+  separate(col = benchmarkset, into = c("bench_version", "ref"), sep = "_") %>%
   filter(SVTYPE != ".") %>%
+  filter(SVLEN > 49) %>%
   rename(CHROM = `#CHROM`) %>%
   mutate(
-    SVLEN = as.integer(SVLEN),
-    TRFstart = if_else(TRFstart == ".", 0, as.integer(TRFstart)),
-    TRFend = if_else(TRFend == ".", -1, as.integer(TRFend)),
-    TRF = if_else(TRF == 1, 1, 0),
-    TRFlen = TRFend - TRFstart + 1
+    TRF = case_when(TRF == "1" ~ "TR", is.na(TRF) ~ "nonTR", TRUE ~ "FIXME"),
+    TRFlen = TRFend - TRFstart
   )
 
 sv_len_fig_df <- sv_len_df %>%
   filter(SVLEN > 49) %>%
   mutate(SVLEN = if_else(SVTYPE == "DEL", -SVLEN, SVLEN)) %>%
-  mutate(TRcls = case_when(
-    str_detect(RM_clsfam, "SINE/Alu") ~ "Alu",
-    str_detect(RM_clsfam, "LINE/L1") ~ "LINE",
-    RM_clsfam == "." ~ "Non-Repeat",
-    TRUE ~ "Other Repeat"
-  ))
+  mutate(
+    RepCat = case_when(
+      TRF == "nonTR" & is.na(RM_clsfam) ~ "Non-Repeat",
+      TRF == "TR" ~ "Tandem Repeat",
+      str_detect(RM_clsfam, "SINE/Alu") ~ "Alu",
+      str_detect(RM_clsfam, "LINE/L1") ~ "LINE",
+      !is.na(RM_clsfam) ~ "Other Repeat",
+      TRUE ~ "FIXME"
+    )
+  )
+```
 
-# Validate sv_len_df structure
+
+Validate sv_len_df structure
+```{r}
 assert_that(
  is_tibble(sv_len_df),
- has_name(sv_len_df, c("CHROM", "POS", "SVTYPE", "SVLEN", "TRF", "TRFstart", "TRFend", "TRFlen")),
+ has_name(sv_len_df, c("CHROM", "POS0", "SVTYPE", "SVLEN", "TRF", "TRFstart", "TRFend", "TRFlen")),
  nrow(sv_len_df) > 0,
  is.integer(sv_len_df$SVLEN),
- all(sv_len_df$SVTYPE %in% c("INS", "DEL"))
+ all(sv_len_df$SVTYPE %in% c("INS", "DEL")),
+all(sv_len_df$TRF != "FIXME")
 )
+
+assert_that(is_tibble(sv_len_fig_df),
+            all(sv_len_fig_df$RepCat != "FIXME"))
 ```
 
 ```{r}
@@ -193,8 +248,8 @@ ggplot(
     bins = 50
   ) +
   geom_histogram(
-    data = sv_len_fig_df %>% filter(TRcls %in% c("Alu", "LINE")),
-    aes(fill = TRcls),
+    data = sv_len_fig_df %>% filter(RepCat %in% c("Alu", "LINE")),
+    aes(fill = RepCat),
     color = "grey20",
     bins = 50, show.legend = FALSE
   ) +
@@ -214,14 +269,13 @@ ggplot(
     y = "Count",
     fill = ""
   ) +
+  facet_wrap(~ref, ncol = 1) + 
   theme_minimal() +
   theme(
     axis.text.x = element_text(angle = -45, hjust = 0),
     minor_grid = element_blank()
   )
 ```
-
-%%TODO%% generate stats files for benchmark set comparisons - using make_var_len.sh script, may need to annotate other VCFs.
 
 ## Benchmark region characterization
 
@@ -230,7 +284,7 @@ ggplot(
 ```{r}
 bench_region_list <- list.files(
   path = here("data/benchmarksets"),
-  pattern = ".bed",
+  pattern = "\\.bed(\\.gz)?$",
   recursive = TRUE,
   full.names = TRUE
 ) %>%
@@ -250,26 +304,27 @@ regions_df <- c(bench_region_list, v5q_region_list) %>%
   map_dfr(read_tsv, col_names = c("chrom", "start", "end"), col_types = "cii", .id = "benchmarkset") %>%
   mutate(
     interval_size = end - start,
-    bench_version = case_when(
-      str_detect(benchmarkset, "T2TQ100v1.1") ~ "v5q",
-      str_detect(benchmarkset, "v4.2.1") ~ "v4.2.1",
-      str_detect(benchmarkset, "v0.6") ~ "v0.6",
-      str_detect(benchmarkset, "CMRG") ~ "CMRG",
-      str_detect(benchmarkset, "TandemRepeats") ~ "TR",
-      TRUE ~ "FIXME"
+     bench_version = case_when(
+     str_detect(benchmarkset, "T2TQ100v1.1") ~ "v5q",
+     str_detect(benchmarkset, "v4.2.1") ~ "v4.2.1",
+     str_detect(benchmarkset, "v0.6") ~ "v0.6",
+     str_detect(benchmarkset, "CMRG") ~ "CMRG",
+     str_detect(benchmarkset, "TandemRepeats") ~ "TR",
+     str_detect(benchmarkset, "platinum_pedigree") ~ "PG",
+     TRUE ~ "FIXME"
     ),
     var_type = case_when(
-      str_detect(benchmarkset, "smvar") | str_detect(benchmarkset, "smallvar") ~ "smvar",
-      str_detect(benchmarkset, "stvar") | str_detect(benchmarkset, "SV") ~ "stvar",
-      str_detect(benchmarkset, "v4.2.1") ~ "smvar",
-      str_detect(benchmarkset, "TandemRepeats") ~ "TR",
-      TRUE ~ "FIXME"
+     str_detect(benchmarkset, "smvar") | str_detect(benchmarkset, "smallvar") ~ "smvar",
+     str_detect(benchmarkset, "stvar") | str_detect(benchmarkset, "SV") | str_detect(benchmarkset, "\\.svs\\.") ~ "stvar",
+     str_detect(benchmarkset, "v4.2.1") ~ "smvar",
+     str_detect(benchmarkset, "TandemRepeats") | str_detect(benchmarkset, "\\.trs\\.") ~ "TR",
+     TRUE ~ "FIXME"
     ),
     ref = case_when(
-      str_detect(benchmarkset, "v0.6") | str_detect(benchmarkset, "GRCh37") ~ "GRCh37",
-      str_detect(benchmarkset, "GRCh38") ~ "GRCh38",
-      str_detect(benchmarkset, "CHM13") ~ "CHM13",
-      TRUE ~ "FIXME"
+     str_detect(benchmarkset, "v0.6") | str_detect(benchmarkset, "GRCh37") ~ "GRCh37",
+     str_detect(benchmarkset, "GRCh38") | str_detect(benchmarkset, "platinum_pedigree") ~ "GRCh38",
+     str_detect(benchmarkset, "CHM13") ~ "CHM13",
+     TRUE ~ "FIXME"
     ),
     chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
   )
@@ -406,15 +461,15 @@ regions_df %>%
 
 #### Benchmark Interval Size Distributions
 
-%%TODO%% add PG bench regions
+Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-request s3://platinum-pedigree-data/truthset_v1.2/ . 
 ```{r}
 regions_df %>%
-  filter(
-    bench_version %in% c("v5q", "v4.2.1", "v0.6"),
-    (var_type == "smvar" & ref == "GRCh38") |
-      (var_type == "stvar" & ref == "GRCh37"),
-    chrom %in% paste0("chr", c(1:22))
-  ) %>%
+ filter(
+   bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
+   (var_type == "smvar" & ref == "GRCh38") |
+     (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+   chrom %in% paste0("chr", c(1:22))
+ ) %>%
   select(-starts_with("X")) %>%
   ggplot() + geom_density(
     aes(x = interval_size, fill = bench_version),
@@ -434,15 +489,15 @@ regions_df %>%
 Number of regions by benchmark set.
 ```{r}
 regions_df %>%
-  filter(
-    bench_version %in% c("v5q", "v4.2.1", "v0.6"),
-    (var_type == "smvar" & ref == "GRCh38") |
-      (var_type == "stvar" & ref == "GRCh37"),
-    chrom %in% paste0("chr", c(1:22))
-  ) %>% 
-  group_by(bench_version, var_type, ref) %>% 
-  count() %>% 
-  arrange(ref, var_type, bench_version)
+ filter(
+   bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
+   (var_type == "smvar" & ref == "GRCh38") |
+     (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+   chrom %in% paste0("chr", c(1:22))
+ ) %>% 
+ group_by(bench_version, var_type, ref) %>% 
+ count() %>% 
+ arrange(ref, var_type, bench_version)
 ```
 
 ## Medically Relevant Gene Comparison
