@@ -1,7 +1,6 @@
 channels:
   - conda-forge
   - bioconda
-channel_priority: strict
 dependencies:
-  - rtg-tools=3.12.1
-  - bcftools=1.19
+  - rtg-tools
+  - bcftools
