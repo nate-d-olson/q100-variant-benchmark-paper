@@ -30,6 +30,28 @@ rule generate_sv_len:
         """
 
 
+rule index_vcf:
+    """
+    Index VCF files using bcftools index.
+    
+    Generic rule to create tabix index (.tbi) for any compressed VCF file.
+    Uses the Snakemake wrapper for standardized, reproducible indexing.
+    """
+    input:
+        "{prefix}.vcf.gz"
+    output:
+        "{prefix}.vcf.gz.tbi"
+    log:
+        "logs/vcf_processing/{prefix}_index.log"
+    threads: 1
+    resources:
+        mem_mb=2048
+    params:
+        extra=""  # Optional bcftools index parameters
+    wrapper:
+        f"{wrapper_prefix}/bio/bcftools/index"
+
+
 rule subset_vcf_to_benchmark_regions:
     """
     Subset VCF to benchmark regions for historical benchmarks.
@@ -37,18 +59,17 @@ rule subset_vcf_to_benchmark_regions:
     For benchmark sets that have separate VCF and BED files,
     filter the VCF to only include variants within benchmark regions.
     Draft benchmarks that are already filtered are simply symlinked.
+    Index is created separately by the index_vcf rule.
     """
     input:
         vcf=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"],
+        tbi=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"] + ".tbi",
     output:
         vcf=ensure(
             "{subset_dir}/{{benchmark}}.vcf.gz".format(
                 subset_dir=config["outputs"]["subset_vcf_dir"]
             ),
             non_empty=True,
-        ),
-        tbi="{subset_dir}/{{benchmark}}.vcf.gz.tbi".format(
-            subset_dir=config["outputs"]["subset_vcf_dir"]
         ),
     params:
         bed=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["bed"],
@@ -69,14 +90,10 @@ rule subset_vcf_to_benchmark_regions:
             # No BED file - VCF is already filtered, create symlink
             echo "No BED file provided, creating symlink to original VCF" >> {log}
             ln -sf $(realpath {input.vcf}) {output.vcf}
-            ln -sf $(realpath {input.vcf}).tbi {output.tbi}
         else
             # Filter VCF to benchmark regions
             echo "Filtering VCF to benchmark regions" >> {log}
             bcftools view -R {params.bed} {input.vcf} -Oz -o {output.vcf} 2>> {log}
-            
-            # Index filtered VCF
-            bcftools index -t {output.vcf} 2>> {log}
         fi
         
         # Log completion
