@@ -9,8 +9,34 @@ min_version("8.0")
 
 configfile: "config/config.yaml"
 
+validate(config, schema="../config/schema/config.schema.yaml")
 
 wrapper_prefix = "v3.3.3"
+
+# Rules that don't require cluster resources
+localrules:
+    all,
+    index_vcf,
+
+onstart:
+    print("=" * 60)
+    print("Q100 Variant Benchmark Pipeline")
+    print("=" * 60)
+    print(f"Configuration: config/config.yaml")
+    print(f"Benchmarks: {len(config['benchmarksets'])}")
+    print(f"Workflow directory: {workflow.basedir}")
+    print(f"Working directory: {os.getcwd()}")
+    print("=" * 60)
+
+onsuccess:
+    print("=" * 60)
+    print("Pipeline completed successfully!")
+    print("=" * 60)
+
+onerror:
+    print("=" * 60)
+    print("Pipeline failed. Check log files in logs/ directory.")
+    print("=" * 60)
 
 
 include: "rules/common.smk"
