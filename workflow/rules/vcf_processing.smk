@@ -24,6 +24,8 @@ rule download_stratification:
         ),
     log:
         "logs/downloads/stratifications/{ref}_{context}.log",
+    message:
+        "Downloading {wildcards.ref} {wildcards.context} stratification BED"
     retries: 3
     conda:
         "../envs/bcftools.yaml"
@@ -67,6 +69,8 @@ rule generate_svlen:
         ),
     log:
         "logs/sv_len/{benchmark}_svlen.log",
+    message:
+        "Extracting SV lengths for {wildcards.benchmark}"
     threads: 1
     resources:
         mem_mb=4096,
@@ -141,6 +145,8 @@ rule subset_vcf_to_benchmark_regions:
         bed=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["bed"],
     log:
         "logs/subset_vcfs/{benchmark}_subset.log",
+    message:
+        "Filtering {wildcards.benchmark} to benchmark regions"
     threads: 2
     resources:
         mem_mb=4096,
@@ -189,6 +195,8 @@ rule rtg_vcfstats:
         ),
     log:
         "logs/vcfstats/{benchmark}_{chrom}_vcfstats.log",
+    message:
+        "Computing vcfstats for {wildcards.benchmark} chr {wildcards.chrom}"
     threads: 1
     resources:
         mem_mb=2048,
@@ -285,6 +293,8 @@ rule count_context_variants:
         script="workflow/scripts/count_variants_by_type.py",
     log:
         "logs/context_counts/{benchmark}_{context}.log",
+    message:
+        "Counting variants for {wildcards.benchmark} in {wildcards.context}"
     threads: 1
     resources:
         mem_mb=2048,
