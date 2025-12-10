@@ -1,0 +1,7 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bcftools=1.22
+  - bedtools=2.31.1
+  - python>3.9

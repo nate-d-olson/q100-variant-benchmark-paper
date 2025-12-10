@@ -3,6 +3,52 @@ VCF processing rules for variant characterization
 """
 
 
+rule download_stratification:
+    """
+    Download GIAB genome stratification BED files.
+    
+    Downloads stratification BED files from GIAB FTP for genomic contexts
+    (tandem repeats, homopolymers, segmental duplications, low mappability).
+    Files are downloaded once per reference genome (GRCh37, GRCh38, CHM13)
+    and shared across all benchmarks using that reference.
+    
+    Stratifications: v3.6 from GIAB
+    """
+    output:
+        bed="resources/stratifications/{ref}_{context}.bed.gz",
+    params:
+        url=lambda wildcards: (
+            f"https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/"
+            f"genome-stratifications/v3.6/{wildcards.ref}@all/"
+            f"{CONTEXT_PATHS[wildcards.context].format(ref=wildcards.ref)}"
+        ),
+    log:
+        "logs/downloads/stratifications/{ref}_{context}.log",
+    retries: 3
+    conda:
+        "../envs/bcftools.yaml"
+    shell:
+        """
+        # Log download start
+        echo "Downloading stratification BED: {wildcards.ref} {wildcards.context}" > {log}
+        echo "URL: {params.url}" >> {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Download BED file
+        wget -O {output.bed} {params.url} 2>> {log}
+        
+        # Verify download
+        if [ ! -s {output.bed} ]; then
+            echo "ERROR: Downloaded file is empty" >> {log}
+            exit 1
+        fi
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "File size: $(du -h {output.bed} | cut -f1)" >> {log}
+        """
+
+
 rule generate_svlen:
     """
     Generate SV length table for structural variant benchmark sets.
@@ -163,3 +209,120 @@ rule rtg_vcfstats:
         echo "Completed at $(date)" >> {log}
         echo "Output size: $(wc -l < {output.stats}) lines" >> {log}
         """
+
+
+rule intersect_vcf_with_context:
+    """
+    Intersect benchmark VCF with genomic stratification contexts.
+    
+    Filters benchmark VCF to only variants within specific genomic contexts
+    (tandem repeats, homopolymers, segmental duplications, low mappability).
+    Uses bcftools view with -R to restrict to stratification BED regions.
+    
+    Note: Output marked for potential temp() after validation to save disk space.
+    """
+    input:
+        vcf="results/subset_vcfs/{benchmark}.vcf.gz",
+        tbi="results/subset_vcfs/{benchmark}.vcf.gz.tbi",
+        bed=lambda wildcards: (
+            f"resources/stratifications/"
+            f"{get_reference_for_benchmark(wildcards.benchmark)}_{wildcards.context}.bed.gz"
+        ),
+    output:
+        vcf="results/context_vcfs/{benchmark}_{context}.vcf.gz",  # TODO: add temp() after validation
+    log:
+        "logs/context_vcfs/{benchmark}_{context}.log",
+    threads: 1
+    resources:
+        mem_mb=4096,
+    conda:
+        "../envs/bedtools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Intersecting {wildcards.benchmark} with {wildcards.context} context" > {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Filter VCF to stratification regions
+        # Note: -R option allows empty output if no variants overlap with regions
+        bcftools view -R {input.bed} {input.vcf} -Oz -o {output.vcf} 2>> {log}
+        
+        # Check if output contains variants
+        VARIANT_COUNT=$(bcftools view -H {output.vcf} | wc -l)
+        echo "Variants in context: $VARIANT_COUNT" >> {log}
+        
+        if [ "$VARIANT_COUNT" -eq 0 ]; then
+            echo "WARNING: No variants found in {wildcards.context} context for {wildcards.benchmark}" >> {log}
+        fi
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output: {output.vcf}" >> {log}
+        """
+
+
+rule count_context_variants:
+    """
+    Count variants by type within genomic stratification contexts.
+    
+    Extracts variant types using bcftools query and counts occurrences.
+    Uses TYPE field for small variants (snp, ins, del, indel, mnp)
+    and SVTYPE field for structural variants (DEL, INS, DUP, INV, BND).
+    
+    Outputs long-format TSV with columns:
+    - benchmark: Benchmark set name
+    - ref: Reference genome
+    - context: Genomic context (TR, HP, SD, etc.)
+    - variant_type: Type of variant
+    - count: Number of variants of that type
+    """
+    input:
+        vcf="results/context_vcfs/{benchmark}_{context}.vcf.gz",
+    output:
+        counts="results/context_counts/{benchmark}_{context}_counts.tsv",
+    params:
+        ref=lambda wildcards: get_reference_for_benchmark(wildcards.benchmark),
+        script="workflow/scripts/count_variants_by_type.py",
+    log:
+        "logs/context_counts/{benchmark}_{context}.log",
+    threads: 1
+    resources:
+        mem_mb=2048,
+    conda:
+        "../envs/bedtools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Counting variants for {wildcards.benchmark} in {wildcards.context} context" > {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Determine query field based on benchmark type
+        if [[ "{wildcards.benchmark}" == *"stvar"* ]]; then
+            QUERY_FIELD="%SVTYPE"
+            echo "Using SVTYPE field for structural variants" >> {log}
+        else
+            QUERY_FIELD="%TYPE"
+            echo "Using TYPE field for small variants" >> {log}
+        fi
+        
+        # Check if VCF has any variants
+        VARIANT_COUNT=$(bcftools view -H {input.vcf} | wc -l)
+        echo "Total variants to count: $VARIANT_COUNT" >> {log}
+        
+        if [ "$VARIANT_COUNT" -eq 0 ]; then
+            echo "No variants in context - creating empty count file" >> {log}
+            # Python script handles empty input and outputs appropriate zero counts
+            python {params.script} {wildcards.benchmark} {params.ref} {wildcards.context} \
+                < /dev/null > {output.counts} 2>> {log}
+        else
+            # Extract variant types and count
+            bcftools query -f "$QUERY_FIELD\\n" {input.vcf} 2>> {log} | \
+                python {params.script} {wildcards.benchmark} {params.ref} {wildcards.context} \
+                > {output.counts} 2>> {log}
+        fi
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output lines: $(wc -l < {output.counts})" >> {log}
+        """
+

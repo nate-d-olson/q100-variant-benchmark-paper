@@ -20,5 +20,6 @@ rule all:
     input:
         get_sv_len_inputs,
         get_subset_stats_inputs,
+        get_context_count_inputs,
 
 include: "rules/vcf_processing.smk"
