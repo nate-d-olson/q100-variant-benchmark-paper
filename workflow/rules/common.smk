@@ -114,7 +114,8 @@ def get_context_count_inputs(wildcards):
     inputs = []
     
     for benchmark in config["benchmarksets"]:
-        for context in contexts:
-            inputs.append(f"results/context_counts/{benchmark}_{context}_counts.tsv")
+        if "cmrg" not in benchmark.lower():
+            for context in contexts:
+                inputs.append(f"results/context_counts/{benchmark}_{context}_counts.tsv")
     
     return inputs
