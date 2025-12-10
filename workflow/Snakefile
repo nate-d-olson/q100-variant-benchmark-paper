@@ -9,14 +9,17 @@ min_version("8.0")
 
 configfile: "config/config.yaml"
 
+
 validate(config, schema="../config/schema/config.schema.yaml")
 
 wrapper_prefix = "v3.3.3"
+
 
 # Rules that don't require cluster resources
 localrules:
     all,
     index_vcf,
+
 
 onstart:
     print("=" * 60)
@@ -28,10 +31,12 @@ onstart:
     print(f"Working directory: {os.getcwd()}")
     print("=" * 60)
 
+
 onsuccess:
     print("=" * 60)
     print("Pipeline completed successfully!")
     print("=" * 60)
+
 
 onerror:
     print("=" * 60)
@@ -47,5 +52,6 @@ rule all:
         get_sv_len_inputs,
         get_subset_stats_inputs,
         get_context_count_inputs,
+
 
 include: "rules/vcf_processing.smk"

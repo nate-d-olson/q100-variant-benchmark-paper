@@ -20,7 +20,7 @@ rule download_stratification:
         url=lambda wildcards: (
             f"https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/"
             f"genome-stratifications/v3.6/{wildcards.ref}@all/"
-            f"{CONTEXT_PATHS[wildcards.context].format(ref=wildcards.ref)}"
+            f"{CONTEXT_PATHS[wildcards.context].format(ref= wildcards.ref)}"
         ),
     log:
         "logs/downloads/stratifications/{ref}_{context}.log",
@@ -108,18 +108,18 @@ rule index_vcf:
     Uses the Snakemake wrapper for standardized, reproducible indexing.
     """
     input:
-        "{prefix}.vcf.gz"
+        "{prefix}.vcf.gz",
     output:
-        "{prefix}.vcf.gz.tbi"
+        "{prefix}.vcf.gz.tbi",
     log:
-        "logs/vcf_processing/{prefix}_index.log"
+        "logs/vcf_processing/{prefix}_index.log",
     threads: 1
     resources:
-        mem_mb=2048
+        mem_mb=2048,
     conda:
         "../envs/bcftools.yaml"
     params:
-        extra="-t"  # Optional bcftools index parameters
+        extra="-t",  # Optional bcftools index parameters
     shell:
         "bcftools index --threads {threads} {params.extra} {input} > {log} 2>&1"
 
@@ -135,7 +135,8 @@ rule subset_vcf_to_benchmark_regions:
     """
     input:
         vcf=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"],
-        tbi=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"] + ".tbi",
+        tbi=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"]
+        + ".tbi",
     output:
         vcf=ensure(
             "results/subset_vcfs/{benchmark}.vcf.gz",
@@ -335,4 +336,3 @@ rule count_context_variants:
         echo "Completed at $(date)" >> {log}
         echo "Output lines: $(wc -l < {output.counts})" >> {log}
         """
-
