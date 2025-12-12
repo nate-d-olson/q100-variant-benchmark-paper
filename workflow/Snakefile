@@ -52,6 +52,8 @@ rule all:
         get_sv_len_inputs,
         get_subset_stats_inputs,
         get_context_count_inputs,
+        get_context_coverage_inputs,
+        "results/context_coverage/all_context_coverage.tsv",
 
 
 include: "rules/vcf_processing.smk"

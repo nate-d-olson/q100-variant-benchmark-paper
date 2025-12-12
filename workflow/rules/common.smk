@@ -128,3 +128,131 @@ def get_context_count_inputs(wildcards):
                 )
 
     return inputs
+
+
+# ============================================================================
+# Benchmark Region Coverage Helper Functions
+# ============================================================================
+
+
+def get_benchmark_bed(benchmark):
+    """
+    Get BED file path for a benchmark set.
+
+    Checks config 'bed' key first, then falls back to draft benchmark BEDs
+    in data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/ for v5q benchmarks.
+
+    Args:
+        benchmark: Name of the benchmark set
+
+    Returns:
+        Path to benchmark BED file
+
+    Raises:
+        ValueError: If no BED file can be found for the benchmark
+    """
+    # Check config first
+    bed_path = config["benchmarksets"].get(benchmark, {}).get("bed")
+    if bed_path:
+        return bed_path
+
+    # For v5q benchmarks, construct path to draft benchmark BED
+    if benchmark.startswith("v5q_"):
+        ref = get_reference_for_benchmark(benchmark)
+        # Map reference to filename prefix
+        ref_prefix = {
+            "CHM13": "CHM13v2.0",
+            "GRCh38": "GRCh38",
+            "GRCh37": "GRCh37",
+        }[ref]
+
+        # Determine variant type (smvar or stvar)
+        if "smvar" in benchmark:
+            vartype = "smvar"
+        elif "stvar" in benchmark:
+            vartype = "stvar"
+        else:
+            raise ValueError(f"Unknown variant type in benchmark: {benchmark}")
+
+        return (
+            f"data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/"
+            f"{ref_prefix}_HG2-T2TQ100-V1.1_{vartype}.benchmark.bed"
+        )
+
+    raise ValueError(f"No BED file found for benchmark: {benchmark}")
+
+
+def get_chromosomes_for_coverage(ref, chrom_scope):
+    """
+    Get chromosome list for coverage calculation by reference and scope.
+
+    Args:
+        ref: Reference genome (CHM13, GRCh38, or GRCh37)
+        chrom_scope: Either 'autosomes' or 'sexchrom'
+
+    Returns:
+        List of chromosome names with appropriate prefix convention
+    """
+    if chrom_scope == "autosomes":
+        chroms = [str(i) for i in range(1, 23)]
+    elif chrom_scope == "sexchrom":
+        chroms = ["X", "Y"]
+    else:
+        raise ValueError(f"Unknown chrom_scope: {chrom_scope}")
+
+    # Add chr prefix for CHM13 and GRCh38
+    if ref in ["CHM13", "GRCh38"]:
+        chroms = [f"chr{c}" for c in chroms]
+
+    return chroms
+
+
+def get_chromosome_grep_pattern(ref, chrom_scope):
+    """
+    Get grep pattern for filtering BED files by chromosome.
+
+    Args:
+        ref: Reference genome (CHM13, GRCh38, or GRCh37)
+        chrom_scope: Either 'autosomes' or 'sexchrom'
+
+    Returns:
+        Grep -E compatible regex pattern matching target chromosomes
+    """
+    chroms = get_chromosomes_for_coverage(ref, chrom_scope)
+    # Create pattern that matches chromosome at start of line with tab after
+    # e.g., "^chr1\t|^chr2\t|..." or "^1\t|^2\t|..."
+    return "|".join([f"^{c}\\t" for c in chroms])
+
+
+def get_context_coverage_inputs(wildcards):
+    """
+    Generate list of context coverage files for all benchmarks.
+
+    Coverage is calculated for:
+    - All benchmarks (excluding CMRG) × all contexts × autosomes
+    - v5q benchmarks only × all contexts × sexchrom
+
+    Returns:
+        List of file paths for context coverage outputs
+    """
+    contexts = ["TR", "TR10kb", "HP", "SD", "SD10kb", "MAP"]
+    inputs = []
+
+    for benchmark in config["benchmarksets"]:
+        # Skip CMRG benchmarks (consistent with count_context_variants)
+        if "cmrg" in benchmark.lower():
+            continue
+
+        for context in contexts:
+            # All benchmarks get autosome coverage
+            inputs.append(
+                f"results/context_coverage/{benchmark}_{context}_autosomes_coverage.tsv"
+            )
+
+            # Only v5q benchmarks get sex chromosome coverage
+            if benchmark.startswith("v5q_"):
+                inputs.append(
+                    f"results/context_coverage/{benchmark}_{context}_sexchrom_coverage.tsv"
+                )
+
+    return inputs

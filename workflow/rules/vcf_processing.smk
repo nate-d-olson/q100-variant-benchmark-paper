@@ -336,3 +336,300 @@ rule count_context_variants:
         echo "Completed at $(date)" >> {log}
         echo "Output lines: $(wc -l < {output.counts})" >> {log}
         """
+
+
+# ============================================================================
+# Benchmark Region Coverage Rules
+# ============================================================================
+
+
+rule filter_stratification_by_chromosomes:
+    """
+    Filter stratification BED to specific chromosome set.
+
+    Creates cached filtered stratification BEDs shared across benchmarks
+    using the same reference genome. Validates that expected chromosomes
+    are present in the input BED file.
+
+    Output is uncompressed for faster downstream processing.
+    """
+    input:
+        bed="resources/stratifications/{ref}_{context}.bed.gz",
+    output:
+        bed="resources/stratifications/{ref}_{context}_{chrom_scope}.bed",
+    params:
+        pattern=lambda wildcards: get_chromosome_grep_pattern(
+            wildcards.ref, wildcards.chrom_scope
+        ),
+        expected_chroms=lambda wildcards: get_chromosomes_for_coverage(
+            wildcards.ref, wildcards.chrom_scope
+        ),
+    log:
+        "logs/stratifications/{ref}_{context}_{chrom_scope}_filter.log",
+    message:
+        "Filtering {wildcards.ref} {wildcards.context} to {wildcards.chrom_scope}"
+    threads: 1
+    resources:
+        mem_mb=2048,
+    conda:
+        "../envs/bedtools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Filtering stratification BED to {wildcards.chrom_scope}" > {log}
+        echo "Reference: {wildcards.ref}, Context: {wildcards.context}" >> {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Get chromosomes present in input BED
+        INPUT_CHROMS=$(gzip -dc {input.bed} | cut -f1 | sort -u)
+        echo "Chromosomes in input BED:" >> {log}
+        echo "$INPUT_CHROMS" >> {log}
+        
+        # Validate expected chromosomes are present
+        EXPECTED_CHROMS="{params.expected_chroms}"
+        echo "Expected chromosomes: $EXPECTED_CHROMS" >> {log}
+        
+        MISSING_CHROMS=""
+        for chrom in {params.expected_chroms}; do
+            if ! echo "$INPUT_CHROMS" | grep -q "^$chrom$"; then
+                MISSING_CHROMS="$MISSING_CHROMS $chrom"
+            fi
+        done
+        
+        if [ -n "$MISSING_CHROMS" ]; then
+            echo "WARNING: Missing expected chromosomes:$MISSING_CHROMS" >> {log}
+        fi
+        
+        # Filter BED to target chromosomes and sort
+        gzip -dc {input.bed} | grep -E '{params.pattern}' | bedtools sort -i - > {output.bed} || true
+        
+        # Check output
+        if [ ! -s {output.bed} ]; then
+            echo "WARNING: Output file is empty after filtering" >> {log}
+            # Create empty file to allow pipeline to continue
+            touch {output.bed}
+        fi
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output lines: $(wc -l < {output.bed})" >> {log}
+        """
+
+
+rule filter_benchmark_bed_by_chromosomes:
+    """
+    Filter benchmark BED to specific chromosome set.
+
+    Creates filtered benchmark BEDs for coverage calculation.
+    Validates that expected chromosomes are present.
+
+    Note: Output marked for potential temp() after validation.
+    """
+    input:
+        bed=lambda wildcards: get_benchmark_bed(wildcards.benchmark),
+    output:
+        bed="results/filtered_beds/{benchmark}_{chrom_scope}.bed",  # TODO: add temp() after validation
+    params:
+        ref=lambda wildcards: get_reference_for_benchmark(wildcards.benchmark),
+        pattern=lambda wildcards: get_chromosome_grep_pattern(
+            get_reference_for_benchmark(wildcards.benchmark), wildcards.chrom_scope
+        ),
+        expected_chroms=lambda wildcards: get_chromosomes_for_coverage(
+            get_reference_for_benchmark(wildcards.benchmark), wildcards.chrom_scope
+        ),
+    log:
+        "logs/filtered_beds/{benchmark}_{chrom_scope}_filter.log",
+    message:
+        "Filtering {wildcards.benchmark} BED to {wildcards.chrom_scope}"
+    threads: 1
+    resources:
+        mem_mb=2048,
+    conda:
+        "../envs/bedtools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Filtering benchmark BED to {wildcards.chrom_scope}" > {log}
+        echo "Benchmark: {wildcards.benchmark}" >> {log}
+        echo "Reference: {params.ref}" >> {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Handle both compressed and uncompressed input
+        if [[ "{input.bed}" == *.gz ]]; then
+            CAT_CMD="gzip -dc"
+        else
+            CAT_CMD="cat"
+        fi
+        
+        # Get chromosomes present in input BED
+        INPUT_CHROMS=$($CAT_CMD {input.bed} | cut -f1 | sort -u)
+        echo "Chromosomes in input BED:" >> {log}
+        echo "$INPUT_CHROMS" >> {log}
+        
+        # Validate expected chromosomes are present
+        echo "Expected chromosomes: {params.expected_chroms}" >> {log}
+        
+        MISSING_CHROMS=""
+        for chrom in {params.expected_chroms}; do
+            if ! echo "$INPUT_CHROMS" | grep -q "^$chrom$"; then
+                MISSING_CHROMS="$MISSING_CHROMS $chrom"
+            fi
+        done
+        
+        if [ -n "$MISSING_CHROMS" ]; then
+            echo "WARNING: Missing expected chromosomes:$MISSING_CHROMS" >> {log}
+        fi
+        
+        # Filter BED to target chromosomes and sort
+        $CAT_CMD {input.bed} | grep -E '{params.pattern}' | bedtools sort -i - > {output.bed} || true
+        
+        # Check output
+        if [ ! -s {output.bed} ]; then
+            echo "WARNING: Output file is empty after filtering" >> {log}
+            # Create empty file to allow pipeline to continue
+            touch {output.bed}
+        fi
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output lines: $(wc -l < {output.bed})" >> {log}
+        """
+
+
+rule calculate_context_coverage:
+    """
+    Calculate benchmark region coverage within genomic stratification contexts.
+
+    Computes detailed coverage statistics showing overlap between benchmark
+    regions and stratification contexts (TR, HP, SD, MAP).
+
+    Output columns:
+    - benchmark: Benchmark set name
+    - ref: Reference genome
+    - context: Genomic context (TR, HP, SD, etc.)
+    - chrom_scope: Chromosome scope (autosomes or sexchrom)
+    - benchmark_bp: Total bases in benchmark regions
+    - context_bp: Total bases in stratification context
+    - overlap_bp: Bases overlapping between benchmark and context
+    - pct_benchmark_in_context: Percent of benchmark in context
+    - pct_context_in_benchmark: Percent of context covered by benchmark
+
+    Handles zero-overlap cases safely by outputting zeros.
+    """
+    input:
+        benchmark_bed="results/filtered_beds/{benchmark}_{chrom_scope}.bed",
+        context_bed=lambda wildcards: (
+            f"resources/stratifications/"
+            f"{get_reference_for_benchmark(wildcards.benchmark)}_{wildcards.context}_{wildcards.chrom_scope}.bed"
+        ),
+    output:
+        tsv="results/context_coverage/{benchmark}_{context}_{chrom_scope}_coverage.tsv",
+    params:
+        ref=lambda wildcards: get_reference_for_benchmark(wildcards.benchmark),
+    log:
+        "logs/context_coverage/{benchmark}_{context}_{chrom_scope}.log",
+    message:
+        "Calculating {wildcards.context} coverage for {wildcards.benchmark} ({wildcards.chrom_scope})"
+    threads: 1
+    resources:
+        mem_mb=4096,
+    conda:
+        "../envs/bedtools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Calculating context coverage" > {log}
+        echo "Benchmark: {wildcards.benchmark}" >> {log}
+        echo "Context: {wildcards.context}" >> {log}
+        echo "Chromosome scope: {wildcards.chrom_scope}" >> {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Calculate total benchmark region bases (merge overlapping regions first)
+        if [ -s {input.benchmark_bed} ]; then
+            BENCHMARK_BP=$(bedtools merge -i {input.benchmark_bed} | \
+                awk '{{sum+=$3-$2}} END {{print sum+0}}')
+        else
+            BENCHMARK_BP=0
+        fi
+        echo "Benchmark bases: $BENCHMARK_BP" >> {log}
+        
+        # Calculate total context bases (merge overlapping regions first)
+        if [ -s {input.context_bed} ]; then
+            CONTEXT_BP=$(bedtools merge -i {input.context_bed} | \
+                awk '{{sum+=$3-$2}} END {{print sum+0}}')
+        else
+            CONTEXT_BP=0
+        fi
+        echo "Context bases: $CONTEXT_BP" >> {log}
+        
+        # Calculate overlap bases
+        if [ -s {input.benchmark_bed} ] && [ -s {input.context_bed} ]; then
+            OVERLAP_BP=$(bedtools intersect -a {input.benchmark_bed} -b {input.context_bed} | \
+                bedtools merge | \
+                awk '{{sum+=$3-$2}} END {{print sum+0}}')
+        else
+            OVERLAP_BP=0
+        fi
+        echo "Overlap bases: $OVERLAP_BP" >> {log}
+        
+        # Calculate percentages with division-by-zero guard
+        if [ "$BENCHMARK_BP" -gt 0 ]; then
+            PCT_BENCHMARK_IN_CONTEXT=$(echo "scale=6; $OVERLAP_BP * 100 / $BENCHMARK_BP" | bc)
+        else
+            PCT_BENCHMARK_IN_CONTEXT=0
+        fi
+        
+        if [ "$CONTEXT_BP" -gt 0 ]; then
+            PCT_CONTEXT_IN_BENCHMARK=$(echo "scale=6; $OVERLAP_BP * 100 / $CONTEXT_BP" | bc)
+        else
+            PCT_CONTEXT_IN_BENCHMARK=0
+        fi
+        
+        echo "Percent benchmark in context: $PCT_BENCHMARK_IN_CONTEXT" >> {log}
+        echo "Percent context in benchmark: $PCT_CONTEXT_IN_BENCHMARK" >> {log}
+        
+        # Write output TSV (no header - will be added during aggregation)
+        echo -e "{wildcards.benchmark}\\t{params.ref}\\t{wildcards.context}\\t{wildcards.chrom_scope}\\t$BENCHMARK_BP\\t$CONTEXT_BP\\t$OVERLAP_BP\\t$PCT_BENCHMARK_IN_CONTEXT\\t$PCT_CONTEXT_IN_BENCHMARK" > {output.tsv}
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        """
+
+
+rule aggregate_context_coverage:
+    """
+    Aggregate all context coverage results into single TSV file.
+
+    Combines individual coverage results from all benchmark × context × scope
+    combinations into a single long-format TSV with header row.
+    """
+    input:
+        get_context_coverage_inputs,
+    output:
+        tsv="results/context_coverage/all_context_coverage.tsv",
+    log:
+        "logs/context_coverage/aggregate.log",
+    message:
+        "Aggregating context coverage results"
+    threads: 1
+    resources:
+        mem_mb=1024,
+    conda:
+        "../envs/bedtools.yaml"
+    shell:
+        """
+        # Log execution start
+        echo "Aggregating context coverage results" > {log}
+        echo "Input files: {input}" >> {log}
+        echo "Started at $(date)" >> {log}
+        
+        # Write header
+        echo -e "benchmark\\tref\\tcontext\\tchrom_scope\\tbenchmark_bp\\tcontext_bp\\toverlap_bp\\tpct_benchmark_in_context\\tpct_context_in_benchmark" > {output.tsv}
+        
+        # Concatenate all input files
+        cat {input} >> {output.tsv}
+        
+        # Log completion
+        echo "Completed at $(date)" >> {log}
+        echo "Output lines: $(wc -l < {output.tsv})" >> {log}
+        """
