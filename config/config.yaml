@@ -2,49 +2,101 @@
 
 # Benchmark sets for RTG vcfstats analysis
 benchmarksets:
-  # Draft v1.1 benchmark sets (already filtered to benchmark regions)
   v5q_chm13_smvar:
-    vcf: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_bench-vars.vcf.gz"
-    bed: null
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_smvar.vcf.gz
+      checksum: 401375f823c4add943ebac3602c8c753951d98363b8624b831ee2682cc791fad
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_smvar.benchmark.bed
+      checksum: 224a6b65769765700d6333a432ba21ff303e54cd9475b79fbe1efea7e1786417
   v5q_chm13_stvar:
-    vcf: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_bench-vars.vcf.gz"
-    bed: null
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.vcf.gz
+      checksum: 011a604daa45c2a5c13b3403436ab16185be64405870d9636a84d55e19736db7
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.benchmark.bed
+      checksum: 6b9cc176bbfda0375a3979d3f00524514f7dfbff96b7948425634ae9a0eb81ff
   v5q_grch37_smvar:
-    vcf: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_bench-vars.vcf.gz"
-    bed: null
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_smvar.vcf.gz
+      checksum: 972bc22ebf7ad23c645ac1c7535f0cfb5c1895f7c5378a12c2da3fddf5e6d7e6
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_smvar.benchmark.bed
+      checksum: 91d0d56fb9a0fb954c6b97a92f914fe6eb25d5718c8de9d4907e0f20e371722a
   v5q_grch37_stvar:
-    vcf: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_bench-vars.vcf.gz"
-    bed: null
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_stvar.vcf.gz
+      checksum: edb582ceec508f6d745acd0a8c522ee4f235ff5bf4754ba6bdc4c3abee122b5c
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_stvar.benchmark.bed
+      checksum: fbdec183e5b0ba83efdb5880ae038db98cd12cd9715e28debb9ed96541c10f40
   v5q_grch38_smvar:
-    vcf: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_bench-vars.vcf.gz"
-    bed: null
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz
+      checksum: c7f9d7a4781f1f0a8a42ec54b051d6b95db1935c5e12318bae219740f9c50dc8
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_smvar.benchmark.bed
+      checksum: ef7d898dd421ea357bb9db915894ab3e5c6c1689e36ccf619befda4bbf1cef5b
   v5q_grch38_stvar:
-    vcf: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_bench-vars.vcf.gz"
-    bed: null
-  # Historical benchmark sets (need filtering)
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_stvar.vcf.gz
+      checksum: d66b2d2496ff5418763813d3195599007dbff950514d10e5bc27b6c8b76e34b8
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed
+      checksum: 2f75ce942e1dd9e1a443e4e04fac640104aae5e23fba24d7d3f2c1f1f9985b00
   v421_grch38_smvar:
-    vcf: "data/benchmarksets/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
-    bed: "data/benchmarksets/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed"
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh37/HG002_GRCh37_1_22_v4.2.1_benchmark.vcf.gz
+      checksum: adb4d4a50048aa13353a06b84fcfcbca09a5d17525efaa4cea44f8822e81175c
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh37/HG002_GRCh37_1_22_v4.2.1_benchmark_noinconsistent.bed
+      checksum: fba9a57c36ec88e5d14ea3e259c8866c7935f4998d3ec0fa2d6c3962da5b5575
   cmrg_grch38_smvar:
-    vcf: "data/benchmarksets/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz"
-    bed: "data/benchmarksets/HG002_GRCh38_CMRG_smallvar_v1.00.bed"
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz
+      checksum: 80f18efa283d953cfc615d30dd01b1ff80debcc46f52042b942da783acd48da2
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.bed
+      checksum: dc77803bb474802fd3213d2f3649076dc14675d3b3c0ae3284036be09d2813f7
   cmrg_grch38_stvar:
-    vcf: "data/benchmarksets/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz"
-    bed: "data/benchmarksets/HG002_GRCh38_CMRG_SV_v1.00.bed"
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz
+      checksum: 06a8740ad93dd0ede325fcf04c85f687a835699da715c72bdcfade5d588fd19e
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.bed
+      checksum: 3306319595ffa472d8ba9a8ca8932304b01ec663e102900a61604410737ddf81
   v06_grch37_stvar:
-    vcf: "data/benchmarksets/HG002_SVs_Tier1_v0.6.vcf.gz"
-    bed: "data/benchmarksets/HG002_SVs_Tier1_noVDJorXorY_v0.6.2.bed"
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz
+      checksum: 1bc8e515189e32eb02a8a2050a4f70e88a80d9ad1d9fafe65ca1931d6f7b7f13
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_noVDJorXorY_v0.6.2.bed
+      checksum: 962da1439091836346e3c76b2cb4c1191586ed2f8ce49bc3ea49eeec75b4ab2b
   tr_grch38_trvar:
-    vcf: "data/benchmarksets/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz"
-    bed: "data/benchmarksets/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz"
+    vcf:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1.vcf.gz
+      checksum: ea8e1805c1b615ce7f121da5ea1695a3566f26658763ab17a40338d93c8cbf86
+    bed:
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/TandemRepeats_v1.0/GRCh38/HG002_GRCh38_TandemRepeats_v1.0.1_Tier1.bed.gz
+      checksum: bd4be0fca501b023ae87fefc1708303a9dd899ce9c0bcb972395b92987a5c0fc
 
-vcf_files:
-  chm13_stvar: "data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.vcf.gz"
-  chm13_smvar: "data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_smvar.vcf.gz"
-
-bed_files:
-  chm13_stvar: "data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.benchmark.bed"
-  chm13_smvar: "data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_smvar.benchmark.bed"
+references:
+  hg002v1.1_fai:
+    path: "data/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"
+    url: "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"
+    checksum: "c84f852b1cd4a00b12e6439ae7a2dd87"
+  grch37:
+    path: "data/hs37d5.fa.gz"
+    url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh37/hs37d5.fa.gz"
+    checksum: "d10eebe06c0dbbcb04253e3294d63efc"
+  grch38:
+    path: "data/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz"
+    url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz"
+    checksum: "939ce19062d1462c09b88c55faca4d76"
+  chm13:
+    path: "data/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
+    url: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/914/755/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
+    checksum: "9e6bf6b586bc8954208d1cc1d5f2fc99"
 
 outputs:
   sv_len: "sv_len.tsv"

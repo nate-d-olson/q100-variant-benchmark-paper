@@ -134,16 +134,15 @@ rule subset_vcf_to_benchmark_regions:
     Index is created separately by the index_vcf rule.
     """
     input:
-        vcf=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"],
-        tbi=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["vcf"]
-        + ".tbi",
+        vcf=lambda wildcards: get_benchmark_vcf(wildcards.benchmark),
+        tbi=lambda wildcards: get_benchmark_vcf(wildcards.benchmark) + ".tbi",
     output:
         vcf=ensure(
             "results/subset_vcfs/{benchmark}.vcf.gz",
             non_empty=True,
         ),
     params:
-        bed=lambda wildcards: config["benchmarksets"][wildcards.benchmark]["bed"],
+        bed=lambda wildcards: get_benchmark_bed(wildcards.benchmark),
     log:
         "logs/subset_vcfs/{benchmark}_subset.log",
     message:
@@ -564,32 +563,15 @@ rule calculate_context_coverage:
         
         # Calculate overlap bases
         if [ -s {input.benchmark_bed} ] && [ -s {input.context_bed} ]; then
-            OVERLAP_BP=$(bedtools intersect -a {input.benchmark_bed} -b {input.context_bed} | \
-                bedtools merge | \
-                awk '{{sum+=$3-$2}} END {{print sum+0}}')
+            OVERLAP_BP=$(bedtools intersect -a {input.benchmark_bed} -b {input.context_bed} \
+                | awk '{{sum+=$3-$2}} END {{print sum+0}}')
         else
             OVERLAP_BP=0
         fi
         echo "Overlap bases: $OVERLAP_BP" >> {log}
         
-        # Calculate percentages with division-by-zero guard
-        if [ "$BENCHMARK_BP" -gt 0 ]; then
-            PCT_BENCHMARK_IN_CONTEXT=$(echo "scale=6; $OVERLAP_BP * 100 / $BENCHMARK_BP" | bc)
-        else
-            PCT_BENCHMARK_IN_CONTEXT=0
-        fi
-        
-        if [ "$CONTEXT_BP" -gt 0 ]; then
-            PCT_CONTEXT_IN_BENCHMARK=$(echo "scale=6; $OVERLAP_BP * 100 / $CONTEXT_BP" | bc)
-        else
-            PCT_CONTEXT_IN_BENCHMARK=0
-        fi
-        
-        echo "Percent benchmark in context: $PCT_BENCHMARK_IN_CONTEXT" >> {log}
-        echo "Percent context in benchmark: $PCT_CONTEXT_IN_BENCHMARK" >> {log}
-        
         # Write output TSV (no header - will be added during aggregation)
-        echo -e "{wildcards.benchmark}\\t{params.ref}\\t{wildcards.context}\\t{wildcards.chrom_scope}\\t$BENCHMARK_BP\\t$CONTEXT_BP\\t$OVERLAP_BP\\t$PCT_BENCHMARK_IN_CONTEXT\\t$PCT_CONTEXT_IN_BENCHMARK" > {output.tsv}
+        echo -e "{wildcards.benchmark}\\t{params.ref}\\t{wildcards.context}\\t{wildcards.chrom_scope}\\t$BENCHMARK_BP\\t$CONTEXT_BP\\t$OVERLAP_BP" > {output.tsv}
         
         # Log completion
         echo "Completed at $(date)" >> {log}
@@ -624,7 +606,7 @@ rule aggregate_context_coverage:
         echo "Started at $(date)" >> {log}
         
         # Write header
-        echo -e "benchmark\\tref\\tcontext\\tchrom_scope\\tbenchmark_bp\\tcontext_bp\\toverlap_bp\\tpct_benchmark_in_context\\tpct_context_in_benchmark" > {output.tsv}
+        echo -e "benchmark\\tref\\tcontext\\tchrom_scope\\tbenchmark_bp\\tcontext_bp\\toverlap_bp" > {output.tsv}
         
         # Concatenate all input files
         cat {input} >> {output.tsv}

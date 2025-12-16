@@ -2,6 +2,9 @@
 Common helper functions for the Q100 variant benchmark pipeline
 """
 
+import os
+from urllib.parse import urlparse
+
 # Genomic stratification contexts and their file paths
 CONTEXT_PATHS = {
     "TR": "LowComplexity/{ref}_AllTandemRepeats.bed.gz",
@@ -11,6 +14,11 @@ CONTEXT_PATHS = {
     "SD10kb": "SegmentalDuplications/{ref}_segdups_gt10kb.bed.gz",
     "MAP": "Mappability/{ref}_lowmappabilityall.bed.gz",
 }
+
+
+def get_filename_from_url(url):
+    """Extract filename from URL."""
+    return os.path.basename(urlparse(url).path)
 
 
 def get_chromosomes_for_benchmark(benchmark):
@@ -135,6 +143,25 @@ def get_context_count_inputs(wildcards):
 # ============================================================================
 
 
+def get_benchmark_vcf(benchmark):
+    """
+    Get VCF file path for a benchmark set.
+
+    Args:
+        benchmark: Name of the benchmark set
+
+    Returns:
+        Path to benchmark VCF file
+    """
+    vcf_entry = config["benchmarksets"].get(benchmark, {}).get("vcf")
+    if isinstance(vcf_entry, dict) and "url" in vcf_entry:
+        return os.path.join("data/benchmarksets", get_filename_from_url(vcf_entry["url"]))
+    elif isinstance(vcf_entry, str):
+        return vcf_entry
+    
+    raise ValueError(f"No VCF file found for benchmark: {benchmark}")
+
+
 def get_benchmark_bed(benchmark):
     """
     Get BED file path for a benchmark set.
@@ -152,9 +179,11 @@ def get_benchmark_bed(benchmark):
         ValueError: If no BED file can be found for the benchmark
     """
     # Check config first
-    bed_path = config["benchmarksets"].get(benchmark, {}).get("bed")
-    if bed_path:
-        return bed_path
+    bed_entry = config["benchmarksets"].get(benchmark, {}).get("bed")
+    if isinstance(bed_entry, dict) and "url" in bed_entry:
+        return os.path.join("data/benchmarksets", get_filename_from_url(bed_entry["url"]))
+    elif isinstance(bed_entry, str):
+        return bed_entry
 
     # For v5q benchmarks, construct path to draft benchmark BED
     if benchmark.startswith("v5q_"):
@@ -256,3 +285,13 @@ def get_context_coverage_inputs(wildcards):
                 )
 
     return inputs
+
+
+def get_all_reference_files(wildcards):
+    """
+    Get all reference files defined in the config.
+
+    Returns:
+        List of file paths for all reference files
+    """
+    return [ref["path"] for ref in config.get("references", {}).values() if "path" in ref]

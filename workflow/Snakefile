@@ -45,6 +45,7 @@ onerror:
 
 
 include: "rules/common.smk"
+include: "rules/downloads.smk"
 
 
 rule all:
@@ -54,6 +55,7 @@ rule all:
         get_context_count_inputs,
         get_context_coverage_inputs,
         "results/context_coverage/all_context_coverage.tsv",
+        get_all_reference_files,
 
 
 include: "rules/vcf_processing.smk"

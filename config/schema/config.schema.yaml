@@ -6,8 +6,6 @@ type: object
 
 required:
   - benchmarksets
-  - vcf_files
-  - bed_files
   - outputs
 
 properties:
@@ -21,32 +19,58 @@ properties:
           - vcf
         properties:
           vcf:
-            type: string
-            description: Path to VCF file
-            pattern: ".*\\.vcf\\.gz$"
+            anyOf:
+              - type: string
+                description: Path to VCF file
+                pattern: ".*\\.vcf\\.gz$"
+              - type: object
+                required:
+                  - url
+                  - checksum
+                properties:
+                  url:
+                    type: string
+                    description: URL to VCF file
+                  checksum:
+                    type: string
+                    description: Checksum of the VCF file
           bed:
             anyOf:
               - type: string
                 pattern: ".*\\.bed(\\.gz)?$"
+              - type: object
+                required:
+                  - url
+                  - checksum
+                properties:
+                  url:
+                    type: string
+                    description: URL to BED file
+                  checksum:
+                    type: string
+                    description: Checksum of the BED file
               - type: "null"
             description: Path to BED file (optional for pre-filtered benchmarks)
     minProperties: 1
 
-  vcf_files:
+  references:
     type: object
-    description: VCF files for processing
+    description: Reference files and other resources
     patternProperties:
-      "^(chm13|grch37|grch38)_(stvar|smvar)$":
-        type: string
-        pattern: ".*\\.vcf\\.gz$"
-
-  bed_files:
-    type: object
-    description: BED files for processing
-    patternProperties:
-      "^(chm13|grch37|grch38)_(stvar|smvar)$":
-        type: string
-        pattern: ".*\\.bed$"
+      "^[a-zA-Z0-9_\\.]+$":
+        type: object
+        required:
+          - path
+        properties:
+          path:
+            type: string
+            description: Local path to the file
+          url:
+            type: string
+            description: Remote URL for download
+          checksum:
+            type: string
+            description: MD5 or SHA256 checksum
 
   outputs:
     type: object
