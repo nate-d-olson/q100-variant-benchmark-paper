@@ -155,7 +155,7 @@ def get_benchmark_vcf(benchmark):
     """
     vcf_entry = config["benchmarksets"].get(benchmark, {}).get("vcf")
     if isinstance(vcf_entry, dict) and "url" in vcf_entry:
-        return os.path.join("data/benchmarksets", get_filename_from_url(vcf_entry["url"]))
+        return os.path.join("resources/benchmarksets", get_filename_from_url(vcf_entry["url"]))
     elif isinstance(vcf_entry, str):
         return vcf_entry
     
@@ -164,10 +164,7 @@ def get_benchmark_vcf(benchmark):
 
 def get_benchmark_bed(benchmark):
     """
-    Get BED file path for a benchmark set.
-
-    Checks config 'bed' key first, then falls back to draft benchmark BEDs
-    in data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/ for v5q benchmarks.
+    Get BED file path for a benchmark set based on url or path in config.
 
     Args:
         benchmark: Name of the benchmark set
@@ -180,33 +177,15 @@ def get_benchmark_bed(benchmark):
     """
     # Check config first
     bed_entry = config["benchmarksets"].get(benchmark, {}).get("bed")
-    if isinstance(bed_entry, dict) and "url" in bed_entry:
-        return os.path.join("data/benchmarksets", get_filename_from_url(bed_entry["url"]))
-    elif isinstance(bed_entry, str):
+
+    if isinstance(bed_entry, str):
         return bed_entry
 
-    # For v5q benchmarks, construct path to draft benchmark BED
-    if benchmark.startswith("v5q_"):
-        ref = get_reference_for_benchmark(benchmark)
-        # Map reference to filename prefix
-        ref_prefix = {
-            "CHM13": "CHM13v2.0",
-            "GRCh38": "GRCh38",
-            "GRCh37": "GRCh37",
-        }[ref]
-
-        # Determine variant type (smvar or stvar)
-        if "smvar" in benchmark:
-            vartype = "smvar"
-        elif "stvar" in benchmark:
-            vartype = "stvar"
-        else:
-            raise ValueError(f"Unknown variant type in benchmark: {benchmark}")
-
-        return (
-            f"data/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/"
-            f"{ref_prefix}_HG2-T2TQ100-V1.1_{vartype}.benchmark.bed"
-        )
+    if isinstance(bed_entry, dict):
+        if url := bed_entry.get("url"):
+            return os.path.join("resources/benchmarksets", get_filename_from_url(url))
+        if path := bed_entry.get("path"):
+            return path
 
     raise ValueError(f"No BED file found for benchmark: {benchmark}")
 

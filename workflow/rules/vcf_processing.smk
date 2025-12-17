@@ -126,7 +126,7 @@ rule index_vcf:
 
 rule subset_vcf_to_benchmark_regions:
     """
-    Subset VCF to benchmark regions for historical benchmarks.
+    Subset VCF to benchmark regions for use in counting benchmark variants.
     
     For benchmark sets that have separate VCF and BED files,
     filter the VCF to only include variants within benchmark regions.
@@ -136,13 +136,12 @@ rule subset_vcf_to_benchmark_regions:
     input:
         vcf=lambda wildcards: get_benchmark_vcf(wildcards.benchmark),
         tbi=lambda wildcards: get_benchmark_vcf(wildcards.benchmark) + ".tbi",
+        bed=lambda wildcards: get_benchmark_bed(wildcards.benchmark),
     output:
         vcf=ensure(
             "results/subset_vcfs/{benchmark}.vcf.gz",
             non_empty=True,
         ),
-    params:
-        bed=lambda wildcards: get_benchmark_bed(wildcards.benchmark),
     log:
         "logs/subset_vcfs/{benchmark}_subset.log",
     message:
@@ -158,15 +157,9 @@ rule subset_vcf_to_benchmark_regions:
         echo "Subsetting {wildcards.benchmark} to benchmark regions" > {log}
         echo "Started at $(date)" >> {log}
         
-        if [ -z "{params.bed}" ] || [ "{params.bed}" = "None" ]; then
-            # No BED file - VCF is already filtered, create symlink
-            echo "No BED file provided, creating symlink to original VCF" >> {log}
-            ln -sf $(realpath {input.vcf}) {output.vcf}
-        else
-            # Filter VCF to benchmark regions
-            echo "Filtering VCF to benchmark regions" >> {log}
-            bcftools view -R {params.bed} {input.vcf} -Oz -o {output.vcf} 2>> {log}
-        fi
+        # Filter VCF to benchmark regions
+        echo "Filtering VCF to benchmark regions" >> {log}
+        bcftools view -R {params.bed} {input.vcf} -Oz -o {output.vcf} 2>> {log}
         
         # Log completion
         echo "Completed at $(date)" >> {log}
