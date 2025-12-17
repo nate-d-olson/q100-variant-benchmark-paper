@@ -159,7 +159,7 @@ rule subset_vcf_to_benchmark_regions:
         
         # Filter VCF to benchmark regions
         echo "Filtering VCF to benchmark regions" >> {log}
-        bcftools view -R {params.bed} {input.vcf} -Oz -o {output.vcf} 2>> {log}
+        bcftools view -R {input.bed} {input.vcf} -Oz -o {output.vcf} 2>> {log}
         
         # Log completion
         echo "Completed at $(date)" >> {log}

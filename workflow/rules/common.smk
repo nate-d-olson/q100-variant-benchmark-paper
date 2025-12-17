@@ -154,11 +154,12 @@ def get_benchmark_vcf(benchmark):
         Path to benchmark VCF file
     """
     vcf_entry = config["benchmarksets"].get(benchmark, {}).get("vcf")
-    if isinstance(vcf_entry, dict) and "url" in vcf_entry:
-        return os.path.join("resources/benchmarksets", get_filename_from_url(vcf_entry["url"]))
-    elif isinstance(vcf_entry, str):
-        return vcf_entry
-    
+    if isinstance(vcf_entry, dict):
+        if url := vcf_entry.get("url"):
+            return os.path.join("resources/benchmarksets", get_filename_from_url(url))
+        if path := vcf_entry.get("path"):
+            return path
+
     raise ValueError(f"No VCF file found for benchmark: {benchmark}")
 
 

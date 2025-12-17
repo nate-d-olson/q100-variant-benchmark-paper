@@ -35,7 +35,7 @@ for benchmark, info in config.get("benchmarksets", {}).items():
     # Handle VCF download
     vcf_info = info.get("vcf")
     if isinstance(vcf_info, dict) and "url" in vcf_info:
-        vcf_path = os.path.join("data/benchmarksets", get_filename_from_url(vcf_info["url"]))
+        vcf_path = os.path.join("resources/benchmarksets", get_filename_from_url(vcf_info["url"]))
         rule:
             name: f"download_benchmark_vcf_{benchmark}"
             output:
@@ -51,7 +51,7 @@ for benchmark, info in config.get("benchmarksets", {}).items():
     # Handle BED download
     bed_info = info.get("bed")
     if isinstance(bed_info, dict) and "url" in bed_info:
-        bed_path = os.path.join("data/benchmarksets", get_filename_from_url(bed_info["url"]))
+        bed_path = os.path.join("resources/benchmarksets", get_filename_from_url(bed_info["url"]))
         rule:
             name: f"download_benchmark_bed_{benchmark}"
             output:
