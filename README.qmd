@@ -1,236 +1,169 @@
 ---
-title: "Directory Structure for Quarto-based Scientific Manuscripts"
-author: "Your Name"
+title: "GIAB v5q HG002 Variant Benchmark Set Analysis"
+author: "Genome in a Bottle Consortium"
 date: today
 format:
   html:
     toc: true
     number-sections: true
-    highlight-style: github
-  pdf:
+  gfm:
     toc: true
     number-sections: true
-    documentclass: article
-bibliography: references.bib
+bibliography: manuscript/references.bib
 ---
 
-# Introduction
+# Overview
 
-Organizing a scientific manuscript project with Quarto requires thoughtful directory structure planning. A well-structured project facilitates collaboration, improves reproducibility, and streamlines the publishing workflow. This document outlines recommended practices for setting up a Quarto-based scientific manuscript project.
+This repository contains the analysis pipeline and manuscript for the **GIAB v5q HG002 Variant Benchmark Set**. The benchmark set provides high-confidence variant calls for HG002 (NA24385) using the T2T HG002 Q100 diploid assembly, with coordinates available for GRCh37, GRCh38, and CHM13v2.0 (T2T) reference genomes.
 
-# Recommended Directory Structure
+## Pipeline Purpose
 
-Below is an ideal structure for a scientific manuscript using Quarto:
+The Snakemake pipeline processes benchmark set files to:
+
+1. **Download and validate** benchmark VCF/BED files and reference genomes
+2. **Characterize variant distributions** by type (SNPs, indels, SVs)
+3. **Calculate overlap** with genomic stratification contexts (tandem repeats, homopolymers, segmental duplications, low mappability)
+4. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
+5. **Compare with historical benchmarks** (v4.2.1, CMRG, v0.6 SV, TR benchmarks)
+
+## Key Outputs
+
+- Per-chromosome variant statistics (`results/vcfstats/`)
+- SV length distributions (`results/sv_len/`)
+- Context-stratified variant counts (`results/context_counts/`)
+- Benchmark region coverage by genomic context (`results/context_coverage/`)
+- Exclusion intersection tables (`results/exclusions/`)
+
+# Getting Started
+
+## Prerequisites
+
+- [Mamba](https://mamba.readthedocs.io/) or [Conda](https://docs.conda.io/)
+- [Snakemake](https://snakemake.readthedocs.io/) >= 8.0
+- [snakefmt](https://github.com/snakemake/snakefmt) (for development)
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/nate-d-olson/q100-variant-benchmark-paper.git
+cd q100-variant-benchmark-paper
+
+# Create and activate the environment
+mamba env create -f environment.yaml
+mamba activate q100-smk
+```
+
+## Running the Pipeline
+
+```bash
+# Dry-run to validate workflow
+snakemake -n --quiet
+
+# Run pipeline locally with conda environments
+snakemake --cores 4 --sdm conda
+
+# Run using the Makefile shortcuts
+make dry-run   # Validate workflow
+make lint      # Check best practices
+make test      # Run all validation tests
+make run       # Execute the pipeline
+```
+
+# Repository Structure
 
 ```
 project-root/
-├── _quarto.yml          # Main configuration file
-├── index.qmd            # Main landing page/abstract
-├── manuscript/          # Core manuscript files
+├── workflow/                # Snakemake pipeline
+│   ├── Snakefile           # Main workflow entry point
+│   ├── rules/              # Rule definitions
+│   │   ├── common.smk      # Helper functions
+│   │   ├── downloads.smk   # Download rules
+│   │   ├── vcf_processing.smk  # VCF analysis rules
+│   │   └── exclusions.smk  # Exclusion analysis rules
+│   ├── envs/               # Conda environment definitions
+│   │   ├── bcftools.yaml
+│   │   ├── bedtools.yaml
+│   │   └── rtg-tools.yaml
+│   └── scripts/            # Custom Python/R scripts
+├── config/
+│   └── config.yaml         # Pipeline configuration
+├── manuscript/             # Quarto manuscript files
 │   ├── introduction.qmd
 │   ├── methods.qmd
 │   ├── results.qmd
 │   ├── discussion.qmd
-│   └── references.bib   # Bibliography file
-├── sections/            # Supplementary sections or appendices
-│   ├── appendix-a.qmd
-│   ├── appendix-b.qmd
-│   └── ...
-├── data/                # Data files (if not too large)
-│   └── ...
-├── figures/             # Generated or static figures
-│   └── ...
-├── tables/              # Tables or data for tables
-│   └── ...
-├── scripts/             # Analysis scripts
-│   └── ...
-├── styles.css           # Custom CSS for HTML output
-├── templates/           # Custom templates for output formats
-│   └── ...
-└── .gitignore           # Version control ignore file
+│   └── references.bib
+├── analysis/               # Supplementary analysis notebooks
+├── data/                   # Input data files (local)
+├── resources/              # Downloaded resources
+├── results/                # Pipeline outputs
+├── environment.yaml        # Mamba environment spec
+├── Makefile               # Development shortcuts
+└── _quarto.yml            # Quarto project config
 ```
 
-# Key Components and Best Practices
+# Benchmark Sets Analyzed
 
-## Configuration Files
+| Benchmark | Reference | Variant Type | Description |
+|-----------|-----------|--------------|-------------|
+| v5q_chm13_smvar | CHM13v2.0 | Small variants | T2T Q100 benchmark (SNPs + indels <50bp) |
+| v5q_chm13_stvar | CHM13v2.0 | Structural variants | T2T Q100 benchmark (SVs ≥50bp) |
+| v5q_grch38_smvar | GRCh38 | Small variants | T2T Q100 liftover |
+| v5q_grch38_stvar | GRCh38 | Structural variants | T2T Q100 liftover |
+| v5q_grch37_smvar | GRCh37 | Small variants | T2T Q100 liftover |
+| v5q_grch37_stvar | GRCh37 | Structural variants | T2T Q100 liftover |
+| v421_grch38_smvar | GRCh38 | Small variants | Historical GIAB v4.2.1 |
+| cmrg_grch38_smvar | GRCh38 | Small variants | CMRG difficult regions |
+| cmrg_grch38_stvar | GRCh38 | Structural variants | CMRG difficult regions |
+| v06_grch37_stvar | GRCh37 | Structural variants | Historical SV v0.6 |
+| tr_grch38_trvar | GRCh38 | Tandem repeats | TR benchmark v1.0 |
 
-The `_quarto.yml` file is the central configuration file for your project. It defines project-wide settings, output formats, and navigation structure:
+# Genomic Stratification Contexts
 
-```yaml
-project:
-  type: book
-  output-dir: _output
+The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
 
-book:
-  title: "Your Manuscript Title"
-  author: "Author Names"
-  date: "last-modified"
-  chapters:
-    - index.qmd
-    - manuscript/introduction.qmd
-    - manuscript/methods.qmd
-    - manuscript/results.qmd
-    - manuscript/discussion.qmd
-  appendices:
-    - sections/appendix-a.qmd
-    - sections/appendix-b.qmd
+| Context | Description |
+|---------|-------------|
+| TR | All tandem repeats |
+| TR10kb | Tandem repeats ≥101bp with 5bp slop |
+| HP | Homopolymers ≥7bp (perfect) or ≥11bp (imperfect) |
+| SD | All segmental duplications |
+| SD10kb | Segmental duplications >10kb |
+| MAP | Low mappability regions |
 
-bibliography: manuscript/references.bib
+# Development
 
-format:
-  html:
-    theme: cosmo
-    code-fold: true
-  pdf:
-    documentclass: article
-    geometry:
-      - margin=1in
-    keep-tex: true
+## Code Quality
+
+```bash
+# Run linting and format checks
+make test
+
+# Format Snakemake files
+make format
 ```
 
-## Content Organization
+## Commit Conventions
 
-### Main Manuscript
+This project uses [Conventional Commits](https://www.conventionalcommits.org/):
 
-The core content of your manuscript should be organized in the `manuscript/` directory:
+- `feat:` - New feature or analysis
+- `fix:` - Bug fix
+- `docs:` - Documentation updates
+- `chore:` - Maintenance (dependencies, configs)
+- `refactor:` - Code restructuring
 
-- `introduction.qmd`: Background, research questions, and objectives
-- `methods.qmd`: Study design, data collection, and analysis procedures
-- `results.qmd`: Primary findings with figures and tables
-- `discussion.qmd`: Interpretation of results, limitations, and implications
+# Citation
 
-### Supporting Content
+If you use this benchmark set, please cite:
 
-Additional materials should be organized in dedicated directories:
+> [Citation to be added upon publication]
 
-- `sections/`: Supplementary information and appendices
-- `figures/`: All visualizations, either statically saved or generated during rendering
-- `tables/`: Data tables and supporting tabular information
-- `data/`: Raw or processed datasets (if not too large)
-- `scripts/`: Analysis code and data processing scripts
+# License
 
-## Cross-referencing
+This project is licensed under CC0 1.0 Universal - see the LICENSE file for details.
 
-Quarto provides robust cross-referencing capabilities. Use labels and references throughout your documents:
+# Acknowledgments
 
-```markdown
-@fig-example shows the relationship between variables.
-
-![Example visualization](figures/example_plot.png){#fig-example}
-
-As shown in @tbl-results, the correlation was significant.
-
-| Variable | Coefficient | p-value |
-|----------|-------------|---------|
-| X        | 0.75        | 0.001   |
-| Y        | 0.32        | 0.04    |
-: Results of correlation analysis {#tbl-results}
-```
-
-## Version Control Integration
-
-Include a proper `.gitignore` file to exclude build artifacts and large files:
-
-```
-# Quarto build directories
-/.quarto/
-/_site/
-/_output/
-/_freeze/
-
-# Large data files
-/data/*.csv
-/data/*.xlsx
-
-# Generated PDF/Word outputs
-/*.pdf
-/*.docx
-
-# System files
-.DS_Store
-Thumbs.db
-```
-
-# Example _quarto.yml Configuration
-
-Here's a more detailed example of a configuration file for a scientific manuscript:
-
-```yaml
-project:
-  type: book
-  output-dir: _output
-
-book:
-  title: "Effects of Climate Change on Marine Ecosystems"
-  author: "Researcher Name"
-  date: last-modified
-  date-format: "MMMM D, YYYY"
-  chapters:
-    - index.qmd
-    - manuscript/introduction.qmd
-    - manuscript/methods.qmd
-    - manuscript/results.qmd
-    - manuscript/discussion.qmd
-    - manuscript/conclusion.qmd
-    - manuscript/acknowledgments.qmd
-  appendices:
-    - sections/appendix-data-sources.qmd
-    - sections/appendix-statistical-methods.qmd
-  
-bibliography: manuscript/references.bib
-csl: templates/journal-of-ecology.csl
-
-format:
-  html:
-    theme: cosmo
-    toc: true
-    toc-depth: 3
-    number-sections: true
-    code-fold: true
-    code-tools: true
-    embed-resources: true
-  pdf:
-    documentclass: article
-    classoption: [12pt, onecolumn]
-    geometry:
-      - margin=1in
-    toc: true
-    toc-depth: 3
-    number-sections: true
-    colorlinks: true
-    keep-tex: true
-```
-
-# Workflow Recommendations
-
-## Collaborative Editing
-
-When working with collaborators:
-
-1. Use version control (Git) to track changes
-2. Consider a branching strategy for major revisions
-3. Implement clear commenting conventions in the Qmd files
-
-## Reproducibility
-
-Ensure your manuscript is reproducible:
-
-1. Include all code needed to regenerate results
-2. Document computational environment (e.g., using `renv` for R projects)
-3. Consider using Docker for complete environment reproducibility
-
-## Citation Management
-
-For managing references:
-
-1. Maintain a single `references.bib` file
-2. Use citation keys consistently
-3. Consider tools like Zotero with Better BibTeX for reference management
-
-# Conclusion
-
-A well-organized Quarto project structure enhances collaboration, maintainability, and reproducibility. By following these recommendations, you can create a scientific manuscript that meets modern standards for computational publishing while streamlining your workflow.
-
-# References
-
-<!-- References will be automatically generated from your .bib file -->
+This work was supported by the Genome in a Bottle Consortium at NIST.

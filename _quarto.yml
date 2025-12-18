@@ -1,5 +1,8 @@
 project:
   type: manuscript
+  render:
+    - "results/*qmd"
+    - "!scratch/"
 bibliography: manuscript/references.bib
 citations-hover: true
 format:

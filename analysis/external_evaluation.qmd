@@ -1,0 +1,273 @@
+---
+title: "v5.0q Small and Structural Variant External Evaluation"
+date: '`r Sys.Date()`'
+author: "N.D. Olson"
+format: html
+editor: visual
+embed-resources: true
+---
+
+Update curations with JZ notes https://docs.google.com/spreadsheets/d/1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-_vcV6t0/edit?usp=sharing
+
+```{r setup}
+#| include=FALSE,
+#| echo=TRUE
+library(tidyverse)
+library(here)
+library(patchwork)
+
+```
+
+```{r message=FALSE}
+eval_csvs <- list.files(
+  path = here("data/external-evaluations/evaluator-curations"),
+  pattern = "Miqa.csv",
+  full.names = TRUE,
+  recursive = TRUE,
+  include.dirs = TRUE
+) %>%
+  {
+    set_names(., str_extract(., "(?<=curations/).*(?= On)"))
+  }
+
+## Subsetting small and structural variant tables based on number of rows
+## - small variants expect 71, structural variants 41
+## a few files have less as less than 5 variants per strata to subset
+nlines <- eval_csvs %>% map_int(~ length(read_lines(.x)))
+
+smvar_evals <- eval_csvs[nlines > 50] %>%
+  map_dfr(read_csv,
+    name_repair = "universal",
+    show_col_types = FALSE,
+    .id = "callset"
+  )
+
+stvar_evals <- eval_csvs[nlines < 50] %>%
+  map_dfr(read_csv,
+    name_repair = "universal",
+    show_col_types = FALSE,
+    .id = "callset"
+  )
+```
+
+## Small Variants External Evaluations
+
+```{r}
+total_smvs <- smvar_evals %>% nrow()
+smvs_to_review <- smvar_evals %>%
+  filter(correct.in.benchmark != "yes") %>%
+  nrow()
+```
+
+A total of `r total_smvs` small variants were evaluated, of which
+`r smvs_to_review` were categorized and not correct or unsure in the benchmark.
+
+```{r fig.width = 8, caption = "The benchmark variant calls were curated as correct in the benchmark more than half the time for all callsets."}
+(smvar_eval_callset_plt <- smvar_evals %>%
+  count(callset, correct.in.benchmark) %>%
+  mutate(correct.in.benchmark = factor(correct.in.benchmark,
+    levels = c("no", "unsure", "yes")
+  )) %>%
+  ggplot() +
+  geom_col(aes(x = callset, y = n, fill = correct.in.benchmark),
+    position = "stack"
+  ) +
+  geom_hline(aes(yintercept = 35), linetype = 2) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = -45, hjust = 0)
+  ) +
+  labs(
+    x = "Callset", y = "# of Variants",
+    fill = "Correct in Benchmark"
+  )
+)
+```
+
+Strata
+SNV unique to query callset in a Tandem Repeat
+SNV unique to query callset in difficult to map region but not a tandem repeat
+SNV unique to query callset not in difficult to map region or tandem repeat in XY nonPAR.
+SNV unique to query callset not in difficult to map region or tandem repeat in autosomes.
+INDEL unique to query callset in homopolymer longer than 6 bp
+INDEL unique to query callset not in homopolymer longer than 6 bp in tandem repeat
+INDEL unique to query callset not in homopolymer longer than 6 bp or tandem repeat and in difficult to map region
+INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in XY nonPAR
+INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in autosomes.
+SNV unique to benchmark set callset in a Tandem Repeat
+SNV unique to benchmark set in difficult to map region but not a tandem repeat
+SNV unique to benchmark set not in difficult to map region or tandem repeat in XY nonPAR.
+SNV unique to benchmark set not in difficult to map region or tandem repeat in autosomes.
+INDEL unique to benchmark set in homopolymer longer than 6 bp
+INDEL unique to benchmark set not in homopolymer longer than 6 bp in tandem repeat
+INDEL unique to benchmark set not in homopolymer longer than 6 bp or tandem repeat and in difficult to map region
+INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in XY nonPAR
+INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in autosomes.
+
+```{r fig.height = 16, fig.width = 8, caption = "The benchmark variant calls were curated as correct in the benchmark more than half the time for all but 14 callset x strata combinations."}
+(smvar_eval_strata_plt <- smvar_evals %>%
+  count(callset, strata, correct.in.benchmark) %>%
+  group_by(strata, correct.in.benchmark) %>%
+  mutate(correct.in.benchmark = factor(correct.in.benchmark,
+    levels = c("no", "unsure", "yes")
+  )) %>%
+  ggplot() +
+  geom_col(
+    aes(
+      x = callset,
+      y = n,
+      fill = correct.in.benchmark
+    ),
+    position = "stack"
+  ) +
+  geom_hline(aes(yintercept = 2.5), linetype = 2) +
+  facet_grid(strata ~ .) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  labs(
+    x = "Callset", y = "# of Variants",
+    title = "Small Variant External Evaluations by Strata and Callset",
+    fill = "Correct in Benchmark"
+  )
+)
+```
+
+```{r}
+ggsave(
+  filename = here("manuscript", "figs", "smvar_eval_strata_supplemental.png"),
+  plot = smvar_eval_strata_plt,
+  width = 8,
+  height = 10,
+  dpi = 300
+)
+```
+
+```{r}
+smvars_no_or_unsure <- smvar_evals %>%
+  filter(correct.in.benchmark != "yes") %>%
+  select(-Select, -annot, -comment)
+
+DT::datatable(smvars_no_or_unsure,
+  rownames = FALSE,
+  caption = "Small Variants with Not Correct or Unsure in Benchmark Curations",
+  extensions = "Buttons",
+  options = list(dom = "Bfrtip", buttons = c("csv", "excel"))
+)
+```
+
+### Structural Variants External Evaluations
+
+```{r}
+total_svs <- stvar_evals %>% nrow()
+svs_to_review <- stvar_evals %>%
+  filter(correct.in.benchmark != "yes") %>%
+  nrow()
+```
+
+A total of `r total_svs` structural variants were evaluated, of which
+`r svs_to_review` were categorized and not correct or unsure in the benchmark.
+
+```{r fig.width = 8, caption = "The benchmark variant calls were curated as correct in the benchmark more than half the time for all callsets. Though the UCLA callsets had a larger number of unsure curations."}
+(stvar_eval_callset_plt <- stvar_evals %>%
+  count(callset, correct.in.benchmark) %>%
+  mutate(correct.in.benchmark = factor(correct.in.benchmark,
+    levels = c("no", "unsure", "yes")
+  )) %>%
+  ggplot() +
+  geom_col(
+    aes(
+      x = callset,
+      y = n,
+      fill = correct.in.benchmark
+    ),
+    position = "stack"
+  ) +
+  geom_hline(aes(yintercept = 20), linetype = 2) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = -45, hjust = 0)
+  ) +
+  labs(
+    x = "Callset", y = "# of Variants",
+    fill = "Correct in Benchmark"
+  )
+)
+```
+
+
+```{r fig.width = 8, fig.height = 16}
+(stvar_eval_strata_plt <- stvar_evals %>%
+  mutate(strata = str_glue("{TR_anno} {sv_cat} {unique_to}")) %>%
+  # count(callset, strata, correct.in.benchmark) %>%
+  mutate(correct.in.benchmark = factor(correct.in.benchmark,
+    levels = c("no", "unsure", "yes")
+  )) %>%
+  ggplot() +
+  geom_bar(
+    aes(
+      x = callset,
+      fill = correct.in.benchmark
+    ),
+    position = "stack"
+  ) +
+  geom_hline(aes(yintercept = 2.5), linetype = 2) +
+  facet_wrap(~strata, ncol = 4) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_bw() +
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = -45, hjust = 0)) +
+  labs(
+    x = "Callset", y = "# of Variants",
+    title = "Structural Variant External Evaluations by Strata and Callset",
+    fill = "Correct in Benchmark"
+  )
+)
+```
+
+```{r}
+ggsave(
+  filename = here("manuscript", "figs", "stvar_eval_strata_supplemental.png"),
+  plot = stvar_eval_strata_plt,
+  width = 8,
+  height = 10,
+  dpi = 300
+)
+```
+
+
+```{r}
+stvars_no_or_unsure <- stvar_evals %>%
+  filter(correct.in.benchmark != "yes") %>%
+  select(-Select, -annot, -comment)
+
+DT::datatable(stvars_no_or_unsure,
+  rownames = FALSE,
+  caption = "Structural Variant Benchmark Not Correct or Unsure Curations",
+  extensions = "Buttons",
+  options = list(dom = "Bfrtip", buttons = c("csv", "excel"))
+)
+```
+
+## Combined plot by callset
+
+```{r}
+(combined_eval_callset_plt <- (smvar_eval_callset_plt | stvar_eval_callset_plt) +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", ncol = 1, nrow = 2) & theme(legend.position = "bottom")
+)
+```
+
+
+```{r}
+ggsave(
+  filename = here("manuscript", "figs", "combined_eval_callset.png"),
+  plot = combined_eval_callset_plt,
+  width = 4,
+  height = 8,
+  dpi = 300
+)
+```
