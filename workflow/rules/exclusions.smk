@@ -7,60 +7,16 @@ For each benchmark set, generates a table with columns:
 - exclusion_bp: Total bases in the exclusion BED
 - intersect_bp: Bases overlapping between exclusion and benchmark regions
 - pct_of_dip: Percent of benchmark regions covered by exclusion
+
+Helper functions are defined in rules/common.smk:
+- get_exclusion_config()
+- get_exclusion_items()
+- get_exclusion_entry()
+- get_exclusion_inputs()
+- get_exclusion_type()
+- get_dip_bed_for_exclusions()
+- get_input_checksums()
 """
-
-
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-
-def get_exclusion_config(benchmark):
-    """Get exclusion configuration for a benchmark set."""
-    return config["benchmarksets"].get(benchmark, {}).get("exclusions", [])
-
-
-def get_exclusion_items(wildcards):
-    """Get list of exclusion names for a benchmark set."""
-    exclusions = get_exclusion_config(wildcards.benchmark)
-    return [item["name"] for item in exclusions]
-
-
-def get_exclusion_entry(benchmark, exclusion_name):
-    """Get a specific exclusion entry by name."""
-    exclusions = get_exclusion_config(benchmark)
-    for item in exclusions:
-        if item["name"] == exclusion_name:
-            return item
-    raise ValueError(f"Exclusion {exclusion_name} not found for {benchmark}")
-
-
-def get_exclusion_inputs(wildcards):
-    """Get input file paths for an exclusion."""
-    entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
-    return [f["path"] for f in entry["files"]]
-
-
-def get_exclusion_type(wildcards):
-    """Get type (single/pair) for an exclusion."""
-    entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
-    return entry["type"]
-
-
-def get_dip_bed_for_exclusions(wildcards):
-    """Get the dip.bed path for a benchmark set."""
-    return config["benchmarksets"][wildcards.benchmark]["dip_bed"]["path"]
-
-
-def get_input_checksums(wildcards):
-    """Get checksums for exclusion input files."""
-    entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
-    return [f["sha256"] for f in entry["files"]]
-
-
-# ============================================================================
-# Rules
-# ============================================================================
 
 
 rule materialize_exclusion:
@@ -244,6 +200,8 @@ rule aggregate_exclusion_table:
     threads: 1
     resources:
         mem_mb=1024,
+    conda:
+        "../envs/bedtools.yaml"
     shell:
         """
         echo "Aggregating exclusion metrics for {wildcards.benchmark}" > {log}

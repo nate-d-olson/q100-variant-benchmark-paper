@@ -274,7 +274,9 @@ def get_all_reference_files(wildcards):
     Returns:
         List of file paths for all reference files
     """
-    return [ref["path"] for ref in config.get("references", {}).values() if "path" in ref]
+    return [
+        ref["path"] for ref in config.get("references", {}).values() if "path" in ref
+    ]
 
 
 def get_exclusion_table_inputs(wildcards):
@@ -294,12 +296,49 @@ def get_exclusion_table_inputs(wildcards):
     return inputs
 
 
-def get_exclusion_table_inputs(wildcards):
-    """
-    Generate list of exclusion intersection tables for all benchmarks that have exclusions configured.
-    """
-    inputs = []
-    for benchmark, conf in config["benchmarksets"].items():
-        if "exclusions" in conf:
-            inputs.append(f"results/exclusions/{benchmark}/exclusions_intersection_table.csv")
-    return inputs
+# ============================================================================
+# Exclusion Analysis Helper Functions
+# ============================================================================
+
+
+def get_exclusion_config(benchmark):
+    """Get exclusion configuration for a benchmark set."""
+    return config["benchmarksets"].get(benchmark, {}).get("exclusions", [])
+
+
+def get_exclusion_items(wildcards):
+    """Get list of exclusion names for a benchmark set."""
+    exclusions = get_exclusion_config(wildcards.benchmark)
+    return [item["name"] for item in exclusions]
+
+
+def get_exclusion_entry(benchmark, exclusion_name):
+    """Get a specific exclusion entry by name."""
+    exclusions = get_exclusion_config(benchmark)
+    for item in exclusions:
+        if item["name"] == exclusion_name:
+            return item
+    raise ValueError(f"Exclusion {exclusion_name} not found for {benchmark}")
+
+
+def get_exclusion_inputs(wildcards):
+    """Get input file paths for an exclusion."""
+    entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
+    return [f["path"] for f in entry["files"]]
+
+
+def get_exclusion_type(wildcards):
+    """Get type (single/pair) for an exclusion."""
+    entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
+    return entry["type"]
+
+
+def get_dip_bed_for_exclusions(wildcards):
+    """Get the dip.bed path for a benchmark set."""
+    return config["benchmarksets"][wildcards.benchmark]["dip_bed"]["path"]
+
+
+def get_input_checksums(wildcards):
+    """Get checksums for exclusion input files."""
+    entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
+    return [f["sha256"] for f in entry["files"]]
