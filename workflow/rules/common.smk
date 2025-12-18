@@ -275,3 +275,31 @@ def get_all_reference_files(wildcards):
         List of file paths for all reference files
     """
     return [ref["path"] for ref in config.get("references", {}).values() if "path" in ref]
+
+
+def get_exclusion_table_inputs(wildcards):
+    """
+    Generate list of exclusion intersection tables for all benchmarks
+    that have exclusions configured.
+
+    Returns:
+        List of file paths for exclusion table outputs
+    """
+    inputs = []
+    for benchmark, conf in config["benchmarksets"].items():
+        if "exclusions" in conf and conf["exclusions"]:
+            inputs.append(
+                f"results/exclusions/{benchmark}/exclusions_intersection_table.csv"
+            )
+    return inputs
+
+
+def get_exclusion_table_inputs(wildcards):
+    """
+    Generate list of exclusion intersection tables for all benchmarks that have exclusions configured.
+    """
+    inputs = []
+    for benchmark, conf in config["benchmarksets"].items():
+        if "exclusions" in conf:
+            inputs.append(f"results/exclusions/{benchmark}/exclusions_intersection_table.csv")
+    return inputs

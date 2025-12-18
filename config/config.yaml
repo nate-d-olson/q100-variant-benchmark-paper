@@ -9,6 +9,96 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_smvar.benchmark.bed
       checksum: 224a6b65769765700d6333a432ba21ff303e54cd9475b79fbe1efea7e1786417
+    dip_bed:
+      path: "data/20250117_v0.020_HG002Q100v1.1/asm_varcalls/CHM13_HG002-T2TQ100v1.1-dipz2k/CHM13v2.0_HG2-T2TQ100-V1.1_dipcall-z2k.dip_sorted.bed"
+      sha256: "68e025da7bf053cb128251ae93bcf28f9ac8a988bfae2c7133b2f7fc0dcb2e94s"
+    exclusions:
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_consecutive-svs_sorted.bed"
+            sha256: "077d4b9bf2f2c0c86b5b545c4c81fe3d6290d22655caa0912d8277bdd7574eee"
+      - name: "flanks"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_flanks_sorted.bed"
+            sha256: "bc2e26b7a57eda1be1aa53028070487b9bb0b38a0d7e041f4afbbb5e6bc24b70"
+      - name: "satellites"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_start_sorted.bed"
+            sha256: "80cf73b0069a79d3819f7cfbf70a13a8f91c4994fe2a36e7b4eae437b31173f3"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_end_sorted.bed"
+            sha256: "510150966b4f645c06f724cef9b5264c20eb55c46849ca519f14f44d7c7e1422"
+      - name: "segdups"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_start_sorted.bed"
+            sha256: "b461e75c99abc9ac0e272bf8ae700d01305fd21c25c992bf7117551b25c79ff0"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_end_sorted.bed"
+            sha256: "ddfc8eb96e203ac2b3c0cc7c2093826193983c78254665237ec1eddde225614f"
+      - name: "self-discrep"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_self-discrep_sorted.bed"
+            sha256: "c784b5ba9019310ba8d64f1f20fb34b858d5957d3ccaa2738fd670d0b99ea57f"
+      - name: "svs-and-simple-repeats"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_svs-and-simple-repeats_sorted.bed"
+            sha256: "d5cb8446dcd685b6a06219039d97d2f2fa10a7100ed32eb3d341771ba7491b8c"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_tandem-repeats_slop_sorted_start_sorted.bed"
+            sha256: "3d15bf7c7e13287ae8054a180c093a36ee5d3b1acbe4062ebc7e46d79fa3d9e4"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_tandem-repeats_slop_sorted_end_sorted.bed"
+            sha256: "58827c60500e6fc655aaece0a564b4775b4c5afaabdd8690235c136f71809508"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-errors_sorted.bed"
+            sha256: "366ebb2aa53f89cf98e0aa21637cdc64a32c15db3a47a7627fac4b7a5c704dbc"
+      - name: "HG002Q100-mosaic"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-mosaic_sorted.bed"
+            sha256: "d8ec3616f9d68281cd396e98e19380106a5df0d1e3d800520e70c2be161691d7"
+      - name: "dipcall-pav_discrep-smvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-smvar_sorted.bed"
+            sha256: "c97c52bd2797514cefef8bda015551a5452c663eac7ce8e9a2c3b720c4271f5c"
+      - name: "dipcall-pav_discrep-stvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-stvar_sorted.bed"
+            sha256: "672f0908e078a167dad46de5bc661dd3c68b4460505a12172df5aa38b2ec78e9"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-inversions_sorted.bed"
+            sha256: "9722b37a14cbebd5b8ca150a2066eb4bc44b85b44a33230479ddecbf088611cb"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/TSPY2-segdups_sorted.bed"
+            sha256: "3314d4e098daf50af28a78273ab67364c5eebafd9f88a8a2ad3aed4525053fee"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/VDJ_sorted.bed"
+            sha256: "b438c733f5bdea0f9e1ea91ea16579b6a1fc6f5ab74ad1e595f988576fe4af20"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/dipcall-bugs-T2TACE_sorted.bed"
+            sha256: "53885cae3d1a02a32dec1a78c2134d93f8c7969bde1d2a123d49ae0d91ee807f"
+      - name: "gaps"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/gaps_slop_sorted.bed"
+            sha256: "4dfd19d8f4367941ecd990bb922118197b0287c98dad82a9936e8181feaf5479"
   v5q_chm13_stvar:
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.vcf.gz
@@ -16,6 +106,86 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.benchmark.bed
       checksum: 6b9cc176bbfda0375a3979d3f00524514f7dfbff96b7948425634ae9a0eb81ff
+    dip_bed:
+      path: "data/20250117_v0.020_HG002Q100v1.1/asm_varcalls/CHM13_HG002-T2TQ100v1.1-dipz2k/CHM13v2.0_HG2-T2TQ100-V1.1_dipcall-z2k.dip_sorted.bed"
+      sha256: "68e025da7bf053cb128251ae93bcf28f9ac8a988bfae2c7133b2f7fc0dcb2e94"
+    exclusions:
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_consecutive-svs_sorted.bed"
+            sha256: "077d4b9bf2f2c0c86b5b545c4c81fe3d6290d22655caa0912d8277bdd7574eee"
+      - name: "dip.bed_flanks"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_flanks_sorted.bed"
+            sha256: "bc2e26b7a57eda1be1aa53028070487b9bb0b38a0d7e041f4afbbb5e6bc24b70"
+      - name: "satellites"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_satellites_slopmerge_sorted_start_sorted.bed"
+            sha256: "80cf73b0069a79d3819f7cfbf70a13a8f91c4994fe2a36e7b4eae437b31173f3"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_satellites_slopmerge_sorted_end_sorted.bed"
+            sha256: "510150966b4f645c06f724cef9b5264c20eb55c46849ca519f14f44d7c7e1422"
+      - name: "segdups"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_segdups_slopmerge_sorted_start_sorted.bed"
+            sha256: "b461e75c99abc9ac0e272bf8ae700d01305fd21c25c992bf7117551b25c79ff0"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_segdups_slopmerge_sorted_end_sorted.bed"
+            sha256: "ddfc8eb96e203ac2b3c0cc7c2093826193983c78254665237ec1eddde225614f"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_tandem-repeats_slop_sorted_start_sorted.bed"
+            sha256: "3d15bf7c7e13287ae8054a180c093a36ee5d3b1acbe4062ebc7e46d79fa3d9e4"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_tandem-repeats_slop_sorted_end_sorted.bed"
+            sha256: "58827c60500e6fc655aaece0a564b4775b4c5afaabdd8690235c136f71809508"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-errors_sorted.bed"
+            sha256: "366ebb2aa53f89cf98e0aa21637cdc64a32c15db3a47a7627fac4b7a5c704dbc"
+      - name: "HG002-mosaic"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-mosaic_sorted.bed"
+            sha256: "d8ec3616f9d68281cd396e98e19380106a5df0d1e3d800520e70c2be161691d7"
+      - name: "dipcall-pav_discrep-smvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-smvar_sorted.bed"
+            sha256: "c97c52bd2797514cefef8bda015551a5452c663eac7ce8e9a2c3b720c4271f5c"
+      - name: "dipcall-pav_discrep-stvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-stvar_sorted.bed"
+            sha256: "672f0908e078a167dad46de5bc661dd3c68b4460505a12172df5aa38b2ec78e9"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-inversions_sorted.bed"
+            sha256: "9722b37a14cbebd5b8ca150a2066eb4bc44b85b44a33230479ddecbf088611cb"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/TSPY2-segdups_sorted.bed"
+            sha256: "3314d4e098daf50af28a78273ab67364c5eebafd9f88a8a2ad3aed4525053fee"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/VDJ_sorted.bed"
+            sha256: "b438c733f5bdea0f9e1ea91ea16579b6a1fc6f5ab74ad1e595f988576fe4af20"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/dipcall-bugs-T2TACE_sorted.bed"
+            sha256: "53885cae3d1a02a32dec1a78c2134d93f8c7969bde1d2a123d49ae0d91ee807f"
+      - name: "gaps"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/gaps_slop_sorted.bed"
+            sha256: "4dfd19d8f4367941ecd990bb922118197b0287c98dad82a9936e8181feaf5479"
   v5q_grch37_smvar:
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_smvar.vcf.gz
@@ -23,6 +193,96 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_smvar.benchmark.bed
       checksum: 91d0d56fb9a0fb954c6b97a92f914fe6eb25d5718c8de9d4907e0f20e371722a
+    dip_bed:
+      path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k.benchmark.bed"
+      sha256: "91d0d56fb9a0fb954c6b97a92f914fe6eb25d5718c8de9d4907e0f20e371722a"
+    exclusions:
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_consecutive-svs_sorted.bed"
+            sha256: "b181eb1b88c3fae2715629dcd51ac7eb177478843c527b731a6e1dc3210a4b1f"
+      - name: "flanks"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_flanks_sorted.bed"
+            sha256: "57ae2f1dd4814228ec6197bdc2268b0f67f882b8a1beffcfe5156ff2930f5a0b"
+      - name: "satellites_slopmerge_sorted"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_start_sorted.bed"
+            sha256: "ed671567cf8a9957ae983f74dc5f417ab2565584b9f6fd3efe35fe1b9b6a1ec3"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_end_sorted.bed"
+            sha256: "fab4d05f9ff63745b34e0841a4c789da0c1bdc726305409c2034e310d5464363"
+      - name: "segdups_slopmerge_sorted"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_start_sorted.bed"
+            sha256: "e1bb4dbfa8e6f6838715483046412d8deaa1e151bfdbe1c66075b76ef380bf0b"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_end_sorted.bed"
+            sha256: "79d97e006d32a00e5a4c288931d07e77306fb06dc95538d702342f4bea57c571"
+      - name: "self-discrep"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_self-discrep_sorted.bed"
+            sha256: "6ff5fb655316172fdf365d76766341379f7579c115d6696b865b3724b11f9d56"
+      - name: "svs-and-simple-repeats"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_svs-and-simple-repeats_sorted.bed"
+            sha256: "40e902e9acbf77ffdb5deb4ff3b84a65277fb385a0c694ef64dbcace246dd5f5"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_tandem-repeats_slop_sorted_start_sorted.bed"
+            sha256: "f01265cc87f53a1e7ab180b6b35e5941214269525dc051ccf16097fc99937a14"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_tandem-repeats_slop_sorted_end_sorted.bed"
+            sha256: "4cfe38df47984b29bdeb6edf3631d7111bdb3f497f519f6163d3b0a03006efd0"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-errors_sorted.bed"
+            sha256: "2a5ae64eb0520eb3d108a8f690d5866f77e06fedb45a6c0d33bd8b375fd38f18"
+      - name: "HG002-mosaic"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-mosaic_sorted.bed"
+            sha256: "126e3ecf8d0f537121701ef48b100e0cc0cf0cdca67510ba7e5a9154595225d8"
+      - name: "dipcall-pav_discrep-smvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-smvar_sorted.bed"
+            sha256: "1cf1467ce59675ee081b81059d64aaae1ee423b2c67bcd5915405ae6f59f43a1"
+      - name: "pav-discrep-stvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-stvar_sorted.bed"
+            sha256: "7e92aa956adfb02e59253d329e058396836c861665df3d1271cc4cc33ff8eccb"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-inversions_sorted.bed"
+            sha256: "6935284ca53f14147e952f98540770f83b9f3b1918f4be9e8ed95f21d6ad76e9"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/TSPY2-segdups_sorted.bed"
+            sha256: "ae3115ec369e707e2dff1f9032e041242a45c025d83c1f82c7b7cc51b3dacd4d"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/VDJ_sorted.bed"
+            sha256: "0e556696ec23bb0910b042dd2cdc0d74eb8eb6ffd399e2137bac20cb1459ce4e"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/dipcall-bugs-T2TACE_sorted.bed"
+            sha256: "0fd52086a9808cfde5b0d2a82c22bc36b3f9b5dbf80bbc7a7d9291a2174aaf41"
+      - name: "gaps"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/gaps_slop_sorted.bed"
+            sha256: "707941ad67cbe7236087f8453da6266c593c231c73dab1cd01242c49db18290a"
   v5q_grch37_stvar:
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_stvar.vcf.gz
@@ -30,6 +290,86 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_stvar.benchmark.bed
       checksum: fbdec183e5b0ba83efdb5880ae038db98cd12cd9715e28debb9ed96541c10f40
+    dip_bed:
+      path: "data/20250117_v0.020_HG002Q100v1.1/asm_varcalls/GRCh37_HG002-T2TQ100v1.1-dipz2k/GRCh37_HG2-T2TQ100-V1.1_dipcall-z2k.dip_sorted.bed"
+      sha256: "7133df916d33a9d8480918e8222a6a911ead33cd26ce03e5c404c7e1434d5b7d"
+    exclusions:
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_consecutive-svs_sorted.bed"
+            sha256: "b181eb1b88c3fae2715629dcd51ac7eb177478843c527b731a6e1dc3210a4b1f"
+      - name: "flanks"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_flanks_sorted.bed"
+            sha256: "57ae2f1dd4814228ec6197bdc2268b0f67f882b8a1beffcfe5156ff2930f5a0b"
+      - name: "satellites"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_satellites_slopmerge_sorted_start_sorted.bed"
+            sha256: "ed671567cf8a9957ae983f74dc5f417ab2565584b9f6fd3efe35fe1b9b6a1ec3"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_satellites_slopmerge_sorted_end_sorted.bed"
+            sha256: "fab4d05f9ff63745b34e0841a4c789da0c1bdc726305409c2034e310d5464363"
+      - name: "segdups"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_segdups_slopmerge_sorted_start_sorted.bed"
+            sha256: "e1bb4dbfa8e6f6838715483046412d8deaa1e151bfdbe1c66075b76ef380bf0b"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_segdups_slopmerge_sorted_end_sorted.bed"
+            sha256: "79d97e006d32a00e5a4c288931d07e77306fb06dc95538d702342f4bea57c571"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_tandem-repeats_slop_sorted_start_sorted.bed"
+            sha256: "f01265cc87f53a1e7ab180b6b35e5941214269525dc051ccf16097fc99937a14"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_tandem-repeats_slop_sorted_end_sorted.bed"
+            sha256: "4cfe38df47984b29bdeb6edf3631d7111bdb3f497f519f6163d3b0a03006efd0"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-errors_sorted.bed"
+            sha256: "2a5ae64eb0520eb3d108a8f690d5866f77e06fedb45a6c0d33bd8b375fd38f18"
+      - name: "HG002-mosaic"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-mosaic_sorted.bed"
+            sha256: "126e3ecf8d0f537121701ef48b100e0cc0cf0cdca67510ba7e5a9154595225d8"
+      - name: "dip.call-pav_discrep-smvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-smvar_sorted.bed"
+            sha256: "1cf1467ce59675ee081b81059d64aaae1ee423b2c67bcd5915405ae6f59f43a1"
+      - name: "dip.call-pav_discrep-stvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-stvar_sorted.bed"
+            sha256: "7e92aa956adfb02e59253d329e058396836c861665df3d1271cc4cc33ff8eccb"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-inversions_sorted.bed"
+            sha256: "6935284ca53f14147e952f98540770f83b9f3b1918f4be9e8ed95f21d6ad76e9"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/TSPY2-segdups_sorted.bed"
+            sha256: "ae3115ec369e707e2dff1f9032e041242a45c025d83c1f82c7b7cc51b3dacd4d"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/VDJ_sorted.bed"
+            sha256: "0e556696ec23bb0910b042dd2cdc0d74eb8eb6ffd399e2137bac20cb1459ce4e"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/dipcall-bugs-T2TACE_sorted.bed"
+            sha256: "0fd52086a9808cfde5b0d2a82c22bc36b3f9b5dbf80bbc7a7d9291a2174aaf41"
+      - name: "gaps"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/gaps_slop_sorted.bed"
+            sha256: "707941ad67cbe7236087f8453da6266c593c231c73dab1cd01242c49db18290a"
   v5q_grch38_smvar:
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz
@@ -37,6 +377,96 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_smvar.benchmark.bed
       checksum: ef7d898dd421ea357bb9db915894ab3e5c6c1689e36ccf619befda4bbf1cef5b
+    dip_bed:
+      path: "data/20250117_v0.020_HG002Q100v1.1/asm_varcalls/GRCh38_HG002-T2TQ100v1.1-dipz2k/GRCh38_HG2-T2TQ100-V1.1_dipcall-z2k.dip.bed"
+      sha256: "ef7d898dd421ea357bb9db915894ab3e5c6c1689e36ccf619befda4bbf1cef5b"
+    exclusions:
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_consecutive-svs_sorted.bed"
+            sha256: "f64d8c2743ba4768cec9a7b5bbd749d2c395e51ed0400c648f9d77c3f150f750"
+      - name: "flanks"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_flanks_sorted.bed"
+            sha256: "650ffcbe34a34931170fdb84ca88214c91c644bf3057dd423e278809b528b980"
+      - name: "satellites"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_start_sorted.bed"
+            sha256: "23b35ac5f4f578e3a14735de398c4aec3b94939c0dca8b7212f258fa6394d788"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_end_sorted.bed"
+            sha256: "38c11e527170748ea7bdeed0dcf5d3a04d18b54016bc4122ddc049605f70a046"
+      - name: "segdups"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_start_sorted.bed"
+            sha256: "3f6b1b95bc8f6372c2c7e2e3e54c0603a7d62197ff871229a5e0530cf414444b"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_end_sorted.bed"
+            sha256: "447dd6f808a522b6f519c9c17d748ccc68e0ae371aca0a07bf8f2ce1d7bbf19a"
+      - name: "GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_self-discrep"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_self-discrep_sorted.bed"
+            sha256: "4f32fb2506aa89e9b6fd3b39e219c3904361f18aea130e5fb47ef0fba28d66bb"
+      - name: "svs-and-simple-repeats"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_svs-and-simple-repeats_sorted.bed"
+            sha256: "7b2e0f926e89000f0d470de956233abda58ef0bf1a8da856d9b35702aeb884fc"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_tandem-repeats_slop_sorted_start_sorted.bed"
+            sha256: "421e7d08107c339a0ee58c2f7e3197c073ac5d75348b329a6e714bc651a54798"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_tandem-repeats_slop_sorted_end_sorted.bed"
+            sha256: "4d1b119114f9209af5ce2ca4e7da248ffbd08499337323684ed5a6c800ffbc7a"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-errors_sorted.bed"
+            sha256: "9513067407b0eb18c63d0446fdf013657e68bd67b73000164f0114b04383b239"
+      - name: "HG002-mosaic"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-mosaic_sorted.bed"
+            sha256: "7938891972cb68d5b284936546f2696177d5c6191160cfc582bb4c6f220fb58e"
+      - name: "dipcall-pav_discrep-smvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-smvar_sorted.bed"
+            sha256: "d88f530ea79b3b78fd979afe9356a693813227486448225b8b3c5fb680fa851a"
+      - name: "dipcall-pav_discrep-stvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-stvar_sorted.bed"
+            sha256: "a53519026270b51ca8fd374ee4d7589a8fcdff236c684a4a35b388dd3cf32973"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/HG002Q100-pav-inversions_sorted.bed"
+            sha256: "cbb37f33af6e5d29c5b624592898ce5bab56a61aa0d4dc60f38bb4351dc3557a"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/TSPY2-segdups_sorted.bed"
+            sha256: "6a5a99bf82093a8552949fe3496d44cd7c42b93e6920126f9ff41607e6520a82"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/VDJ_sorted.bed"
+            sha256: "3f2cb8d00f81dfee498df18f053bdd157ef80b61927f8b0ca58e40f155623bc9"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/dipcall-bugs-T2TACE_sorted.bed"
+            sha256: "576cddeacfa7d9aa897ba05be957262aa1fc9ec170aaf38b2ac6363be9adc0de"
+      - name: "gaps_slop"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/gaps_slop_sorted.bed"
+            sha256: "a90ed00f82ce442e4847fe4d8a079bb781e46d836b5127f03e3bf62e308f2798"
   v5q_grch38_stvar:
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_stvar.vcf.gz
@@ -44,12 +474,92 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed
       checksum: 2f75ce942e1dd9e1a443e4e04fac640104aae5e23fba24d7d3f2c1f1f9985b00
+    dip_bed:
+      path: "data/20250117_v0.020_HG002Q100v1.1/asm_varcalls/GRCh38_HG002-T2TQ100v1.1-dipz2k/GRCh38_HG2-T2TQ100-V1.1_dipcall-z2k.dip.bed"
+      sha256: "2f75ce942e1dd9e1a443e4e04fac640104aae5e23fba24d7d3f2c1f1f9985b00"
+    exclusions:
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_consecutive-svs_sorted.bed"
+            sha256: "f64d8c2743ba4768cec9a7b5bbd749d2c395e51ed0400c648f9d77c3f150f750"
+      - name: "flanks"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_flanks_sorted.bed"
+            sha256: "650ffcbe34a34931170fdb84ca88214c91c644bf3057dd423e278809b528b980"
+      - name: "satellites"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_satellites_slopmerge_sorted_start_sorted.bed"
+            sha256: "23b35ac5f4f578e3a14735de398c4aec3b94939c0dca8b7212f258fa6394d788"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_satellites_slopmerge_sorted_end_sorted.bed"
+            sha256: "38c11e527170748ea7bdeed0dcf5d3a04d18b54016bc4122ddc049605f70a046"
+      - name: "segdups"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_segdups_slopmerge_sorted_start_sorted.bed"
+            sha256: "3f6b1b95bc8f6372c2c7e2e3e54c0603a7d62197ff871229a5e0530cf414444b"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_segdups_slopmerge_sorted_end_sorted.bed"
+            sha256: "447dd6f808a522b6f519c9c17d748ccc68e0ae371aca0a07bf8f2ce1d7bbf19a"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_tandem-repeats_slop_sorted_start_sorted.bed"
+            sha256: "421e7d08107c339a0ee58c2f7e3197c073ac5d75348b329a6e714bc651a54798"
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_tandem-repeats_slop_sorted_end_sorted.bed"
+            sha256: "4d1b119114f9209af5ce2ca4e7da248ffbd08499337323684ed5a6c800ffbc7a"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-errors_sorted.bed"
+            sha256: "9513067407b0eb18c63d0446fdf013657e68bd67b73000164f0114b04383b239"
+      - name: "HG002-mosaic"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-mosaic_sorted.bed"
+            sha256: "7938891972cb68d5b284936546f2696177d5c6191160cfc582bb4c6f220fb58e"
+      - name: "dipcall-pav_discrep-smvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-smvar_sorted.bed"
+            sha256: "d88f530ea79b3b78fd979afe9356a693813227486448225b8b3c5fb680fa851a"
+      - name: "dipcall-pav_discrep-stvar"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-discrep-stvar_sorted.bed"
+            sha256: "a53519026270b51ca8fd374ee4d7589a8fcdff236c684a4a35b388dd3cf32973"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/HG002Q100-pav-inversions_sorted.bed"
+            sha256: "cbb37f33af6e5d29c5b624592898ce5bab56a61aa0d4dc60f38bb4351dc3557a"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/TSPY2-segdups_sorted.bed"
+            sha256: "6a5a99bf82093a8552949fe3496d44cd7c42b93e6920126f9ff41607e6520a82"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/VDJ_sorted.bed"
+            sha256: "3f2cb8d00f81dfee498df18f053bdd157ef80b61927f8b0ca58e40f155623bc9"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/dipcall-bugs-T2TACE_sorted.bed"
+            sha256: "576cddeacfa7d9aa897ba05be957262aa1fc9ec170aaf38b2ac6363be9adc0de"
+      - name: "gaps_slop"
+        type: "single"
+        files:
+          - path: "data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/gaps_slop_sorted.bed"
+            sha256: "a90ed00f82ce442e4847fe4d8a079bb781e46d836b5127f03e3bf62e308f2798"
   v421_grch38_smvar:
     vcf:
-      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh37/HG002_GRCh37_1_22_v4.2.1_benchmark.vcf.gz
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
       checksum: adb4d4a50048aa13353a06b84fcfcbca09a5d17525efaa4cea44f8822e81175c
     bed:
-      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh37/HG002_GRCh37_1_22_v4.2.1_benchmark_noinconsistent.bed
+      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
       checksum: fba9a57c36ec88e5d14ea3e259c8866c7935f4998d3ec0fa2d6c3962da5b5575
   cmrg_grch38_smvar:
     vcf:
