@@ -602,20 +602,20 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
       checksum: fba9a57c36ec88e5d14ea3e259c8866c7935f4998d3ec0fa2d6c3962da5b5575
-  cmrg_grch38_smvar:
-    vcf:
-      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz
-      checksum: 80f18efa283d953cfc615d30dd01b1ff80debcc46f52042b942da783acd48da2
-    bed:
-      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.bed
-      checksum: dc77803bb474802fd3213d2f3649076dc14675d3b3c0ae3284036be09d2813f7
-  cmrg_grch38_stvar:
-    vcf:
-      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz
-      checksum: 06a8740ad93dd0ede325fcf04c85f687a835699da715c72bdcfade5d588fd19e
-    bed:
-      url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.bed
-      checksum: 3306319595ffa472d8ba9a8ca8932304b01ec663e102900a61604410737ddf81
+  # cmrg_grch38_smvar:
+  #   vcf:
+  #     url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.vcf.gz
+  #     checksum: 80f18efa283d953cfc615d30dd01b1ff80debcc46f52042b942da783acd48da2
+  #   bed:
+  #     url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.bed
+  #     checksum: dc77803bb474802fd3213d2f3649076dc14675d3b3c0ae3284036be09d2813f7
+  # cmrg_grch38_stvar:
+  #   vcf:
+  #     url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.vcf.gz
+  #     checksum: 06a8740ad93dd0ede325fcf04c85f687a835699da715c72bdcfade5d588fd19e
+  #   bed:
+  #     url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/StructuralVariant/HG002_GRCh38_CMRG_SV_v1.00.bed
+  #     checksum: 3306319595ffa472d8ba9a8ca8932304b01ec663e102900a61604410737ddf81
   v06_grch37_stvar:
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz
