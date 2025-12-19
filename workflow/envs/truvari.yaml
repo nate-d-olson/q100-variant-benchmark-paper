@@ -1,0 +1,8 @@
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - bcftools=1.22
+  - pip
+  - pip:
+    - Truvari==5.4.0
