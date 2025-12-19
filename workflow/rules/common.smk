@@ -158,7 +158,7 @@ def get_exclusion_table_inputs(wildcards):
             exclusions = conf["exclusions"]
             has_any_files = False
             for excl in exclusions:
-                if any(os.path.exists(f['path']) for f in excl.get("files", [])):
+                if any(os.path.exists(f["path"]) for f in excl.get("files", [])):
                     has_any_files = True
                     break
             if has_any_files:
@@ -216,7 +216,6 @@ def get_input_checksums(wildcards):
     return [f["sha256"] for f in entry["files"]]
 
 
-
 def get_stratification_beds(wildcards):
     """Get list of stratification BED files with IDs."""
     ref = get_reference_for_benchmark(wildcards.benchmark)
@@ -232,6 +231,7 @@ def get_stratification_beds(wildcards):
 def get_region_beds(wildcards):
     """Get benchmark region BED and exclusion BEDs (only if files exist)."""
     import os
+
     benchmark = wildcards.benchmark
     beds = []
 
@@ -246,7 +246,7 @@ def get_region_beds(wildcards):
             name = excl["name"].replace("-", "_").upper()
             for f in excl["files"]:
                 # Only add if file exists
-                if os.path.exists(f['path']):
+                if os.path.exists(f["path"]):
                     beds.append(f"{f['path']}:EXCL_{name}")
 
     return beds
@@ -260,15 +260,17 @@ def get_strat_ids(wildcards):
 def get_region_ids(wildcards):
     """Get list of region IDs (benchmark + exclusions that exist)."""
     import os
+
     ids = ["BMKREGIONS"]
     if wildcards.benchmark.startswith("v5q_"):
         exclusions = get_exclusion_config(wildcards.benchmark)
         for excl in exclusions:
             name = excl["name"].replace("-", "_").upper()
             # Only add if at least one file exists for this exclusion
-            if any(os.path.exists(f['path']) for f in excl["files"]):
+            if any(os.path.exists(f["path"]) for f in excl["files"]):
                 ids.append(f"EXCL_{name}")
     return ids
+
 
 # Function to determine checksum type and return appropriate ensure() argument
 def get_checksum_arg(checksum):

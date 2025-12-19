@@ -53,6 +53,7 @@ rule prepare_reference:
         echo "Completed at $(date)" >> {log}
         """
 
+
 # Dynamically generate download rules for benchmark sets
 for benchmark, info in config.get("benchmarksets", {}).items():
     # Handle VCF download
