@@ -645,9 +645,9 @@ references:
     url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz"
     checksum: "939ce19062d1462c09b88c55faca4d76"
   chm13:
-    path: "data/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
-    url: "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/914/755/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz"
-    checksum: "9e6bf6b586bc8954208d1cc1d5f2fc99"
+    path: "chm13v2.0.fa.gz"
+    url: "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz"
+    checksum: "f274b0ee8bc1bca18d231d0eb80d764650d7f02d1fe07c43819e21168224304d"
 
 outputs:
   sv_len: "sv_len.tsv"
