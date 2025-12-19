@@ -214,3 +214,71 @@ def get_input_checksums(wildcards):
     """Get checksums for exclusion input files."""
     entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
     return [f["sha256"] for f in entry["files"]]
+
+
+
+def get_stratification_beds(wildcards):
+    """Get list of stratification BED files with IDs."""
+    ref = get_reference_for_benchmark(wildcards.benchmark)
+    strats = config.get("stratifications", {})
+    beds = []
+    for name, strat in strats.items():
+        # Use short ID in filename (e.g., CHM13_TR.bed.gz)
+        path = f"resources/stratifications/{ref}_{name}.bed.gz"
+        beds.append(f"{path}:{name}")
+    return beds
+
+
+def get_region_beds(wildcards):
+    """Get benchmark region BED and exclusion BEDs (only if files exist)."""
+    import os
+    benchmark = wildcards.benchmark
+    beds = []
+
+    # Benchmark regions
+    bed_path = get_benchmark_bed(benchmark)
+    beds.append(f"{bed_path}:BMKREGIONS")
+
+    # Exclusions (only for v5q benchmarks, and only if files exist)
+    if benchmark.startswith("v5q_"):
+        exclusions = get_exclusion_config(benchmark)
+        for excl in exclusions:
+            name = excl["name"].replace("-", "_").upper()
+            for f in excl["files"]:
+                # Only add if file exists
+                if os.path.exists(f['path']):
+                    beds.append(f"{f['path']}:EXCL_{name}")
+
+    return beds
+
+
+def get_strat_ids(wildcards):
+    """Get list of stratification IDs."""
+    return list(config.get("stratifications", {}).keys())
+
+
+def get_region_ids(wildcards):
+    """Get list of region IDs (benchmark + exclusions that exist)."""
+    import os
+    ids = ["BMKREGIONS"]
+    if wildcards.benchmark.startswith("v5q_"):
+        exclusions = get_exclusion_config(wildcards.benchmark)
+        for excl in exclusions:
+            name = excl["name"].replace("-", "_").upper()
+            # Only add if at least one file exists for this exclusion
+            if any(os.path.exists(f['path']) for f in excl["files"]):
+                ids.append(f"EXCL_{name}")
+    return ids
+
+# Function to determine checksum type and return appropriate ensure() argument
+def get_checksum_arg(checksum):
+    if not checksum:
+        return {}
+    # MD5 is 32 hex chars, SHA256 is 64 hex chars
+    if len(checksum) == 32:
+        return {"md5": checksum}
+    elif len(checksum) == 64:
+        return {"sha256": checksum}
+    else:
+        # Default to md5 if length doesn't match standard sizes, or let Snakemake handle it
+        return {"md5": checksum}

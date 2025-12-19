@@ -2,21 +2,6 @@
 
 import os
 
-
-# Function to determine checksum type and return appropriate ensure() argument
-def get_checksum_arg(checksum):
-    if not checksum:
-        return {}
-    # MD5 is 32 hex chars, SHA256 is 64 hex chars
-    if len(checksum) == 32:
-        return {"md5": checksum}
-    elif len(checksum) == 64:
-        return {"sha256": checksum}
-    else:
-        # Default to md5 if length doesn't match standard sizes, or let Snakemake handle it
-        return {"md5": checksum}
-
-
 # Dynamically generate download rules for each reference defined in config
 for ref_id, ref_info in config.get("references", {}).items():
     if "url" in ref_info and "path" in ref_info:
@@ -36,6 +21,37 @@ for ref_id, ref_info in config.get("references", {}).items():
             shell:
                 "curl -L -o {output} {params.url} > {log} 2>&1"
 
+
+rule prepare_reference:
+    """Ensure reference is bgzipped and indexed for bcftools."""
+    input:
+        ref=lambda w: config["references"][w.ref]["path"],
+    output:
+        ref="resources/references/{ref}.fa.gz",
+        fai="resources/references/{ref}.fa.gz.fai",
+        gzi="resources/references/{ref}.fa.gz.gzi",
+    log:
+        "logs/references/{ref}_prepare.log",
+    conda:
+        "../envs/samtools.yaml"
+    shell:
+        """
+        echo "Preparing reference {wildcards.ref}" > {log}
+
+        # Check if input is bgzipped or gzipped
+        if gzip -l {input.ref} > /dev/null 2>&1; then
+            echo "Input is gzipped, decompressing and re-compressing with bgzip" >> {log}
+            gunzip -c {input.ref} | bgzip -c > {output.ref} 2>> {log}
+        else
+            echo "Input is not compressed, compressing with bgzip" >> {log}
+            bgzip -c {input.ref} > {output.ref} 2>> {log}
+        fi
+
+        # Index the reference
+        samtools faidx {output.ref} 2>> {log}
+
+        echo "Completed at $(date)" >> {log}
+        """
 
 # Dynamically generate download rules for benchmark sets
 for benchmark, info in config.get("benchmarksets", {}).items():
