@@ -130,7 +130,8 @@ rule split_multiallelics:
             --check-ref w \
             {params.old_rec_tag} \
             --fasta-ref {input.ref} \
-            --output-type z --output {output.vcf} {input.vcf} 2>> {log}
+            {input.vcf} \
+            | bcftools sort -Oz -o {output.vcf} 2>> {log}
 
         echo "Completed at $(date)" >> {log}
         """
@@ -178,14 +179,16 @@ rule annotate_vcf_stratifications:
     """Annotate VCF with stratification region IDs."""
     input:
         vcf=lambda w: (
-            "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz"
-            if w.benchmark.startswith("v06_")
-            else "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz"
+            (
+                "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz"
+                if w.benchmark.startswith("v06_")
+                else "results/annotated_vcfs/{benchmark}/split.vcf.gz"
+            ),
         ),
         tbi=lambda w: (
-            "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz" + ".tbi"
+            "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz.tbi"
             if w.benchmark.startswith("v06_")
-            else "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz.tbi"
+            else "results/annotated_vcfs/{benchmark}/split.vcf.gz.tbi"
         ),
         strat_bed="results/var_tables/{benchmark}/strat_combined.bed.gz",
         strat_tbi="results/var_tables/{benchmark}/strat_combined.bed.gz.tbi",
@@ -263,7 +266,10 @@ rule generate_var_table:
     """Generate variant table with all annotations."""
     input:
         vcf="results/annotated_vcfs/{benchmark}/fully_annotated.vcf.gz",
+        vcfidx="results/annotated_vcfs/{benchmark}/fully_annotated.vcf.gz.tbi",
         fields="results/var_tables/{benchmark}/info_fields.txt",
+        region_bed="results/var_tables/{benchmark}/region_combined.bed.gz",
+        region_tbi="results/var_tables/{benchmark}/region_combined.bed.gz.tbi",
     output:
         tsv=ensure("results/var_tables/{benchmark}/variants.tsv", non_empty=True),
     params:
@@ -289,22 +295,11 @@ rule generate_var_table:
             FULL_FMT="$BASE_FMT\\n"
         fi
 
-        # # Build header
-        # BASE_HDR="CHROM\\tPOS\\tEND\\tGT\\tVKX\\tN_ALT\\tTYPE\\tSTRLEN_REF\\tSTRLEN_ALT\\tILEN\\tSTRAT_IDS\\tREGION_IDS"
-        # DYN_HDR=$(cat {input.fields} | paste -sd'\\t' -)
-
-        # if [ -n "$DYN_HDR" ]; then
-        #     HEADER="$BASE_HDR\\t$DYN_HDR"
-        # else
-        #     HEADER="$BASE_HDR"
-        # fi
-
         # Generate table and expand annotations
-        bcftools query -HH -f "$FULL_FMT" -o {output.tsv} {input.vcf} 1>> {log} 2>&1
-        # (echo -e "$HEADER"; bcftools query -f "$FULL_FMT" {input.vcf}) | \
-        # python workflow/scripts/expand_annotations.py \
-        #     --strat-ids {params.strat_ids} \
-        #     --region-ids {params.region_ids} > {output.tsv} 2>> {log}
+        bcftools query -HH -f "$FULL_FMT" \
+            --exclude 'GT="0/0" | GT="./."' \
+            --regions-file {input.region_bed} \
+            -o {output.tsv} {input.vcf} 1>> {log} 2>&1
 
         echo "Completed at $(date)" >> {log}
         echo "Output lines: $(wc -l < {output.tsv})" >> {log}
