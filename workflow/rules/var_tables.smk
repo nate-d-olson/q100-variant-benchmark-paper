@@ -21,7 +21,7 @@ rule download_stratification_bed:
             "url"
         ].format(ref=wildcards.ref),
     log:
-        "logs/downloads/stratifications/{ref}_{strat_id}.log",
+        "logs/download_stratification_bed/{ref}_{strat_id}.log",
     message:
         "Downloading {wildcards.ref} {wildcards.strat_id} stratification BED"
     retries: 3
@@ -50,15 +50,15 @@ rule combine_stratification_beds:
     input:
         beds=lambda w: [b.split(":")[0] for b in get_stratification_beds(w)],
     output:
-        bed=temp("results/var_tables/{benchmark}/strat_combined.bed"),
+        bed=temp("results/combine_stratification_beds/{benchmark}/strat_combined.bed"),
         bed_gz=ensure(
-            "results/var_tables/{benchmark}/strat_combined.bed.gz", non_empty=True
+            "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz", non_empty=True
         ),
-        tbi="results/var_tables/{benchmark}/strat_combined.bed.gz.tbi",
+        tbi="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi",
     params:
         bed_specs=lambda w: get_stratification_beds(w),
     log:
-        "logs/var_tables/{benchmark}/combine_strat_beds.log",
+        "logs/combine_stratification_beds/{benchmark}.log",
     conda:
         "../envs/python.yaml"
     shell:
@@ -81,15 +81,15 @@ rule combine_region_beds:
     input:
         beds=lambda w: [b.split(":")[0] for b in get_region_beds(w)],
     output:
-        bed=temp("results/var_tables/{benchmark}/region_combined.bed"),
+        bed=temp("results/combine_region_beds/{benchmark}/region_combined.bed"),
         bed_gz=ensure(
-            "results/var_tables/{benchmark}/region_combined.bed.gz", non_empty=True
+            "results/combine_region_beds/{benchmark}/region_combined.bed.gz", non_empty=True
         ),
-        tbi="results/var_tables/{benchmark}/region_combined.bed.gz.tbi",
+        tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     params:
         bed_specs=lambda w: get_region_beds(w),
     log:
-        "logs/var_tables/{benchmark}/combine_region_beds.log",
+        "logs/combine_region_beds/{benchmark}.log",
     conda:
         "../envs/python.yaml"
     shell:
@@ -115,11 +115,11 @@ rule split_multiallelics:
         ref=lambda w: f"resources/references/{get_reference_for_benchmark(w.benchmark).lower()}.fa.gz",
         fai=lambda w: f"resources/references/{get_reference_for_benchmark(w.benchmark).lower()}.fa.gz.fai",
     output:
-        vcf="results/annotated_vcfs/{benchmark}/split.vcf.gz",
+        vcf="results/split_multiallelics/{benchmark}/split.vcf.gz",
     params:
         old_rec_tag=lambda w: "--old-rec-tag SVLEN" if "stvar" in w.benchmark else "",
     log:
-        "logs/var_tables/{benchmark}/split_multiallelic.log",
+        "logs/split_multiallelics/{benchmark}.log",
     conda:
         "../envs/bcftools.yaml"
     shell:
@@ -142,9 +142,9 @@ rule run_truvari_anno_svinfo:
         vcf=lambda w: get_benchmark_vcf(w.benchmark),
         tbi=lambda w: get_benchmark_vcf(w.benchmark) + ".tbi",
     output:
-        vcf="results/annotated_vcfs/{benchmark}_svinfo.vcf.gz",
+        vcf="results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz",
     log:
-        "logs/truvari_anno_svinfo/{benchmark}.log",
+        "logs/run_truvari_anno_svinfo/{benchmark}.log",
     conda:
         "../envs/truvari.yaml"
     params:
@@ -163,9 +163,9 @@ rule run_truvari_anno_svinfo:
 rule generate_annotation_headers:
     """Generate VCF header lines for annotation fields."""
     output:
-        headers="results/var_tables/{benchmark}/annotation_headers.txt",
+        headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
     log:
-        "logs/var_tables/{benchmark}/generate_headers.log",
+        "logs/generate_annotation_headers/{benchmark}.log",
     conda:
         "../envs/python.yaml"
     shell:
@@ -180,23 +180,23 @@ rule annotate_vcf_stratifications:
     input:
         vcf=lambda w: (
             (
-                "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz"
+                "results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz"
                 if w.benchmark.startswith("v06_")
-                else "results/annotated_vcfs/{benchmark}/split.vcf.gz"
+                else "results/split_multiallelics/{benchmark}/split.vcf.gz"
             ),
         ),
         tbi=lambda w: (
-            "results/annotated_vcfs/{benchmark}_svinfo.vcf.gz.tbi"
+            "results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz.tbi"
             if w.benchmark.startswith("v06_")
-            else "results/annotated_vcfs/{benchmark}/split.vcf.gz.tbi"
+            else "results/split_multiallelics/{benchmark}/split.vcf.gz.tbi"
         ),
-        strat_bed="results/var_tables/{benchmark}/strat_combined.bed.gz",
-        strat_tbi="results/var_tables/{benchmark}/strat_combined.bed.gz.tbi",
-        headers="results/var_tables/{benchmark}/annotation_headers.txt",
+        strat_bed="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz",
+        strat_tbi="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi",
+        headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
     output:
-        vcf="results/annotated_vcfs/{benchmark}/strat_annotated.vcf.gz",
+        vcf="results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz",
     log:
-        "logs/var_tables/{benchmark}/annotate_strat.log",
+        "logs/annotate_vcf_stratifications/{benchmark}.log",
     conda:
         "../envs/bcftools.yaml"
     shell:
@@ -216,16 +216,16 @@ rule annotate_vcf_stratifications:
 rule annotate_vcf_regions:
     """Annotate VCF with benchmark region and exclusion IDs."""
     input:
-        vcf="results/annotated_vcfs/{benchmark}/strat_annotated.vcf.gz",
-        tbi="results/annotated_vcfs/{benchmark}/strat_annotated.vcf.gz.tbi",
-        region_bed="results/var_tables/{benchmark}/region_combined.bed.gz",
-        region_tbi="results/var_tables/{benchmark}/region_combined.bed.gz.tbi",
+        vcf="results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz",
+        tbi="results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz.tbi",
+        region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
+        region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
         vcf=ensure(
-            "results/annotated_vcfs/{benchmark}/fully_annotated.vcf.gz", non_empty=True
+            "results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz", non_empty=True
         ),
     log:
-        "logs/var_tables/{benchmark}/annotate_regions.log",
+        "logs/annotate_vcf_regions/{benchmark}.log",
     conda:
         "../envs/bcftools.yaml"
     shell:
@@ -244,13 +244,13 @@ rule annotate_vcf_regions:
 rule extract_info_fields:
     """Extract INFO field names from VCF header."""
     input:
-        vcf="results/annotated_vcfs/{benchmark}/fully_annotated.vcf.gz",
+        vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
     output:
-        fields="results/var_tables/{benchmark}/info_fields.txt",
+        fields="results/extract_info_fields/{benchmark}/info_fields.txt",
     params:
         exclude=["STRAT_IDS", "REGION_IDS"],
     log:
-        "logs/var_tables/{benchmark}/extract_fields.log",
+        "logs/extract_info_fields/{benchmark}.log",
     conda:
         "../envs/python.yaml"
     shell:
@@ -265,18 +265,18 @@ rule extract_info_fields:
 rule generate_var_table:
     """Generate variant table with all annotations."""
     input:
-        vcf="results/annotated_vcfs/{benchmark}/fully_annotated.vcf.gz",
-        vcfidx="results/annotated_vcfs/{benchmark}/fully_annotated.vcf.gz.tbi",
-        fields="results/var_tables/{benchmark}/info_fields.txt",
-        region_bed="results/var_tables/{benchmark}/region_combined.bed.gz",
-        region_tbi="results/var_tables/{benchmark}/region_combined.bed.gz.tbi",
+        vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
+        vcfidx="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz.tbi",
+        fields="results/extract_info_fields/{benchmark}/info_fields.txt",
+        region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
+        region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
-        tsv=ensure("results/var_tables/{benchmark}/variants.tsv", non_empty=True),
+        tsv=ensure("results/generate_var_table/{benchmark}/variants.tsv", non_empty=True),
     params:
         strat_ids=lambda w: get_strat_ids(w),
         region_ids=lambda w: get_region_ids(w),
     log:
-        "logs/var_tables/{benchmark}/generate_table.log",
+        "logs/generate_var_table/{benchmark}.log",
     conda:
         "../envs/bcftools.yaml"
     shell:
