@@ -18,6 +18,9 @@ properties:
         required:
           - vcf
         properties:
+          ref:
+            type: string
+            description: Reference genome version (e.g., GRCh37, GRCh38)
           vcf:
             anyOf:
               - type: string
@@ -26,14 +29,21 @@ properties:
               - type: object
                 required:
                   - url
-                  - checksum
+                anyOf:
+                  - required: [md5]
+                  - required: [sha256]
                 properties:
                   url:
                     type: string
                     description: URL to VCF file
-                  checksum:
+                  md5:
                     type: string
-                    description: Checksum of the VCF file
+                    pattern: "^[a-f0-9]{32}$"
+                    description: MD5 checksum of the VCF file
+                  sha256:
+                    type: string
+                    pattern: "^[a-f0-9]{64}$"
+                    description: SHA256 checksum of the VCF file
           bed:
             anyOf:
               - type: string
@@ -41,16 +51,76 @@ properties:
               - type: object
                 required:
                   - url
-                  - checksum
+                anyOf:
+                  - required: [md5]
+                  - required: [sha256]
                 properties:
                   url:
                     type: string
                     description: URL to BED file
-                  checksum:
+                  md5:
                     type: string
-                    description: Checksum of the BED file
+                    pattern: "^[a-f0-9]{32}$"
+                    description: MD5 checksum of the BED file
+                  sha256:
+                    type: string
+                    pattern: "^[a-f0-9]{64}$"
+                    description: SHA256 checksum of the BED file
               - type: "null"
             description: Path to BED file (optional for pre-filtered benchmarks)
+          dip_bed:
+            type: object
+            required:
+              - url
+            anyOf:
+              - required: [md5]
+              - required: [sha256]
+            properties:
+              url:
+                type: string
+                description: URL to dip.bed file
+              md5:
+                type: string
+                pattern: "^[a-f0-9]{32}$"
+                description: MD5 checksum
+              sha256:
+                type: string
+                pattern: "^[a-f0-9]{64}$"
+                description: SHA256 checksum
+          exclusions:
+            type: array
+            description: Exclusion regions
+            items:
+              type: object
+              required:
+                - name
+                - type
+                - files
+              properties:
+                name:
+                  type: string
+                type:
+                  enum: [single, pair]
+                description:
+                  type: string
+                files:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - url
+                    anyOf:
+                      - required: [md5]
+                      - required: [sha256]
+                    properties:
+                      url:
+                        type: string
+                      md5:
+                        type: string
+                        pattern: "^[a-f0-9]{32}$"
+                      sha256:
+                        type: string
+                        pattern: "^[a-f0-9]{64}$"
     minProperties: 1
 
   references:
@@ -60,17 +130,38 @@ properties:
       "^[a-zA-Z0-9_\\.]+$":
         type: object
         required:
-          - path
+          - url
+        anyOf:
+          - required: [md5]
+          - required: [sha256]
         properties:
-          path:
-            type: string
-            description: Local path to the file
           url:
             type: string
             description: Remote URL for download
-          checksum:
+          md5:
             type: string
-            description: MD5 or SHA256 checksum
+            pattern: "^[a-f0-9]{32}$"
+            description: MD5 checksum
+          sha256:
+            type: string
+            pattern: "^[a-f0-9]{64}$"
+            description: SHA256 checksum
+
+  stratifications:
+    type: object
+    description: Stratification BED files for variant context annotation
+    patternProperties:
+      "^[A-Z0-9]+$":
+        type: object
+        required:
+          - url
+        properties:
+          url:
+            type: string
+            description: URL template with {ref} placeholder
+          description:
+            type: string
+            description: Description of this stratification
 
   outputs:
     type: object

@@ -12,6 +12,13 @@ format:
 bibliography: manuscript/references.bib
 ---
 
+# TODO
+- simplify pipeline by renaming downloads
+- drop reference processing step
+- improve results and output paths
+- cleanup var_table rules code, drop unnecessary scripts functions
+- adding ref, bench version, and var_type to config to simplify
+
 # Overview
 
 This repository contains the analysis pipeline and manuscript for the **GIAB v5q HG002 Variant Benchmark Set**. The benchmark set provides high-confidence variant calls for HG002 (NA24385) using the T2T HG002 Q100 diploid assembly, with coordinates available for GRCh37, GRCh38, and CHM13v2.0 (T2T) reference genomes.
@@ -21,17 +28,16 @@ This repository contains the analysis pipeline and manuscript for the **GIAB v5q
 The Snakemake pipeline processes benchmark set files to:
 
 1. **Download and validate** benchmark VCF/BED files and reference genomes
-2. **Characterize variant distributions** by type (SNPs, indels, SVs)
-3. **Calculate overlap** with genomic stratification contexts (tandem repeats, homopolymers, segmental duplications, low mappability)
-4. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
-5. **Compare with historical benchmarks** (v4.2.1, CMRG, v0.6 SV, TR benchmarks)
+2. **Annotate variants** with genomic stratification contexts using bcftools
+3. **Generate variant tables** with comprehensive per-variant annotations (type, size, genomic context)
+4. **Calculate overlap** with stratification regions (tandem repeats, homopolymers, segmental duplications, low mappability)
+5. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
+6. **Compare with historical benchmarks** (v4.2.1, CMRG, v0.6 SV, TR benchmarks)
 
 ## Key Outputs
 
-- Per-chromosome variant statistics (`results/vcfstats/`)
-- SV length distributions (`results/sv_len/`)
-- Context-stratified variant counts (`results/context_counts/`)
-- Benchmark region coverage by genomic context (`results/context_coverage/`)
+- Annotated VCFs with stratification and region annotations (`results/annotated_vcfs/`)
+- Comprehensive variant tables with per-variant annotations (`results/var_tables/`)
 - Exclusion intersection tables (`results/exclusions/`)
 
 # Getting Started
@@ -79,12 +85,14 @@ project-root/
 │   ├── rules/              # Rule definitions
 │   │   ├── common.smk      # Helper functions
 │   │   ├── downloads.smk   # Download rules
+│   │   ├── var_tables.smk  # Variant annotation and table generation
 │   │   ├── vcf_processing.smk  # VCF analysis rules
 │   │   └── exclusions.smk  # Exclusion analysis rules
 │   ├── envs/               # Conda environment definitions
 │   │   ├── bcftools.yaml
 │   │   ├── bedtools.yaml
-│   │   └── rtg-tools.yaml
+│   │   ├── samtools.yaml
+│   │   └── truvari.yaml
 │   └── scripts/            # Custom Python/R scripts
 ├── config/
 │   └── config.yaml         # Pipeline configuration

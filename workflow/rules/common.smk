@@ -5,278 +5,38 @@ Common helper functions for the Q100 variant benchmark pipeline
 import os
 from urllib.parse import urlparse
 
-# Genomic stratification contexts and their file paths
-CONTEXT_PATHS = {
-    "TR": "LowComplexity/{ref}_AllTandemRepeats.bed.gz",
-    "TR10kb": "LowComplexity/{ref}_AllTandemRepeats_ge101bp_slop5.bed.gz",
-    "HP": "LowComplexity/{ref}_AllHomopolymers_ge7bp_imperfectge11bp_slop5.bed.gz",
-    "SD": "SegmentalDuplications/{ref}_segdups.bed.gz",
-    "SD10kb": "SegmentalDuplications/{ref}_segdups_gt10kb.bed.gz",
-    "MAP": "Mappability/{ref}_lowmappabilityall.bed.gz",
-}
 
-
-def get_filename_from_url(url):
-    """Extract filename from URL."""
-    return os.path.basename(urlparse(url).path)
-
-
-def get_chromosomes_for_benchmark(benchmark):
+def get_var_table_inputs(wildcards):
     """
-    Get chromosome list for a benchmark based on reference genome.
-
-    Rules:
-    - CHM13: chr1-chr22, chrX, chrY (all benchmarks)
-    - GRCh38: chr1-chr22, chrX, chrY (all benchmarks)
-    - GRCh37: 1-22, X, Y (all benchmarks)
-    - v5q benchmarks include X and Y
-    - Historical benchmarks (v421, cmrg, v06, tr) only chr1-22 or 1-22
-
-    Args:
-        benchmark: Name of the benchmark set
+    Generate list of variant table files for all benchmarks.
 
     Returns:
-        List of chromosomes appropriate for the benchmark
-    """
-    # Determine reference genome from benchmark name
-
-    # Get base chromosome list
-    chroms = [str(i) for i in range(1, 23)]  # Chromosomes 1-22
-
-    # For historical benchmarks, exclude X and Y
-    if benchmark.startswith("v5q_"):
-        chroms = chroms + ["X", "Y"]
-
-    ## Add chr prefix for CHM13 and GRCh38
-    if "grch38" in benchmark or "chm13" in benchmark:
-        chroms = [f"chr{c}" for c in chroms]
-
-    return chroms
-
-
-def get_v5q_stvar_benchmarks():
-    """
-    Get list of structural variant (stvar) benchmark sets.
-
-    Returns:
-        List of benchmark names that are structural variant sets
+        List of file paths for variant table outputs
     """
     return [
-        b
-        for b in config["benchmarksets"].keys()
-        if "stvar" in b and b.startswith("v5q_")
+        f"results/variant_tables/{benchmark}/variants.tsv"
+        for benchmark in config["benchmarksets"]
     ]
-
-
-def get_subset_stats_inputs(wildcards):
-    """
-    Generate list of inputs for rtg_vcfstats rule for all benchmarks and chromosomes.
-
-    Returns:
-        List of file paths for rtg_vcfstats outputs
-    """
-    inputs = []
-    for benchmark in config["benchmarksets"]:
-        chroms = get_chromosomes_for_benchmark(benchmark)
-        for chrom in chroms:
-            stats_file = f"results/vcfstats/{benchmark}_{chrom}_vcfstats.txt"
-            inputs.append(stats_file)
-    return inputs
-
-
-def get_sv_len_inputs(wildcards):
-    """
-    Generate list of sv_len.tsv files for all stvar benchmarks.
-
-    Returns:
-        List of file paths for sv_len outputs
-    """
-    return [
-        f"results/sv_len/{benchmark}_svlen.tsv"
-        for benchmark in get_v5q_stvar_benchmarks()
-    ]
-
-
-def get_reference_for_benchmark(benchmark):
-    """
-    Map benchmark name to reference genome for stratifications.
-
-    Args:
-        benchmark: Name of the benchmark set
-
-    Returns:
-        Reference name compatible with GIAB stratifications URLs
-        (GRCh37, GRCh38, or CHM13 - note no 'v2.0' suffix)
-    """
-    if "chm13" in benchmark.lower():
-        return "CHM13"
-    elif "grch38" in benchmark.lower():
-        return "GRCh38"
-    elif "grch37" in benchmark.lower():
-        return "GRCh37"
-    else:
-        raise ValueError(f"Unknown reference for benchmark: {benchmark}")
-
-
-def get_context_count_inputs(wildcards):
-    """
-    Generate list of stratification context count files for all benchmarks.
-
-    Returns:
-        List of file paths for context count outputs (72 files total)
-    """
-    contexts = ["TR", "TR10kb", "HP", "SD", "SD10kb", "MAP"]
-    inputs = []
-
-    for benchmark in config["benchmarksets"]:
-        if "cmrg" not in benchmark.lower():
-            for context in contexts:
-                inputs.append(
-                    f"results/context_counts/{benchmark}_{context}_counts.tsv"
-                )
-
-    return inputs
 
 
 # ============================================================================
-# Benchmark Region Coverage Helper Functions
+# Benchmark VCF and BED Helper Functions
 # ============================================================================
 
 
-def get_benchmark_vcf(benchmark):
+def get_exclusion_file_path(benchmark, exclusion_name, file_idx):
     """
-    Get VCF file path for a benchmark set.
+    Get the standardized local path for an exclusion file.
 
     Args:
         benchmark: Name of the benchmark set
+        exclusion_name: Name of the exclusion category
+        file_idx: Index of the file (0-based)
 
     Returns:
-        Path to benchmark VCF file
+        Local path where the downloaded exclusion file will be stored
     """
-    vcf_entry = config["benchmarksets"].get(benchmark, {}).get("vcf")
-    if isinstance(vcf_entry, dict):
-        if url := vcf_entry.get("url"):
-            return os.path.join("resources/benchmarksets", get_filename_from_url(url))
-        if path := vcf_entry.get("path"):
-            return path
-
-    raise ValueError(f"No VCF file found for benchmark: {benchmark}")
-
-
-def get_benchmark_bed(benchmark):
-    """
-    Get BED file path for a benchmark set based on url or path in config.
-
-    Args:
-        benchmark: Name of the benchmark set
-
-    Returns:
-        Path to benchmark BED file
-
-    Raises:
-        ValueError: If no BED file can be found for the benchmark
-    """
-    # Check config first
-    bed_entry = config["benchmarksets"].get(benchmark, {}).get("bed")
-
-    if isinstance(bed_entry, str):
-        return bed_entry
-
-    if isinstance(bed_entry, dict):
-        if url := bed_entry.get("url"):
-            return os.path.join("resources/benchmarksets", get_filename_from_url(url))
-        if path := bed_entry.get("path"):
-            return path
-
-    raise ValueError(f"No BED file found for benchmark: {benchmark}")
-
-
-def get_chromosomes_for_coverage(ref, chrom_scope):
-    """
-    Get chromosome list for coverage calculation by reference and scope.
-
-    Args:
-        ref: Reference genome (CHM13, GRCh38, or GRCh37)
-        chrom_scope: Either 'autosomes' or 'sexchrom'
-
-    Returns:
-        List of chromosome names with appropriate prefix convention
-    """
-    if chrom_scope == "autosomes":
-        chroms = [str(i) for i in range(1, 23)]
-    elif chrom_scope == "sexchrom":
-        chroms = ["X", "Y"]
-    else:
-        raise ValueError(f"Unknown chrom_scope: {chrom_scope}")
-
-    # Add chr prefix for CHM13 and GRCh38
-    if ref in ["CHM13", "GRCh38"]:
-        chroms = [f"chr{c}" for c in chroms]
-
-    return chroms
-
-
-def get_chromosome_grep_pattern(ref, chrom_scope):
-    """
-    Get grep pattern for filtering BED files by chromosome.
-
-    Args:
-        ref: Reference genome (CHM13, GRCh38, or GRCh37)
-        chrom_scope: Either 'autosomes' or 'sexchrom'
-
-    Returns:
-        Grep -E compatible regex pattern matching target chromosomes
-    """
-    chroms = get_chromosomes_for_coverage(ref, chrom_scope)
-    # Create pattern that matches chromosome at start of line with tab after
-    # e.g., "^chr1\t|^chr2\t|..." or "^1\t|^2\t|..."
-    return "|".join([f"^{c}\\t" for c in chroms])
-
-
-def get_context_coverage_inputs(wildcards):
-    """
-    Generate list of context coverage files for all benchmarks.
-
-    Coverage is calculated for:
-    - All benchmarks (excluding CMRG) × all contexts × autosomes
-    - v5q benchmarks only × all contexts × sexchrom
-
-    Returns:
-        List of file paths for context coverage outputs
-    """
-    contexts = ["TR", "TR10kb", "HP", "SD", "SD10kb", "MAP"]
-    inputs = []
-
-    for benchmark in config["benchmarksets"]:
-        # Skip CMRG benchmarks (consistent with count_context_variants)
-        if "cmrg" in benchmark.lower():
-            continue
-
-        for context in contexts:
-            # All benchmarks get autosome coverage
-            inputs.append(
-                f"results/context_coverage/{benchmark}_{context}_autosomes_coverage.tsv"
-            )
-
-            # Only v5q benchmarks get sex chromosome coverage
-            if benchmark.startswith("v5q_"):
-                inputs.append(
-                    f"results/context_coverage/{benchmark}_{context}_sexchrom_coverage.tsv"
-                )
-
-    return inputs
-
-
-def get_all_reference_files(wildcards):
-    """
-    Get all reference files defined in the config.
-
-    Returns:
-        List of file paths for all reference files
-    """
-    return [
-        ref["path"] for ref in config.get("references", {}).values() if "path" in ref
-    ]
+    return f"resources/exclusions/{benchmark}/{exclusion_name}_{file_idx}.bed"
 
 
 def get_exclusion_table_inputs(wildcards):
@@ -290,6 +50,8 @@ def get_exclusion_table_inputs(wildcards):
     inputs = []
     for benchmark, conf in config["benchmarksets"].items():
         if "exclusions" in conf and conf["exclusions"]:
+            # Include all benchmarks with exclusions configured
+            # Files will be downloaded by the download_exclusion rule
             inputs.append(
                 f"results/exclusions/{benchmark}/exclusions_intersection_table.csv"
             )
@@ -322,9 +84,16 @@ def get_exclusion_entry(benchmark, exclusion_name):
 
 
 def get_exclusion_inputs(wildcards):
-    """Get input file paths for an exclusion."""
+    """
+    Get input file paths for an exclusion.
+
+    Returns standardized paths that match the download_exclusion rule outputs.
+    """
     entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
-    return [f["path"] for f in entry["files"]]
+    return [
+        get_exclusion_file_path(wildcards.benchmark, wildcards.exclusion, idx)
+        for idx in range(len(entry["files"]))
+    ]
 
 
 def get_exclusion_type(wildcards):
@@ -333,12 +102,204 @@ def get_exclusion_type(wildcards):
     return entry["type"]
 
 
-def get_dip_bed_for_exclusions(wildcards):
-    """Get the dip.bed path for a benchmark set."""
-    return config["benchmarksets"][wildcards.benchmark]["dip_bed"]["path"]
+def get_stratification_beds(wildcards):
+    """Get list of stratification BED files with IDs."""
+    ref = config["benchmarksets"][wildcards.benchmark].get("ref")
+    strats = config["references"][ref].get("stratifications", {})
+    beds = []
+    for name, strat in strats.items():
+        # Use short ID in filename (e.g., CHM13_TR.bed.gz)
+        path = f"resources/stratifications/{ref}_{name}.bed.gz"
+        beds.append(f"{path}:{name}")
+    return beds
 
 
-def get_input_checksums(wildcards):
-    """Get checksums for exclusion input files."""
-    entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
-    return [f["sha256"] for f in entry["files"]]
+def get_region_beds(wildcards):
+    """
+    Get benchmark region BED and exclusion BEDs.
+
+    Returns paths that match download rule outputs.
+    """
+    benchmark = wildcards.benchmark
+    beds = []
+
+    # Benchmark regions
+    bed_path = f"resources/benchmarksets/{benchmark}_benchmark.bed"
+    beds.append(f"{bed_path}:BMKREGIONS")
+
+    # Exclusions (only for v5q benchmarks)
+    if benchmark.startswith("v5q_"):
+        exclusions = get_exclusion_config(benchmark)
+        for excl in exclusions:
+            name = excl["name"].replace("-", "_").upper()
+            for idx, _ in enumerate(excl["files"]):
+                path = get_exclusion_file_path(benchmark, excl["name"], idx)
+                beds.append(f"{path}:EXCL_{name}")
+
+    return beds
+
+
+def get_strat_ids(wildcards):
+    """Get list of stratification IDs."""
+    return list(config.get("stratifications", {}).keys())
+
+
+def get_region_ids(wildcards):
+    """
+    Get list of region IDs (benchmark + exclusions).
+
+    All exclusions configured in config are included.
+    """
+    ids = ["BMKREGIONS"]
+    if wildcards.benchmark.startswith("v5q_"):
+        exclusions = get_exclusion_config(wildcards.benchmark)
+        for excl in exclusions:
+            name = excl["name"].replace("-", "_").upper()
+            ids.append(f"EXCL_{name}")
+    return ids
+
+
+# ============================================================================
+# Reference Download Helper Functions
+# ============================================================================
+
+
+def get_reference_checksum(ref_name):
+    """
+    Get checksum value for a reference genome.
+
+    Args:
+        ref_name: Name of the reference in config["references"]
+
+    Returns:
+        Checksum string (MD5 or SHA256)
+    """
+    ref_config = config["references"].get(ref_name, {})
+    if "sha256" in ref_config:
+        return ref_config["sha256"]
+    if "md5" in ref_config:
+        return ref_config["md5"]
+    raise ValueError(f"No checksum found for reference: {ref_name}")
+
+
+def get_reference_checksum_type(ref_name):
+    """
+    Determine checksum type for a reference genome.
+
+    Args:
+        ref_name: Name of the reference in config["references"]
+
+    Returns:
+        "md5" or "sha256"
+    """
+    ref_config = config["references"].get(ref_name, {})
+    if "sha256" in ref_config:
+        return "sha256"
+    if "md5" in ref_config:
+        return "md5"
+    raise ValueError(f"No checksum found for reference: {ref_name}")
+
+
+# ============================================================================
+# Stratification Download Helper Functions
+# ============================================================================
+
+
+def get_strat_config(ref, strat_name):
+    """
+    Get stratification configuration for a given reference and stratification name.
+
+    Args:
+        ref: Reference genome name (GRCh37, GRCh38, CHM13)
+        strat_name: Name of the stratification
+
+    Returns:
+        Stratification configuration dictionary
+    """
+    return (
+        config.get("references", {})
+        .get(ref, {})
+        .get("stratifications", {})
+        .get(strat_name, {})
+    )
+
+
+def get_stratification_url(wildcards):
+    """
+    Get URL for a stratification BED file.
+
+    Handles GIAB stratification URL templating with {ref}@all pattern.
+
+    Args:
+        ref: Reference genome name (GRCh37, GRCh38, CHM13)
+        strat_name: Name of the stratification
+
+    Returns:
+        Full URL for the stratification file
+    """
+    strat_config = get_strat_config(wildcards.ref, wildcards.strat_name)
+    return strat_config.get("url", "")
+
+
+def get_stratification_sha256(wildcards):
+    """
+    Get SHA256 checksum for a stratification BED file.
+
+    Args:
+        ref: Reference genome name (GRCh37, GRCh38, CHM13)
+        strat_name: Name of the stratification
+
+    Returns:
+        SHA256 checksum string
+    """
+    strat_config = get_strat_config(wildcards.ref, wildcards.strat_name)
+    return strat_config.get("sha256", "")
+
+
+# ============================================================================
+# Exclusion Download Helper Functions
+# ============================================================================
+
+
+def get_exclusion_file_url(benchmark, exclusion_name, file_idx):
+    """
+    Get URL for an exclusion file by index.
+
+    Args:
+        benchmark: Name of the benchmark set
+        exclusion_name: Name of the exclusion category
+        file_idx: Index of the file in the files array (0-based)
+
+    Returns:
+        URL for the exclusion file
+    """
+    entry = get_exclusion_entry(benchmark, exclusion_name)
+    files = entry.get("files", [])
+    if file_idx >= len(files):
+        raise ValueError(
+            f"File index {file_idx} out of range for exclusion {exclusion_name} "
+            f"in benchmark {benchmark} (only {len(files)} files)"
+        )
+    return files[file_idx]["url"]
+
+
+def get_exclusion_file_checksum(benchmark, exclusion_name, file_idx):
+    """
+    Get SHA256 checksum for an exclusion file by index.
+
+    Args:
+        benchmark: Name of the benchmark set
+        exclusion_name: Name of the exclusion category
+        file_idx: Index of the file in the files array (0-based)
+
+    Returns:
+        SHA256 checksum for the exclusion file
+    """
+    entry = get_exclusion_entry(benchmark, exclusion_name)
+    files = entry.get("files", [])
+    if file_idx >= len(files):
+        raise ValueError(
+            f"File index {file_idx} out of range for exclusion {exclusion_name} "
+            f"in benchmark {benchmark} (only {len(files)} files)"
+        )
+    return files[file_idx]["sha256"]
