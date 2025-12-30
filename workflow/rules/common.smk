@@ -200,6 +200,19 @@ def get_reference_checksum_type(ref_name):
     raise ValueError(f"No checksum found for reference: {ref_name}")
 
 
+def get_chromosomes(wildcards):
+    """
+    main chromosomes
+    """
+    # Use string chromosome IDs so join works for GRCh37, then add chr prefix for others
+    chroms = [str(i) for i in range(1, 23)] + ["X", "Y"]
+    if wildcards.ref == "GRCh37":
+        return " ".join(chroms)
+
+    ## Adding chr prefix for non-GRCh37 references
+    return " ".join([f"chr{i}" for i in chroms])
+
+
 # ============================================================================
 # Stratification Download Helper Functions
 # ============================================================================

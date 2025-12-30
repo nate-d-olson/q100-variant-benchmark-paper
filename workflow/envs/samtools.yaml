@@ -4,4 +4,5 @@ channels:
 channel_priority: strict
 dependencies:
   - samtools=1.22
+  - seqkit=2.12.0
   - curl

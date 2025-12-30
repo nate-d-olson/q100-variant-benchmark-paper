@@ -8,7 +8,7 @@ format:
     page-layout: full
     toc: true
     self-contained: true
-  docx:default
+  docx: default
 editor: source
 code-fold: true
 execute:
@@ -17,9 +17,15 @@ execute:
 
 ## TODO
 
+Documentation
+- Column descriptions for variant tables
+
+
 Analyses
 - Look for small intervals in v5q
 
+Low priority
+- Optimize variant tables: data.table, database, arrow, etc.?
 
 
 ```{r setup}
@@ -40,30 +46,8 @@ library(furrr)
 ## Loading Variant Tables
 
 ### Column Descriptions
-- Number of SNVs, INDELs, and SVs in v5 compared to v4 and v0.6
-- Size distributions of INDELs and SVs in v5 compared to v4 and v0.6
-- Breakdown of variants in different genomic contexts (e.g., repeats, segmental duplications, etc.)
-  - Stratifications v3.6
-    - TR: LowComplexity/GRCh38_AllTandemRepeats.bed.gz
-    - TR10kb: LowComplexity/GRCh38_AllTandemRepeats_ge101bp_slop5.bed.gz
-    - HP: LowComplexity/GRCh38_AllHomopolymers_ge7bp_imperfectge11bp_slop5.bed.gz
-    - SD: SegmentalDuplications/GRCh38_segdups.bed.gz
-    - SD10kb: SegmentalDuplications/GRCh38_segdups_gt10kb.bed.gz
-    - MAP: Mappability/GRCh38_lowmappabilityall.bed.gz
 
-- Truvari annotations
-
-TRF	Entry hits a tandem repeat region
-TRFdiff	ALT TR copy difference from reference
-TRFrepeat	Repeat motif
-TRFovl	Percent of ALT covered by TRF annotation
-TRFstart	tart position of discovered repeat
-TRFend	End position of discovered repeat
-TRFperiod	eriod size of the repeat
-TRFcopies	Number of copies aligned with the consensus pattern
-TRFscore	Alignment score
-TRFentropy	Entropy measure
-TRFsim	Similarity of ALT sequence to generated motif faux sequence
+%%TODO%%
 
 
 ```{r}
@@ -82,8 +66,7 @@ anno_var_tbl_files <- list.files(
   str_replace_all("^v06", "v0.6") %>%
   str_replace_all("^v5q", "v5.0q") %>%
   str_replace_all("grch", "GRCh") %>%
-  str_replace_all("chm13", "CHM13v2.0")
-)
+  str_replace_all("chm13", "CHM13v2.0"))
 
 
 tidy_smvar <- function(var_tbl) {
@@ -97,15 +80,21 @@ tidy_smvar <- function(var_tbl) {
 
   ## changing var_type for OTHER and OVERLAP
   var_tbl <- var_tbl %>%
-    mutate(var_type = case_when(
-      ## When REF is different from the first base of ALT
-      var_type == "OTHER" & (len_ref > 1 & len_alt == 1) | (len_ref == 1 & len_alt > 1) ~ "INDEL",
-      ## Assigning variant types for overlapping (atmoic) variants
-      var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNP",
-      var_type == "OVERLAP" & (len_ref > 1 & len_alt == 1) | (len_ref == 1 & len_alt > 1) ~ "INDEL",
-      var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
-      TRUE ~ var_type
-    ))
+    mutate(
+      var_type = case_when(
+        ## When REF is different from the first base of ALT
+        var_type == "OTHER" &
+          (len_ref > 1 & len_alt == 1) |
+          (len_ref == 1 & len_alt > 1) ~ "INDEL",
+        ## Assigning variant types for overlapping (atmoic) variants
+        var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNP",
+        var_type == "OVERLAP" &
+          (len_ref > 1 & len_alt == 1) |
+          (len_ref == 1 & len_alt > 1) ~ "INDEL",
+        var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
+        TRUE ~ var_type
+      )
+    )
 
   ## Annotating Variant Length
   var_tbl$var_size <- var_tbl$len_alt - var_tbl$len_ref
@@ -127,8 +116,12 @@ tidy_stvar <- function(var_tbl) {
 
   ## Annotating Variant Length
   var_tbl$var_size <- 0
-  var_tbl$var_size[var_tbl$SVTYPE == "INS"] <- var_tbl$SVLEN[var_tbl$SVTYPE == "INS"]
-  var_tbl$var_size[var_tbl$SVTYPE == "DEL"] <- -var_tbl$SVLEN[var_tbl$SVTYPE == "DEL"]
+  var_tbl$var_size[var_tbl$SVTYPE == "INS"] <- var_tbl$SVLEN[
+    var_tbl$SVTYPE == "INS"
+  ]
+  var_tbl$var_size[var_tbl$SVTYPE == "DEL"] <- -var_tbl$SVLEN[
+    var_tbl$SVTYPE == "DEL"
+  ]
 
   return(var_tbl)
 }
@@ -136,52 +129,115 @@ tidy_stvar <- function(var_tbl) {
 get_bench_var_cols <- function(benchmarkset) {
   ## Common column names and types
   cnames <- c(
-    "chrom", "pos", "end", "gt", "vkx", "var_type",
-    "len_ref", "len_alt", "strat_ids", "region_ids"
+    "chrom",
+    "pos",
+    "end",
+    "gt",
+    "vkx",
+    "var_type",
+    "len_ref",
+    "len_alt",
+    "strat_ids",
+    "region_ids"
   )
   ctypes <- "ciiccciicc"
 
   if (str_detect(benchmarkset, "v0.6")) {
     cnames <- c(
-      cnames, "END", "SVTYPE", "SVLEN", "ClusterIDs", "NumClusterSVs",
-      "ExactMatchIDs", "NumExactMatchSVs", "ClusterMaxShiftDist",
-      "ClusterMaxSizeDiff", "ClusterMaxEditDist",
-      "PBcalls", "Illcalls", "TenXcalls", "CGcalls", "PBexactcalls",
-      "Illexactcalls", "TenXexactcalls", "CGexactcalls",
-      "HG2count", "HG3count", "HG4count",
-      "NumTechs", "NumTechsExact",
-      "DistBack", "DistForward", "DistMin", "DistMinlt1000",
-      "MultiTech", "MultiTechExact",
+      cnames,
+      "END",
+      "SVTYPE",
+      "SVLEN",
+      "ClusterIDs",
+      "NumClusterSVs",
+      "ExactMatchIDs",
+      "NumExactMatchSVs",
+      "ClusterMaxShiftDist",
+      "ClusterMaxSizeDiff",
+      "ClusterMaxEditDist",
+      "PBcalls",
+      "Illcalls",
+      "TenXcalls",
+      "CGcalls",
+      "PBexactcalls",
+      "Illexactcalls",
+      "TenXexactcalls",
+      "CGexactcalls",
+      "HG2count",
+      "HG3count",
+      "HG4count",
+      "NumTechs",
+      "NumTechsExact",
+      "DistBack",
+      "DistForward",
+      "DistMin",
+      "DistMinlt1000",
+      "MultiTech",
+      "MultiTechExact",
       "sizecat",
-      "DistPASSHG2gt49Minlt1000", "DistPASSMinlt1000",
-      "MendelianError", "HG003_GT", "HG004_GT",
-      "BREAKSIMLENGTH", "REFWIDENED", "REPTYPE",
-      "TRall", "TRgt100", "TRgt10k", "segdup"
+      "DistPASSHG2gt49Minlt1000",
+      "DistPASSMinlt1000",
+      "MendelianError",
+      "HG003_GT",
+      "HG004_GT",
+      "BREAKSIMLENGTH",
+      "REFWIDENED",
+      "REPTYPE",
+      "TRall",
+      "TRgt100",
+      "TRgt10k",
+      "segdup"
     )
     ctypes <- paste0(ctypes, "ccicicccccccccccccccccccccccccccccc")
     return(list(col_names = cnames, col_types = ctypes))
-    
-  } else if (str_detect(benchmarkset, "v4.2.1")){
+  } else if (str_detect(benchmarkset, "v4.2.1")) {
     cnames <- c(
-      cnames, "DPSum", "platforms", "platformnames", "platformbias",
-      "datasets", "datasetnames", "datasetsmissingcall",
-      "callsets", "callsetnames", "varType", "filt", "callable",
-      "difficultregion", "arbitrated", "callsetwiththisuniqgenopassing",
+      cnames,
+      "DPSum",
+      "platforms",
+      "platformnames",
+      "platformbias",
+      "datasets",
+      "datasetnames",
+      "datasetsmissingcall",
+      "callsets",
+      "callsetnames",
+      "varType",
+      "filt",
+      "callable",
+      "difficultregion",
+      "arbitrated",
+      "callsetwiththisuniqgenopassing",
       "callsetwithotheruniqgenopassing"
     )
     ctypes <- paste0(ctypes, "icccccccccccccicccccc")
     return(list(col_names = cnames, col_types = ctypes))
-    
   } else if (str_detect(benchmarkset, "v5.0q")) {
-    cnames <- c(cnames, "TRF", "TRFdiff", "TRFrepeat", "TRFovl",
-      "TRFstart", "TRFend", "TRFperiod", "TRFcopies",
-      "TRFscore", "TRFentropy", "TRFsim"
+    cnames <- c(
+      cnames,
+      "TRF",
+      "TRFdiff",
+      "TRFrepeat",
+      "TRFovl",
+      "TRFstart",
+      "TRFend",
+      "TRFperiod",
+      "TRFcopies",
+      "TRFscore",
+      "TRFentropy",
+      "TRFsim"
     )
     ctypes <- paste0(ctypes, "cicdiiiinnn")
     if (str_detect(benchmarkset, "stvar")) {
       cnames <- c(
-        cnames, "SVTYPE", "SVLEN", "RM_score", "RM_repeat",
-        "RM_clsfam", "LCR", "REMAP"
+        cnames,
+        "SVTYPE",
+        "SVLEN",
+        "RM_score",
+        "RM_repeat",
+        "RM_clsfam",
+        "LCR",
+        "REMAP"
       )
       ctypes <- paste0(ctypes, "cincccc")
     }
@@ -189,21 +245,21 @@ get_bench_var_cols <- function(benchmarkset) {
   } else {
     stop(paste("Unknown benchmark set :", benchmarkset))
   }
-  
+
   return(list(col_names = cnames, col_types = ctypes))
 }
-  
-  
-  
+
+
 # Read function - vroom auto-detects column types
 read_bench_file <- function(path, col_info) {
   print(path)
-  var_tbl <- vroom(path,
-    delim = "\t", 
-    na = ".", 
+  var_tbl <- vroom(
+    path,
+    delim = "\t",
+    na = ".",
     skip = 1,
-    col_names = col_info$col_names, 
-    col_types = col_info$col_types, 
+    col_names = col_info$col_names,
+    col_types = col_info$col_types,
     progress = TRUE
   )
   ## Cleaning up variant tables
@@ -216,14 +272,16 @@ read_bench_file <- function(path, col_info) {
   } else {
     print("Dirty Table!! Fix code")
   }
-  
+
   ## Consistent chrom names as factors
   if (str_detect(tolower(path), "grch37")) {
     var_tbl$chrom <- paste0("chr", var_tbl$chrom)
     print(unique(var_tbl$chrom))
   }
-  var_tbl$chrom <- factor(var_tbl$chrom, 
-                          levels = paste0("chr", c(1:22, "X", "Y")))
+  var_tbl$chrom <- factor(
+    var_tbl$chrom,
+    levels = paste0("chr", c(1:22, "X", "Y"))
+  )
 
   ## Dropping extra columns
   var_tbl <- var_tbl %>%
@@ -233,21 +291,22 @@ read_bench_file <- function(path, col_info) {
 }
 
 # Parallel read with furrr
-plan(multisession, workers = 12, gc = TRUE)
+plan(multisession, workers = 12)
 
 bench_vars_tbls <- anno_var_tbl_files %>%
   enframe(name = "benchmarkset", value = "path") %>%
-  mutate(col_info = map(benchmarkset, get_bench_var_cols)) %>% 
-  mutate(data = future_map2(path, col_info, read_bench_file)) %>%
+  mutate(
+    col_info = map(benchmarkset, get_bench_var_cols),
+    data = future_map2(path, col_info, ~ read_bench_file(.x, .y))
+  ) %>%
   select(benchmarkset, data) %>%
-    separate(
+  separate(
     col = benchmarkset,
     into = c("bench_version", "ref", "bench_type"),
     sep = "_",
     fill = "right"
-  ) %>% 
+  ) %>%
   unnest(data)
-
 ```
 
 ```{r}
@@ -264,8 +323,7 @@ glimpse(bench_vars_tbls)
 (smvar_cnt_df <- bench_vars_tbls %>%
   filter(bench_type == "smvar") %>%
   group_by(bench_type, ref, bench_version, var_type) %>%
-  count(name = "nvars")
-)
+  count(name = "nvars"))
 ```
 
 ```{r}
@@ -288,8 +346,7 @@ glimpse(bench_vars_tbls)
     SNP = "SNVs",
     INDEL = "INDELs",
     Total = "Total Variants"
-  )
-)
+  ))
 
 # gt::as_word(smv_cnt_tbl,
 #   here("results", "variant_counts", "smvar_counts_table.docx")
@@ -301,8 +358,7 @@ glimpse(bench_vars_tbls)
 (stvar_cnt_df <- bench_vars_tbls %>%
   filter(bench_type == "stvar") %>%
   group_by(bench_type, ref, bench_version, var_type) %>%
-  count(name = "nvars")
-)
+  count(name = "nvars"))
 
 stvar_cnt_table <- stvar_cnt_df %>%
   pivot_wider(names_from = var_type, values_from = nvars) %>%
@@ -329,53 +385,60 @@ stvar_cnt_table %>%
 
 
 ```{r}
-## TSV generate using make_sv_len.sh script
 sv_len_df <- bench_vars_tbls %>%
   filter(
     bench_type == "stvar"
   )
-```
 
-
-```{r}
-#| warning: false
 (sv_len_dist_plt <- ggplot(
   sv_len_df,
   aes(x = var_size)
 ) +
   geom_histogram(
     data = filter(sv_len_df, bench_version != "v0.6"),
-    fill = "grey80", color = "grey20",
-    bins = 100, drop = "all"
+    fill = "grey80",
+    color = "grey20",
+    bins = 100,
+    drop = "all"
   ) +
   geom_histogram(
     data = filter(sv_len_df, bench_version == "v0.6"),
-    fill = "grey30", color = "grey20",
-    bins = 100, drop = "all"
+    fill = "grey30",
+    color = "grey20",
+    bins = 100,
+    drop = "all"
   ) +
-  # geom_text(aes(x = 300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
-  # geom_text(aes(x = -300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
-  # geom_text(aes(x = 6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
-  # geom_text(aes(x = -6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
   scale_x_continuous(
-    breaks = c(-10000, -5000, -1000, -500, -100, -50, 0, 50, 100, 500, 1000, 5000, 10000),
+    breaks = c(
+      -10000,
+      -5000,
+      -1000,
+      -500,
+      -100,
+      -50,
+      0,
+      50,
+      100,
+      500,
+      1000,
+      5000,
+      10000
+    ),
     trans = scales::pseudo_log_trans(sigma = 50, base = 10),
     labels = scales::comma
   ) +
   scale_y_continuous(labels = scales::comma) +
-  # scale_fill_manual(values = c("Alu" = "darkblue", "LINE" = "darkorange")) +
   labs(
     x = "SV Length (bp)",
-    y = "Count",
-    fill = ""
+    y = "Count"
   ) +
   facet_wrap(~ref, ncol = 1) +
   theme_minimal() +
   theme(
     axis.text.x = element_text(angle = -45, hjust = 0)
-  )
-)
+  ))
 ```
+
 ```{r}
 ggsave(
   filename = here("manuscript", "figs", "sv_length_distribution.png"),
@@ -394,12 +457,13 @@ smvar_len_df <- bench_vars_tbls %>%
     var_type == "INDEL"
   )
 
-(smvar_len_dist_plt <-  ggplot(smvar_len_df,
+(smvar_len_dist_plt <- ggplot(
+  smvar_len_df,
   aes(x = var_size)
 ) +
   geom_histogram(
     data = filter(smvar_len_df, bench_version != "v4.2.1"),
-    fill = "grey80", color = "grey20",binwidth = 1, drop = "all"
+    fill = "grey80", color = "grey20", binwidth = 1, drop = "all"
   ) +
   geom_histogram(
     data = filter(smvar_len_df, bench_version == "v4.2.1"),
@@ -407,9 +471,8 @@ smvar_len_df <- bench_vars_tbls %>%
   ) +
   scale_y_continuous(labels = scales::comma) +
   labs(
-    x = "SV Length (bp)",
-    y = "Count",
-    fill = ""
+    x = "INDEL Length (bp)",
+    y = "Count"
   ) +
   facet_wrap(~ref, ncol = 1) +
   theme_minimal()
@@ -418,13 +481,11 @@ smvar_len_df <- bench_vars_tbls %>%
 
 
 ### Variants in Difficult Genomic Contexts
-%%TODO%% fix filtering and annotations
 
 ```{r}
-(diff_var_plt_df <- bench_vars_tbls %>%
+diff_var_plt_df <- bench_vars_tbls %>%
   separate_rows(strat_ids, sep = ",") %>%
   mutate(value = 1)
-)
 ```
 
 
@@ -446,12 +507,13 @@ smvar_len_df <- bench_vars_tbls %>%
   theme(legend.position = "bottom", axis.text.x = element_text(angle = -45, vjust = 1))
 )
 ```
+
 ```{r}
-(diff_stvar_plt <- diff_var_plt_df %>% 
-   mutate(bench_version = factor(bench_version,
-     levels = c("v5.0q", "v4.2.1", "v0.6")
-   )) %>% 
-   filter(!is.na(strat_ids), bench_type == "stvar") %>%
+(diff_stvar_plt <- diff_var_plt_df %>%
+  mutate(bench_version = factor(bench_version,
+    levels = c("v5.0q", "v4.2.1", "v0.6")
+  )) %>%
+  filter(!is.na(strat_ids), bench_type == "stvar") %>%
   ggplot() +
   geom_bar(aes(x = var_type, fill = bench_version),
     color = "grey20", position = "dodge"
@@ -464,19 +526,21 @@ smvar_len_df <- bench_vars_tbls %>%
   theme(legend.position = "bottom")
 )
 ```
+
 ```{r}
 (diff_var_plt <- diff_smvar_plt + diff_stvar_plt +
   plot_layout(ncol = 1, guides = "collect") +
   plot_annotation(tag_levels = "A") & theme(legend.position = "bottom")
 )
 ```
+
 ```{r}
 ggsave(
   filename = here("manuscript", "figs", "diff_variant_counts.png"),
   plot = diff_var_plt,
   width = 8,
   height = 6,
-  dpi = 300, 
+  dpi = 300,
 )
 ```
 
@@ -488,54 +552,54 @@ ggsave(
 ```{r}
 bench_region_list <- list.files(
   path = here("resources/benchmarksets"),
-  pattern = "\\.bed(\\.gz)?$",
-  recursive = TRUE,
+  pattern = "_benchmark.bed",
   full.names = TRUE
 ) %>%
   set_names(str_extract(., "(?<=benchmarksets/).*"))
-v5q_region_list <- list.files(
-  path = here("data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets"),
-  pattern = "benchmark.bed$",
-  recursive = TRUE,
-  full.names = TRUE
-) %>%
-  set_names(str_extract(., "(?<=benchmarksets/).*(?=-excluded/)"))
 
 pg_region_list <- list(
-  "platinum_pedigree_smvar_GRCh38" = here("data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz"),
-  "platinum_pedigree_stvar_GRCh38" = here("data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz")
+  "platinum_pedigree_smvar_GRCh38" = here(
+    "data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz"
+  ),
+  "platinum_pedigree_stvar_GRCh38" = here(
+    "data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz"
+  )
 )
 ```
 
 
 ```{r}
-regions_df <- c(bench_region_list, v5q_region_list, pg_region_list) %>%
-  map_dfr(read_tsv, col_names = c("chrom", "start", "end"), col_types = "cii", .id = "benchmarkset") %>%
+regions_df <- c(
+  bench_region_list,
+  pg_region_list
+) %>%
+  map_dfr(
+    read_tsv,
+    col_names = c("chrom", "start", "end"),
+    col_types = "cii",
+    .id = "benchmarkset"
+  ) %>%
   mutate(
     interval_size = end - start,
     bench_version = case_when(
       str_detect(benchmarkset, "v5q") ~ "v5.0q",
       str_detect(benchmarkset, "v421") ~ "v4.2.1",
       str_detect(benchmarkset, "v06") ~ "v0.6",
-      str_detect(benchmarkset, "CMRG") ~ "CMRG",
-      str_detect(benchmarkset, "TandemRepeats") ~ "TR",
       str_detect(benchmarkset, "platinum_pedigree") ~ "PG",
       TRUE ~ "FIXME"
     ),
     var_type = case_when(
-      str_detect(benchmarkset, "smvar") | str_detect(benchmarkset, "smallvar") ~ "smvar",
-      str_detect(benchmarkset, "stvar") | str_detect(benchmarkset, "SV") | str_detect(benchmarkset, "\\.svs\\.") ~ "stvar",
-      str_detect(benchmarkset, "v4.2.1") ~ "smvar",
-      str_detect(benchmarkset, "TandemRepeats") | str_detect(benchmarkset, "\\.trs\\.") ~ "TR",
+              str_detect(benchmarkset, "smvar") ~ "smvar",
+        str_detect(benchmarkset, "stvar") ~ "stvar",
+    str_detect(benchmarkset, "smallvar") ~ "smvar",
+        str_detect(benchmarkset, "\\.svs\\.") ~ "stvar",
       TRUE ~ "FIXME"
     ),
     ref = case_when(
       str_detect(benchmarkset, "grch37") ~ "GRCh37",
       str_detect(benchmarkset, "grch38") ~ "GRCh38",
       str_detect(benchmarkset, "chm13") ~ "CHM13v2.0",
-      str_detect(benchmarkset, "v06") | str_detect(benchmarkset, "grch37") ~ "GRCh37",
-      str_detect(benchmarkset, "GRCh38") | str_detect(benchmarkset, "platinum_pedigree") ~ "GRCh38",
-      str_detect(benchmarkset, "CHM13") ~ "CHM13",
+      str_detect(benchmarkset, "platinum_pedigree") ~ "GRCh38",
       TRUE ~ "FIXME"
     ),
     chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
@@ -544,7 +608,19 @@ regions_df <- c(bench_region_list, v5q_region_list, pg_region_list) %>%
 # Validate regions_df structure and no FIXME values
 assert_that(
   is_tibble(regions_df),
-  has_name(regions_df, c("benchmarkset", "chrom", "start", "end", "interval_size", "bench_version", "var_type", "ref")),
+  has_name(
+    regions_df,
+    c(
+      "benchmarkset",
+      "chrom",
+      "start",
+      "end",
+      "interval_size",
+      "bench_version",
+      "var_type",
+      "ref"
+    )
+  ),
   nrow(regions_df) > 0,
   !any(regions_df$bench_version == "FIXME"),
   !any(regions_df$var_type == "FIXME"),
@@ -554,72 +630,59 @@ assert_that(
 ```
 
 ### Total Included Base Comparisons
-
-- HG002Q100v1.1:[hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai), md5: c84f852b1cd4a00b12e6439ae7a2dd87, 
-  - using total size of mat assembly from index file
-- GRCh37:[hs37d5.fa.gz](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh37/hs37d5.fa.gz), md5: d10eebe06c0dbbcb04253e3294d63efc. 
-  - Using seqkit to generate table of sequence lengths excluding Ns, `seqkit grep -r -p "^([1-9]|1[0-9]|2[0-2]|[XY])$" hs37d5.fa.gz | seqkit fx2tab > hs37d5_size.tsv`. Sanity check from NCBI [assembly stats](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.25_GRCh37.p13/GCF_000001405.25_GRCh37.p13_assembly_stats.txt) `{r 2861327195 - 2435416 - 3675142}`
-- GRCh38: [GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz), md5: 939ce19062d1462c09b88c55faca4d76. 
-  - Using seqkit command `seqkit grep -r -p "^chr([1-9]|1[0-9]|2[0-2]|[XY])$" GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz| seqkit fx2tab -inlsH -j 4 -C N > GRCh38_size.tsv`. 
-  - Sanity check from NCBI [assembly stats](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_assembly_stats.txt) `{r 2937639396 - 6378305 - 4300658}`
-- CHM13v2.0: [GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/914/755/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz), md5: 9e6bf6b586bc8954208d1cc1d5f2fc99. 
-  - Using seqkit command `seqkit grep -r -p "chromosome ([1-9]|1[0-9]|2[0-2]|[XY])$" GCF_009914755.1_T2T-CHM13v2.0_genomic.fna.gz]| seqkit fx2tab -inlsH -j 4 -C N > CHM13_size.tsv`. 
-  - Sanity check from NCBI [assembly report](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/914/755/GCF_009914755.1_T2T-CHM13v2.0/GCF_009914755.1_T2T-CHM13v2.0_assembly_stats.txt) 3117275501.
-
 ```{r}
-hg002q100v1.1_size <- read_tsv(
-  here("data/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"),
-  col_names = c("chrom", "length", "offset", "line_bases", "line_bytes"),
-  col_types = "ciiii"
-) %>%
-  filter(chrom %in% paste0("chr", c(1:22, "X", "Y"), "_MATERNAL")) %>%
-  summarise(genome_size = sum(length)) %>%
-  pull(genome_size)
+## Get hg002q100v1.1 size
+hg002fai_url <- "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"
+hg002fai_md5 <- "c84f852b1cd4a00b12e6439ae7a2dd87"
 
-get_nongap_genome_size <- function(size_tsv) {
-  read_tsv(
-    size_tsv,
-    col_names = c("chrom", "length", "Ns", "seq.hash"),
-    col_types = "ciic",
-    skip = 1
-  ) %>%
-    summarise(genome_size = sum(length) - sum(Ns)) %>%
-    pull(genome_size)
+hg002fai <- tempfile()
+download.file(url = hg002fai_url, destfile = hg002fai, quiet = TRUE)
+if (identical(tools::md5sum(hg002fai), hg002fai_md5)) {
+  stop("Downloaded hg002q100v1.1 fai file has incorrect md5sum")
 }
 
-GRCh37_size <- get_nongap_genome_size(here("data/hs37d5_size.tsv"))
-GRCh38_size <- get_nongap_genome_size(here("data/GRCh38_size.tsv"))
-CHM13_size <- get_nongap_genome_size(here("data/CHM13v2.0_size.tsv"))
+hg002fai_df <- read_tsv(
+    hg002fai,
+    col_names = c("chrom", "length", "offset", "line_bases", "line_width"),
+    col_types = "cicii"
+  ) |> 
+    mutate(chrom = str_remove(chrom, "_.ATERNAL")) |> 
+    filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |> 
+    select(chrom, length)
+file.remove(hg002fai)
 
-ref_size <- data.frame(
-  ref = c("GRCh37", "GRCh38", "CHM13", "HG002Q100v1.1"),
-  genome_size = c(GRCh37_size, GRCh38_size, CHM13_size, hg002q100v1.1_size)
-)
+(hg002q100v1.1_size <- sum(hg002fai_df$length))
+```
 
+```{r}
+ref_size_df <- list.files(here("results/ref_genome_sizes"), pattern = "_size.tsv",full.names = TRUE) %>%
+  set_names(str_extract(., "(?<=ref_genome_sizes/).*(?=_size.tsv)")) %>%
+  map_dfr(
+    read_tsv,
+    col_types = "ciii",
+    .id = "ref"
+  ) %>%
+    rename(chrom= '#id') |> 
+    mutate(chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom)),
+    asm_bp = length - N) |> 
+      select(ref, chrom, asm_bp)
+```
+
+```{r}
+total_ref_asm_bp <- ref_size_df |> group_by(ref) |> summarise(total_asm_bp = sum(asm_bp))
+```
+
+```{r}
 regions_df %>%
-  filter(bench_version %in% c("v5q", "v4.2.1", "v0.6")) %>%
-  left_join(ref_size) %>%
+  filter(bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
+  chrom %in% paste0("chr", c(1:22, "X","Y"))) %>%
+  group_by(var_type, ref, bench_version) %>%
+  summarise(total_bp = sum(interval_size), .groups = "drop") %>%
+    left_join(total_ref_asm_bp) %>%
   mutate(
-    chrom_group = if_else(
-      chrom %in% paste0("chr", c("X", "Y")),
-      "sexchrom",
-      "autosome"
-    )
-  ) %>%
-  group_by(var_type, ref, genome_size, chrom_group, bench_version) %>%
-  summarise(total_bases = sum(interval_size), .groups = "drop") %>%
-  pivot_wider(
-    names_from = chrom_group,
-    values_from = total_bases,
-    values_fill = 0
-  ) %>%
-  mutate(
-    total_bp = autosome + sexchrom,
-    pct_ref_cvg = round(100 * (total_bp / genome_size), 0),
+    pct_ref_cvg = round(100 * (total_bp / total_asm_bp), 0),
     pct_q100_cvg = round(100 * (total_bp / hg002q100v1.1_size), 0),
-    total_bp = format(total_bp, big.mark = ","),
-    autosome = format(autosome, big.mark = ","),
-    sexchrom = format(sexchrom, big.mark = ",")
+    total_bp = format(total_bp, big.mark = ",")
   ) %>%
   arrange(var_type, bench_version, ref) %>%
   gt::gt()
@@ -629,7 +692,7 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ```{r fig.width = 8, fig.height = 4}
 (coverage_change_plt <- regions_df %>%
   filter(
-    bench_version %in% c("v5q", "v4.2.1", "v0.6"),
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
     (var_type == "smvar" & ref == "GRCh38") |
       (var_type == "stvar" & ref == "GRCh37"),
     chrom %in% paste0("chr", c(1:22))
@@ -638,7 +701,7 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
   group_by(var_type, chrom, bench_version) %>%
   summarise(total_size = sum(interval_size), .groups = "drop") %>%
   mutate(
-    vers = if_else(bench_version == "v5q", "new", "old"),
+    vers = if_else(bench_version == "v5.0q", "new", "old"),
     chrom = factor(chrom, levels = paste0("chr", 1:22))
   ) %>%
   select(-bench_version) %>%
@@ -649,10 +712,21 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
   ) %>%
   ggplot() +
   geom_hline(yintercept = 0, color = "grey50") +
-  geom_point(aes(x = chrom, y = pct_change, fill = total_change / 1000000, shape = var_type),
-    size = 4, color = "black", position = "jitterdodge"
+  geom_point(
+    aes(
+      x = chrom,
+      y = pct_change,
+      fill = total_change / 1000000,
+      shape = var_type
+    ),
+    size = 4,
+    color = "black",
+    position = "jitterdodge"
   ) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1), n.breaks = 10) +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1),
+    n.breaks = 10
+  ) +
   scale_fill_gradient2(
     low = "red",
     mid = "white",
@@ -662,7 +736,8 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
   ) +
   scale_shape_manual(values = c(21, 24)) +
   labs(
-    x = "Chromosome", y = "Coverage Change",
+    x = "Chromosome",
+    y = "Coverage Change",
     fill = "Coverage change (Mb)",
     shape = "Variant Type"
   ) +
@@ -670,8 +745,7 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
   theme(
     axis.text.x = element_text(angle = -45, hjust = 0),
     legend.position = "bottom"
-  )
-)
+  ))
 ```
 
 ```{r}
@@ -688,7 +762,9 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
 
 ##### Difficult Region Bases Included
 ```{r}
-diff_included_tbl <- read_tsv(here("results/context_coverage/all_context_coverage.tsv")) %>%
+diff_included_tbl <- read_tsv(here(
+  "results/context_coverage/all_context_coverage.tsv"
+)) %>%
   separate(
     col = "benchmark",
     into = c("bench_version", "ref_id", "bench_type"),
@@ -701,8 +777,14 @@ diff_included_tbl <- read_tsv(here("results/context_coverage/all_context_coverag
 
 diff_included_plt_df <- diff_included_tbl %>%
   filter(
-    (bench_version %in% c("v5q", "v421") & bench_type == "smvar" & ref_id == "grch38") |
-      (bench_version %in% c("v5q", "v06") & bench_type == "stvar" & ref_id == "grch37"),
+    (bench_version %in%
+      c("v5q", "v421") &
+      bench_type == "smvar" &
+      ref_id == "grch38") |
+      (bench_version %in%
+        c("v5q", "v06") &
+        bench_type == "stvar" &
+        ref_id == "grch37"),
     chrom_scope == "autosomes"
   )
 ```
@@ -721,18 +803,28 @@ ggplot(diff_included_plt_df) +
   scale_y_log10() +
   annotation_logticks(sides = "lr") +
   scale_shape_manual(values = c(21, 24, 22)) +
-  labs(x = "Benchmark Type", y = "Included Bases (bp)", fill = "Genomic Context", shape = "Benchmark Version") +
+  labs(
+    x = "Benchmark Type",
+    y = "Included Bases (bp)",
+    fill = "Genomic Context",
+    shape = "Benchmark Version"
+  ) +
   facet_wrap(~context, nrow = 1) +
   theme_minimal() +
   theme(legend.position = "bottom", legend.box = "vertical") +
-  guides(fill = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(shape = 21)))
+  guides(
+    fill = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(shape = 21))
+  )
 ```
 
 ```{r}
-ggplot(diff_included_plt_df, aes(
-  x = bench_type,
-  y = included_pct
-)) +
+ggplot(
+  diff_included_plt_df,
+  aes(
+    x = bench_type,
+    y = included_pct
+  )
+) +
   geom_point(
     aes(
       fill = context,
@@ -744,7 +836,8 @@ ggplot(diff_included_plt_df, aes(
   scale_color_manual(values = c("grey20", "darkred")) +
   scale_y_continuous(labels = scales::percent_format(scale = 1)) +
   labs(
-    x = "Benchmark Type", y = "Included Bases (%)",
+    x = "Benchmark Type",
+    y = "Included Bases (%)",
     fill = "Genomic Context",
     shape = "Benchmark Version"
   ) +
@@ -754,8 +847,11 @@ ggplot(diff_included_plt_df, aes(
     legend.position = "bottom",
     legend.box = "vertical"
   ) +
-  guides(fill = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(shape = 21)))
-```
+  guides(
+    fill = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(shape = 21))
+  )
+``
+`
 ```{r}
 diff_included_plt_df %>%
   select(ref, bench_type, context, bench_version, chrom_scope, included_pct) %>%
@@ -796,6 +892,7 @@ Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-req
   theme(legend.position = "bottom") +
   labs(x = "Benchmark Interval Size (bp)", y = "Density", fill = "Benchmark Version"))
 ```
+
 ```{r}
 (interval_count_plt <- regions_df %>%
   filter(
@@ -813,14 +910,17 @@ Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-req
   scale_y_continuous(labels = scales::comma) +
   theme_minimal() +
   theme(legend.position = "none"))
-```
+`
+``
 ```{r}
 (interval_plt <- interval_size_dist_plt +
-  interval_count_plt
-)
+  interval_count_plt)
 
-ggsave(here("manuscript/figs/benchmark_intervals.png"), interval_plt,
-  width = 8, height = 6
+ggsave(
+  here("manuscript/figs/benchmark_intervals.png"),
+  interval_plt,
+  width = 8,
+  height = 6
 )
 ```
 
@@ -835,14 +935,22 @@ regions_df %>%
   ) %>%
   group_by(bench_version, var_type, ref) %>%
   count() %>%
-  mutate(bench_version = factor(bench_version, levels = c("v4.2.1", "v0.6", "v5q", "PG"))) %>%
+  mutate(
+    bench_version = factor(
+      bench_version,
+      levels = c("v4.2.1", "v0.6", "v5q", "PG")
+    )
+  ) %>%
   arrange(var_type, bench_version) %>%
   ungroup() %>%
   select(var_type, ref, bench_version, n) %>%
   gt::gt() %>%
   gt::tab_header(title = "Number of intervals in Benchmark Regions") %>%
   gt::fmt_integer(columns = n) %>%
-  gt::cols_align(columns = c("var_type", "ref", "bench_version"), align = "right") %>%
+  gt::cols_align(
+    columns = c("var_type", "ref", "bench_version"),
+    align = "right"
+  ) %>%
   gt::cols_label(
     var_type = "Variant Type",
     ref = "Reference",
@@ -895,8 +1003,14 @@ exclusion_intersect_df <- exclusion_intersect_files %>%
     exclusion = case_when(
       genomic_region == "HG002Q100-errors" ~ genomic_region,
       genomic_region == "initial" ~ "diploid-regions",
-      str_detect(genomic_region, "HG002Q100-") ~ str_extract(genomic_region, "(?<=HG002Q100-).*"),
-      str_detect(genomic_region, "_dipcall-z2k_") ~ str_extract(genomic_region, "(?<=_dipcall-z2k_).*"),
+      str_detect(genomic_region, "HG002Q100-") ~ str_extract(
+        genomic_region,
+        "(?<=HG002Q100-).*"
+      ),
+      str_detect(genomic_region, "_dipcall-z2k_") ~ str_extract(
+        genomic_region,
+        "(?<=_dipcall-z2k_).*"
+      ),
       TRUE ~ genomic_region
     )
   )
@@ -907,16 +1021,27 @@ exclusion_gt_tbl <- exclusion_intersect_df %>%
   mutate(exclusion = trimws(paste(exclusion, start_end), "both")) %>%
   select(ref, exclusion, bench_type, dip_overlap_bp, dip_excluded_pct) %>%
   filter(!(exclusion %in% c("benchmark_regions", "diploid-regions"))) %>%
-  pivot_wider(names_from = ref, values_from = c(dip_overlap_bp, dip_excluded_pct)) %>%
+  pivot_wider(
+    names_from = ref,
+    values_from = c(dip_overlap_bp, dip_excluded_pct)
+  ) %>%
   arrange(-dip_overlap_bp_CHM13v2.0)
 
 make_exclusion_tbl <- function(exclusion_tbl, table_title) {
   gt::gt(exclusion_tbl) %>%
     gt::fmt_integer(
-      columns = c(dip_overlap_bp_GRCh37, dip_overlap_bp_GRCh38, dip_overlap_bp_CHM13v2.0)
+      columns = c(
+        dip_overlap_bp_GRCh37,
+        dip_overlap_bp_GRCh38,
+        dip_overlap_bp_CHM13v2.0
+      )
     ) %>%
     gt::fmt_number(
-      columns = c(dip_excluded_pct_GRCh37, dip_excluded_pct_GRCh38, dip_excluded_pct_CHM13v2.0),
+      columns = c(
+        dip_excluded_pct_GRCh37,
+        dip_excluded_pct_GRCh38,
+        dip_excluded_pct_CHM13v2.0
+      ),
       decimals = 2
     ) %>%
     gt::tab_spanner(
@@ -951,14 +1076,19 @@ combined_exclusion_tbl <- exclusion_intersect_df %>%
   mutate(exclusion = trimws(paste(exclusion, start_end), "both")) %>%
   select(ref, exclusion, bench_type, dip_overlap_bp, dip_excluded_pct) %>%
   filter(!(exclusion %in% c("benchmark_regions", "diploid-regions"))) %>%
-  pivot_wider(names_from = ref, values_from = c(dip_overlap_bp, dip_excluded_pct)) %>%
+  pivot_wider(
+    names_from = ref,
+    values_from = c(dip_overlap_bp, dip_excluded_pct)
+  ) %>%
   arrange(-dip_overlap_bp_CHM13v2.0) %>%
-  mutate(bench_type = case_when(
-    exclusion == "total_excluded" ~ bench_type,
-    exclusion == "svs-and-simple-repeats" ~ bench_type,
-    exclusion == "self-discrep" ~ bench_type,
-    TRUE ~ "both"
-  )) %>%
+  mutate(
+    bench_type = case_when(
+      exclusion == "total_excluded" ~ bench_type,
+      exclusion == "svs-and-simple-repeats" ~ bench_type,
+      exclusion == "self-discrep" ~ bench_type,
+      TRUE ~ "both"
+    )
+  ) %>%
   distinct()
 ```
 

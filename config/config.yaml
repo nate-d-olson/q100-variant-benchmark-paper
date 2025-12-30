@@ -580,16 +580,9 @@ benchmarksets:
       sha256: 962da1439091836346e3c76b2cb4c1191586ed2f8ce49bc3ea49eeec75b4ab2b
 
 references:
-  hg002v1.1:
-    url: "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"
-    md5: "c84f852b1cd4a00b12e6439ae7a2dd87"
-    autosome_bases: 2897171587
-    autosome_sex_bases: 3113945583
   GRCh37:
     url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh37/hs37d5.fa.gz"
     md5: "d10eebe06c0dbbcb04253e3294d63efc"
-    autosome_bases: 2881033286
-    autosome_sex_bases: 3095677412
     stratifications:
       TR:
         url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.6/GRCh37@all/LowComplexity/GRCh37_AllTandemRepeats.bed.gz"
@@ -618,8 +611,6 @@ references:
   GRCh38:
     url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz"
     md5: "939ce19062d1462c09b88c55faca4d76"
-    autosome_bases: 2875001522
-    autosome_sex_bases: 3088269832
     stratifications:
       TR:
         url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.6/GRCh38@all/LowComplexity/GRCh38_AllTandemRepeats.bed.gz"
@@ -648,8 +639,6 @@ references:
   CHM13v2.0:
     url: "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz"
     sha256: "f274b0ee8bc1bca18d231d0eb80d764650d7f02d1fe07c43819e21168224304d"
-    autosome_bases: 2900555906
-    autosome_sex_bases: 3117275501
     stratifications:
       TR:
         url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.6/CHM13@all/LowComplexity/CHM13_AllTandemRepeats.bed.gz"
@@ -676,6 +665,7 @@ references:
         description: "Low mappability regions"
         sha256: "50ab57270e9d11e939c0c90fdde538fa048ef6b0751d5cb55f5b74cdd9c4800c"
 
+## TODO: update and use or remove
 outputs:
   sv_len: "sv_len.tsv"
   rtg_stats_dir: "results/vcfstats"

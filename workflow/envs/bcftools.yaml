@@ -4,4 +4,3 @@ channels:
 channel_priority: strict
 dependencies:
   - bcftools=1.22
-  - curl
