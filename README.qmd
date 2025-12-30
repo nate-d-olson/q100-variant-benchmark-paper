@@ -12,13 +12,6 @@ format:
 bibliography: manuscript/references.bib
 ---
 
-# TODO
-- simplify pipeline by renaming downloads
-- drop reference processing step
-- improve results and output paths
-- cleanup var_table rules code, drop unnecessary scripts functions
-- adding ref, bench version, and var_type to config to simplify
-
 # Overview
 
 This repository contains the analysis pipeline and manuscript for the **GIAB v5q HG002 Variant Benchmark Set**. The benchmark set provides high-confidence variant calls for HG002 (NA24385) using the T2T HG002 Q100 diploid assembly, with coordinates available for GRCh37, GRCh38, and CHM13v2.0 (T2T) reference genomes.
@@ -32,12 +25,12 @@ The Snakemake pipeline processes benchmark set files to:
 3. **Generate variant tables** with comprehensive per-variant annotations (type, size, genomic context)
 4. **Calculate overlap** with stratification regions (tandem repeats, homopolymers, segmental duplications, low mappability)
 5. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
-6. **Compare with historical benchmarks** (v4.2.1, CMRG, v0.6 SV, TR benchmarks)
+6. **Compare with historical benchmarks** (v4.2.1, v0.6 SV)
 
 ## Key Outputs
 
-- Annotated VCFs with stratification and region annotations (`results/annotated_vcfs/`)
-- Comprehensive variant tables with per-variant annotations (`results/var_tables/`)
+- Annotated VCFs with stratification and region annotations (`results/annotate_vcf_regions/`)
+- Comprehensive variant tables with per-variant annotations (`results/variant_tables/`)
 - Exclusion intersection tables (`results/exclusions/`)
 
 # Getting Started
@@ -91,9 +84,17 @@ project-root/
 │   ├── envs/               # Conda environment definitions
 │   │   ├── bcftools.yaml
 │   │   ├── bedtools.yaml
+│   │   ├── downloads.yaml
+│   │   ├── python.yaml
+│   │   ├── rtg-tools.yaml
 │   │   ├── samtools.yaml
 │   │   └── truvari.yaml
-│   └── scripts/            # Custom Python/R scripts
+│   └── scripts/            # Custom Python scripts
+│       ├── combine_beds_with_id.py
+│       ├── count_variants_by_type.py
+│       ├── expand_annotations.py
+│       ├── extract_info_fields.py
+│       └── generate_header_lines.py
 ├── config/
 │   └── config.yaml         # Pipeline configuration
 ├── manuscript/             # Quarto manuscript files
@@ -122,10 +123,7 @@ project-root/
 | v5q_grch37_smvar | GRCh37 | Small variants | T2T Q100 liftover |
 | v5q_grch37_stvar | GRCh37 | Structural variants | T2T Q100 liftover |
 | v421_grch38_smvar | GRCh38 | Small variants | Historical GIAB v4.2.1 |
-| cmrg_grch38_smvar | GRCh38 | Small variants | CMRG difficult regions |
-| cmrg_grch38_stvar | GRCh38 | Structural variants | CMRG difficult regions |
 | v06_grch37_stvar | GRCh37 | Structural variants | Historical SV v0.6 |
-| tr_grch38_trvar | GRCh38 | Tandem repeats | TR benchmark v1.0 |
 
 # Genomic Stratification Contexts
 
@@ -134,7 +132,7 @@ The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
 | Context | Description |
 |---------|-------------|
 | TR | All tandem repeats |
-| TR10kb | Tandem repeats ≥101bp with 5bp slop |
+| TR10kb | Tandem repeats ≥10001bp with 5bp slop |
 | HP | Homopolymers ≥7bp (perfect) or ≥11bp (imperfect) |
 | SD | All segmental duplications |
 | SD10kb | Segmental duplications >10kb |
