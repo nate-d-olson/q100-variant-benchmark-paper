@@ -14,7 +14,6 @@ Helper functions are defined in rules/common.smk:
 - get_exclusion_entry()
 - get_exclusion_inputs()
 - get_exclusion_type()
-- get_dip_bed_for_exclusions()
 - get_input_checksums()
 """
 
@@ -37,7 +36,6 @@ rule materialize_exclusion:
         ),
     params:
         exclusion_type=get_exclusion_type,
-        checksums=get_input_checksums,
     log:
         "logs/exclusions/{benchmark}/{exclusion}_materialize.log",
     message:
@@ -52,23 +50,6 @@ rule materialize_exclusion:
         echo "Materializing {wildcards.exclusion} ({params.exclusion_type})" > {log}
         echo "Input files: {input.files}" >> {log}
         echo "Started at $(date)" >> {log}
-        
-        # Validate input checksums
-        CHECKSUMS=({params.checksums})
-        FILES=({input.files})
-        
-        for i in "${{!FILES[@]}}"; do
-            EXPECTED="${{CHECKSUMS[$i]}}"
-            ACTUAL=$(shasum -a 256 "${{FILES[$i]}}" | cut -d ' ' -f 1)
-            
-            if [ "$EXPECTED" != "$ACTUAL" ]; then
-                echo "ERROR: Checksum mismatch for ${{FILES[$i]}}" >> {log}
-                echo "  Expected: $EXPECTED" >> {log}
-                echo "  Actual:   $ACTUAL" >> {log}
-                exit 1
-            fi
-            echo "Checksum OK: ${{FILES[$i]}}" >> {log}
-        done
         
         # Materialize the BED file (always sort for bedtools compatibility)
         if [ "{params.exclusion_type}" == "single" ]; then
@@ -91,7 +72,7 @@ rule compute_dip_size:
     metrics calculations.
     """
     input:
-        bed=get_dip_bed_for_exclusions,
+        bed="resources/benchmarksets/{benchmark}_dip.bed",
     output:
         size="results/exclusions/{benchmark}/dip_size.txt",
     log:
@@ -128,7 +109,7 @@ rule compute_exclusion_metrics:
     """
     input:
         exclusion="results/exclusions/{benchmark}/exclusions/{exclusion}.bed",
-        dip_bed=get_dip_bed_for_exclusions,
+        dip_bed="resources/benchmarksets/{benchmark}_dip.bed",
         dip_size="results/exclusions/{benchmark}/dip_size.txt",
     output:
         tsv="results/exclusions/{benchmark}/metrics/{exclusion}.tsv",

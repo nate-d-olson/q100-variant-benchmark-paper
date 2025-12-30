@@ -46,15 +46,16 @@ onerror:
 
 include: "rules/common.smk"
 include: "rules/downloads.smk"
+include: "rules/vcf_processing.smk"
+include: "rules/var_tables.smk"
+include: "rules/exclusions.smk"
 
 
 rule all:
     input:
         get_var_table_inputs,
-        get_all_reference_files,
         get_exclusion_table_inputs,
-
-
-include: "rules/vcf_processing.smk"
-include: "rules/var_tables.smk"
-include: "rules/exclusions.smk"
+        expand(
+            "results/genome_size/{ref}_size.tsv",
+            ref=["GRCh37", "GRCh38", "CHM13v2.0", "hg002v1.1"],
+        ),

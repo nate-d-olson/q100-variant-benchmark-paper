@@ -6,43 +6,8 @@ calculations with a unified bcftools-based approach that generates comprehensive
 TSV tables with variant-level annotations.
 """
 
-
-rule download_stratification_bed:
-    """
-    Download GIAB genome stratification BED files.
-
-    Downloads stratification BED files from GIAB FTP for genomic contexts
-    (tandem repeats, homopolymers, segmental duplications, low mappability).
-    """
-    output:
-        bed="resources/stratifications/{ref}_{strat_id}.bed.gz",
-    params:
-        url=lambda wildcards: config["stratifications"][wildcards.strat_id][
-            "url"
-        ].format(ref=wildcards.ref),
-    log:
-        "logs/download_stratification_bed/{ref}_{strat_id}.log",
-    message:
-        "Downloading {wildcards.ref} {wildcards.strat_id} stratification BED"
-    retries: 3
-    conda:
-        "../envs/bcftools.yaml"
-    shell:
-        """
-        echo "Downloading stratification BED: {wildcards.ref} {wildcards.strat_id}" > {log}
-        echo "URL: {params.url}" >> {log}
-        echo "Started at $(date)" >> {log}
-
-        wget -O {output.bed} {params.url} 2>> {log}
-
-        if [ ! -s {output.bed} ]; then
-            echo "ERROR: Downloaded file is empty" >> {log}
-            exit 1
-        fi
-
-        echo "Completed at $(date)" >> {log}
-        echo "File size: $(du -h {output.bed} | cut -f1)" >> {log}
-        """
+# Note: Stratification BEDs are downloaded using storage.http()
+# The combine_stratification_beds rule accepts URLs directly
 
 
 rule combine_stratification_beds:
@@ -52,7 +17,8 @@ rule combine_stratification_beds:
     output:
         bed=temp("results/combine_stratification_beds/{benchmark}/strat_combined.bed"),
         bed_gz=ensure(
-            "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz", non_empty=True
+            "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz",
+            non_empty=True,
         ),
         tbi="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi",
     params:
@@ -83,7 +49,8 @@ rule combine_region_beds:
     output:
         bed=temp("results/combine_region_beds/{benchmark}/region_combined.bed"),
         bed_gz=ensure(
-            "results/combine_region_beds/{benchmark}/region_combined.bed.gz", non_empty=True
+            "results/combine_region_beds/{benchmark}/region_combined.bed.gz",
+            non_empty=True,
         ),
         tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     params:
@@ -107,40 +74,10 @@ rule combine_region_beds:
         """
 
 
-rule split_multiallelics:
-    """Split multiallelic variants BEFORE annotation."""
-    input:
-        vcf=lambda w: get_benchmark_vcf(w.benchmark),
-        tbi=lambda w: get_benchmark_vcf(w.benchmark) + ".tbi",
-        ref=lambda w: f"resources/references/{get_reference_for_benchmark(w.benchmark).lower()}.fa.gz",
-        fai=lambda w: f"resources/references/{get_reference_for_benchmark(w.benchmark).lower()}.fa.gz.fai",
-    output:
-        vcf="results/split_multiallelics/{benchmark}/split.vcf.gz",
-    params:
-        old_rec_tag=lambda w: "--old-rec-tag SVLEN" if "stvar" in w.benchmark else "",
-    log:
-        "logs/split_multiallelics/{benchmark}.log",
-    conda:
-        "../envs/bcftools.yaml"
-    shell:
-        """
-        echo "Splitting multiallelics for {wildcards.benchmark}" > {log}
-
-        bcftools norm --multiallelics -any \
-            --check-ref w \
-            {params.old_rec_tag} \
-            --fasta-ref {input.ref} \
-            {input.vcf} \
-            | bcftools sort -Oz -o {output.vcf} 2>> {log}
-
-        echo "Completed at $(date)" >> {log}
-        """
-
-
 rule run_truvari_anno_svinfo:
     input:
-        vcf=lambda w: get_benchmark_vcf(w.benchmark),
-        tbi=lambda w: get_benchmark_vcf(w.benchmark) + ".tbi",
+        vcf="resources/benchmarksets/{benchmark}_benchmark.vcf.gz",
+        vcfidx="resources/benchmarksets/{benchmark}_benchmark.vcf.gz.tbi",
     output:
         vcf="results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz",
     log:
@@ -222,7 +159,8 @@ rule annotate_vcf_regions:
         region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
         vcf=ensure(
-            "results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz", non_empty=True
+            "results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
+            non_empty=True,
         ),
     log:
         "logs/annotate_vcf_regions/{benchmark}.log",
@@ -271,7 +209,7 @@ rule generate_var_table:
         region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
         region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
-        tsv=ensure("results/generate_var_table/{benchmark}/variants.tsv", non_empty=True),
+        tsv=ensure("results/variant_tables/{benchmark}/variants.tsv", non_empty=True),
     params:
         strat_ids=lambda w: get_strat_ids(w),
         region_ids=lambda w: get_region_ids(w),

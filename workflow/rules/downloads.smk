@@ -1,101 +1,312 @@
-# Rules for downloading and verifying input files
+"""
+Rules for downloading and caching remote input files.
+
+This module implements robust download rules following Snakemake 8+ best practices:
+- Uses wget with retries for network stability
+- Validates checksums (SHA256 or MD5) from config
+- Outputs to resources/ directory for consistent local paths
+- Proper logging for debugging failed downloads
+
+Download types handled:
+- Benchmark VCF and BED files
+- Reference genome files
+- Stratification BED files
+- Exclusion BED files
+"""
 
 import os
 
-# Dynamically generate download rules for each reference defined in config
-for ref_id, ref_info in config.get("references", {}).items():
-    if "url" in ref_info and "path" in ref_info:
 
-        rule:
-            name:
-                f"download_{ref_id}"
-            output:
-                ensure(ref_info["path"], **get_checksum_arg(ref_info.get("checksum"))),
-            params:
-                url=ref_info["url"],
-            log:
-                f"logs/downloads/{ref_id}.log",
-            retries: 3
-            conda:
-                "../envs/bcftools.yaml"
-            shell:
-                "curl -L -o {output} {params.url} > {log} 2>&1"
+# ============================================================================
+# Benchmark File Downloads (VCF, BED, dip_bed)
+# ============================================================================
+
+
+rule download_benchmark_vcf:
+    """
+    Download benchmark VCF file with checksum validation.
+
+    Downloads VCF files from URLs specified in config["benchmarksets"][benchmark]["vcf"]
+    and validates against SHA256 checksum using Snakemake's ensure() function.
+    """
+    output:
+        vcf=ensure(
+            "resources/benchmarksets/{benchmark}_benchmark.vcf.gz",
+            non_empty=True,
+            sha256=lambda w: config["benchmarksets"][w.benchmark]["vcf"]["sha256"],
+        ),
+    params:
+        url=lambda w: config["benchmarksets"][w.benchmark]["vcf"]["url"],
+    log:
+        "logs/downloads/{benchmark}_vcf.log",
+    retries: 3
+    threads: 1
+    resources:
+        mem_mb=512,
+    conda:
+        "../envs/downloads.yaml"
+    shell:
+        """
+        exec 2> {log}
+        set -euo pipefail
+
+        echo "[$(date)] Downloading benchmark VCF for {wildcards.benchmark}" | tee -a {log}
+        echo "URL: {params.url}" | tee -a {log}
+
+        # Download with wget (checksum validated by Snakemake ensure())
+        wget --no-verbose -O {output.vcf} "{params.url}" 2>&1 | tee -a {log}
+
+        echo "[$(date)] Download completed successfully" | tee -a {log}
+        """
+
+
+rule download_benchmark_bed:
+    """
+    Download benchmark BED file with checksum validation.
+
+    Downloads BED files from URLs specified in config["benchmarksets"][benchmark]["bed"]
+    and validates against SHA256 checksum using Snakemake's ensure() function.
+    """
+    output:
+        bed=ensure(
+            "resources/benchmarksets/{benchmark}_benchmark.bed",
+            non_empty=True,
+            sha256=lambda w: config["benchmarksets"][w.benchmark]["bed"]["sha256"],
+        ),
+    params:
+        url=lambda w: config["benchmarksets"][w.benchmark]["bed"]["url"],
+    log:
+        "logs/downloads/{benchmark}_bed.log",
+    retries: 3
+    threads: 1
+    resources:
+        mem_mb=512,
+    conda:
+        "../envs/downloads.yaml"
+    shell:
+        """
+        exec 2> {log}
+        set -euo pipefail
+
+        echo "[$(date)] Downloading benchmark BED for {wildcards.benchmark}" | tee -a {log}
+        echo "URL: {params.url}" | tee -a {log}
+
+        # Download with wget (checksum validated by Snakemake ensure())
+        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+
+        echo "[$(date)] Download completed successfully" | tee -a {log}
+        """
+
+
+rule download_benchmark_dip_bed:
+    """
+    Download dipcall BED file with checksum validation.
+
+    Downloads dip.bed files from URLs specified in
+    config["benchmarksets"][benchmark]["dip_bed"] and validates against SHA256 checksum
+    using Snakemake's ensure() function.
+    """
+    output:
+        bed=ensure(
+            "resources/benchmarksets/{benchmark}_dip.bed",
+            non_empty=True,
+            sha256=lambda w: config["benchmarksets"][w.benchmark]["dip_bed"]["sha256"],
+        ),
+    params:
+        url=lambda w: config["benchmarksets"][w.benchmark]["dip_bed"]["url"],
+    log:
+        "logs/downloads/{benchmark}_dip_bed.log",
+    retries: 3
+    threads: 1
+    resources:
+        mem_mb=512,
+    conda:
+        "../envs/downloads.yaml"
+    shell:
+        """
+        exec 2> {log}
+        set -euo pipefail
+
+        echo "[$(date)] Downloading dip.bed for {wildcards.benchmark}" | tee -a {log}
+        echo "URL: {params.url}" | tee -a {log}
+
+        # Download with wget (checksum validated by Snakemake ensure())
+        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+
+        echo "[$(date)] Download completed successfully" | tee -a {log}
+        """
+
+
+# ============================================================================
+# Reference Genome Downloads and Preparation
+# ============================================================================
 
 
 rule prepare_reference:
-    """Ensure reference is bgzipped and indexed for bcftools."""
-    input:
-        ref=lambda w: config["references"][w.ref]["path"],
+    """
+    Download and prepare reference genome for bcftools.
+
+    Downloads reference from URL, validates checksum, converts to bgzip format,
+    and creates faidx and gzi indices for random access.
+
+    Note: Checksum validation is done in shell (not via ensure()) because
+    the checksum in config is for the original downloaded gzip file, not the
+    final bgzip-converted output. The file is validated before conversion.
+    """
     output:
-        ref="resources/references/{ref}.fa.gz",
-        fai="resources/references/{ref}.fa.gz.fai",
-        gzi="resources/references/{ref}.fa.gz.gzi",
+        ref=ensure("resources/references/{ref_name}.fa.gz", non_empty=True),
+        fai=ensure("resources/references/{ref_name}.fa.gz.fai", non_empty=True),
+        gzi=ensure("resources/references/{ref_name}.fa.gz.gzi", non_empty=True),
+    params:
+        url=lambda w: config["references"][w.ref_name]["url"],
+        checksum=lambda w: get_reference_checksum(w.ref_name),
+        checksum_type=lambda w: get_reference_checksum_type(w.ref_name),
     log:
-        "logs/references/{ref}_prepare.log",
+        "logs/references/{ref_name}_prepare.log",
+    retries: 3
+    threads: 1
+    resources:
+        mem_mb=2048,
     conda:
         "../envs/samtools.yaml"
     shell:
         """
-        echo "Preparing reference {wildcards.ref}" > {log}
+        exec 2> {log}
+        set -euo pipefail
 
-        # Check if input is bgzipped or gzipped
-        if gzip -l {input.ref} > /dev/null 2>&1; then
-            echo "Input is gzipped, decompressing and re-compressing with bgzip" >> {log}
-            gunzip -c {input.ref} | bgzip -c > {output.ref} 2>> {log}
+        echo "[$(date)] Downloading and preparing reference {wildcards.ref_name}" | tee -a {log}
+        echo "URL: {params.url}" | tee -a {log}
+
+        # Create temp file for download
+        TMPFILE=$(mktemp)
+        trap "rm -f $TMPFILE" EXIT
+
+        # Download with wget
+        wget --no-verbose -O "$TMPFILE" "{params.url}" 2>&1 | tee -a {log}
+
+        # Validate checksum
+        echo "[$(date)] Validating {params.checksum_type} checksum..." | tee -a {log}
+        if [ "{params.checksum_type}" = "md5" ]; then
+            echo "{params.checksum}  $TMPFILE" | md5sum -c - 2>&1 | tee -a {log}
         else
-            echo "Input is not compressed, compressing with bgzip" >> {log}
-            bgzip -c {input.ref} > {output.ref} 2>> {log}
+            echo "{params.checksum}  $TMPFILE" | sha256sum -c - 2>&1 | tee -a {log}
         fi
 
-        # Index the reference
-        samtools faidx {output.ref} 2>> {log}
+        # Convert gzip to bgzip
+        echo "[$(date)] Converting to bgzip format..." | tee -a {log}
+        gunzip -c "$TMPFILE" | bgzip -c > {output.ref}
 
-        echo "Completed at $(date)" >> {log}
+        # Index the reference
+        echo "[$(date)] Creating faidx index..." | tee -a {log}
+        samtools faidx {output.ref}
+
+        # Verify all outputs were created
+        for f in {output.ref} {output.fai} {output.gzi}; do
+            if [ ! -s "$f" ]; then
+                echo "ERROR: Output file $f is missing or empty" | tee -a {log}
+                exit 1
+            fi
+        done
+
+        echo "[$(date)] Reference preparation completed successfully" | tee -a {log}
         """
 
 
-# Dynamically generate download rules for benchmark sets
-for benchmark, info in config.get("benchmarksets", {}).items():
-    # Handle VCF download
-    vcf_info = info.get("vcf")
-    if isinstance(vcf_info, dict) and "url" in vcf_info:
-        vcf_path = os.path.join(
-            "resources/benchmarksets", get_filename_from_url(vcf_info["url"])
-        )
+# ============================================================================
+# Stratification File Downloads
+# ============================================================================
 
-        rule:
-            name:
-                f"download_benchmark_vcf_{benchmark}"
-            output:
-                ensure(vcf_path, **get_checksum_arg(vcf_info.get("checksum"))),
-            params:
-                url=vcf_info["url"],
-            log:
-                f"logs/downloads/benchmarks/{benchmark}_vcf.log",
-            retries: 3
-            conda:
-                "../envs/bcftools.yaml"
-            shell:
-                "curl -L -o {output} {params.url} > {log} 2>&1"
 
-    # Handle BED download
-    bed_info = info.get("bed")
-    if isinstance(bed_info, dict) and "url" in bed_info:
-        bed_path = os.path.join(
-            "resources/benchmarksets", get_filename_from_url(bed_info["url"])
-        )
+rule download_stratification:
+    """
+    Download stratification BED file with URL templating.
 
-        rule:
-            name:
-                f"download_benchmark_bed_{benchmark}"
-            output:
-                ensure(bed_path, **get_checksum_arg(bed_info.get("checksum"))),
-            params:
-                url=bed_info["url"],
-            log:
-                f"logs/downloads/benchmarks/{benchmark}_bed.log",
-            retries: 3
-            conda:
-                "../envs/bcftools.yaml"
-            shell:
-                "curl -L -o {output} {params.url} > {log} 2>&1"
+    Stratification URLs in config use {ref} template which gets replaced
+    based on the reference genome (GRCh37, GRCh38, CHM13).
+
+    Note: GIAB stratifications URL format uses {ref}@all pattern which needs
+    special handling.
+    """
+    output:
+        bed=ensure(
+            "resources/stratifications/{ref}_{strat_name}.bed.gz",
+            sha256=get_stratification_sha256,
+            non_empty=True,
+        ),
+    params:
+        url=lambda w: get_stratification_url,
+    log:
+        "logs/downloads/stratifications/{ref}_{strat_name}.log",
+    retries: 3
+    threads: 1
+    resources:
+        mem_mb=256,
+    conda:
+        "../envs/downloads.yaml"
+    shell:
+        """
+        exec 2> {log}
+        set -euo pipefail
+
+        echo "[$(date)] Downloading stratification {wildcards.strat_name} for {wildcards.ref}" | tee -a {log}
+        echo "URL: {params.url}" | tee -a {log}
+
+        # Download with wget
+        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+
+        # Verify non-empty (stratifications don't have checksums in config)
+        if [ ! -s {output.bed} ]; then
+            echo "ERROR: Downloaded file is empty" | tee -a {log}
+            exit 1
+        fi
+
+        echo "[$(date)] Download completed successfully" | tee -a {log}
+        """
+
+
+# ============================================================================
+# Exclusion File Downloads
+# ============================================================================
+
+
+rule download_exclusion:
+    """
+    Download exclusion BED file with checksum validation.
+
+    Downloads exclusion BED files specified in
+    config["benchmarksets"][benchmark]["exclusions"][exclusion_name]["files"]
+    and validates against SHA256 checksum using Snakemake's ensure() function.
+    """
+    output:
+        bed=ensure(
+            "resources/exclusions/{benchmark}/{exclusion_name}_{file_idx}.bed",
+            non_empty=True,
+            sha256=lambda w: get_exclusion_file_checksum(
+                w.benchmark, w.exclusion_name, int(w.file_idx)
+            ),
+        ),
+    params:
+        url=lambda w: get_exclusion_file_url(
+            w.benchmark, w.exclusion_name, int(w.file_idx)
+        ),
+    log:
+        "logs/downloads/exclusions/{benchmark}_{exclusion_name}_{file_idx}.log",
+    retries: 3
+    threads: 1
+    resources:
+        mem_mb=256,
+    conda:
+        "../envs/downloads.yaml"
+    shell:
+        """
+        exec 2> {log}
+        set -euo pipefail
+
+        echo "[$(date)] Downloading exclusion {wildcards.exclusion_name} file {wildcards.file_idx} for {wildcards.benchmark}" | tee -a {log}
+        echo "URL: {params.url}" | tee -a {log}
+
+        # Download with wget (checksum validated by Snakemake ensure())
+        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+
+        echo "[$(date)] Download completed successfully" | tee -a {log}
+        """

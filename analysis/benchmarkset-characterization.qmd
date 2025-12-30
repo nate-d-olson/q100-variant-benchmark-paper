@@ -69,7 +69,7 @@ TRFsim	Similarity of ALT sequence to generated motif faux sequence
 ```{r}
 #| warning: false
 anno_var_tbl_files <- list.files(
-  path = here("results/var_tables"),
+  path = here("results/variant_tables"),
   pattern = "variants.tsv",
   recursive = TRUE,
   full.names = TRUE
@@ -77,7 +77,7 @@ anno_var_tbl_files <- list.files(
 
 # derive initial labels then apply textual replacements to the NAMES
 (names(anno_var_tbl_files) <- anno_var_tbl_files %>%
-  str_extract("(?<=var_tables/).*(?=/variants.tsv)") %>%
+  str_extract("(?<=variant_tables/).*(?=/variants.tsv)") %>%
   str_replace_all("^v421", "v4.2.1") %>%
   str_replace_all("^v06", "v0.6") %>%
   str_replace_all("^v5q", "v5.0q") %>%
@@ -233,20 +233,20 @@ read_bench_file <- function(path, col_info) {
 }
 
 # Parallel read with furrr
-plan(multisession, workers = 8, gc = TRUE)
+plan(multisession, workers = 12, gc = TRUE)
 
 bench_vars_tbls <- anno_var_tbl_files %>%
   enframe(name = "benchmarkset", value = "path") %>%
   mutate(col_info = map(benchmarkset, get_bench_var_cols)) %>% 
   mutate(data = future_map2(path, col_info, read_bench_file)) %>%
   select(benchmarkset, data) %>%
-  unnest(data) %>%
-  separate(
+    separate(
     col = benchmarkset,
     into = c("bench_version", "ref", "bench_type"),
     sep = "_",
     fill = "right"
-  )
+  ) %>% 
+  unnest(data)
 
 ```
 
@@ -346,24 +346,24 @@ sv_len_df <- bench_vars_tbls %>%
   geom_histogram(
     data = filter(sv_len_df, bench_version != "v0.6"),
     fill = "grey80", color = "grey20",
-    bins = 50,
+    bins = 100, drop = "all"
   ) +
   geom_histogram(
     data = filter(sv_len_df, bench_version == "v0.6"),
     fill = "grey30", color = "grey20",
-    bins = 50
+    bins = 100, drop = "all"
   ) +
-  geom_text(aes(x = 300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
-  geom_text(aes(x = -300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
-  geom_text(aes(x = 6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
-  geom_text(aes(x = -6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
+  # geom_text(aes(x = 300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
+  # geom_text(aes(x = -300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
+  # geom_text(aes(x = 6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
+  # geom_text(aes(x = -6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
   scale_x_continuous(
     breaks = c(-10000, -5000, -1000, -500, -100, -50, 0, 50, 100, 500, 1000, 5000, 10000),
     trans = scales::pseudo_log_trans(sigma = 50, base = 10),
     labels = scales::comma
   ) +
   scale_y_continuous(labels = scales::comma) +
-  scale_fill_manual(values = c("Alu" = "darkblue", "LINE" = "darkorange")) +
+  # scale_fill_manual(values = c("Alu" = "darkblue", "LINE" = "darkorange")) +
   labs(
     x = "SV Length (bp)",
     y = "Count",
@@ -372,8 +372,7 @@ sv_len_df <- bench_vars_tbls %>%
   facet_wrap(~ref, ncol = 1) +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(angle = -45, hjust = 0),
-    minor_grid = element_blank()
+    axis.text.x = element_text(angle = -45, hjust = 0)
   )
 )
 ```
@@ -392,7 +391,7 @@ ggsave(
 smvar_len_df <- bench_vars_tbls %>%
   filter(
     bench_type == "smvar",
-    var_size != 0
+    var_type == "INDEL"
   )
 
 (smvar_len_dist_plt <-  ggplot(smvar_len_df,
@@ -400,23 +399,12 @@ smvar_len_df <- bench_vars_tbls %>%
 ) +
   geom_histogram(
     data = filter(smvar_len_df, bench_version != "v4.2.1"),
-    fill = "grey80", color = "grey20",
-    bins = 100,
+    fill = "grey80", color = "grey20",binwidth = 1, drop = "all"
   ) +
   geom_histogram(
     data = filter(smvar_len_df, bench_version == "v4.2.1"),
-    fill = "grey30", color = "grey20", width = 0.25,
-    bins = 100
+    fill = "grey30", color = "grey20", binwidth = 1, drop = "all"
   ) +
-  # geom_text(aes(x = 300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
-  # geom_text(aes(x = -300, y = 3000, label = "Alu"), size = 5, color = "darkblue") +
-  # geom_text(aes(x = 6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
-  # geom_text(aes(x = -6000, y = 500, label = "LINE"), size = 5, color = "darkorange") +
-  # scale_x_continuous(
-  #   breaks = c(-60, -45, -30, -15, -10, -5, -1, 0, 1, 5, 20, 30, 40, 50),
-  #   trans = scales::pseudo_log_trans(sigma = 1, base = 0.5),
-  #   labels = scales::comma
-  # ) +
   scale_y_continuous(labels = scales::comma) +
   labs(
     x = "SV Length (bp)",
@@ -441,15 +429,16 @@ smvar_len_df <- bench_vars_tbls %>%
 
 
 ```{r}
-(diff_var_plt <- diff_var_plt_df %>%
-  filter(!is.na(strat_ids)) %>%
-  mutate(var_type = if_else(bench_type == "smvar", var_type, SVTYPE)) %>%
-  filter(bench_type == "smvar") %>%
+(diff_smvar_plt <- diff_var_plt_df %>%
+  mutate(bench_version = factor(bench_version,
+    levels = c("v5.0q", "v4.2.1", "v0.6")
+  )) %>%
+  filter(!is.na(strat_ids), bench_type == "smvar") %>%
   ggplot() +
   geom_bar(aes(x = var_type, fill = bench_version),
     color = "grey20", position = "dodge"
   ) +
-  facet_grid(bench_type ~ strat_ids, scale = "free") +
+  facet_wrap(. ~ strat_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
   scale_fill_manual(values = c("v5.0q" = "darkgreen", "v4.2.1" = "darkorange", "v0.6" = "purple")) +
   labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version") +
@@ -458,23 +447,27 @@ smvar_len_df <- bench_vars_tbls %>%
 )
 ```
 ```{r}
-(diff_stvar_plt <- diff_var_plt_df %>% filter(bench_type == "stvar") %>%
+(diff_stvar_plt <- diff_var_plt_df %>% 
+   mutate(bench_version = factor(bench_version,
+     levels = c("v5.0q", "v4.2.1", "v0.6")
+   )) %>% 
+   filter(!is.na(strat_ids), bench_type == "stvar") %>%
   ggplot() +
-  geom_bar(aes(x = variant_type, y = count, fill = bench_version),
-    color = "grey20",
-    stat = "identity", position = "dodge"
+  geom_bar(aes(x = var_type, fill = bench_version),
+    color = "grey20", position = "dodge"
   ) +
-  facet_wrap(~context, nrow = 1) +
+  facet_wrap(. ~ strat_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
   scale_fill_manual(values = c("v5.0q" = "darkgreen", "v4.2.1" = "darkorange", "v0.6" = "purple")) +
-  labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version", title = "Number of SVs (>= 50bp) in difficult genomic context.") +
+  labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version") +
   theme_minimal() +
   theme(legend.position = "bottom")
 )
 ```
 ```{r}
 (diff_var_plt <- diff_smvar_plt + diff_stvar_plt +
-  plot_layout(ncol = 1, guides = "collect") & theme(legend.position = "bottom")
+  plot_layout(ncol = 1, guides = "collect") +
+  plot_annotation(tag_levels = "A") & theme(legend.position = "bottom")
 )
 ```
 ```{r}
@@ -483,7 +476,7 @@ ggsave(
   plot = diff_var_plt,
   width = 8,
   height = 6,
-  dpi = 300
+  dpi = 300, 
 )
 ```
 
@@ -494,7 +487,7 @@ ggsave(
 
 ```{r}
 bench_region_list <- list.files(
-  path = here("data/benchmarksets"),
+  path = here("resources/benchmarksets"),
   pattern = "\\.bed(\\.gz)?$",
   recursive = TRUE,
   full.names = TRUE
@@ -521,9 +514,9 @@ regions_df <- c(bench_region_list, v5q_region_list, pg_region_list) %>%
   mutate(
     interval_size = end - start,
     bench_version = case_when(
-      str_detect(benchmarkset, "T2TQ100v1.1") ~ "v5q",
-      str_detect(benchmarkset, "v4.2.1") ~ "v4.2.1",
-      str_detect(benchmarkset, "v0.6") ~ "v0.6",
+      str_detect(benchmarkset, "v5q") ~ "v5.0q",
+      str_detect(benchmarkset, "v421") ~ "v4.2.1",
+      str_detect(benchmarkset, "v06") ~ "v0.6",
       str_detect(benchmarkset, "CMRG") ~ "CMRG",
       str_detect(benchmarkset, "TandemRepeats") ~ "TR",
       str_detect(benchmarkset, "platinum_pedigree") ~ "PG",
@@ -537,7 +530,10 @@ regions_df <- c(bench_region_list, v5q_region_list, pg_region_list) %>%
       TRUE ~ "FIXME"
     ),
     ref = case_when(
-      str_detect(benchmarkset, "v0.6") | str_detect(benchmarkset, "GRCh37") ~ "GRCh37",
+      str_detect(benchmarkset, "grch37") ~ "GRCh37",
+      str_detect(benchmarkset, "grch38") ~ "GRCh38",
+      str_detect(benchmarkset, "chm13") ~ "CHM13v2.0",
+      str_detect(benchmarkset, "v06") | str_detect(benchmarkset, "grch37") ~ "GRCh37",
       str_detect(benchmarkset, "GRCh38") | str_detect(benchmarkset, "platinum_pedigree") ~ "GRCh38",
       str_detect(benchmarkset, "CHM13") ~ "CHM13",
       TRUE ~ "FIXME"
@@ -972,5 +968,3 @@ combined_exclusion_tbl <- exclusion_intersect_df %>%
 combined_exclusion_tbl %>%
   make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
 ```
-
-
