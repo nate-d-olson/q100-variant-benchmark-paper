@@ -55,7 +55,3 @@ rule all:
     input:
         get_var_table_inputs,
         get_exclusion_table_inputs,
-        expand(
-            "results/genome_size/{ref}_size.tsv",
-            ref=["GRCh37", "GRCh38", "CHM13v2.0", "hg002v1.1"],
-        ),
