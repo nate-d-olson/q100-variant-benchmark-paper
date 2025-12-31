@@ -18,13 +18,18 @@ Outputs a table with:
 
 import sys
 import subprocess
+import tempfile
 import pandas as pd
 from pathlib import Path
 
 
-def run_bedtools_intersect(benchmark_bed, strat_bed, output_file):
+def run_bedtools_coverage(benchmark_bed, strat_bed, output_file):
     """
-    Run bedtools intersect to find overlaps between benchmark and stratification.
+    Run bedtools coverage to calculate overlap per stratification interval.
+    
+    Uses bedtools coverage -a (stratification) -b (benchmark) to correctly
+    calculate the number of bases in each stratification interval that are
+    covered by the benchmark, avoiding double-counting.
     
     Args:
         benchmark_bed: Path to benchmark regions BED file
@@ -35,11 +40,9 @@ def run_bedtools_intersect(benchmark_bed, strat_bed, output_file):
         Path to output file
     """
     cmd = [
-        "bedtools", "intersect",
+        "bedtools", "coverage",
         "-a", str(strat_bed),
         "-b", str(benchmark_bed),
-        "-wa",  # Write original A entry
-        "-wb",  # Write original B entry
     ]
     
     with open(output_file, 'w') as f:
@@ -81,45 +84,27 @@ def calculate_overlap_per_interval(benchmark_bed, strat_bed, strat_name):
     strat_df['length'] = strat_df['end'] - strat_df['start']
     strat_df['stratification'] = strat_name
     
-    # Create temporary file for intersection results
-    tmp_intersect = Path("tmp_intersect.bed")
+    # Create unique temporary file for coverage results
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.bed', delete=False) as tmp_file:
+        tmp_coverage = Path(tmp_file.name)
     
     try:
-        # Run bedtools intersect to get overlaps
-        run_bedtools_intersect(benchmark_bed, strat_bed, tmp_intersect)
+        # Run bedtools coverage to get overlaps per interval
+        run_bedtools_coverage(benchmark_bed, strat_bed, tmp_coverage)
         
-        # Read intersection results if file is not empty
-        if tmp_intersect.stat().st_size > 0:
-            # Columns: strat_chrom, strat_start, strat_end, bench_chrom, bench_start, bench_end
-            intersect_df = pd.read_csv(
-                tmp_intersect,
+        # Read coverage results
+        # Columns from bedtools coverage: chrom, start, end, overlap_count, overlap_bp, length, fraction
+        if tmp_coverage.stat().st_size > 0:
+            coverage_df = pd.read_csv(
+                tmp_coverage,
                 sep='\t',
                 header=None,
-                names=['strat_chrom', 'strat_start', 'strat_end', 
-                       'bench_chrom', 'bench_start', 'bench_end']
+                names=['chrom', 'start', 'end', 'overlap_count', 'overlap_bp', 'length', 'fraction']
             )
             
-            # Calculate overlap for each intersection
-            # Overlap is the intersection of the two intervals
-            intersect_df['overlap_start'] = intersect_df[['strat_start', 'bench_start']].max(axis=1)
-            intersect_df['overlap_end'] = intersect_df[['strat_end', 'bench_end']].min(axis=1)
-            intersect_df['overlap_bp'] = intersect_df['overlap_end'] - intersect_df['overlap_start']
-            
-            # Sum overlaps per stratification interval (handle multi-overlaps)
-            overlap_summary = intersect_df.groupby(
-                ['strat_chrom', 'strat_start', 'strat_end']
-            )['overlap_bp'].sum().reset_index()
-            
-            # Merge with original intervals
-            result_df = strat_df.merge(
-                overlap_summary,
-                left_on=['chrom', 'start', 'end'],
-                right_on=['strat_chrom', 'strat_start', 'strat_end'],
-                how='left'
-            )
-            
-            # Fill NaN with 0 (no overlap)
-            result_df['overlap_bp'] = result_df['overlap_bp'].fillna(0)
+            # Use the overlap_bp from bedtools coverage (already handles multi-overlaps correctly)
+            result_df = coverage_df[['chrom', 'start', 'end', 'length', 'overlap_bp']].copy()
+            result_df['stratification'] = strat_name
         else:
             # No overlaps found
             result_df = strat_df.copy()
@@ -127,8 +112,8 @@ def calculate_overlap_per_interval(benchmark_bed, strat_bed, strat_name):
     
     finally:
         # Clean up temporary file
-        if tmp_intersect.exists():
-            tmp_intersect.unlink()
+        if tmp_coverage.exists():
+            tmp_coverage.unlink()
     
     # Calculate percent overlap
     result_df['percent_overlap'] = (result_df['overlap_bp'] / result_df['length'] * 100).round(2)
@@ -149,6 +134,16 @@ def main():
     strat_beds = snakemake.input.strat_beds
     strat_names = snakemake.params.strat_names
     output_file = snakemake.output.table
+    
+    # Check if we have any stratifications to process
+    if not strat_beds or not strat_names:
+        print("No stratifications to process", file=sys.stderr)
+        # Create empty output file with header
+        pd.DataFrame(columns=[
+            'stratification', 'chrom', 'start', 'end', 
+            'length', 'overlap_bp', 'percent_overlap'
+        ]).to_csv(output_file, sep='\t', index=False)
+        return
     
     # Process each stratification
     all_results = []
