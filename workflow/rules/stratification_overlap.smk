@@ -26,7 +26,7 @@ rule calculate_stratification_overlap:
     """
     Calculate percent overlap of benchmark regions with stratification intervals.
     
-    Uses bedtools intersect to find overlaps and calculates the percentage
+    Uses bedtools coverage to find overlaps and calculates the percentage
     of each stratification interval that is covered by the benchmark regions.
     Outputs a table suitable for loading into R for visualization.
     """

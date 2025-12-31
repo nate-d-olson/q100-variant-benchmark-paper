@@ -82,6 +82,12 @@ def calculate_overlap_per_interval(benchmark_bed, strat_bed, strat_name):
     
     # Calculate original interval lengths
     strat_df['length'] = strat_df['end'] - strat_df['start']
+    
+    # Filter out zero-length intervals (invalid BED entries)
+    if (strat_df['length'] == 0).any():
+        print(f"Warning: Found {(strat_df['length'] == 0).sum()} zero-length intervals in {strat_name}, filtering them out", file=sys.stderr)
+        strat_df = strat_df[strat_df['length'] > 0].copy()
+    
     strat_df['stratification'] = strat_name
     
     # Create unique temporary file for coverage results
