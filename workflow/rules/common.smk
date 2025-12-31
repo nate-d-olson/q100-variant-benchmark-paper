@@ -58,6 +58,26 @@ def get_exclusion_table_inputs(wildcards):
     return inputs
 
 
+def get_stratification_overlap_inputs(wildcards):
+    """
+    Generate list of stratification overlap tables for all benchmarks
+    that have stratifications configured.
+
+    Returns:
+        List of file paths for stratification overlap table outputs
+    """
+    inputs = []
+    for benchmark, conf in config["benchmarksets"].items():
+        ref = conf.get("ref")
+        if ref and ref in config["references"]:
+            ref_config = config["references"][ref]
+            if "stratifications" in ref_config and ref_config["stratifications"]:
+                inputs.append(
+                    f"results/stratification_overlap/{benchmark}/overlap_table.tsv"
+                )
+    return inputs
+
+
 # ============================================================================
 # Exclusion Analysis Helper Functions
 # ============================================================================
@@ -254,6 +274,46 @@ def get_stratification_sha256(wildcards):
     """
     strat_config = get_strat_config(wildcards.ref, wildcards.strat_name)
     return strat_config.get("sha256", "")
+
+
+def get_stratification_bed_paths(wildcards):
+    """
+    Get list of stratification BED file paths for a benchmark.
+
+    Args:
+        wildcards: Must contain 'benchmark' attribute
+
+    Returns:
+        List of paths to stratification BED files
+    """
+    ref = config["benchmarksets"][wildcards.benchmark].get("ref")
+    if not ref or ref not in config["references"]:
+        return []
+
+    strats = config["references"][ref].get("stratifications", {})
+    paths = []
+    for name in strats.keys():
+        path = f"resources/stratifications/{ref}_{name}.bed.gz"
+        paths.append(path)
+    return paths
+
+
+def get_stratification_names(wildcards):
+    """
+    Get list of stratification names for a benchmark.
+
+    Args:
+        wildcards: Must contain 'benchmark' attribute
+
+    Returns:
+        List of stratification names (e.g., ['TR', 'HP', 'SD', 'MAP'])
+    """
+    ref = config["benchmarksets"][wildcards.benchmark].get("ref")
+    if not ref or ref not in config["references"]:
+        return []
+
+    strats = config["references"][ref].get("stratifications", {})
+    return list(strats.keys())
 
 
 # ============================================================================
