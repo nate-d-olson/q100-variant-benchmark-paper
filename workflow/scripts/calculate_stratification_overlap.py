@@ -121,8 +121,14 @@ def calculate_overlap_per_interval(benchmark_bed, strat_bed, strat_name):
         if tmp_coverage.exists():
             tmp_coverage.unlink()
     
-    # Calculate percent overlap
-    result_df['percent_overlap'] = (result_df['overlap_bp'] / result_df['length'] * 100).round(2)
+    # Calculate percent overlap (avoid division by zero)
+    # Filter out any zero-length intervals that might come from bedtools coverage
+    result_df = result_df[result_df['length'] > 0].copy()
+    if len(result_df) > 0:
+        result_df['percent_overlap'] = (result_df['overlap_bp'] / result_df['length'] * 100).round(2)
+    else:
+        # All intervals were zero-length, create empty result with correct schema
+        result_df['percent_overlap'] = pd.Series(dtype='float64')
     
     # Select and order columns
     result_df = result_df[[
@@ -157,18 +163,27 @@ def main():
     for strat_bed, strat_name in zip(strat_beds, strat_names):
         print(f"Processing {strat_name}...", file=sys.stderr)
         result_df = calculate_overlap_per_interval(benchmark_bed, strat_bed, strat_name)
-        all_results.append(result_df)
+        if len(result_df) > 0:  # Only add non-empty results
+            all_results.append(result_df)
     
     # Combine all results
-    combined_df = pd.concat(all_results, ignore_index=True)
-    
-    # Sort by stratification and position
-    combined_df = combined_df.sort_values(['stratification', 'chrom', 'start'])
+    if len(all_results) > 0:
+        combined_df = pd.concat(all_results, ignore_index=True)
+        
+        # Sort by stratification and position
+        combined_df = combined_df.sort_values(['stratification', 'chrom', 'start'])
+        
+        print(f"Wrote {len(combined_df)} intervals to {output_file}", file=sys.stderr)
+    else:
+        # No valid intervals found in any stratification
+        print("Warning: No valid intervals found in any stratification", file=sys.stderr)
+        combined_df = pd.DataFrame(columns=[
+            'stratification', 'chrom', 'start', 'end', 
+            'length', 'overlap_bp', 'percent_overlap'
+        ])
     
     # Write output
     combined_df.to_csv(output_file, sep='\t', index=False)
-    
-    print(f"Wrote {len(combined_df)} intervals to {output_file}", file=sys.stderr)
 
 
 if __name__ == "__main__":

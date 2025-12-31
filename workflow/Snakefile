@@ -10,8 +10,6 @@ min_version("8.0")
 configfile: "config/config.yaml"
 
 
-# validate(config, schema="../config/schema/config.schema.yaml")
-
 wrapper_prefix = "v3.3.3"
 
 
