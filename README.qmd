@@ -31,13 +31,15 @@ The Snakemake pipeline processes benchmark set files to:
 2. **Annotate variants** with genomic stratification contexts using bcftools
 3. **Generate variant tables** with comprehensive per-variant annotations (type, size, genomic context)
 4. **Calculate overlap** with stratification regions (tandem repeats, homopolymers, segmental duplications, low mappability)
-5. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
-6. **Compare with historical benchmarks** (v4.2.1, CMRG, v0.6 SV, TR benchmarks)
+5. **Generate stratification overlap tables** showing percent coverage of difficult regions by benchmark regions (for cumulative distribution plots and inclusion analysis)
+6. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
+7. **Compare with historical benchmarks** (v4.2.1, CMRG, v0.6 SV, TR benchmarks)
 
 ## Key Outputs
 
 - Annotated VCFs with stratification and region annotations (`results/annotated_vcfs/`)
 - Comprehensive variant tables with per-variant annotations (`results/var_tables/`)
+- Stratification overlap tables showing percent coverage of difficult regions (`results/stratification_overlap/`)
 - Exclusion intersection tables (`results/exclusions/`)
 
 # Getting Started
@@ -139,6 +141,57 @@ The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
 | SD | All segmental duplications |
 | SD10kb | Segmental duplications >10kb |
 | MAP | Low mappability regions |
+
+## Stratification Overlap Analysis
+
+The pipeline generates stratification overlap tables showing how much of each difficult genomic region is covered by the benchmark regions. This analysis enables:
+
+1. **Inclusion Assessment**: Quantify what percentage of difficult contexts are included in the benchmark
+2. **Interval-Level Coverage**: Per-interval overlap percentages for detailed analysis
+3. **Cumulative Distribution Plots**: Visualize the distribution of coverage across all intervals
+4. **Benchmark Comparison**: Compare inclusion of difficult regions across benchmark versions
+
+### Output Format
+
+The stratification overlap tables (`results/stratification_overlap/{benchmark}/overlap_table.tsv`) contain:
+
+| Column | Description |
+|--------|-------------|
+| `stratification` | Name of the stratification (TR, HP, SD, MAP, etc.) |
+| `chrom` | Chromosome |
+| `start` | Interval start position |
+| `end` | Interval end position |
+| `length` | Length of the interval (bp) |
+| `overlap_bp` | Bases overlapping with benchmark regions (bp) |
+| `percent_overlap` | Percentage of interval covered by benchmark (0-100) |
+
+### Example Analysis in R
+
+```r
+# Load the overlap table
+library(tidyverse)
+
+overlap_data <- read_tsv("results/stratification_overlap/v5q_chm13_smvar/overlap_table.tsv")
+
+# Cumulative distribution plot
+overlap_data %>%
+  ggplot(aes(x = percent_overlap, color = stratification)) +
+  stat_ecdf() +
+  labs(
+    title = "Cumulative Distribution of Stratification Coverage",
+    x = "Percent of Interval Covered by Benchmark (%)",
+    y = "Cumulative Proportion of Intervals"
+  )
+
+# Summary statistics by stratification
+overlap_data %>%
+  group_by(stratification) %>%
+  summarize(
+    mean_coverage = mean(percent_overlap),
+    median_coverage = median(percent_overlap),
+    fully_covered = sum(percent_overlap == 100) / n() * 100
+  )
+```
 
 # Development
 
