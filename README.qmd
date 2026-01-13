@@ -138,6 +138,45 @@ The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
 | SD10kb | Segmental duplications >10kb |
 | MAP | Low mappability regions |
 
+# Pipeline Improvements (2026-01)
+
+Recent enhancements have significantly improved pipeline reliability, maintainability, and usability. See [`IMPROVEMENT_SUGGESTIONS.md`](IMPROVEMENT_SUGGESTIONS.md) and [`IMPLEMENTATION_SUMMARY.md`](IMPLEMENTATION_SUMMARY.md) for complete details.
+
+## New Features
+
+### Structured Logging & Error Handling
+- Professional logging with consistent format: `[TIMESTAMP] [LEVEL] [MODULE] Message`
+- Context-rich error messages with file paths, line numbers, and actionable suggestions
+- Custom exception classes for different failure modes (ValidationError, DataFormatError, ProcessingError)
+
+### Data Validation Layer
+- Automated VCF/BED/TSV format validation before processing
+- Early detection of corrupted files and format violations
+- Detailed validation reports in `results/validation/`
+
+### Comprehensive Documentation
+- **[Architecture Documentation](docs/architecture.md)** - System design with visual diagrams
+- **[API Reference](docs/api-reference.md)** - Complete documentation of 15+ helper functions
+- **[Troubleshooting Guide](docs/troubleshooting.md)** - Solutions for common issues
+
+### Unit Testing Framework
+- 35+ tests with 80%+ code coverage for core modules
+- Pytest infrastructure with fixtures and coverage reporting
+- See [`tests/README.md`](tests/README.md) for usage
+
+## Testing
+
+```bash
+# Install test dependencies
+pip install -e ".[dev]"
+
+# Run all tests with coverage
+pytest
+
+# Generate HTML coverage report
+pytest --cov-report=html
+```
+
 # Development
 
 ## Code Quality
