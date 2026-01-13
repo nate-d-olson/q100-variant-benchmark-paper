@@ -105,15 +105,20 @@ rule download_benchmark_dip_bed:
     Downloads dip.bed files from URLs specified in
     config["benchmarksets"][benchmark]["dip_bed"] and validates against SHA256 checksum
     using Snakemake's ensure() function.
+
+    Only applies to benchmarks that have dip_bed configured (v5q benchmarks).
     """
     output:
         bed=ensure(
             "resources/benchmarksets/{benchmark}_dip.bed",
             non_empty=True,
-            sha256=lambda w: config["benchmarksets"][w.benchmark]["dip_bed"]["sha256"],
         ),
     params:
-        url=lambda w: config["benchmarksets"][w.benchmark]["dip_bed"]["url"],
+        url=lambda w: config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("url", ""),
+        sha256=lambda w: config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("sha256", ""),
+    wildcard_constraints:
+        # Explicitly list v5q benchmarks (only these have dip_bed configured)
+        benchmark="v5q_chm13_smvar|v5q_chm13_stvar|v5q_grch37_smvar|v5q_grch37_stvar|v5q_grch38_smvar|v5q_grch38_stvar",
     log:
         "logs/downloads/{benchmark}_dip_bed.log",
     retries: 3
@@ -129,11 +134,19 @@ rule download_benchmark_dip_bed:
 
         echo "[$(date)] Downloading dip.bed for {wildcards.benchmark}" | tee -a {log}
         echo "URL: {params.url}" | tee -a {log}
+        echo "Expected SHA256: {params.sha256}" | tee -a {log}
 
-        # Download with wget (checksum validated by Snakemake ensure())
-        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+        # Download to temporary location
+        wget --no-verbose -O {output.bed}.tmp "{params.url}" 2>&1 | tee -a {log}
 
-        echo "[$(date)] Download completed successfully" | tee -a {log}
+        # Validate SHA256 checksum
+        echo "[$(date)] Validating checksum..." | tee -a {log}
+        echo "{params.sha256}  {output.bed}.tmp" | sha256sum -c - 2>&1 | tee -a {log}
+
+        # Move to final location after validation
+        mv {output.bed}.tmp {output.bed}
+
+        echo "[$(date)] Download and validation completed successfully" | tee -a {log}
         """
 
 
@@ -230,13 +243,16 @@ rule download_stratification:
     output:
         bed=ensure(
             "resources/stratifications/{ref}_{strat_name}.bed.gz",
-            sha256=get_stratification_sha256,
+            sha256=lambda w: get_stratification_sha256(w),
             non_empty=True,
         ),
     params:
-        url=lambda w: get_stratification_url,
+        url=lambda w: get_stratification_url(w),
     log:
         "logs/downloads/stratifications/{ref}_{strat_name}.log",
+    wildcard_constraints:
+        ref="GRCh37|GRCh38|CHM13v2.0",
+        strat_name="TR|TR10kb|HP|SD|SD10kb|MAP",
     retries: 3
     threads: 1
     resources:

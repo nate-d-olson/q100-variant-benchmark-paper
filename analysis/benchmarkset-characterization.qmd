@@ -20,7 +20,6 @@ execute:
 Documentation
 - Column descriptions for variant tables
 
-
 Analyses
 - Look for small intervals in v5q
 
@@ -759,8 +758,40 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ```
 
 #### Inclusion of Difficult Regions
+%%TODO%% Fix Me
+
+```{r}
+strat_combined <- read_tsv(
+  here("results/combine_stratification_beds/v5q_chm13_smvar/strat_combined.bed.gz"),
+  col_names = c("chrom", "start", "end", "context"),
+  col_types = "ciic"
+  )
+
+```
+
+```{r}
+strat_combined <- read_tsv(here("v5_grch38_strat.tsv"))
+```
+
+```{r}
+strat_dip <- strat_combined %>% 
+  filter(dip != 0)
+```
+
+```{r}
+strat_bench <- strat_combined %>% 
+  filter(bench == 1)
+```
+
+```{r}
+strat_combined %>% 
+  mutate(interval_size = end - start)
+  
+```
+
 
 ##### Difficult Region Bases Included
+%%TODO%% Fix me
 ```{r}
 diff_included_tbl <- read_tsv(here(
   "results/context_coverage/all_context_coverage.tsv"
@@ -910,8 +941,8 @@ Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-req
   scale_y_continuous(labels = scales::comma) +
   theme_minimal() +
   theme(legend.position = "none"))
-`
-``
+```
+
 ```{r}
 (interval_plt <- interval_size_dist_plt +
   interval_count_plt)

@@ -140,8 +140,53 @@ def get_region_beds(wildcards):
 
 
 def get_strat_ids(wildcards):
-    """Get list of stratification IDs."""
-    return list(config.get("stratifications", {}).keys())
+    """Get list of stratification IDs for a benchmark."""
+    ref = config["benchmarksets"][wildcards.benchmark].get("ref")
+    strats = config["references"][ref].get("stratifications", {})
+    return list(strats.keys())
+
+
+def get_stratification_ids(wildcards):
+    """
+    Get list of stratification names for a benchmark.
+
+    Alias for get_strat_ids() for consistency with get_exclusion_items().
+    """
+    return get_strat_ids(wildcards)
+
+
+def get_strat_metrics_inputs(wildcards):
+    """
+    Generate list of stratification metrics table files for all benchmarks.
+
+    Only includes benchmarks that have dip_bed configured, as stratification
+    metrics computation requires the dip.bed file.
+
+    Returns:
+        List of file paths for stratification metrics outputs
+    """
+    return [
+        f"results/strat_metrics/{benchmark}/stratification_coverage_table.csv"
+        for benchmark, conf in config["benchmarksets"].items()
+        if "dip_bed" in conf
+    ]
+
+
+def get_var_counts_inputs(wildcards):
+    """
+    Generate list of variant count table files for all benchmarks.
+
+    Only includes benchmarks that have dip_bed configured, as variant count
+    metrics depend on stratification metrics which require the dip.bed file.
+
+    Returns:
+        List of file paths for variant count outputs
+    """
+    return [
+        f"results/var_counts/{benchmark}/stratification_combined_metrics.csv"
+        for benchmark, conf in config["benchmarksets"].items()
+        if "dip_bed" in conf
+    ]
 
 
 def get_region_ids(wildcards):
