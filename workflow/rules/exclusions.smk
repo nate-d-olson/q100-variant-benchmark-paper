@@ -31,7 +31,7 @@ rule materialize_exclusion:
         files=get_exclusion_inputs,
     output:
         bed=ensure(
-            "results/exclusions/{benchmark}/exclusions/{exclusion}.bed",
+            "results/exclusions/{benchmark}/{exclusion}.bed",
             non_empty=True,
         ),
     params:
@@ -112,9 +112,9 @@ rule compute_exclusion_metrics:
         dip_bed="resources/benchmarksets/{benchmark}_dip.bed",
         dip_size="results/exclusions/{benchmark}/dip_size.txt",
     output:
-        tsv="results/exclusions/{benchmark}/metrics/{exclusion}.tsv",
+        tsv="results/exclusions/{benchmark}/coverage/{exclusion}.tsv",
     log:
-        "logs/exclusions/{benchmark}/{exclusion}_metrics.log",
+        "logs/exclusions/{benchmark}/coverage_{exclusion}.log",
     message:
         "Computing metrics for {wildcards.exclusion} in {wildcards.benchmark}"
     threads: 1
@@ -165,7 +165,7 @@ rule aggregate_exclusion_table:
     """
     input:
         lambda wc: expand(
-            "results/exclusions/{benchmark}/metrics/{exclusion}.tsv",
+            "results/exclusions/{benchmark}/coverage/{exclusion}.tsv",
             benchmark=wc.benchmark,
             exclusion=get_exclusion_items(wc),
         ),

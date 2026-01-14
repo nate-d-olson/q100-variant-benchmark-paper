@@ -197,6 +197,32 @@ properties:
             type: string
             description: Description of this stratification
 
+  comparisons:
+    type: object
+    description: Benchmark comparison configurations
+    patternProperties:
+      "^[a-zA-Z0-9_]+$":
+        type: object
+        required:
+          - type
+          - new_benchmark
+          - old_benchmark
+          - ref
+        properties:
+          type:
+            type: string
+            enum: ["smvar", "stvar"]
+            description: Type of variants (smvar or stvar)
+          new_benchmark:
+            type: string
+            description: ID of the new benchmark set (from benchmarksets)
+          old_benchmark:
+            type: string
+            description: ID of the old benchmark set (from benchmarksets)
+          ref:
+            type: string
+            description: Reference genome ID (from references)
+
   outputs:
     type: object
     description: Output configuration

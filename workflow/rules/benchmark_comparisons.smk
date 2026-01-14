@@ -1,6 +1,5 @@
 # workflow/rules/benchmark_comparisons.smk
 
-
 rule rtg_format:
     input:
         ref="resources/references/{ref_name}.fa.gz",
@@ -43,13 +42,15 @@ rule compare_smvar:
         """
 
 
-rule compare_stvar_bench:
+rule run_truvari_bench:
     input:
+        ## TODO use union of new and old benchmark regions as bed
+        ## TODO add reference fasta to inputs
         unpack(get_comparison_files),
     output:
         dir=directory("results/comparisons/stvar/{comp_id}/bench"),
         bed="results/comparisons/stvar/{comp_id}/regions_union.bed",
-        vcf="results/comparisons/stvar/{comp_id}/bench/tp-call.vcf",  # Marker file
+        json="results/comparisons/stvar/{comp_id}/bench/summary.json",  # Marker file
     params:
         outdir="results/comparisons/stvar/{comp_id}/bench",
     log:
@@ -64,22 +65,26 @@ rule compare_stvar_bench:
         truvari bench \
             -b {input.old_vcf} \
             -c {input.new_vcf} \
-            --reference {input.ref} \
-            --includebed {output.bed} \
+            --pick ac \
+            --passonly \
+            -r 2000 \
+            -C 5000 \
+            --reference {input.ref}
+            --includebed {input.bed} \
             --output {params.outdir} \
             > {log} 2>&1
         """
 
 
-rule compare_stvar_refine:
+rule run_truvari_refine:
     input:
         bench_dir="results/comparisons/stvar/{comp_id}/bench",
         ref=lambda w: f"resources/references/{config['comparisons'][w.comp_id]['ref']}.fa.gz",
     output:
         dir=directory("results/comparisons/stvar/{comp_id}/refine"),
-        tp="results/comparisons/stvar/{comp_id}/refine/tp-call.vcf",
-        fp="results/comparisons/stvar/{comp_id}/refine/fp.vcf",
-        fn="results/comparisons/stvar/{comp_id}/refine/fn.vcf",
+        tp="results/comparisons/stvar/{comp_id}/refine/refine/tp-call.vcf.gz",
+        fp="results/comparisons/stvar/{comp_id}/refine/refine/fp.vcf.gz",
+        fn="results/comparisons/stvar/{comp_id}/refine/refine/fn.vcf.gz",
     params:
         outdir="results/comparisons/stvar/{comp_id}/refine",
     log:
@@ -89,6 +94,7 @@ rule compare_stvar_refine:
     shell:
         """
         rm -rf {params.outdir}
+        cp -r {input.bench_dir} {params.outdir}
         
         truvari refine \
             --reference {input.ref} \
