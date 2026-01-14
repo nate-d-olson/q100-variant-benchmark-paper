@@ -5,6 +5,7 @@ dependencies:
   - python=3.11
   - bcftools=1.22
   - mafft
+  - bedtools=2.31.1
   - pip
   - pip:
     - Truvari==5.4.0

@@ -72,6 +72,7 @@ rule run_truvari_bench:
         unpack(get_comparison_files)
     output:
         dir=directory("results/comparisons/stvar/{comp_id}/bench"),
+        bed="results/comparisons/stvar/{comp_id}/regions_union.bed",
         json="results/comparisons/stvar/{comp_id}/bench/summary.json" # Marker file
     params:
         outdir="results/comparisons/stvar/{comp_id}/bench"
@@ -82,7 +83,8 @@ rule run_truvari_bench:
     shell:
         """
         rm -rf {params.outdir}
-        
+        bedtools intersect -a {input.new_bed} -b {input.old_bed} | \
+            bedtools sort -i - > {output.bed}
         truvari bench \
             -b {input.old_vcf} \
             -c {input.new_vcf} \
@@ -119,7 +121,12 @@ rule run_truvari_refine:
         
         truvari refine \
             --reference {input.ref} \
-            {params.outdir} \
+            --recount \
+            --use-region-coords \
+            --use-original-vcfs \
+            --align mafft \
+            {input.bench_dir} \
+            --output {params.outdir} \
             > {log} 2>&1
         """
 
