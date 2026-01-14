@@ -4,6 +4,7 @@ import os
 import tempfile
 import logging
 import gzip
+from typing import List, Dict, Any
 
 # Setup logging
 logging.basicConfig(
@@ -12,11 +13,34 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-def run_bedtools_intersect_vcf(vcf_file, bed_file):
+def run_bedtools_intersect_vcf(vcf_file: str, bed_file: str) -> int:
     """
-    Count variants in VCF overlapping with BED file.
-    Uses bedtools intersect -u -a vcf -b bed | grep -v "^#" | wc -l
+    Count variants in VCF overlapping with BED regions.
+
+    Uses bedtools intersect with -u flag to identify unique overlapping
+    variant records (excluding duplicates).
+
+    Args:
+        vcf_file: Path to input VCF file (can be gzipped)
+        bed_file: Path to BED file defining regions of interest
+
+    Returns:
+        Number of variants overlapping with BED regions
+
+    Raises:
+        FileNotFoundError: If input files don't exist
+        RuntimeError: If bedtools fails
+
+    Example:
+        >>> count = run_bedtools_intersect_vcf("variants.vcf.gz", "regions.bed")
+        >>> print(f"Found {count} variants in regions")
     """
+    # Validate inputs
+    if not os.path.exists(vcf_file):
+        raise FileNotFoundError(f"VCF file not found: {vcf_file}")
+    if not os.path.exists(bed_file):
+        raise FileNotFoundError(f"BED file not found: {bed_file}")
+
     try:
         # Use subprocess to pipe
         # bedtools intersect -u -a {vcf} -b {bed}
@@ -31,18 +55,32 @@ def run_bedtools_intersect_vcf(vcf_file, bed_file):
         # Wait, bedtools intersect on VCF returns VCF lines.
         output, err = p1.communicate()
         if p1.returncode != 0:
-            logging.error(f"bedtools intersect failed: {err.decode()}")
-            return 0
-        
+            error_msg = (
+                f"bedtools intersect failed:\n"
+                f"  VCF: {vcf_file}\n"
+                f"  BED: {bed_file}\n"
+                f"  Error: {err.decode()}"
+            )
+            logging.error(error_msg)
+            raise RuntimeError(error_msg)
+
         # Count non-header lines
         count = 0
         for line in output.splitlines():
             if not line.startswith(b'#'):
                 count += 1
         return count
+    except FileNotFoundError:
+        raise
+    except RuntimeError:
+        raise
     except Exception as e:
-        logging.error(f"Error in intersect_vcf: {e}")
-        return 0
+        raise RuntimeError(
+            f"Unexpected error in intersect_vcf:\n"
+            f"  VCF: {vcf_file}\n"
+            f"  BED: {bed_file}\n"
+            f"  Error: {str(e)}"
+        ) from e
 
 def run_bedtools_intersect_bed_bases(bed_a, bed_b):
     """
