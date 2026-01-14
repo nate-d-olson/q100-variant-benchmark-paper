@@ -114,8 +114,12 @@ rule download_benchmark_dip_bed:
             non_empty=True,
         ),
     params:
-        url=lambda w: config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("url", ""),
-        sha256=lambda w: config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("sha256", ""),
+        url=lambda w: config["benchmarksets"][w.benchmark]
+        .get("dip_bed", {})
+        .get("url", ""),
+        sha256=lambda w: config["benchmarksets"][w.benchmark]
+        .get("dip_bed", {})
+        .get("sha256", ""),
     wildcard_constraints:
         # Explicitly list v5q benchmarks (only these have dip_bed configured)
         benchmark="v5q_chm13_smvar|v5q_chm13_stvar|v5q_grch37_smvar|v5q_grch37_stvar|v5q_grch38_smvar|v5q_grch38_stvar",

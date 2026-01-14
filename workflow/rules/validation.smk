@@ -54,12 +54,12 @@ rule validation_summary:
         vcf_reports=expand(
             "results/validation/{benchmark}/{ref}/vcf_validation.txt",
             benchmark=get_benchmarks(),
-            ref=lambda wc: get_refs_for_benchmark(wc.benchmark)
+            ref=lambda wc: get_refs_for_benchmark(wc.benchmark),
         ),
         bed_reports=expand(
             "results/validation/{benchmark}/{ref}/bed_validation.txt",
             benchmark=get_benchmarks(),
-            ref=lambda wc: get_refs_for_benchmark(wc.benchmark)
+            ref=lambda wc: get_refs_for_benchmark(wc.benchmark),
         ),
     output:
         summary="results/validation/validation_summary.txt",

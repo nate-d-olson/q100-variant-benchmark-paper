@@ -54,7 +54,6 @@ include: "rules/vcf_processing.smk"
 include: "rules/ref_processing.smk"
 include: "rules/var_tables.smk"
 include: "rules/exclusions.smk"
-include: "rules/diff_tables.smk"
 include: "rules/benchmark_comparisons.smk"
 
 
