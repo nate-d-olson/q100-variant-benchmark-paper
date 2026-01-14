@@ -111,7 +111,10 @@ rule compare_stvar_refine:
         
         truvari refine \
             --reference {input.ref} \
+            --recount \
             --use-region-coords \
+            --use-original-vcfs \
+            --align mafft \
             {input.bench_dir} \
             --output {params.outdir} \
             > {log} 2>&1
