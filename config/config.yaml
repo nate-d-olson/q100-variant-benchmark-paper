@@ -2,7 +2,7 @@
 
 # Benchmark sets for variant table analysis
 benchmarksets:
-  v5q_chm13_smvar:
+  v5.0q_CHM13v2.0_smvar:
     ref: CHM13v2.0
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_smvar.vcf.gz
@@ -102,7 +102,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/CHM13v2.0/gaps_slop_sorted.bed"
             sha256: "dd007aa85fa378e9da13efc80906b1989aeba075a37205bcf12be10222965ff2"
-  v5q_chm13_stvar:
+  v5.0q_CHM13v2.0_stvar:
     ref: CHM13v2.0
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/CHM13v2.0_HG2-T2TQ100-V1.1_stvar.vcf.gz
@@ -190,7 +190,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/CHM13v2.0/gaps_slop_sorted.bed"
             sha256: "dd007aa85fa378e9da13efc80906b1989aeba075a37205bcf12be10222965ff2"
-  v5q_grch37_smvar:
+  v5.0q_GRCh37_smvar:
     ref: GRCh37
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_smvar.vcf.gz
@@ -288,7 +288,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh37/gaps_slop_sorted.bed"
             sha256: "d01fd624bd1f9b60958af743f8416f592272b183f442ee1b3a51357dc498ee44"
-  v5q_grch37_stvar:
+  v5.0q_GRCh37_stvar:
     ref: GRCh37
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh37_HG2-T2TQ100-V1.1_stvar.vcf.gz
@@ -376,7 +376,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh37/gaps_slop_sorted.bed"
             sha256: "d01fd624bd1f9b60958af743f8416f592272b183f442ee1b3a51357dc498ee44"
-  v5q_grch38_smvar:
+  v5.0q_GRCh38_smvar:
     ref: GRCh38
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_smvar.vcf.gz
@@ -474,7 +474,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh38/gaps_slop_sorted.bed"
             sha256: "6b3f85d7985933907f7642a41adc161fe89538fc7ff8726193d521add542aea3"
-  v5q_grch38_stvar:
+  v5.0q_GRCh38_stvar:
     ref: GRCh38
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_HG002_DraftBenchmark_defrabbV0.020-20250117/GRCh38_HG2-T2TQ100-V1.1_stvar.vcf.gz
@@ -562,7 +562,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh38/gaps_slop_sorted.bed"
             sha256: "6b3f85d7985933907f7642a41adc161fe89538fc7ff8726193d521add542aea3"
-  v421_grch38_smvar:
+  v4.2.1_GRCh38_smvar:
     ref: GRCh38
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
@@ -570,7 +570,7 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
       sha256: fba9a57c36ec88e5d14ea3e259c8866c7935f4998d3ec0fa2d6c3962da5b5575
-  v06_grch37_stvar:
+  v0.6_GRCh37_stvar:
     ref: GRCh37
     vcf:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz
@@ -578,6 +578,18 @@ benchmarksets:
     bed:
       url: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NIST_SV_v0.6/HG002_SVs_Tier1_noVDJorXorY_v0.6.2.bed
       sha256: 962da1439091836346e3c76b2cb4c1191586ed2f8ce49bc3ea49eeec75b4ab2b
+
+comparisons:
+  v5_vs_v4_smvar:
+    type: smvar
+    new_benchmark: v5.0q_GRCh38_smvar
+    old_benchmark: v4.2.1_GRCh38_smvar
+    ref: GRCh38
+  v5_vs_v0.6_stvar:
+    type: stvar
+    new_benchmark: v5.0q_GRCh37_stvar
+    old_benchmark: v0.6_GRCh37_stvar
+    ref: GRCh37
 
 references:
   GRCh37:

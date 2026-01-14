@@ -14,6 +14,10 @@ validate(config, schema="../config/schema/config.schema.yaml")
 
 wrapper_prefix = "v3.3.3"
 
+REF = list(config.get("references", {}).keys())
+BENCHMARK = list(config.get("benchmarksets", {}).keys())
+STRAT = list(config["references"]["GRCh38"].get("stratifications", {}).keys())
+
 
 # Rules that don't require cluster resources
 localrules:
@@ -50,6 +54,8 @@ include: "rules/vcf_processing.smk"
 include: "rules/ref_processing.smk"
 include: "rules/var_tables.smk"
 include: "rules/exclusions.smk"
+include: "rules/diff_tables.smk"
+include: "rules/benchmark_comparisons.smk"
 
 
 rule all:
@@ -59,4 +65,17 @@ rule all:
         expand(
             "results/ref_genome_sizes/{ref}_size.tsv",
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],
+        ),
+        expand(
+            "results/strat_coverage/{benchmark}/{strat}_cov.bed",
+            benchmark=BENCHMARK,
+            strat=STRAT,
+        ),
+        expand(
+            "results/stats/{comp_id}_variants.csv",
+            comp_id=config.get("comparisons", {}).keys(),
+        ),
+        expand(
+            "results/stats/{comp_id}_regions.csv",
+            comp_id=config.get("comparisons", {}).keys(),
         ),
