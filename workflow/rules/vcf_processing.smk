@@ -56,6 +56,7 @@ rule split_multiallelics:
         echo "Completed at $(date)" >> {log}
         """
 
+
 rule run_truvari_anno_svinfo:
     input:
         vcf="resources/benchmarksets/{benchmark}_benchmark.vcf.gz",

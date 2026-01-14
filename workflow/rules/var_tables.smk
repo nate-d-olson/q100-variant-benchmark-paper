@@ -16,11 +16,15 @@ rule combine_stratification_beds:
         beds=lambda w: [b.split(":")[0] for b in get_stratification_beds(w)],
     output:
         bed=temp("results/combine_stratification_beds/{benchmark}/strat_combined.bed"),
-        bed_gz=temp(ensure(
-            "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz",
-            non_empty=True,
-        )),
-        tbi=temp("results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi"),
+        bed_gz=temp(
+            ensure(
+                "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz",
+                non_empty=True,
+            )
+        ),
+        tbi=temp(
+            "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi"
+        ),
     params:
         bed_specs=lambda w: get_stratification_beds(w),
     log:
@@ -48,10 +52,12 @@ rule combine_region_beds:
         beds=lambda w: [b.split(":")[0] for b in get_region_beds(w)],
     output:
         bed=temp("results/combine_region_beds/{benchmark}/region_combined.bed"),
-        bed_gz=temp(ensure(
-            "results/combine_region_beds/{benchmark}/region_combined.bed.gz",
-            non_empty=True,
-        )),
+        bed_gz=temp(
+            ensure(
+                "results/combine_region_beds/{benchmark}/region_combined.bed.gz",
+                non_empty=True,
+            )
+        ),
         tbi=temp("results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi"),
     params:
         bed_specs=lambda w: get_region_beds(w),
@@ -73,10 +79,13 @@ rule combine_region_beds:
         echo "Completed at $(date)" >> {log}
         """
 
+
 rule generate_annotation_headers:
     """Generate VCF header lines for annotation fields."""
     output:
-        headers=temp("results/generate_annotation_headers/{benchmark}/annotation_headers.txt"),
+        headers=temp(
+            "results/generate_annotation_headers/{benchmark}/annotation_headers.txt"
+        ),
     log:
         "logs/generate_annotation_headers/{benchmark}.log",
     conda:
@@ -107,7 +116,9 @@ rule annotate_vcf_stratifications:
         strat_tbi="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi",
         headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
     output:
-        vcf=temp("results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz"),
+        vcf=temp(
+            "results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz"
+        ),
     log:
         "logs/annotate_vcf_stratifications/{benchmark}.log",
     conda:
@@ -134,10 +145,12 @@ rule annotate_vcf_regions:
         region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
         region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
-        vcf=temp(ensure(
-            "results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
-            non_empty=True,
-        )),
+        vcf=temp(
+            ensure(
+                "results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
+                non_empty=True,
+            )
+        ),
     log:
         "logs/annotate_vcf_regions/{benchmark}.log",
     conda:
