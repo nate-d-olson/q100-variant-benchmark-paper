@@ -55,6 +55,7 @@ include: "rules/ref_processing.smk"
 include: "rules/var_tables.smk"
 include: "rules/exclusions.smk"
 include: "rules/benchmark_comparisons.smk"
+include: "rules/diff_tables.smk"
 
 
 rule all:
@@ -66,7 +67,7 @@ rule all:
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],
         ),
         expand(
-            "results/strat_coverage/{benchmark}/{strat}_cov.bed",
+            "results/diff_region_coverage/{benchmark}/{strat}_cov.bed",
             benchmark=BENCHMARK,
             strat=STRAT,
         ),

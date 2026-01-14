@@ -45,24 +45,33 @@ rule compare_smvar:
 
 rule run_truvari_bench:
     input:
-        ## TODO use union of new and old benchmark regions as bed
-        ## TODO add reference fasta to inputs
         unpack(get_comparison_files),
     output:
-        dir=directory("results/comparisons/stvar/{comp_id}/bench"),
-        bed="results/comparisons/stvar/{comp_id}/regions_union.bed",
-        json="results/comparisons/stvar/{comp_id}/bench/summary.json",  # Marker file
+        multiext(
+            "results/comparisons/stvar/{comp_id}/",
+            "fn.vcf.gz",
+            "fn.vcf.gz.tbi",
+            "fp.vcf.gz",
+            "fp.vcf.gz.tbi",
+            "tp-base.vcf.gz",
+            "tp-base.vcf.gz.tbi",
+            "tp-comp.vcf.gz",
+            "tp-comp.vcf.gz.tbi",
+            "candidate.refine.bed",
+            "summary.json",
+        ),
+        union_bed="results/comparisons/stvar/{comp_id}_union.bed",
     params:
-        outdir="results/comparisons/stvar/{comp_id}/bench",
+        outdir=directory("results/comparisons/stvar/{comp_id}/"),
     log:
         "logs/compare_stvar_bench/{comp_id}.log",
     conda:
         "../envs/truvari.yaml"
     shell:
         """
-        rm -rf {params.outdir}
         bedtools intersect -a {input.new_bed} -b {input.old_bed} | \
-            bedtools sort -i - > {output.bed}
+            bedtools sort -i - > {output.union_bed}
+        rm -rf {params.outdir}
         truvari bench \
             -b {input.old_vcf} \
             -c {input.new_vcf} \
@@ -70,8 +79,8 @@ rule run_truvari_bench:
             --passonly \
             -r 2000 \
             -C 5000 \
-            --reference {input.ref}
-            --includebed {input.bed} \
+            --reference {input.ref} \
+            --includebed {output.union_bed} \
             --output {params.outdir} \
             > {log} 2>&1
         """
@@ -79,32 +88,30 @@ rule run_truvari_bench:
 
 rule run_truvari_refine:
     input:
-        bench_dir="results/comparisons/stvar/{comp_id}/bench",
-        ref=lambda w: f"resources/references/{config['comparisons'][w.comp_id]['ref']}.fa.gz",
+        unpack(get_comparison_files),
+        union_bed="results/comparisons/stvar/{comp_id}_union.bed",
     output:
-        dir=directory("results/comparisons/stvar/{comp_id}/refine"),
-        tp="results/comparisons/stvar/{comp_id}/refine/refine/tp-call.vcf.gz",
-        fp="results/comparisons/stvar/{comp_id}/refine/refine/fp.vcf.gz",
-        fn="results/comparisons/stvar/{comp_id}/refine/refine/fn.vcf.gz",
+        multiext(
+            "results/comparisons/stvar/{comp_id}/",
+            "refine.comp.vcf.gz",
+            "refine.base.vcf.gz",
+            "refine.variant_summary.json",
+        ),
     params:
-        outdir="results/comparisons/stvar/{comp_id}/refine",
+        bench_dir="results/comparisons/stvar/{comp_id}",
     log:
         "logs/compare_stvar_refine/{comp_id}.log",
     conda:
         "../envs/truvari.yaml"
     shell:
         """
-        rm -rf {params.outdir}
-        cp -r {input.bench_dir} {params.outdir}
-        
+        ## Note Truvari wiki suggests using --coord 0 for TR benchmark
         truvari refine \
             --reference {input.ref} \
-            --recount \
-            --use-region-coords \
             --use-original-vcfs \
             --align mafft \
-            {input.bench_dir} \
-            --output {params.outdir} \
+            --coord O \
+            {params.bench_dir} \
             > {log} 2>&1
         """
 

@@ -42,6 +42,7 @@ resources/
 benchmarks/
 *.pyc
 __pycache__/
+.micromamba/*
 
 # LaTeX/PDF intermediate files
 *.aux

@@ -87,8 +87,10 @@ def get_comparison_files(wildcards):
     comp = config["comparisons"][wildcards.comp_id]
     return {
         "new_vcf": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.vcf.gz",
+        "new_vcfidx": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.vcf.gz.tbi",
         "new_bed": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.bed",
         "old_vcf": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.vcf.gz",
+        "old_vcfidx": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.vcf.gz.tbi",
         "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
         "ref": f"resources/references/{comp['ref']}.fa.gz",
     }
@@ -117,11 +119,10 @@ def get_strat_inputs(wildcards):
     else:
         # Fallback to bench results if refine is problematic or desired
         # The user asked for refine, but bench results are in results/comparisons/stvar/{comp_id}/bench
-        base = f"results/comparisons/stvar/{wildcards.comp_id}/bench"
+        base = f"results/comparisons/stvar/{wildcards.comp_id}"
         return {
-            "tp": f"{base}/tp-comp.vcf.gz",
-            "fp": f"{base}/fp.vcf.gz",
-            "fn": f"{base}/fn.vcf.gz",
+            "base": f"{base}/refine.base.vcf.gz",
+            "comp": f"{base}/refine.comp.vcf.gz",
             "new_bed": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.bed",
             "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
             "strat_beds": get_stratifications_for_comp(wildcards),
