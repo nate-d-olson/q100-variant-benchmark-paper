@@ -61,8 +61,6 @@ rule all:
     input:
         get_var_table_inputs,
         get_exclusion_table_inputs,
-        get_strat_metrics_inputs,
-        get_var_counts_inputs,
         expand(
             "results/ref_genome_sizes/{ref}_size.tsv",
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],

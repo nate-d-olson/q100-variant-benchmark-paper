@@ -78,6 +78,7 @@ def get_ref_ids(wildcards) -> List[str]:
     """Get list of reference IDs."""
     return list(config.get("references", {}).keys())
 
+
 wildcard_constraints:
     comp_id="[^/]+",
 
@@ -98,6 +99,7 @@ def get_stratifications_for_comp(wildcards):
     ref = comp["ref"]
     strats = config["references"][ref].get("stratifications", {})
     return [f"resources/stratifications/{ref}_{s}.bed.gz" for s in strats]
+
 
 def get_strat_inputs(wildcards):
     comp = config["comparisons"][wildcards.comp_id]
@@ -124,6 +126,7 @@ def get_strat_inputs(wildcards):
             "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
             "strat_beds": get_stratifications_for_comp(wildcards),
         }
+
 
 # ============================================================================
 # Benchmark VCF and BED Helper Functions

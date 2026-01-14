@@ -1,5 +1,6 @@
 # workflow/rules/benchmark_comparisons.smk
 
+
 rule rtg_format:
     input:
         ref="resources/references/{ref_name}.fa.gz",
