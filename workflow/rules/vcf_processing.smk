@@ -13,7 +13,7 @@ rule index_vcf:
     input:
         "{prefix}.vcf.gz",
     output:
-        "{prefix}.vcf.gz.tbi",
+        temp("{prefix}.vcf.gz.tbi"),
     log:
         "logs/vcf_processing/{prefix}_index.log",
     threads: 1
@@ -35,7 +35,7 @@ rule split_multiallelics:
         ref=lambda w: f"resources/references/{config["benchmarksets"][w.benchmark].get("ref")}.fa.gz",
         refidx=lambda w: f"resources/references/{config["benchmarksets"][w.benchmark].get("ref")}.fa.gz.fai",
     output:
-        vcf="results/split_multiallelics/{benchmark}/split.vcf.gz",
+        vcf=temp("results/split_multiallelics/{benchmark}/split.vcf.gz"),
     params:
         old_rec_tag=lambda w: "--old-rec-tag SVLEN" if "stvar" in w.benchmark else "",
     log:
@@ -54,4 +54,26 @@ rule split_multiallelics:
             | bcftools sort -Oz -o {output.vcf} 2>> {log}
 
         echo "Completed at $(date)" >> {log}
+        """
+
+rule run_truvari_anno_svinfo:
+    input:
+        vcf="resources/benchmarksets/{benchmark}_benchmark.vcf.gz",
+        vcfidx="resources/benchmarksets/{benchmark}_benchmark.vcf.gz.tbi",
+    output:
+        vcf="results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz",
+    log:
+        "logs/run_truvari_anno_svinfo/{benchmark}.log",
+    conda:
+        "../envs/truvari.yaml"
+    params:
+        minsize=20,
+        vcf=lambda w, output: output.vcf[:-3],  # Remove .gz extension
+    shell:
+        """
+        truvari anno svinfo \
+            -o {params.vcf} \
+            --minsize {params.minsize} \
+            {input.vcf} >> {log} 2>&1
+        bgzip {params.vcf} >> {log}
         """

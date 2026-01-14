@@ -2,7 +2,9 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
+  - python=3.11
   - bcftools=1.22
+  - mafft
   - pip
   - pip:
     - Truvari==5.4.0

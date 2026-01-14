@@ -25,13 +25,16 @@ The Snakemake pipeline processes benchmark set files to:
 3. **Generate variant tables** with comprehensive per-variant annotations (type, size, genomic context)
 4. **Calculate overlap** with stratification regions (tandem repeats, homopolymers, segmental duplications, low mappability)
 5. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
-6. **Compare with historical benchmarks** (v4.2.1, v0.6 SV)
+6. **Compare with historical benchmarks** (v4.2.1, v0.6 SV) to quantify improvements in callable regions and variant detection
 
 ## Key Outputs
 
 - Annotated VCFs with stratification and region annotations (`results/annotate_vcf_regions/`)
 - Comprehensive variant tables with per-variant annotations (`results/variant_tables/`)
 - Exclusion intersection tables (`results/exclusions/`)
+- **Benchmark Comparisons** (`results/stats/`):
+    - `*_variants.csv`: Stratified counts of shared and unique variants
+    - `*_regions.csv`: Stratified counts of shared and unique callable bases
 
 # Getting Started
 

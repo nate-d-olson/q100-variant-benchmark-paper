@@ -16,11 +16,11 @@ rule combine_stratification_beds:
         beds=lambda w: [b.split(":")[0] for b in get_stratification_beds(w)],
     output:
         bed=temp("results/combine_stratification_beds/{benchmark}/strat_combined.bed"),
-        bed_gz=ensure(
+        bed_gz=temp(ensure(
             "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz",
             non_empty=True,
-        ),
-        tbi="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi",
+        )),
+        tbi=temp("results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi"),
     params:
         bed_specs=lambda w: get_stratification_beds(w),
     log:
@@ -48,11 +48,11 @@ rule combine_region_beds:
         beds=lambda w: [b.split(":")[0] for b in get_region_beds(w)],
     output:
         bed=temp("results/combine_region_beds/{benchmark}/region_combined.bed"),
-        bed_gz=ensure(
+        bed_gz=temp(ensure(
             "results/combine_region_beds/{benchmark}/region_combined.bed.gz",
             non_empty=True,
-        ),
-        tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
+        )),
+        tbi=temp("results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi"),
     params:
         bed_specs=lambda w: get_region_beds(w),
     log:
@@ -73,34 +73,10 @@ rule combine_region_beds:
         echo "Completed at $(date)" >> {log}
         """
 
-
-rule run_truvari_anno_svinfo:
-    input:
-        vcf="resources/benchmarksets/{benchmark}_benchmark.vcf.gz",
-        vcfidx="resources/benchmarksets/{benchmark}_benchmark.vcf.gz.tbi",
-    output:
-        vcf="results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz",
-    log:
-        "logs/run_truvari_anno_svinfo/{benchmark}.log",
-    conda:
-        "../envs/truvari.yaml"
-    params:
-        minsize=20,
-        vcf=lambda w, output: output.vcf[:-3],  # Remove .gz extension
-    shell:
-        """
-        truvari anno svinfo \
-            -o {params.vcf} \
-            --minsize {params.minsize} \
-            {input.vcf} >> {log} 2>&1
-        bgzip {params.vcf} >> {log}
-        """
-
-
 rule generate_annotation_headers:
     """Generate VCF header lines for annotation fields."""
     output:
-        headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
+        headers=temp("results/generate_annotation_headers/{benchmark}/annotation_headers.txt"),
     log:
         "logs/generate_annotation_headers/{benchmark}.log",
     conda:
@@ -131,7 +107,7 @@ rule annotate_vcf_stratifications:
         strat_tbi="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi",
         headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
     output:
-        vcf="results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz",
+        vcf=temp("results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz"),
     log:
         "logs/annotate_vcf_stratifications/{benchmark}.log",
     conda:
@@ -158,10 +134,10 @@ rule annotate_vcf_regions:
         region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
         region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
-        vcf=ensure(
+        vcf=temp(ensure(
             "results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
             non_empty=True,
-        ),
+        )),
     log:
         "logs/annotate_vcf_regions/{benchmark}.log",
     conda:
@@ -184,7 +160,7 @@ rule extract_info_fields:
     input:
         vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
     output:
-        fields="results/extract_info_fields/{benchmark}/info_fields.txt",
+        fields=temp("results/extract_info_fields/{benchmark}/info_fields.txt"),
     params:
         exclude=["STRAT_IDS", "REGION_IDS"],
     log:

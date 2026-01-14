@@ -65,14 +65,16 @@ rule compare_smvar:
         """
 
 
-rule compare_stvar_bench:
+rule run_truvari_bench:
     input:
-        unpack(get_comparison_files),
+        ## TODO use union of new and old benchmark regions as bed
+        ## TODO add reference fasta to inputs
+        unpack(get_comparison_files)
     output:
         dir=directory("results/comparisons/stvar/{comp_id}/bench"),
-        vcf="results/comparisons/stvar/{comp_id}/bench/tp-call.vcf",  # Marker file
+        json="results/comparisons/stvar/{comp_id}/bench/summary.json" # Marker file
     params:
-        outdir="results/comparisons/stvar/{comp_id}/bench",
+        outdir="results/comparisons/stvar/{comp_id}/bench"
     log:
         "logs/compare_stvar_bench/{comp_id}.log",
     conda:
@@ -84,21 +86,26 @@ rule compare_stvar_bench:
         truvari bench \
             -b {input.old_vcf} \
             -c {input.new_vcf} \
-            --includebed {input.old_bed} \
+            --pick ac \
+            --passonly \
+            -r 2000 \
+            -C 5000 \
+            --reference {input.ref}
+            --includebed {input.bed} \
             --output {params.outdir} \
             > {log} 2>&1
         """
 
 
-rule compare_stvar_refine:
+rule run_truvari_refine:
     input:
         bench_dir="results/comparisons/stvar/{comp_id}/bench",
         ref=lambda w: f"resources/references/{config['comparisons'][w.comp_id]['ref']}.fa.gz",
     output:
         dir=directory("results/comparisons/stvar/{comp_id}/refine"),
-        tp="results/comparisons/stvar/{comp_id}/refine/tp-call.vcf",
-        fp="results/comparisons/stvar/{comp_id}/refine/fp.vcf",
-        fn="results/comparisons/stvar/{comp_id}/refine/fn.vcf",
+        tp="results/comparisons/stvar/{comp_id}/refine/refine/tp-call.vcf.gz",
+        fp="results/comparisons/stvar/{comp_id}/refine/refine/fp.vcf.gz",
+        fn="results/comparisons/stvar/{comp_id}/refine/refine/fn.vcf.gz",
     params:
         outdir="results/comparisons/stvar/{comp_id}/refine",
     log:
@@ -108,12 +115,11 @@ rule compare_stvar_refine:
     shell:
         """
         rm -rf {params.outdir}
+        cp -r {input.bench_dir} {params.outdir}
         
         truvari refine \
             --reference {input.ref} \
-            --use-region-coords \
-            {input.bench_dir} \
-            --output {params.outdir} \
+            {params.outdir} \
             > {log} 2>&1
         """
 
@@ -132,11 +138,13 @@ def get_strat_inputs(wildcards):
             "strat_beds": get_stratifications_for_comp(wildcards),
         }
     else:
-        base = f"results/comparisons/stvar/{wildcards.comp_id}/refine"
+        # Fallback to bench results if refine is problematic or desired
+        # The user asked for refine, but bench results are in results/comparisons/stvar/{comp_id}/bench
+        base = f"results/comparisons/stvar/{wildcards.comp_id}/bench"
         return {
-            "tp": f"{base}/tp-call.vcf",
-            "fp": f"{base}/fp.vcf",
-            "fn": f"{base}/fn.vcf",
+            "tp": f"{base}/tp-comp.vcf.gz",
+            "fp": f"{base}/fp.vcf.gz",
+            "fn": f"{base}/fn.vcf.gz",
             "new_bed": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.bed",
             "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
             "strat_beds": get_stratifications_for_comp(wildcards),

@@ -1,0 +1,108 @@
+---
+title: "Benchmark Set Coverage and Variants Counts for Difficult Regions"
+date: '`r Sys.Date()`'
+author: "ND Olson"
+format:
+  html:
+    theme: flatly
+    page-layout: full
+    toc: true
+    self-contained: true
+  docx: default
+editor: source
+code-fold: true
+execute:
+  warning: false
+---
+
+
+```{r}
+library(tidyverse)
+library(here)
+library(patchwork)
+```
+
+
+```{r}
+diff_cov_files <- list.files(path = here("results/strat_coverage"), recursive = TRUE, full.names = TRUE) %>%
+    set_names(nm = str_extract(., "(?<=strat_coverage/).*(?=_cov.bed)"))
+```
+
+
+```{r}
+diff_cov_df <- diff_cov_files %>% 
+    map_dfr(read_tsv, col_names = c("CHROM","START","END", "num_overlap","bases_covered", "interval_bp","frac_cov"),
+    col_types = "ciiiiid", .id = "bench_strat")
+```
+
+
+```{r}
+glimpse(diff_cov_df)
+```
+
+
+```{r}
+diff_cov_total_df <- diff_cov_df %>% 
+    group_by(bench_strat) %>% 
+    summarise(bases_covered = sum(bases_covered),
+        interval_bp = sum(interval_bp)
+    ) %>% 
+    mutate(frac_cov = 1 - (bases_covered/interval_bp),
+        bench_strat = str_replace(bench_strat,"/","_")) %>% 
+    separate(bench_strat, into = c("bench_version","ref","var_type","strat"), sep = "_")
+```
+
+
+```{r}
+diff_cov_total_df %>%
+  filter(
+    ref != "CHM13v2.0",
+    !(bench_version == "v5.0q" & var_type == "smvar" & ref == "GRCh38"),
+    !(bench_version == "v5.0q" & var_type == "stvar" & ref == "GRCh37"),
+  ) %>%
+  ggplot() +
+  geom_bar(
+    aes(x = strat, y = bases_covered, fill = glue::glue("{bench_version} {ref}")),
+    position = "dodge",
+    stat = "identity"
+  ) +
+  facet_wrap(~var_type, ncol = 1) +
+  theme_minimal() +
+  labs(x = "Genomic Context", y = "Bases Included", fill = "Benchmark") +
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+diff_top_intervals <- diff_cov_df %>% 
+    filter(str_detect(bench_strat, "GRCh38_smvar") | str_detect(bench_strat, "GRCh37_stvar")) %>% 
+    group_by(bench_strat) %>% 
+    slice_max(order_by = interval_bp, n = 10000) %>% 
+    mutate(bench_strat = str_replace(bench_strat, "/", "_")) %>% 
+    separate(bench_strat, into = c("bench_version","ref","var_type","strat"), sep = "_")
+```
+
+
+```{r}
+diff_top_intervals %>% filter(interval_bp > 5000) %>% 
+    arrange(frac_cov) %>% 
+    mutate(n_interval = cumsum(bases_covered)) %>% 
+    ggplot() + geom_path(aes(x = n_interval, y = frac_cov, color = bench_version)) +
+    facet_grid(var_type ~ strat)
+```
+
+
+```{r}
+diff_cov_df %>% 
+    filter(str_detect(bench_strat, "GRCh38_smvar") | str_detect(bench_strat, "GRCh37_stvar")) %>% 
+    mutate(fully_covered = if_else(num_overlap == 1 & frac_cov == 1.0, TRUE, FALSE)) %>% 
+    group_by(bench_strat, fully_covered) %>% 
+    summarise(diff_bp = sum(interval_bp)) %>% 
+    ungroup() %>% 
+    mutate(bench_strat = str_replace(bench_strat, "/", "_")) %>% 
+    separate(bench_strat, into = c("bench_version","ref","var_type","strat"), sep = "_") %>% 
+    filter(fully_covered) %>% 
+    ggplot() + geom_bar(aes(x = strat, fill = bench_version, y = diff_bp), stat = "identity", position = "dodge") +  
+    facet_wrap(~var_type, nrow = 1)
+ 
+```

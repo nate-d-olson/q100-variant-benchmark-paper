@@ -20,3 +20,13 @@ GCA_018852615.3) and mirrored at https://github.com/marbl/hg002 [@english2025].
 -   Benchmarking utilities (`q100bench`): https://github.com/nhansen/q100bench
     [@q100bench2024]\
 -   Snakemake provenance archive: data.nist.gov
+
+### Comparison Statistics
+
+The pipeline generates stratified comparison statistics between benchmark versions, available in the `results/stats/` directory:
+
+-   `*_variants.csv`: Contains counts of shared and unique variants (TP, FP, FN) stratified by genomic context (e.g., Tandem Repeats, Segmental Duplications).
+-   `*_regions.csv`: Contains counts of shared and unique callable bases stratified by genomic context.
+
+Analysts can load these CSV files directly into R or Python for downstream analysis and visualization of benchmark improvements.
+
