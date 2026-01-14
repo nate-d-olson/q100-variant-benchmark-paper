@@ -22,6 +22,53 @@ def get_var_table_inputs(wildcards) -> List[str]:
     ]
 
 
+wildcard_constraints:
+    comp_id="[^/]+",
+
+
+def get_comparison_files(wildcards):
+    comp = config["comparisons"][wildcards.comp_id]
+    return {
+        "new_vcf": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.vcf.gz",
+        "new_bed": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.bed",
+        "old_vcf": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.vcf.gz",
+        "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
+        "ref": f"resources/references/{comp['ref']}.fa.gz",
+    }
+
+
+def get_stratifications_for_comp(wildcards):
+    comp = config["comparisons"][wildcards.comp_id]
+    ref = comp["ref"]
+    strats = config["references"][ref].get("stratifications", {})
+    return [f"resources/stratifications/{ref}_{s}.bed.gz" for s in strats]
+
+
+def get_strat_inputs(wildcards):
+    comp = config["comparisons"][wildcards.comp_id]
+    ctype = comp["type"]
+    if ctype == "smvar":
+        base = f"results/comparisons/smvar/{wildcards.comp_id}"
+        return {
+            "tp": f"{base}/tp.vcf.gz",
+            "fp": f"{base}/fp.vcf.gz",
+            "fn": f"{base}/fn.vcf.gz",
+            "new_bed": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.bed",
+            "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
+            "strat_beds": get_stratifications_for_comp(wildcards),
+        }
+    else:
+        base = f"results/comparisons/stvar/{wildcards.comp_id}/refine"
+        return {
+            "tp": f"{base}/tp-call.vcf",
+            "fp": f"{base}/fp.vcf",
+            "fn": f"{base}/fn.vcf",
+            "new_bed": f"resources/benchmarksets/{comp['new_benchmark']}_benchmark.bed",
+            "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
+            "strat_beds": get_stratifications_for_comp(wildcards),
+        }
+
+
 def get_bench_ids(wildcards) -> List[str]:
     """Get list of benchmark IDs."""
     return list(config.get("benchmarksets", {}).keys())
@@ -201,12 +248,9 @@ def get_region_beds(wildcards) -> List[str]:
     return beds
 
 
-def get_strat_ids(wildcards) -> List[str]:
+def get_strat_ids(wildcards):
     """Get list of stratification IDs."""
-    ref = config["benchmarksets"][wildcards.benchmark].get("ref")
-    return list(
-        config.get("references", {}).get(ref, {}).get("stratifications", {}).keys()
-    )
+    return list(config.get("stratifications", {}).keys())
 
 
 def get_region_ids(wildcards) -> List[str]:

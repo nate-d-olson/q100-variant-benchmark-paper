@@ -54,7 +54,6 @@ include: "rules/vcf_processing.smk"
 include: "rules/ref_processing.smk"
 include: "rules/var_tables.smk"
 include: "rules/exclusions.smk"
-include: "rules/diff_tables.smk"
 include: "rules/benchmark_comparisons.smk"
 
 
@@ -62,6 +61,8 @@ rule all:
     input:
         get_var_table_inputs,
         get_exclusion_table_inputs,
+        get_strat_metrics_inputs,
+        get_var_counts_inputs,
         expand(
             "results/ref_genome_sizes/{ref}_size.tsv",
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],

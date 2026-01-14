@@ -31,6 +31,8 @@ Thumbs.db
 /.env
 /data/
 /scratch
+analysis/*_files/**
+/etc/**
 
 # Snakemake
 logs/

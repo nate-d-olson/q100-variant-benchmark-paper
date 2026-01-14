@@ -108,8 +108,6 @@ rule run_truvari_refine:
         """
 
 
-
-
 rule stratify_comparison:
     input:
         unpack(get_strat_inputs),
