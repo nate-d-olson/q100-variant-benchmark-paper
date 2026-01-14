@@ -7,7 +7,7 @@ corruption, format violations, and data quality issues early in the pipeline.
 """
 
 from pathlib import Path
-from typing import Optional, List, Tuple, Set
+from typing import Optional, List, Set
 import gzip
 from logging_config import setup_logger
 from exceptions import ValidationError, DataFormatError

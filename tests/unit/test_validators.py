@@ -6,7 +6,6 @@ Unit tests for data validators.
 import pytest
 from pathlib import Path
 import sys
-import tempfile
 import gzip
 
 # Add workflow/scripts to path

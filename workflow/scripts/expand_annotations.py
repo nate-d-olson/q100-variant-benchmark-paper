@@ -9,7 +9,7 @@ Usage:
 import argparse
 import sys
 import csv
-from typing import List, Set, Dict
+from typing import List, Set
 from logging_config import setup_logger, log_context
 from exceptions import DataFormatError, ProcessingError
 

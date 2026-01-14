@@ -8,7 +8,7 @@ Snakemake script to validate VCF files and generate validation reports.
 from pathlib import Path
 from validators import validate_file_exists, validate_vcf_header
 from logging_config import setup_logger
-import json
+
 
 logger = setup_logger(__name__)
 

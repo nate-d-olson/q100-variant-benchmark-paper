@@ -6,7 +6,6 @@ Reads variant table TSV and counts variants in each stratification region.
 Handles comma-separated STRAT_IDS field where variants can overlap multiple regions.
 """
 
-import sys
 from pathlib import Path
 from typing import Dict, Counter
 import csv
