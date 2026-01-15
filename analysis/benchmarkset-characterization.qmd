@@ -555,13 +555,13 @@ bench_region_list <- list.files(
   pattern = "_benchmark.bed",
   full.names = TRUE
 ) %>%
-  set_names(str_extract(., "(?<=benchmarksets/).*"))
+  set_names(str_extract(., "(?<=benchmarksets/).*(?=_benchmark.bed)"))
 
 pg_region_list <- list(
-  "platinum_pedigree_smvar_GRCh38" = here(
+  "PP_GRCh38_smvar" = here(
     "data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz"
   ),
-  "platinum_pedigree_stvar_GRCh38" = here(
+  "PP_GRCh38_stvar" = here(
     "data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz"
   )
 )
@@ -581,29 +581,9 @@ regions_df <- c(
   ) %>%
   mutate(
     interval_size = end - start,
-    bench_version = case_when(
-      str_detect(benchmarkset, "v5q") ~ "v5.0q",
-      str_detect(benchmarkset, "v421") ~ "v4.2.1",
-      str_detect(benchmarkset, "v06") ~ "v0.6",
-      str_detect(benchmarkset, "platinum_pedigree") ~ "PG",
-      TRUE ~ "FIXME"
-    ),
-    var_type = case_when(
-              str_detect(benchmarkset, "smvar") ~ "smvar",
-        str_detect(benchmarkset, "stvar") ~ "stvar",
-    str_detect(benchmarkset, "smallvar") ~ "smvar",
-        str_detect(benchmarkset, "\\.svs\\.") ~ "stvar",
-      TRUE ~ "FIXME"
-    ),
-    ref = case_when(
-      str_detect(benchmarkset, "grch37") ~ "GRCh37",
-      str_detect(benchmarkset, "grch38") ~ "GRCh38",
-      str_detect(benchmarkset, "chm13") ~ "CHM13v2.0",
-      str_detect(benchmarkset, "platinum_pedigree") ~ "GRCh38",
-      TRUE ~ "FIXME"
-    ),
     chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
-  )
+  ) %>% 
+  separate(benchmarkset, into = c("bench_version","ref","var_type"), sep = "_")
 
 # Validate regions_df structure and no FIXME values
 assert_that(
@@ -611,7 +591,6 @@ assert_that(
   has_name(
     regions_df,
     c(
-      "benchmarkset",
       "chrom",
       "start",
       "end",
@@ -622,14 +601,12 @@ assert_that(
     )
   ),
   nrow(regions_df) > 0,
-  !any(regions_df$bench_version == "FIXME"),
-  !any(regions_df$var_type == "FIXME"),
-  !any(regions_df$ref == "FIXME"),
   all(regions_df$interval_size > 0)
 )
 ```
 
 ### Total Included Base Comparisons
+
 ```{r}
 ## Get hg002q100v1.1 size
 hg002fai_url <- "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"
@@ -758,40 +735,30 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ))
 ```
 
-#### Inclusion of Difficult Regions
+### Inclusion of Difficult Regions
 %%TODO%% Fix Me
 
 ```{r}
-strat_combined <- read_tsv(
-  here("results/combine_stratification_beds/v5q_chm13_smvar/strat_combined.bed.gz"),
-  col_names = c("chrom", "start", "end", "context"),
-  col_types = "ciic"
-  )
+diff_coverage <- list.files(
+  here("results/diff_region_coverage"),
+  pattern = "_cov.bed",
+  recursive = TRUE,
+  full.names = TRUE
+) %>%
+  {
+    set_names(., str_extract(., "(?<=coverage/).*(?=_cov.bed)") %>% 
+                str_replace("/", "_")
+              )
+  } %>% 
+  map_dfr(read_tsv, col_names = c("CHROM","START","END","n_overlap","bases_cov","ivl_len","frac_cov"),
+          col_types = "ciiiiid")
 
 ```
 
-```{r}
-strat_combined <- read_tsv(here("v5_grch38_strat.tsv"))
-```
-
-```{r}
-strat_dip <- strat_combined %>% 
-  filter(dip != 0)
-```
-
-```{r}
-strat_bench <- strat_combined %>% 
-  filter(bench == 1)
-```
-
-```{r}
-strat_combined %>% 
-  mutate(interval_size = end - start)
-  
-```
+TODO: pick-up here difficult regions coverage
 
 
-##### Difficult Region Bases Included
+#### Difficult Region Bases Included
 %%TODO%% Fix me
 ```{r}
 diff_included_tbl <- read_tsv(here(
@@ -896,7 +863,7 @@ diff_included_plt_df %>%
 ```
 
 
-#### Benchmark Interval Size Distributions
+### Benchmark Interval Size Distributions
 
 Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-request s3://platinum-pedigree-data/truthset_v1.2/ . 
 ```{r}
