@@ -736,7 +736,6 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ```
 
 ### Inclusion of Difficult Regions
-%%TODO%% Fix Me
 
 ```{r}
 diff_coverage <- list.files(
@@ -746,21 +745,35 @@ diff_coverage <- list.files(
   full.names = TRUE
 ) %>%
   {
-    set_names(., str_extract(., "(?<=coverage/).*(?=_cov.bed)") %>% 
-                str_replace("/", "_")
-              )
-  } %>% 
-  map_dfr(read_tsv, col_names = c("CHROM","START","END","n_overlap","bases_cov","ivl_len","frac_cov"),
-          col_types = "ciiiiid")
-
+    set_names(., str_extract(., "(?<=coverage/).*(?=_cov.bed)") %>%
+      str_replace("/", "_"))
+  } %>%
+  map_dfr(read_tsv,
+    col_names = c("CHROM", "START", "END", "n_overlap", "bases_cov", "ivl_len", "frac_cov"),
+    col_types = "ciiiiid",
+    .id = "strat"
+  ) %>% 
+  filter(n_overlap > 0) %>% 
+  separate(strat, into = c("bench_version","ref","var_type","strat"), sep = "_")
 ```
 
-TODO: pick-up here difficult regions coverage
+
+```{r}
+diff_cov_total <- diff_coverage %>% 
+  group_by(bench_version, ref, var_type, strat) %>% 
+  summarise(total_cov = sum(bases_cov))
+
+diff_cov_total %>% 
+  ggplot() +
+  geom_bar(aes(x = strat, y = total_cov, fill = bench_version), stat = "identity", position = "dodge") +
+  facet_wrap(~var_type, ncol = 1) +
+  theme_minimal()
+```
 
 
 #### Difficult Region Bases Included
 %%TODO%% Fix me
-```{r}
+```{r eval=FALSE}
 diff_included_tbl <- read_tsv(here(
   "results/context_coverage/all_context_coverage.tsv"
 )) %>%
@@ -788,7 +801,7 @@ diff_included_plt_df <- diff_included_tbl %>%
   )
 ```
 
-```{r}
+```{r eval=FALSE}
 ggplot(diff_included_plt_df) +
   geom_point(
     aes(
@@ -816,7 +829,7 @@ ggplot(diff_included_plt_df) +
   )
 ```
 
-```{r}
+```{r eval=FALSE}
 ggplot(
   diff_included_plt_df,
   aes(
@@ -851,7 +864,7 @@ ggplot(
   )
 ``
 `
-```{r}
+```{r eval=FALSE}
 diff_included_plt_df %>%
   select(ref, bench_type, context, bench_version, chrom_scope, included_pct) %>%
   filter(chrom_scope == "autosomes") %>%
