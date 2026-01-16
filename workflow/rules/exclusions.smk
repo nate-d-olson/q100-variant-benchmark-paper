@@ -108,7 +108,7 @@ rule compute_exclusion_metrics:
     - pct_of_dip: Percent of benchmark regions covered by exclusion
     """
     input:
-        exclusion="results/exclusions/{benchmark}/exclusions/{exclusion}.bed",
+        exclusion="results/exclusions/{benchmark}/{exclusion}.bed",
         dip_bed="resources/benchmarksets/{benchmark}_dip.bed",
         dip_size="results/exclusions/{benchmark}/dip_size.txt",
     output:
