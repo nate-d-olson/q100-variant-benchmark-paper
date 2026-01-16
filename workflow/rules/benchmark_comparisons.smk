@@ -101,6 +101,7 @@ rule run_truvari_refine:
         bench_dir="results/comparisons/stvar/{comp_id}",
     log:
         "logs/compare_stvar_refine/{comp_id}.log",
+    threads: 16,
     conda:
         "../envs/truvari.yaml"
     shell:
@@ -111,6 +112,8 @@ rule run_truvari_refine:
             --use-original-vcfs \
             --align mafft \
             --coord O \
+            --threads {threads} \
+            --debug \
             {params.bench_dir} \
             > {log} 2>&1
         """

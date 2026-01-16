@@ -24,8 +24,8 @@ library(patchwork)
 
 
 ```{r}
-diff_cov_files <- list.files(path = here("results/strat_coverage"), recursive = TRUE, full.names = TRUE) %>%
-    set_names(nm = str_extract(., "(?<=strat_coverage/).*(?=_cov.bed)"))
+diff_cov_files <- list.files(path = here("results/diff_region_coverage"), recursive = TRUE, full.names = TRUE) %>%
+    set_names(nm = str_extract(., "(?<=_coverage/).*(?=_cov.bed)"))
 ```
 
 
