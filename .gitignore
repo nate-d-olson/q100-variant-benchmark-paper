@@ -38,11 +38,14 @@ analysis/*_files/**
 logs/
 .snakemake/
 results/
+results_bkup/*
 resources/
+resource_bkup/*
 benchmarks/
 *.pyc
 __pycache__/
 .micromamba/*
+.conda/*
 
 # LaTeX/PDF intermediate files
 *.aux
