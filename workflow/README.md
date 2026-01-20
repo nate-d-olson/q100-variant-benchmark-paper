@@ -31,6 +31,20 @@ workflow/
 
 ## Rule Modules
 
+All rule files are located in `workflow/rules/`. The pipeline includes 11 modular rule files:
+
+1. **common.smk** (391 lines) - Helper functions and shared utilities
+2. **downloads.smk** (329 lines) - Download and validation rules
+3. **var_tables.smk** (233 lines) - Variant annotation and table generation
+4. **exclusions.smk** (200 lines) - Exclusion region analysis
+5. **strat_metrics.smk** (201 lines) - Stratification coverage metrics
+6. **benchmark_comparisons.smk** (133 lines) - Benchmark set comparisons
+7. **var_counts.smk** (110 lines) - Variant counting by type/stratification
+8. **validation.smk** (87 lines) - Data validation (WIP - not yet integrated)
+9. **vcf_processing.smk** (80 lines) - VCF indexing and normalization
+10. **ref_processing.smk** (31 lines) - Reference genome preparation
+11. **diff_tables.smk** (15 lines) - Regional coverage differences
+
 ### common.smk
 
 Helper functions used across the pipeline:
@@ -40,6 +54,8 @@ Helper functions used across the pipeline:
 - `get_stratification_*()` - Functions for stratification BED file handling
 - `get_region_beds()` - Get benchmark region and exclusion BED paths
 - `get_reference_checksum()` - Get checksum for reference genome validation
+- `get_comparison_files()` - Get file paths for benchmark comparisons
+- `get_bench_ids()`, `get_ref_ids()` - Get configured benchmark/reference IDs
 
 ### downloads.smk
 
@@ -91,13 +107,45 @@ Rules for exclusion region analysis:
 
 ## Python Scripts
 
+The pipeline includes 14 Python scripts in `workflow/scripts/`:
+
+### Core Infrastructure
+| Script | Description |
+|--------|-------------|
+| `logging_config.py` | Centralized logging configuration with structured output |
+| `exceptions.py` | Custom exception classes (ValidationError, DataFormatError, etc.) |
+| `validators.py` | VCF/BED/TSV format validation utilities |
+
+### Data Validation
+| Script | Description |
+|--------|-------------|
+| `validate_vcf.py` | Validate VCF file format and structure |
+| `validate_bed.py` | Validate BED file format and coordinates |
+
+### BED File Processing
 | Script | Description |
 |--------|-------------|
 | `combine_beds_with_id.py` | Combine multiple BED files with unique identifiers |
-| `count_variants_by_type.py` | Count variants by type from VCF |
-| `expand_annotations.py` | Expand annotation fields in variant tables |
+
+### VCF Annotation & Querying
+| Script | Description |
+|--------|-------------|
 | `extract_info_fields.py` | Extract INFO field names from VCF header |
 | `generate_header_lines.py` | Generate VCF header lines for custom annotations |
+| `expand_annotations.py` | Expand annotation ID lists to binary flag columns |
+
+### Variant Analysis
+| Script | Description |
+|--------|-------------|
+| `count_variants_by_type.py` | Count variants by type (SNP, INDEL, SV) from VCF |
+| `count_variants_by_strat.py` | Count variants per stratification region |
+| `stratify_comparison.py` | Compare variants across stratifications |
+
+### Metrics Aggregation
+| Script | Description |
+|--------|-------------|
+| `summarize_var_counts.py` | Aggregate variant count summaries |
+| `combine_metrics_counts.py` | Combine coverage metrics with variant counts |
 
 ## Conda Environments
 

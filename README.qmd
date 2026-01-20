@@ -76,43 +76,81 @@ make run       # Execute the pipeline
 
 ```
 project-root/
-├── workflow/                # Snakemake pipeline
-│   ├── Snakefile           # Main workflow entry point
-│   ├── rules/              # Rule definitions
-│   │   ├── common.smk      # Helper functions
-│   │   ├── downloads.smk   # Download rules
-│   │   ├── var_tables.smk  # Variant annotation and table generation
-│   │   ├── vcf_processing.smk  # VCF analysis rules
-│   │   └── exclusions.smk  # Exclusion analysis rules
-│   ├── envs/               # Conda environment definitions
+├── workflow/                        # Snakemake pipeline
+│   ├── Snakefile                   # Main workflow entry point
+│   ├── rules/                      # Rule definitions (11 files, 1,810 lines)
+│   │   ├── common.smk              # Helper functions (391 lines)
+│   │   ├── downloads.smk           # Download rules (329 lines)
+│   │   ├── var_tables.smk          # Variant annotation (233 lines)
+│   │   ├── strat_metrics.smk       # Stratification metrics (201 lines)
+│   │   ├── exclusions.smk          # Exclusion analysis (200 lines)
+│   │   ├── benchmark_comparisons.smk  # Benchmark comparisons (133 lines)
+│   │   ├── var_counts.smk          # Variant counting (110 lines)
+│   │   ├── validation.smk          # Data validation - WIP (87 lines)
+│   │   ├── vcf_processing.smk      # VCF processing (80 lines)
+│   │   ├── ref_processing.smk      # Reference indexing (31 lines)
+│   │   └── diff_tables.smk         # Coverage differences (15 lines)
+│   ├── envs/                       # Conda environment definitions (8 files)
 │   │   ├── bcftools.yaml
 │   │   ├── bedtools.yaml
 │   │   ├── downloads.yaml
 │   │   ├── python.yaml
 │   │   ├── rtg-tools.yaml
 │   │   ├── samtools.yaml
-│   │   └── truvari.yaml
-│   └── scripts/            # Custom Python scripts
+│   │   ├── truvari.yaml
+│   │   └── analysis.yaml
+│   └── scripts/                    # Custom Python scripts (14 files)
+│       ├── logging_config.py
+│       ├── exceptions.py
+│       ├── validators.py
+│       ├── validate_vcf.py
+│       ├── validate_bed.py
 │       ├── combine_beds_with_id.py
-│       ├── count_variants_by_type.py
-│       ├── expand_annotations.py
 │       ├── extract_info_fields.py
-│       └── generate_header_lines.py
+│       ├── generate_header_lines.py
+│       ├── expand_annotations.py
+│       ├── count_variants_by_type.py
+│       ├── count_variants_by_strat.py
+│       ├── stratify_comparison.py
+│       ├── summarize_var_counts.py
+│       └── combine_metrics_counts.py
 ├── config/
-│   └── config.yaml         # Pipeline configuration
-├── manuscript/             # Quarto manuscript files
+│   ├── config.yaml                 # Pipeline configuration
+│   └── schema/
+│       └── config.schema.yaml      # Configuration validation schema
+├── docs/                           # Comprehensive documentation
+│   ├── architecture.md             # System architecture
+│   ├── api-reference.md            # Python API reference
+│   └── troubleshooting.md          # Common issues and solutions
+├── tests/                          # Unit tests
+│   ├── unit/
+│   │   ├── test_validators.py
+│   │   └── test_exceptions.py
+│   └── fixtures/
+│       ├── sample.vcf
+│       └── sample.bed
+├── manuscript/                     # Quarto manuscript files
 │   ├── introduction.qmd
 │   ├── methods.qmd
 │   ├── results.qmd
 │   ├── discussion.qmd
 │   └── references.bib
-├── analysis/               # Supplementary analysis notebooks
-├── data/                   # Input data files (local)
-├── resources/              # Downloaded resources
-├── results/                # Pipeline outputs
-├── environment.yaml        # Mamba environment spec
-├── Makefile               # Development shortcuts
-└── _quarto.yml            # Quarto project config
+├── analysis/                       # Supplementary analysis notebooks
+├── resources/                      # Downloaded resources (gitignored)
+│   ├── benchmarksets/
+│   ├── references/
+│   ├── stratifications/
+│   └── exclusions/
+├── results/                        # Pipeline outputs (gitignored)
+│   ├── variant_tables/
+│   ├── exclusions/
+│   ├── strat_metrics/
+│   ├── var_counts/
+│   └── stats/
+├── environment.yaml                # Mamba environment spec
+├── pyproject.toml                  # Python project configuration
+├── Makefile                        # Development shortcuts
+└── _quarto.yml                     # Quarto project config
 ```
 
 # Benchmark Sets Analyzed

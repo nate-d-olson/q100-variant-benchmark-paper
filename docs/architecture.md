@@ -165,31 +165,46 @@ results/
 
 ### Core Workflow Rules
 
+The pipeline consists of 11 modular rule files totaling 1,810 lines of Snakemake code:
+
 | Module | Lines | Purpose | Key Rules |
 |--------|-------|---------|-----------|
-| `common.smk` | 363 | Helper functions and config parsing | `get_region_beds()`, `get_exclusion_inputs()` |
-| `downloads.smk` | 328 | File downloads with SHA256 validation | `download_benchmark_vcf`, `download_reference` |
-| `validation.smk` | ~80 | Data validation (NEW) | `validate_benchmark_vcf`, `validate_benchmark_bed` |
-| `vcf_processing.smk` | 57 | VCF indexing and normalization | `index_vcf`, `normalize_vcf` |
+| `common.smk` | 391 | Helper functions and config parsing | `get_region_beds()`, `get_exclusion_inputs()`, `get_comparison_files()` |
+| `downloads.smk` | 329 | File downloads with SHA256 validation | `download_benchmark_vcf`, `download_reference` |
+| `var_tables.smk` | 233 | Variant annotation tables | `combine_region_beds`, `expand_annotations` |
+| `strat_metrics.smk` | 201 | Stratification coverage metrics | `calculate_strat_coverage`, `aggregate_stratification_metrics` |
+| `exclusions.smk` | 200 | Exclusion region analysis | `materialize_exclusion`, `compute_exclusion_metrics` |
+| `benchmark_comparisons.smk` | 133 | Benchmark set comparisons | `run_vcfeval`, `stratify_comparison_variants` |
+| `var_counts.smk` | 110 | Variant counting by type/strat | `count_variants_by_stratification`, `combine_metrics_and_counts` |
+| `validation.smk` | 87 | Data validation (WIP - not yet integrated) | `validate_benchmark_vcf`, `validate_benchmark_bed` |
+| `vcf_processing.smk` | 80 | VCF indexing and normalization | `index_vcf`, `split_multiallelics` |
 | `ref_processing.smk` | 31 | Reference genome indexing | `index_reference` |
-| `var_tables.smk` | 244 | Variant annotation tables | `combine_region_beds`, `expand_annotations` |
-| `exclusions.smk` | 200 | Exclusion region analysis | `combine_exclusion_beds` |
-| `strat_metrics.smk` | 201 | Stratification coverage metrics | `calculate_strat_coverage` |
-| `var_counts.smk` | 110 | Variant counting by type/strat | `count_variants_by_type` |
+| `diff_tables.smk` | 15 | Regional coverage differences | `compute_diff_region_coverage` |
 
 ### Python Data Processing Scripts
 
+The pipeline includes 14 Python scripts organized by function:
+
 | Script | Purpose | Key Features |
 |--------|---------|--------------|
-| `logging_config.py` | Centralized logging setup (NEW) | Structured logs, multi-handler support |
-| `exceptions.py` | Custom exception classes (NEW) | Context-rich error messages |
-| `validators.py` | Data validation utilities (NEW) | VCF/BED/TSV format checking |
-| `count_variants_by_type.py` | Count variants by TYPE/SVTYPE | Auto-detects variant types |
-| `expand_annotations.py` | Convert ID lists to binary flags | STRAT_IDS → STRAT_* columns |
+| **Core Infrastructure** | | |
+| `logging_config.py` | Centralized logging setup | Structured logs, multi-handler support |
+| `exceptions.py` | Custom exception classes | Context-rich error messages |
+| `validators.py` | Data validation utilities | VCF/BED/TSV format checking |
+| **Data Validation** | | |
+| `validate_vcf.py` | VCF format validation | Pre-flight format checks |
+| `validate_bed.py` | BED format validation | Coordinate and structure checks |
+| **BED Processing** | | |
 | `combine_beds_with_id.py` | Merge BED files with unique IDs | Adds ID column for tracking |
+| **VCF Annotation** | | |
 | `extract_info_fields.py` | Extract VCF INFO field names | Dynamic header generation |
 | `generate_header_lines.py` | Create VCF annotation headers | For bcftools annotate |
+| `expand_annotations.py` | Convert ID lists to binary flags | STRAT_IDS → STRAT_* columns |
+| **Variant Analysis** | | |
+| `count_variants_by_type.py` | Count variants by TYPE/SVTYPE | Auto-detects variant types |
 | `count_variants_by_strat.py` | Count variants per stratification | Binary flag counting |
+| `stratify_comparison.py` | Compare variants across strats | Benchmark comparison analysis |
+| **Metrics Aggregation** | | |
 | `summarize_var_counts.py` | Aggregate variant count tables | Cross-benchmark summaries |
 | `combine_metrics_counts.py` | Combine metrics into final tables | Merges coverage + counts |
 
@@ -372,5 +387,5 @@ See `IMPROVEMENT_SUGGESTIONS.md` for:
 
 ---
 
-*Last Updated: 2026-01-13*
-*Branch: feature/codebase-improvements*
+*Last Updated: 2026-01-20*
+*Documentation synchronized with codebase (common.smk duplicate functions removed)*
