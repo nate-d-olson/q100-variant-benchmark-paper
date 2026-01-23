@@ -198,7 +198,7 @@ rule generate_var_table:
         region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
         region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
-        tsv=ensure("results/variant_tables/{benchmark}/variants.tsv", non_empty=True),
+        tsv=protected(ensure("results/variant_tables/{benchmark}/variants.tsv", non_empty=True)),
     params:
         strat_ids=lambda w: get_strat_ids(w),
         region_ids=lambda w: get_region_ids(w),

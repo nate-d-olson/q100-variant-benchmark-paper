@@ -40,7 +40,6 @@ rule materialize_exclusion:
         "logs/exclusions/{benchmark}/{exclusion}_materialize.log",
     message:
         "Materializing exclusion {wildcards.exclusion} for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=2048,
     conda:
@@ -79,7 +78,6 @@ rule compute_dip_size:
         "logs/exclusions/{benchmark}/dip_size.log",
     message:
         "Computing dip.bed size for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=2048,
     conda:
@@ -100,68 +98,35 @@ rule compute_dip_size:
 
 rule compute_exclusion_metrics:
     """
-    Compute intersection metrics for an exclusion against the benchmark regions.
-    
-    Calculates:
-    - exclusion_bp: Total bases in the exclusion BED (after merge)
-    - intersect_bp: Bases overlapping between exclusion and benchmark regions
-    - pct_of_dip: Percent of benchmark regions covered by exclusion
+    Compute intersection metrics for exclusion against benchmark regions.
     """
     input:
         exclusion="results/exclusions/{benchmark}/{exclusion}.bed",
         dip_bed="resources/benchmarksets/{benchmark}_dip.bed",
-        dip_size="results/exclusions/{benchmark}/dip_size.txt",
     output:
         tsv="results/exclusions/{benchmark}/coverage/{exclusion}.tsv",
     log:
         "logs/exclusions/{benchmark}/coverage_{exclusion}.log",
     message:
         "Computing metrics for {wildcards.exclusion} in {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=4096,
     conda:
-        "../envs/bedtools.yaml"
-    shell:
-        """
-        echo "Computing metrics for {wildcards.exclusion}" > {log}
-        echo "Started at $(date)" >> {log}
-        
-        DIP_SIZE=$(cat {input.dip_size})
-        echo "Dip size: $DIP_SIZE bp" >> {log}
-        
-        # Exclusion size (sort then merge to handle any overlaps)
-        EXCL_SIZE=$(bedtools sort -i {input.exclusion} | bedtools merge -i - | awk '{{sum+=$3-$2}} END {{print sum+0}}')
-        echo "Exclusion size: $EXCL_SIZE bp" >> {log}
-        
-        # Intersect size (overlap between exclusion and dip) - sort both inputs
-        INTERSECT_SIZE=$(bedtools intersect -a <(bedtools sort -i {input.dip_bed}) -b <(bedtools sort -i {input.exclusion}) | awk '{{sum+=$3-$2}} END {{print sum+0}}')
-        echo "Intersect size: $INTERSECT_SIZE bp" >> {log}
-        
-        # Calculate percentage
-        if [ "$DIP_SIZE" -gt 0 ]; then
-            PCT=$(awk -v intersect="$INTERSECT_SIZE" -v dip="$DIP_SIZE" 'BEGIN {{printf "%.6f", (intersect / dip) * 100}}')
-        else
-            PCT=0
-        fi
-        echo "Percent of dip: $PCT" >> {log}
-        
-        # Output tab-separated values (no header - added during aggregation)
-        echo -e "{wildcards.exclusion}\\t$EXCL_SIZE\\t$INTERSECT_SIZE\\t$PCT" > {output.tsv}
-        
-        echo "Completed at $(date)" >> {log}
-        """
+        "../envs/python.yaml"
+    script:
+        "../scripts/compute_bed_metrics.py"
 
 
 rule aggregate_exclusion_table:
     """
     Aggregate all exclusion metrics into a single CSV table.
-    
+
     Output format:
     - exclusions: Name of the exclusion
     - exclusion_bp: Total bases in exclusion
     - intersect_bp: Overlap with benchmark regions
-    - pct_of_dip: Percent of benchmark covered
+    - pct_of_exclusion: Percent of exclusion covered by benchmark
+    - pct_of_dip: Percent of benchmark covered by exclusion
     """
     input:
         lambda wc: expand(
@@ -170,15 +135,14 @@ rule aggregate_exclusion_table:
             exclusion=get_exclusion_items(wc),
         ),
     output:
-        csv=ensure(
+        csv=protected(ensure(
             "results/exclusions/{benchmark}/exclusions_intersection_table.csv",
             non_empty=True,
-        ),
+        )),
     log:
         "logs/exclusions/{benchmark}/aggregate.log",
     message:
         "Aggregating exclusion table for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=1024,
     conda:
@@ -188,13 +152,13 @@ rule aggregate_exclusion_table:
         echo "Aggregating exclusion metrics for {wildcards.benchmark}" > {log}
         echo "Input files: {input}" >> {log}
         echo "Started at $(date)" >> {log}
-        
+
         # Write header
-        echo "exclusions,exclusion_bp,intersect_bp,pct_of_dip" > {output.csv}
-        
+        echo "exclusions,exclusion_bp,intersect_bp,pct_of_exclusion,pct_of_dip" > {output.csv}
+
         # Concatenate all metric files, converting tabs to commas
         cat {input} | tr '\\t' ',' >> {output.csv}
-        
+
         echo "Output lines: $(wc -l < {output.csv})" >> {log}
         echo "Completed at $(date)" >> {log}
         """

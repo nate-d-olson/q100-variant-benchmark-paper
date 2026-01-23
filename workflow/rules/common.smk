@@ -22,18 +22,18 @@ def get_var_table_inputs(wildcards) -> List[str]:
     ]
 
 
-def get_bench_ids(wildcards) -> List[str]:
-    """Get list of benchmark IDs."""
-    return list(config.get("benchmarksets", {}).keys())
-
-
-def get_ref_ids(wildcards) -> List[str]:
-    """Get list of reference IDs."""
-    return list(config.get("references", {}).keys())
+# Collect all unique stratification names from all references
+_all_strat_names = set()
+for ref_config in config.get("references", {}).values():
+    _all_strat_names.update(ref_config.get("stratifications", {}).keys())
+_strat_name_pattern = "|".join(sorted(_all_strat_names))
 
 
 wildcard_constraints:
     comp_id="[^/]+",
+    strat_name=_strat_name_pattern,
+    region_type="regions|inverse",
+    mode="complement|within",
 
 
 def get_comparison_files(wildcards):
@@ -80,6 +80,65 @@ def get_strat_inputs(wildcards):
             "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
             "strat_beds": get_stratifications_for_comp(wildcards),
         }
+
+
+def get_stratifications_for_ref(ref: str) -> List[str]:
+    """Get list of stratification names for a reference."""
+    return list(config["references"][ref].get("stratifications", {}).keys())
+
+
+def get_stratification_ids(wildcards) -> List[str]:
+    """
+    Get list of stratification IDs for a benchmark.
+
+    Args:
+        wildcards: Snakemake wildcards with benchmark attribute
+
+    Returns:
+        List of stratification names for the benchmark's reference
+    """
+    benchmark = wildcards.benchmark
+    ref = config["benchmarksets"][benchmark]["ref"]
+    return get_stratifications_for_ref(ref)
+
+
+def get_stratify_inputs(wildcards):
+    """Get inputs for truvari stratify based on region type."""
+    comp = config["comparisons"][wildcards.comp_id]
+    ref = comp["ref"]
+
+    inputs = {
+        "bench_dir": f"results/comparisons/stvar/{wildcards.comp_id}/",
+        "summary_json": f"results/comparisons/stvar/{wildcards.comp_id}/summary.json",
+    }
+
+    # Select bed file based on region_type
+    if wildcards.region_type == "regions":
+        inputs["bed"] = f"resources/stratifications/{ref}_{wildcards.strat_name}.bed.gz"
+    else:  # inverse
+        inputs["bed"] = (
+            f"results/stratifications/inverse/{ref}_{wildcards.strat_name}_inverse.bed"
+        )
+
+    return inputs
+
+
+def get_all_stratified_tsvs(wildcards):
+    """Get all stratified TSV outputs for a comparison."""
+    comp = config["comparisons"][wildcards.comp_id]
+    ref = comp["ref"]
+    strats = config["references"][ref].get("stratifications", {}).keys()
+
+    tsvs = []
+    for strat in strats:
+        for region_type in ["regions", "inverse"]:
+            for mode in ["overlap", "within"]:
+                tsvs.append(
+                    f"results/stratified_bench/{wildcards.comp_id}/"
+                    f"{strat}_{region_type}_{mode}.tsv"
+                )
+
+    return tsvs
 
 
 # ============================================================================
@@ -229,40 +288,42 @@ def get_region_ids(wildcards) -> List[str]:
 # ============================================================================
 
 
-def get_reference_checksum(ref_name: str) -> str:
+def get_reference_checksum_info(ref_name: str) -> tuple[str, str]:
     """
-    Get checksum value for a reference genome.
+    Get checksum and type for reference genome.
 
     Args:
-        ref_name: Name of the reference in config["references"]
+        ref_name: Reference name in config
 
     Returns:
-        Checksum string (MD5 or SHA256)
+        Tuple of (checksum_value, checksum_type)
+
+    Raises:
+        KeyError: If reference not found
+        ValueError: If no checksum found
     """
-    ref_config = config["references"].get(ref_name, {})
+    ref_config = config["references"].get(ref_name)
+    if ref_config is None:
+        raise KeyError(f"Reference '{ref_name}' not found in config")
+
     if "sha256" in ref_config:
-        return ref_config["sha256"]
+        return ref_config["sha256"], "sha256"
     if "md5" in ref_config:
-        return ref_config["md5"]
-    raise ValueError(f"No checksum found for reference: {ref_name}")
+        return ref_config["md5"], "md5"
+
+    raise ValueError(f"No checksum (md5 or sha256) found for reference: {ref_name}")
+
+
+def get_reference_checksum(ref_name: str) -> str:
+    """Get checksum value for reference."""
+    checksum, _ = get_reference_checksum_info(ref_name)
+    return checksum
 
 
 def get_reference_checksum_type(ref_name: str) -> str:
-    """
-    Determine checksum type for a reference genome.
-
-    Args:
-        ref_name: Name of the reference in config["references"]
-
-    Returns:
-        "md5" or "sha256"
-    """
-    ref_config = config["references"].get(ref_name, {})
-    if "sha256" in ref_config:
-        return "sha256"
-    if "md5" in ref_config:
-        return "md5"
-    raise ValueError(f"No checksum found for reference: {ref_name}")
+    """Get checksum type for reference."""
+    _, checksum_type = get_reference_checksum_info(ref_name)
+    return checksum_type
 
 
 def get_chromosomes(wildcards) -> str:

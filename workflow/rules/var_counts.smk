@@ -34,7 +34,6 @@ rule count_variants_by_stratification:
         "logs/var_counts/{benchmark}/count_by_strat.log",
     message:
         "Counting variants by stratification for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=8192,
     conda:
@@ -65,7 +64,6 @@ rule summarize_variant_counts:
         "logs/var_counts/{benchmark}/summarize.log",
     message:
         "Summarizing variant counts for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=2048,
     conda:
@@ -101,7 +99,6 @@ rule combine_metrics_and_counts:
         "logs/var_counts/{benchmark}/combine_metrics.log",
     message:
         "Combining metrics and counts for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=2048,
     conda:

@@ -27,6 +27,9 @@ rule compare_smvar:
         outdir="results/comparisons/smvar/{comp_id}",
     log:
         "logs/compare_smvar/{comp_id}.log",
+    resources:
+        mem_mb=8192,
+        runtime=120,  # 2 hours
     conda:
         "../envs/rtg-tools.yaml"
     shell:
@@ -65,6 +68,9 @@ rule run_truvari_bench:
         outdir=directory("results/comparisons/stvar/{comp_id}/"),
     log:
         "logs/compare_stvar_bench/{comp_id}.log",
+    resources:
+        mem_mb=16384,
+        runtime=240,  # 4 hours
     conda:
         "../envs/truvari.yaml"
     shell:
@@ -101,7 +107,7 @@ rule run_truvari_refine:
         bench_dir="results/comparisons/stvar/{comp_id}",
     log:
         "logs/compare_stvar_refine/{comp_id}.log",
-    threads: 16,
+    threads: 16
     conda:
         "../envs/truvari.yaml"
     shell:
@@ -110,8 +116,6 @@ rule run_truvari_refine:
         truvari refine \
             --reference {input.ref} \
             --use-original-vcfs \
-            --align mafft \
-            --coord O \
             --threads {threads} \
             --debug \
             {params.bench_dir} \

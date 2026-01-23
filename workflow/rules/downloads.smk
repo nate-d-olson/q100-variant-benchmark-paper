@@ -40,9 +40,9 @@ rule download_benchmark_vcf:
     log:
         "logs/downloads/{benchmark}_vcf.log",
     retries: 3
-    threads: 1
     resources:
         mem_mb=512,
+        runtime=30,  # 30 minutes
     conda:
         "../envs/downloads.yaml"
     shell:
@@ -78,9 +78,9 @@ rule download_benchmark_bed:
     log:
         "logs/downloads/{benchmark}_bed.log",
     retries: 3
-    threads: 1
     resources:
         mem_mb=512,
+        runtime=30,  # 30 minutes
     conda:
         "../envs/downloads.yaml"
     shell:
@@ -123,9 +123,9 @@ rule download_benchmark_dip_bed:
     log:
         "logs/downloads/{benchmark}_dip_bed.log",
     retries: 3
-    threads: 1
     resources:
         mem_mb=512,
+        runtime=30,  # 30 minutes
     conda:
         "../envs/downloads.yaml"
     shell:
@@ -178,9 +178,9 @@ rule prepare_reference:
     log:
         "logs/references/{ref_name}_prepare.log",
     retries: 3
-    threads: 1
     resources:
         mem_mb=2048,
+        runtime=30,  # 30 minutes
     conda:
         "../envs/samtools.yaml"
     shell:
@@ -255,9 +255,9 @@ rule download_stratification:
         ref="GRCh37|GRCh38|CHM13v2.0",
         strat_name="TR|TR10kb|HP|SD|SD10kb|MAP",
     retries: 3
-    threads: 1
     resources:
         mem_mb=256,
+        runtime=30,  # 30 minutes
     conda:
         "../envs/downloads.yaml"
     shell:
@@ -309,9 +309,9 @@ rule download_exclusion:
     log:
         "logs/downloads/exclusions/{benchmark}_{exclusion_name}_{file_idx}.log",
     retries: 3
-    threads: 1
     resources:
         mem_mb=256,
+        runtime=30,  # 30 minutes
     conda:
         "../envs/downloads.yaml"
     shell:

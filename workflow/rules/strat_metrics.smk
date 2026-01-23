@@ -33,7 +33,6 @@ rule materialize_stratification:
         "logs/strat_metrics/{benchmark}/{strat_name}_materialize.log",
     message:
         "Materializing stratification {wildcards.strat_name} for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=1024,
     shell:
@@ -64,7 +63,6 @@ rule compute_stratification_size:
         "logs/strat_metrics/{benchmark}/{strat_name}_size.log",
     message:
         "Computing size for {wildcards.strat_name} in {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=2048,
     conda:
@@ -87,70 +85,23 @@ rule compute_stratification_size:
 
 rule compute_stratification_metrics:
     """
-    Compute intersection metrics for a stratification against benchmark regions.
-
-    Calculates:
-    - strat_bp: Total bases in the stratification (after merge)
-    - intersect_bp: Bases overlapping between stratification and benchmark regions
-    - pct_of_strat: Percent of stratification covered by benchmark (useful for assessing representativeness)
-    - pct_of_dip: Percent of benchmark covered by stratification (useful for characterizing difficulty)
+    Compute intersection metrics for stratification against benchmark regions.
     """
     input:
         strat_bed="results/strat_metrics/{benchmark}/stratifications/{strat_name}.bed.gz",
-        strat_size="results/strat_metrics/{benchmark}/sizes/{strat_name}_size.txt",
         dip_bed="resources/benchmarksets/{benchmark}_dip.bed",
-        dip_size="results/exclusions/{benchmark}/dip_size.txt",  # Reuse from exclusions
     output:
         tsv="results/strat_metrics/{benchmark}/metrics/{strat_name}.tsv",
     log:
         "logs/strat_metrics/{benchmark}/{strat_name}_metrics.log",
     message:
         "Computing metrics for {wildcards.strat_name} in {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=4096,
     conda:
-        "../envs/bedtools.yaml"
-    shell:
-        """
-        echo "Computing metrics for {wildcards.strat_name}" > {log}
-        echo "Started at $(date)" >> {log}
-
-        STRAT_SIZE=$(cat {input.strat_size})
-        DIP_SIZE=$(cat {input.dip_size})
-        echo "Stratification size: $STRAT_SIZE bp" >> {log}
-        echo "Dip size: $DIP_SIZE bp" >> {log}
-
-        # Intersect size (overlap between stratification and dip)
-        INTERSECT_SIZE=$(bedtools intersect \
-            -a <(bedtools sort -i {input.dip_bed}) \
-            -b <(gzip -dc {input.strat_bed} | bedtools sort -i -) | \
-            awk '{{sum+=$3-$2}} END {{print sum+0}}')
-        echo "Intersect size: $INTERSECT_SIZE bp" >> {log}
-
-        # Calculate percentages
-        if [ "$STRAT_SIZE" -gt 0 ]; then
-            PCT_OF_STRAT=$(awk -v intersect="$INTERSECT_SIZE" -v strat="$STRAT_SIZE" \
-                'BEGIN {{printf "%.6f", (intersect / strat) * 100}}')
-        else
-            PCT_OF_STRAT=0
-        fi
-
-        if [ "$DIP_SIZE" -gt 0 ]; then
-            PCT_OF_DIP=$(awk -v intersect="$INTERSECT_SIZE" -v dip="$DIP_SIZE" \
-                'BEGIN {{printf "%.6f", (intersect / dip) * 100}}')
-        else
-            PCT_OF_DIP=0
-        fi
-
-        echo "Percent of stratification in benchmark: $PCT_OF_STRAT" >> {log}
-        echo "Percent of benchmark in stratification: $PCT_OF_DIP" >> {log}
-
-        # Output tab-separated values (header added during aggregation)
-        echo -e "{wildcards.strat_name}\\t$STRAT_SIZE\\t$INTERSECT_SIZE\\t$PCT_OF_STRAT\\t$PCT_OF_DIP" > {output.tsv}
-
-        echo "Completed at $(date)" >> {log}
-        """
+        "../envs/python.yaml"
+    script:
+        "../scripts/compute_bed_metrics.py"
 
 
 rule aggregate_stratification_metrics:
@@ -171,15 +122,14 @@ rule aggregate_stratification_metrics:
             strat_name=get_stratification_ids(wc),
         ),
     output:
-        csv=ensure(
+        csv=protected(ensure(
             "results/strat_metrics/{benchmark}/stratification_coverage_table.csv",
             non_empty=True,
-        ),
+        )),
     log:
         "logs/strat_metrics/{benchmark}/aggregate.log",
     message:
         "Aggregating stratification metrics for {wildcards.benchmark}"
-    threads: 1
     resources:
         mem_mb=1024,
     conda:
