@@ -9,7 +9,15 @@
       "Bash(git checkout:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Skill(ralph-loop:cancel-ralph)",
+      "Skill(ralph-loop:cancel-ralph:*)",
+      "WebFetch(domain:github.com)",
+      "Skill(superpowers:executing-plans)"
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
   }
 }

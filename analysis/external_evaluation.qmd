@@ -86,33 +86,381 @@ A total of `r total_smvs` small variants were evaluated, of which
 )
 ```
 
-Strata
-SNV unique to query callset in a Tandem Repeat
-SNV unique to query callset in difficult to map region but not a tandem repeat
-SNV unique to query callset not in difficult to map region or tandem repeat in XY nonPAR.
-SNV unique to query callset not in difficult to map region or tandem repeat in autosomes.
-INDEL unique to query callset in homopolymer longer than 6 bp
-INDEL unique to query callset not in homopolymer longer than 6 bp in tandem repeat
-INDEL unique to query callset not in homopolymer longer than 6 bp or tandem repeat and in difficult to map region
-INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in XY nonPAR
-INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in autosomes.
-SNV unique to benchmark set callset in a Tandem Repeat
-SNV unique to benchmark set in difficult to map region but not a tandem repeat
-SNV unique to benchmark set not in difficult to map region or tandem repeat in XY nonPAR.
-SNV unique to benchmark set not in difficult to map region or tandem repeat in autosomes.
-INDEL unique to benchmark set in homopolymer longer than 6 bp
-INDEL unique to benchmark set not in homopolymer longer than 6 bp in tandem repeat
-INDEL unique to benchmark set not in homopolymer longer than 6 bp or tandem repeat and in difficult to map region
-INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in XY nonPAR
-INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in autosomes.
+### smvar Strata descriptions
 
-```{r fig.height = 16, fig.width = 8, caption = "The benchmark variant calls were curated as correct in the benchmark more than half the time for all but 14 callset x strata combinations."}
-(smvar_eval_strata_plt <- smvar_evals %>%
-  count(callset, strata, correct.in.benchmark) %>%
-  group_by(strata, correct.in.benchmark) %>%
-  mutate(correct.in.benchmark = factor(correct.in.benchmark,
-    levels = c("no", "unsure", "yes")
-  )) %>%
+- S01:SNV unique to query callset in a Tandem Repeat
+- S02:SNV unique to query callset in difficult to map region but not a tandem repeat
+- S03:SNV unique to query callset not in difficult to map region or tandem repeat in XY nonPAR.
+- S04:SNV unique to query callset not in difficult to map region or tandem repeat in autosomes.
+- S05:INDEL unique to query callset in homopolymer longer than 6 bp
+- S06:INDEL unique to query callset not in homopolymer longer than 6 bp in tandem repeat
+- S07:INDEL unique to query callset not in homopolymer longer than 6 bp or tandem repeat and in - difficult to map region
+- S08:INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to - map region in XY nonPAR
+- S09:INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to - map region in autosomes.
+- S10:SNV unique to benchmark set callset in a Tandem Repeat
+- S11:SNV unique to benchmark set in difficult to map region but not a tandem repeat
+- S12:SNV unique to benchmark set not in difficult to map region or tandem repeat in XY nonPAR.
+- S13:SNV unique to benchmark set not in difficult to map region or tandem repeat in autosomes.
+- S14:INDEL unique to benchmark set in homopolymer longer than 6 bp
+- S15:INDEL unique to benchmark set not in homopolymer longer than 6 bp in tandem repeat
+- S16:INDEL unique to benchmark set not in homopolymer longer than 6 bp or tandem repeat and in difficult to map region
+- S17:INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in XY nonPAR
+- S18:INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in autosomes.
+
+```{r fig.width = 8}
+library(ggflowchart)
+## Code generated with Gemini pro 3.0
+# 1. Define the Edges (The Flow)
+# The logic flows: Category Check -> (Yes) -> Strata
+#                                -> (No)  -> Next Category Check
+edges <- tribble(
+  ~from,           ~to,
+  "Start",         "SNV_Branch",
+  "Start",         "INDEL_Branch",
+  
+  # --- SNV Logic ---
+  "SNV_Branch",    "SNV_IsTR",
+  
+  # Check TR
+  "SNV_IsTR",      "S01_S10",    # Yes -> Result
+  "SNV_IsTR",      "SNV_IsDiff", # No -> Next Check
+  
+  # Check Diff Map
+  "SNV_IsDiff",    "S02_S11",    # Yes -> Result
+  "SNV_IsDiff",    "SNV_IsXY",   # No -> Next Check
+  
+  # Check XY
+  "SNV_IsXY",      "S03_S12",    # Yes -> Result
+  "SNV_IsXY",      "S04_S13",    # No (Autosome) -> Result
+
+  # --- INDEL Logic ---
+  "INDEL_Branch",  "IND_IsHomo",
+  
+  # Check Homopolymer (Unique to Indels)
+  "IND_IsHomo",    "S05_S14",    # Yes -> Result
+  "IND_IsHomo",    "IND_IsTR",   # No -> Next Check
+  
+  # Check TR
+  "IND_IsTR",      "S06_S15",
+  "IND_IsTR",      "IND_IsDiff",
+  
+  # Check Diff Map
+  "IND_IsDiff",    "S07_S16",
+  "IND_IsDiff",    "IND_IsXY",
+  
+  # Check XY
+  "IND_IsXY",      "S08_S17",
+  "IND_IsXY",      "S09_S18"
+)
+
+# 2. Define Node Attributes (Labels and Types for Coloring)
+nodes <- tribble(
+  ~name,           ~label,                  ~type,
+  "Start",         "Small Variants",          "Root",
+  
+  "SNV_Branch",    "SNVs",                  "Branch",
+  "INDEL_Branch",  "INDELs",                "Branch",
+  
+  # SNV Decision Nodes
+  "SNV_IsTR",      "in Tandem\nRepeat",       "Decision",
+  "SNV_IsDiff",    "in Difficult\nRegion",    "Decision",
+  "SNV_IsXY",      "XY\nnonPAR",           "Decision",
+  
+  # INDEL Decision Nodes
+  "IND_IsHomo",    "in Homopolymer\n(>6bp)",  "Decision",
+  "IND_IsTR",      "in Tandem\nRepeat",       "Decision",
+  "IND_IsDiff",    "in Difficult\nRegion",    "Decision",
+  "IND_IsXY",      "XY\nnonPAR",           "Decision",
+  
+  # Leaves (Grouped Query/Benchmark for compactness)
+  "S01_S10",       "S01 / S10\n(TR)",       "Leaf",
+  "S02_S11",       "S02 / S11\n(Diff)",     "Leaf",
+  "S03_S12",       "S03 / S12\n(XY)",       "Leaf",
+  "S04_S13",       "S04 / S13\n(Auto)",     "Leaf",
+  
+  "S05_S14",       "S05 / S14\n(Homo)",     "Leaf",
+  "S06_S15",       "S06 / S15\n(TR)",       "Leaf",
+  "S07_S16",       "S07 / S16\n(Diff)",     "Leaf",
+  "S08_S17",       "S08 / S17\n(XY)",       "Leaf",
+  "S09_S18",       "S09 / S18\n(Auto)",     "Leaf"
+)
+
+# 3. Create the Chart
+(smvar_flow <- ggflowchart(edges, node_data = nodes, fill = type, text_size = 2.5) +
+  # Custom Colors
+  scale_fill_manual(values = c(
+    "Root" = "#333333",
+    "Branch" = "#777777",
+    "Decision" = "#56B4E9",  # Light Blue for logic
+    "Leaf" = "#E69F00"       # Orange for final strata
+  )) +
+  # Add Title and Caption
+  labs(
+    title = "Small Variant Stratification Logic",
+    caption = "Left branch: Yes (Match) | Right/Down branch: No (Fall-through)\nS01-S09 are unique to query and S10 - S18 are unique to benchmark"
+  ) +
+  # Remove the default legend title
+  theme(legend.title = element_blank()))
+```
+```{r}
+ggsave(
+  filename = here("manuscript", "figs", "smvar_strat_flow.png"),
+  plot = smvar_flow,
+  width = 8,
+  height =8,
+  dpi = 300
+)
+```
+
+```{r}
+library(gt)
+library(dplyr)
+
+# 1. Create the Data Frame
+# We structure the data to show the symmetry between Query and Benchmark
+strat_data <- tribble(
+  ~Variant_Type, ~Priority, ~Condition, ~Query_Code, ~Benchmark_Code,
+  # SNVs
+  "SNVs", 1, "In Tandem Repeat", "S01", "S10",
+  "SNVs", 2, "In Difficult Region", "S02", "S11",
+  "SNVs", 3, "XY nonPAR", "S03", "S12",
+  "SNVs", 4, "Autosomes (Remainder)", "S04", "S13",
+  
+  # INDELs
+  "INDELs", 1, "In Homopolymer (>6bp)", "S05", "S14",
+  "INDELs", 2, "In Tandem Repeat", "S06", "S15",
+  "INDELs", 3, "In Difficult Region", "S07", "S16",
+  "INDELs", 4, "XY nonPAR", "S08", "S17",
+  "INDELs", 5, "Autosomes (Remainder)", "S09", "S18"
+)
+
+# 2. Render the Table with 'gt'
+strat_table <- strat_data %>%
+  gt(groupname_col = "Variant_Type") %>%
+  
+  # Add Titles
+  tab_header(
+    title = "Small Variant Stratification Definitions",
+    subtitle = "Hierarchical logic applied to unique variant calls"
+  ) %>%
+  
+  # Formatting Columns
+  cols_label(
+    Priority = "Priority Order",
+    Condition = "Genomic Context",
+    Query_Code = "Unique to Query",
+    Benchmark_Code = "Unique to Benchmark"
+  ) %>%
+  
+  # Style the headers to match your diagram colors (Light Blue)
+  tab_style(
+    style = list(
+      cell_fill(color = "#56B4E9"),
+      cell_text(weight = "bold", color = "white")
+    ),
+    locations = cells_column_labels()
+  ) %>%
+  
+  # Style the Stratification Codes (Orange/Gold from your diagram)
+  tab_style(
+    style = list(
+      cell_text(weight = "bold", color = "#E69F00")
+    ),
+    locations = cells_body(columns = c(Query_Code, Benchmark_Code))
+  ) %>%
+  
+  # Align text
+  cols_align(align = "center", columns = c(Priority, Query_Code, Benchmark_Code)) %>%
+  
+  # Add a footnote explaining the logic flow
+  tab_footnote(
+    footnote = "Conditions are checked in priority order. A variant matching Priority 1 is excluded from checking Priority 2, and so on.",
+    locations = cells_column_labels(columns = Priority)
+  )
+
+# Display the table
+strat_table
+```
+
+```{r}
+library(gt)
+library(dplyr)
+
+# 1. Create the Unified Data Frame
+# We map the logic into a single structure. 
+# Note: SNVs have NAs for the Homopolymer row.
+strat_unified <- tribble(
+  ~Priority, ~Context,               ~SNV_Q, ~SNV_B, ~IND_Q, ~IND_B,
+  1,         "Homopolymer (>6bp)",   NA,     NA,     "S05",  "S14",
+  2,         "In Tandem Repeat",     "S01",  "S10",  "S06",  "S15",
+  3,         "In Difficult Region",  "S02",  "S11",  "S07",  "S16",
+  4,         "XY nonPAR",            "S03",  "S12",  "S08",  "S17",
+  5,         "Autosomes (Remainder)","S04",  "S13",  "S09",  "S18"
+)
+
+# 2. Render the Table
+strat_table_unified <- strat_unified %>%
+  gt() %>%
+  
+  # --- Header & Titles ---
+  tab_header(
+    title = "Unified Small Variant Stratification",
+    subtitle = "Variant classification by genomic context and callset uniqueness"
+  ) %>%
+  
+  # --- Column Spanners (The Key to Reducing Redundancy) ---
+  # This visually groups the columns under "SNVs" and "INDELs"
+  tab_spanner(
+    label = "SNVs",
+    columns = c(SNV_Q, SNV_B)
+  ) %>%
+  tab_spanner(
+    label = "INDELs",
+    columns = c(IND_Q, IND_B)
+  ) %>%
+  
+  # --- Formatting ---
+  # Rename columns to be identical under the spanners
+  cols_label(
+    Priority = "#",
+    Context = "Genomic Context",
+    SNV_Q = "Query",
+    SNV_B = "Benchmark",
+    IND_Q = "Query",
+    IND_B = "Benchmark"
+  ) %>%
+  
+  # Hide NAs (Turn the SNV Homopolymer cells blank)
+  sub_missing(
+    columns = everything(),
+    missing_text = ""
+  ) %>%
+  
+  # Styling (Optional: Add colors to separate Query vs Benchmark)
+  tab_style(
+    style = cell_text(weight = "bold", color = "#E69F00"), # Orange/Gold
+    locations = cells_body(columns = c(SNV_Q, IND_Q))
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold", color = "#56B4E9"), # Light Blue
+    locations = cells_body(columns = c(SNV_B, IND_B))
+  ) %>%
+  
+  # Center align codes for readability
+  cols_align(
+    align = "center",
+    columns = c(Priority, SNV_Q, SNV_B, IND_Q, IND_B)
+  )
+
+# Display
+strat_table_unified
+```
+
+```{r}
+library(gt)
+library(dplyr)
+
+# 1. Define Data with clearer column names for the new grouping
+strat_source_first <- tribble(
+  ~Priority, ~Context,               ~Q_SNV, ~Q_IND, ~B_SNV, ~B_IND,
+  1,         "Homopolymer (>6bp)",   NA,     "S05",  NA,     "S14",
+  2,         "In Tandem Repeat",     "S01",  "S06",  "S10",  "S15",
+  3,         "In Difficult Region",  "S02",  "S07",  "S11",  "S16",
+  4,         "XY nonPAR",            "S03",  "S08",  "S12",  "S17",
+  5,         "Autosomes (Remainder)","S04",  "S09",  "S13",  "S18"
+)
+
+# 2. Render Table
+strat_table_source <- strat_source_first %>%
+  gt() %>%
+  
+  # --- Header ---
+  tab_header(
+    title = "Small Variant Stratification Logic",
+    subtitle = "Stratification IDs grouped by Callset Uniqueness"
+  ) %>%
+  
+  # --- Spanners (The Key Change) ---
+  # Grouping by Query vs Benchmark first
+  tab_spanner(
+    label = "Unique to Query",
+    columns = c(Q_SNV, Q_IND)
+  ) %>%
+  tab_spanner(
+    label = "Unique to Benchmark",
+    columns = c(B_SNV, B_IND)
+  ) %>%
+  
+  # --- Labels ---
+  # Now the sub-columns are just SNV vs INDEL
+  cols_label(
+    Priority = "Priority",
+    Context = "Genomic Context",
+    Q_SNV = "SNV",
+    Q_IND = "INDEL",
+    B_SNV = "SNV",
+    B_IND = "INDEL"
+  ) %>%
+  
+  # --- Formatting ---
+  # Hide NAs (for SNV Homopolymers)
+  sub_missing(columns = everything(), missing_text = "") %>%
+  
+  # Align center
+  cols_align(align = "center", columns = -Context) %>%
+  
+  # --- Styling ---
+  # Add border to visually separate Query from Benchmark
+  tab_style(
+    style = list(
+      cell_borders(sides = "left", color = "gray", weight = px(2))
+    ),
+    locations = cells_body(columns = c(B_SNV))
+  ) %>%
+   tab_style(
+    style = list(
+      cell_borders(sides = "left", color = "gray", weight = px(2))
+    ),
+    locations = cells_column_labels(columns = c(B_SNV))
+  ) %>%
+  
+  # Color code the IDs based on your original diagram palette
+  # Query = Orange/Gold
+  tab_style(
+    style = cell_text(weight = "bold", color = "#E69F00"), 
+    locations = cells_body(columns = c(Q_SNV, Q_IND))
+  ) %>%
+  # Benchmark = Light Blue
+  tab_style(
+    style = cell_text(weight = "bold", color = "#56B4E9"), 
+    locations = cells_body(columns = c(B_SNV, B_IND))
+  )
+
+# Display
+strat_table_source
+```
+
+```{r}
+library(ggplot2)
+
+# Using the 'strat_source_first' data frame concept from previous response
+ggplot(strat_long_data, aes(x = Context, y = Group, fill = Source)) +
+  geom_tile(color = "white", size = 1) + # The Tiles
+  geom_text(aes(label = paste0(Strata, "\n(", Count, ")")), color = "white", fontface = "bold") +
+  scale_fill_manual(values = c("Query" = "#E69F00", "Benchmark" = "#56B4E9")) +
+  scale_x_discrete(limits = c("Homopolymer (>6bp)", "In Tandem Repeat", "In Difficult Region", "XY nonPAR", "Autosomes")) +
+  labs(title = "Stratification Periodic Table", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_text(face = "bold", size = 10),
+    axis.text.y = element_text(face = "bold", size = 11)
+  )
+```
+
+
+```{r fig.height = 4, fig.width = 6, caption = "The benchmark variant calls were curated as correct in the benchmark more than half the time for all but 14 callset x strata combinations."}
+(smvar_eval_strata_plt <- smvar_curations %>%
   ggplot() +
   geom_col(
     aes(
@@ -136,26 +484,192 @@ INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat
 ```
 
 ```{r}
-ggsave(
-  filename = here("manuscript", "figs", "smvar_eval_strata_supplemental.png"),
-  plot = smvar_eval_strata_plt,
-  width = 8,
-  height = 10,
-  dpi = 300
-)
+#| tab.cap = "Curation counts by variant type, curation and whether they are unique to the benchmark or comparison callset."
+
+library(ggplot2)
+library(dplyr)
+library(stringr)
+
+# 1. Setup the Definitions Metadata
+# We define the short description for each code to use in labels
+strata_meta <- tribble(
+  ~Strata, ~Type,   ~Context,               ~Source,
+  "S01",   "SNV",   "Tandem Repeat",        "Unique to Query",
+  "S02",   "SNV",   "Difficult Region",     "Unique to Query",
+  "S04",   "SNV",   "Autosomes",            "Unique to Query",
+  "S05",   "INDEL", "Homopolymer (>6bp)",   "Unique to Query",
+  "S06",   "INDEL", "Tandem Repeat",        "Unique to Query",
+  "S07",   "INDEL", "Difficult Region",     "Unique to Query",
+  "S09",   "INDEL", "Autosomes",            "Unique to Query",
+  
+  "S10",   "SNV",   "Tandem Repeat",        "Unique to Benchmark",
+  "S11",   "SNV",   "Difficult Region",     "Unique to Benchmark",
+  "S13",   "SNV",   "Autosomes",            "Unique to Benchmark",
+  "S14",   "INDEL", "Homopolymer (>6bp)",   "Unique to Benchmark",
+  "S15",   "INDEL", "Tandem Repeat",        "Unique to Benchmark",
+  "S16",   "INDEL", "Difficult Region",     "Unique to Benchmark",
+  "S18",   "INDEL", "Autosomes",            "Unique to Benchmark"
+) %>%
+  # Create a "Rich Label" combining Code + Type + Context
+  mutate(
+    Rich_Label = paste0("**", Strata, "** | ", Type, ": ", Context)
+  )
+
+# 2. Mock Data (matching your image roughly for demonstration)
+# In your real workflow, you would just join 'strata_meta' to your existing count data
+set.seed(42)
+plot_data <- strata_meta %>%
+  group_by(Strata, Rich_Label, Source) %>%
+  summarize(Total = 25, .groups = "drop") %>%
+  tidyr::expand_grid(Status = c("yes", "no", "unsure")) %>%
+  mutate(
+    Count = case_when(
+      Status == "yes" ~ sample(18:24, n(), replace = TRUE),
+      Status == "unsure" ~ sample(1:4, n(), replace = TRUE),
+      Status == "no" ~ sample(0:3, n(), replace = TRUE)
+    )
+  )
+
+# 3. Create the Horizontal Faceted Plot
+ggplot(plot_data, aes(y = Rich_Label, x = Count, fill = Status)) +
+  geom_col(position = "stack", width = 0.7) +
+  
+  # FACETING: Separate Query (False Positives) from Benchmark (False Negatives)
+  # scales="free_y" ensures each panel only shows its own relevant labels
+  facet_grid(rows = vars(Source), scales = "free_y", space = "free_y") +
+  
+  # FORMATTING
+  scale_fill_manual(values = c("yes" = "#8da0cb", "unsure" = "#fc8d62", "no" = "#66c2a5")) +
+  theme_bw(base_size = 14) +
+  
+  # Enable Markdown for bold text in labels (requires 'ggtext' package usually, 
+  # but standard theme handles basic text well. If **bold** doesn't render, 
+  # remove the ** from the mutate step or use theme(axis.text.y = ggtext::element_markdown())
+  theme(
+    axis.text.y = element_text(hjust = 0), # Left align labels
+    strip.text = element_text(face = "bold", size = 12, color = "white"),
+    strip.background = element_rect(fill = "#56B4E9"),
+    legend.position = "bottom"
+  ) +
+  
+  labs(
+    title = "Small Variant Stratification Performance",
+    subtitle = "Reviewing unique calls by genomic context",
+    x = "# of Variants",
+    y = NULL, # Hide Y label as the text explains itself
+    fill = "Correct in Benchmark"
+  )
 ```
 
+`
 ```{r}
-smvars_no_or_unsure <- smvar_evals %>%
-  filter(correct.in.benchmark != "yes") %>%
-  select(-Select, -annot, -comment)
+library(ggplot2)
+library(ggalluvial)
+library(patchwork)
+library(dplyr)
 
-DT::datatable(smvars_no_or_unsure,
-  rownames = FALSE,
-  caption = "Small Variants with Not Correct or Unsure in Benchmark Curations",
-  extensions = "Buttons",
-  options = list(dom = "Bfrtip", buttons = c("csv", "excel"))
-)
+# 1. Prepare Data for the Sankey (The Logic Flow)
+# We define the path a variant takes to get to its Stratum ID.
+# We give every stratum a dummy value of 1 so the paths are equal size (Schematic view)
+logic_flow_data <- tribble(
+  ~Type,   ~Context,               ~Strata, ~Source,
+  "SNV",   "Tandem Repeat",        "S01",   "Query",
+  "SNV",   "Difficult Region",     "S02",   "Query",
+  "SNV",   "XY nonPAR",            "S03",   "Query",
+  "SNV",   "Autosomes",            "S04",   "Query",
+  "INDEL", "Homopolymer",          "S05",   "Query",
+  "INDEL", "Tandem Repeat",        "S06",   "Query",
+  "INDEL", "Difficult Region",     "S07",   "Query",
+  "INDEL", "XY nonPAR",            "S08",   "Query",
+  "INDEL", "Autosomes",            "S09",   "Query",
+  
+  # Benchmark (Mirroring the logic)
+  "SNV",   "Tandem Repeat",        "S10",   "Benchmark",
+  "SNV",   "Difficult Region",     "S11",   "Benchmark",
+  "SNV",   "XY nonPAR",            "S12",   "Benchmark",
+  "SNV",   "Autosomes",            "S13",   "Benchmark",
+  "INDEL", "Homopolymer",          "S14",   "Benchmark",
+  "INDEL", "Tandem Repeat",        "S15",   "Benchmark",
+  "INDEL", "Difficult Region",     "S16",   "Benchmark",
+  "INDEL", "XY nonPAR",            "S17",   "Benchmark",
+  "INDEL", "Autosomes",            "S18",   "Benchmark"
+) %>%
+  mutate(Flow_Value = 1) # Equal width for logic visualization
+
+# 2. Create the Sankey Plot (Left Side)
+# We reverse the Y-axis limits so S01 is at the top, matching the bar chart natural order
+p_sankey <- ggplot(logic_flow_data,
+                   aes(y = Flow_Value, axis1 = Type, axis2 = Context, axis3 = Strata)) +
+  geom_alluvium(aes(fill = Type), width = 1/3, alpha = 0.6) +
+  geom_stratum(width = 1/3, fill = "white", color = "grey") +
+  
+  # Add Text Labels to the Nodes
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
+  
+  scale_fill_manual(values = c("SNV" = "#E69F00", "INDEL" = "#56B4E9")) +
+  scale_y_continuous(breaks = NULL) + # Hide Y axis numbers
+  theme_void() + 
+  theme(legend.position = "none") +
+  labs(title = "Stratification Logic")
+
+# 3. Create the Bar Chart (Right Side)
+# Using the same data logic, but normally you'd join this with your real counts
+# We filter to just one 'Source' (e.g. Query) or facet it. 
+# For this demo, let's plot S01-S09 (Query) to keep it readable.
+
+# Filter data to just Query for the demo
+plot_data_subset <- logic_flow_data %>% filter(Source == "Query")
+
+# Mock Count Data
+set.seed(123)
+bar_data <- plot_data_subset %>%
+  mutate(Count = sample(10:30, n(), replace = TRUE))
+
+p_bars <- ggplot(bar_data, aes(y = Strata, x = Count, fill = Type)) +
+  geom_col(alpha = 0.8) +
+  scale_fill_manual(values = c("SNV" = "#E69F00", "INDEL" = "#56B4E9")) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(), # Hide Y labels (The Sankey provides them!)
+    axis.title.y = element_blank(),
+    legend.position = "bottom"
+  ) +
+  labs(title = "Variant Counts", x = "# of Variants")
+
+# 4. Combine with Patchwork
+# We put them side by side. The Layout assures alignment.
+# We focus only on S01-S09 for this specific view to ensure perfect alignment
+# (In production, ensure both dataframes sort the Strata factor identically)
+
+# Enforce same Factor Order on 'Strata' for both plots
+common_levels <- unique(logic_flow_data$Strata)
+logic_flow_data$Strata <- factor(logic_flow_data$Strata, levels = rev(common_levels))
+bar_data$Strata <- factor(bar_data$Strata, levels = rev(common_levels))
+
+# Re-run plots with factors applied... (omitted for brevity, assume applied)
+
+# Combine: Sankey (Width 2) + Bars (Width 1)
+combined_plot <- p_sankey + p_bars + 
+  plot_layout(widths = c(2, 1))
+
+combined_plot
+```
+```{r}
+library(ggplot2)
+
+# Using the 'strat_source_first' data frame concept from previous response
+ggplot(strat_long_data, aes(x = Context, y = Group, fill = Source)) +
+  geom_tile(color = "white", size = 1) + # The Tiles
+  geom_text(aes(label = paste0(Strata, "\n(", Count, ")")), color = "white", fontface = "bold") +
+  scale_fill_manual(values = c("Query" = "#E69F00", "Benchmark" = "#56B4E9")) +
+  scale_x_discrete(limits = c("Homopolymer (>6bp)", "In Tandem Repeat", "In Difficult Region", "XY nonPAR", "Autosomes")) +
+  labs(title = "Stratification Periodic Table", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_text(face = "bold", size = 10),
+    axis.text.y = element_text(face = "bold", size = 11)
+  )
 ```
 
 ### Structural Variants External Evaluations

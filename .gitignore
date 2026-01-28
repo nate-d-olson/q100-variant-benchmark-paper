@@ -60,3 +60,4 @@ __pycache__/
 *.out
 _bookdown_files/
 **/*.quarto_ipynb
+.claude/settings.local.json
