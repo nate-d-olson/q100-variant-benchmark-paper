@@ -122,10 +122,12 @@ rule aggregate_stratification_metrics:
             strat_name=get_stratification_ids(wc),
         ),
     output:
-        csv=protected(ensure(
-            "results/strat_metrics/{benchmark}/stratification_coverage_table.csv",
-            non_empty=True,
-        )),
+        csv=protected(
+            ensure(
+                "results/strat_metrics/{benchmark}/stratification_coverage_table.csv",
+                non_empty=True,
+            )
+        ),
     log:
         "logs/strat_metrics/{benchmark}/aggregate.log",
     message:

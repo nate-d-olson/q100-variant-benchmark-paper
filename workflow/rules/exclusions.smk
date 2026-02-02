@@ -135,10 +135,12 @@ rule aggregate_exclusion_table:
             exclusion=get_exclusion_items(wc),
         ),
     output:
-        csv=protected(ensure(
-            "results/exclusions/{benchmark}/exclusions_intersection_table.csv",
-            non_empty=True,
-        )),
+        csv=protected(
+            ensure(
+                "results/exclusions/{benchmark}/exclusions_intersection_table.csv",
+                non_empty=True,
+            )
+        ),
     log:
         "logs/exclusions/{benchmark}/aggregate.log",
     message:
