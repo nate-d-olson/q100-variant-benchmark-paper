@@ -3,11 +3,12 @@ title: "v5.0q Small and Structural Variant External Evaluation"
 date: '`r Sys.Date()`'
 author: "N.D. Olson"
 format: html
-editor: visual
+editor: source
 embed-resources: true
 ---
 
-Update curations with JZ notes https://docs.google.com/spreadsheets/d/1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-_vcV6t0/edit?usp=sharing
+Update curations with JZ notes
+https://docs.google.com/spreadsheets/d/1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-\_vcV6t0/edit?usp=sharing
 
 ```{r setup}
 #| include=FALSE,
@@ -88,24 +89,38 @@ A total of `r total_smvs` small variants were evaluated, of which
 
 ### smvar Strata descriptions
 
-- S01:SNV unique to query callset in a Tandem Repeat
-- S02:SNV unique to query callset in difficult to map region but not a tandem repeat
-- S03:SNV unique to query callset not in difficult to map region or tandem repeat in XY nonPAR.
-- S04:SNV unique to query callset not in difficult to map region or tandem repeat in autosomes.
-- S05:INDEL unique to query callset in homopolymer longer than 6 bp
-- S06:INDEL unique to query callset not in homopolymer longer than 6 bp in tandem repeat
-- S07:INDEL unique to query callset not in homopolymer longer than 6 bp or tandem repeat and in - difficult to map region
-- S08:INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to - map region in XY nonPAR
-- S09:INDEL unique to query callset not in homopolymer longer than 6 bp, tandem repeat, or difficult to - map region in autosomes.
-- S10:SNV unique to benchmark set callset in a Tandem Repeat
-- S11:SNV unique to benchmark set in difficult to map region but not a tandem repeat
-- S12:SNV unique to benchmark set not in difficult to map region or tandem repeat in XY nonPAR.
-- S13:SNV unique to benchmark set not in difficult to map region or tandem repeat in autosomes.
-- S14:INDEL unique to benchmark set in homopolymer longer than 6 bp
-- S15:INDEL unique to benchmark set not in homopolymer longer than 6 bp in tandem repeat
-- S16:INDEL unique to benchmark set not in homopolymer longer than 6 bp or tandem repeat and in difficult to map region
-- S17:INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in XY nonPAR
-- S18:INDEL unique to benchmark set not in homopolymer longer than 6 bp, tandem repeat, or difficult to map region in autosomes.
+-   S01:SNV unique to query callset in a Tandem Repeat
+-   S02:SNV unique to query callset in difficult to map region but not a tandem
+    repeat
+-   S03:SNV unique to query callset not in difficult to map region or tandem
+    repeat in XY nonPAR.
+-   S04:SNV unique to query callset not in difficult to map region or tandem
+    repeat in autosomes.
+-   S05:INDEL unique to query callset in homopolymer longer than 6 bp
+-   S06:INDEL unique to query callset not in homopolymer longer than 6 bp in
+    tandem repeat
+-   S07:INDEL unique to query callset not in homopolymer longer than 6 bp or
+    tandem repeat and in - difficult to map region
+-   S08:INDEL unique to query callset not in homopolymer longer than 6 bp,
+    tandem repeat, or difficult to - map region in XY nonPAR
+-   S09:INDEL unique to query callset not in homopolymer longer than 6 bp,
+    tandem repeat, or difficult to - map region in autosomes.
+-   S10:SNV unique to benchmark set callset in a Tandem Repeat
+-   S11:SNV unique to benchmark set in difficult to map region but not a tandem
+    repeat
+-   S12:SNV unique to benchmark set not in difficult to map region or tandem
+    repeat in XY nonPAR.
+-   S13:SNV unique to benchmark set not in difficult to map region or tandem
+    repeat in autosomes.
+-   S14:INDEL unique to benchmark set in homopolymer longer than 6 bp
+-   S15:INDEL unique to benchmark set not in homopolymer longer than 6 bp in
+    tandem repeat
+-   S16:INDEL unique to benchmark set not in homopolymer longer than 6 bp or
+    tandem repeat and in difficult to map region
+-   S17:INDEL unique to benchmark set not in homopolymer longer than 6 bp,
+    tandem repeat, or difficult to map region in XY nonPAR
+-   S18:INDEL unique to benchmark set not in homopolymer longer than 6 bp,
+    tandem repeat, or difficult to map region in autosomes.
 
 ```{r fig.width = 8}
 library(ggflowchart)
@@ -202,6 +217,7 @@ nodes <- tribble(
   # Remove the default legend title
   theme(legend.title = element_blank()))
 ```
+
 ```{r}
 ggsave(
   filename = here("manuscript", "figs", "smvar_strat_flow.png"),
@@ -458,7 +474,6 @@ ggplot(strat_long_data, aes(x = Context, y = Group, fill = Source)) +
   )
 ```
 
-
 ```{r fig.height = 4, fig.width = 6, caption = "The benchmark variant calls were curated as correct in the benchmark more than half the time for all but 14 callset x strata combinations."}
 (smvar_eval_strata_plt <- smvar_curations %>%
   ggplot() +
@@ -561,7 +576,8 @@ ggplot(plot_data, aes(y = Rich_Label, x = Count, fill = Status)) +
   )
 ```
 
-`
+\`
+
 ```{r}
 library(ggplot2)
 library(ggalluvial)
@@ -654,6 +670,7 @@ combined_plot <- p_sankey + p_bars +
 
 combined_plot
 ```
+
 ```{r}
 library(ggplot2)
 
@@ -713,7 +730,6 @@ A total of `r total_svs` structural variants were evaluated, of which
 )
 ```
 
-
 ```{r fig.width = 8, fig.height = 16}
 (stvar_eval_strata_plt <- stvar_evals %>%
   mutate(strata = str_glue("{TR_anno} {sv_cat} {unique_to}")) %>%
@@ -752,7 +768,6 @@ ggsave(
 )
 ```
 
-
 ```{r}
 stvars_no_or_unsure <- stvar_evals %>%
   filter(correct.in.benchmark != "yes") %>%
@@ -774,7 +789,6 @@ DT::datatable(stvars_no_or_unsure,
   plot_layout(guides = "collect", ncol = 1, nrow = 2) & theme(legend.position = "bottom")
 )
 ```
-
 
 ```{r}
 ggsave(

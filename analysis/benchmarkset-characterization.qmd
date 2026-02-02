@@ -15,20 +15,6 @@ execute:
   warning: false
 ---
 
-## TODO
-
-- Small variant counts breakdown by <15bp , 15 - 49bp
-
-Documentation
-- Column descriptions for variant tables
-
-Analyses
-- Look for small intervals in v5q
-
-Low priority
-- Optimize variant tables: data.table, database, arrow, etc.?
-
-
 ```{r setup}
 #| include=FALSE,
 #| echo=TRUE
@@ -40,14 +26,9 @@ library(patchwork)
 library(gt)
 library(vroom)
 library(furrr)
-# source(here("scripts", "happy_giab.R"))
 ```
 
 ## Loading Variant Tables
-
-### Column Descriptions
-
-%%TODO%%
 
 
 ```{r}
@@ -356,11 +337,14 @@ glimpse(bench_vars_tbls)
         INDEL = "INDELs",
         Total = "Total Variants"
     ))
+```
 
+```{r}
 # gt::as_word(smv_cnt_tbl,
 #   here("results", "variant_counts", "smvar_counts_table.docx")
 # )
 ```
+
 
 #### Structural Variant Counts
 ```{r}
@@ -390,8 +374,8 @@ stvar_cnt_table %>%
     )
 ```
 
-## Variant Size Distributions
 
+## Variant Size Distributions
 
 ```{r}
 sv_len_df <- bench_vars_tbls %>%
@@ -790,7 +774,6 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ```
 
 ### Inclusion of Difficult Regions
-%%TODO%% Fix Me
 
 ```{r}
 diff_coverage <- list.files(
@@ -847,7 +830,7 @@ diff_cov_total %>%
 
 
 #### Difficult Region Bases Included
-%%TODO%% Fix me
+
 ```{r}
 diff_included_tbl <- read_tsv(here(
     "results/context_coverage/all_context_coverage.tsv"
@@ -1072,11 +1055,6 @@ regions_df %>%
     )
 ```
 
-## Medically Relevant Gene Comparison
-
-- number of variants in medically relevant genes in v5 compared to v4 and v0.6 + CMRG
-- Medically relevant gene coverage
-Use code from CMRG paper as starting point https://github.com/usnistgov/cmrg-benchmarkset-manuscript/tree/master
 
 ## Exclusions
 
@@ -1206,7 +1184,6 @@ combined_exclusion_tbl <- exclusion_intersect_df %>%
 ```
 
 
-%%TODO%% Add variants to the exclusion tables
 ```{r}
 combined_exclusion_tbl %>%
     make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
