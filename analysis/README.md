@@ -50,6 +50,7 @@ Analysis of external evaluations from variant calling pipelines compared against
 | File | Source | Description |
 |------|--------|-------------|
 | `data/external-evaluations/evaluator-curations/*Miqa.csv` | External evaluators | Curation results from evaluators |
+| NA | `https://docs.google.com/spreadsheets/d/1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-\_vcV6t0/edit?usp=sharing` | JZ re-curations and notes for external evaluations |
 
 **Output Files:**
 

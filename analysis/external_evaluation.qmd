@@ -3,7 +3,7 @@ title: "v5.0q Small and Structural Variant External Evaluation"
 date: '`r Sys.Date()`'
 author: "N.D. Olson"
 format: html
-editor: visual
+editor: source
 embed-resources: true
 ---
 
@@ -304,13 +304,193 @@ ggsave(
 ```{r}
 #| tab.cap = "Curation counts by variant type, curation and whether they are unique to the benchmark or comparison callset."
 
-smvar_curations %>%
-  count(callset, curation, var_type, unique_to) %>%
-  mutate(unique_to = if_else(unique_to == "fp", "query", "bench")) %>% 
-  pivot_wider(names_from = curation, values_from = n, values_fill = 0) %>% 
-  gt::gt()
+library(ggplot2)
+library(dplyr)
+library(stringr)
+
+# 1. Setup the Definitions Metadata
+# We define the short description for each code to use in labels
+strata_meta <- tribble(
+  ~Strata, ~Type,   ~Context,               ~Source,
+  "S01",   "SNV",   "Tandem Repeat",        "Unique to Query",
+  "S02",   "SNV",   "Difficult Region",     "Unique to Query",
+  "S04",   "SNV",   "Autosomes",            "Unique to Query",
+  "S05",   "INDEL", "Homopolymer (>6bp)",   "Unique to Query",
+  "S06",   "INDEL", "Tandem Repeat",        "Unique to Query",
+  "S07",   "INDEL", "Difficult Region",     "Unique to Query",
+  "S09",   "INDEL", "Autosomes",            "Unique to Query",
+  
+  "S10",   "SNV",   "Tandem Repeat",        "Unique to Benchmark",
+  "S11",   "SNV",   "Difficult Region",     "Unique to Benchmark",
+  "S13",   "SNV",   "Autosomes",            "Unique to Benchmark",
+  "S14",   "INDEL", "Homopolymer (>6bp)",   "Unique to Benchmark",
+  "S15",   "INDEL", "Tandem Repeat",        "Unique to Benchmark",
+  "S16",   "INDEL", "Difficult Region",     "Unique to Benchmark",
+  "S18",   "INDEL", "Autosomes",            "Unique to Benchmark"
+) %>%
+  # Create a "Rich Label" combining Code + Type + Context
+  mutate(
+    Rich_Label = paste0("**", Strata, "** | ", Type, ": ", Context)
+  )
+
+# 2. Mock Data (matching your image roughly for demonstration)
+# In your real workflow, you would just join 'strata_meta' to your existing count data
+set.seed(42)
+plot_data <- strata_meta %>%
+  group_by(Strata, Rich_Label, Source) %>%
+  summarize(Total = 25, .groups = "drop") %>%
+  tidyr::expand_grid(Status = c("yes", "no", "unsure")) %>%
+  mutate(
+    Count = case_when(
+      Status == "yes" ~ sample(18:24, n(), replace = TRUE),
+      Status == "unsure" ~ sample(1:4, n(), replace = TRUE),
+      Status == "no" ~ sample(0:3, n(), replace = TRUE)
+    )
+  )
+
+# 3. Create the Horizontal Faceted Plot
+ggplot(plot_data, aes(y = Rich_Label, x = Count, fill = Status)) +
+  geom_col(position = "stack", width = 0.7) +
+  
+  # FACETING: Separate Query (False Positives) from Benchmark (False Negatives)
+  # scales="free_y" ensures each panel only shows its own relevant labels
+  facet_grid(rows = vars(Source), scales = "free_y", space = "free_y") +
+  
+  # FORMATTING
+  scale_fill_manual(values = c("yes" = "#8da0cb", "unsure" = "#fc8d62", "no" = "#66c2a5")) +
+  theme_bw(base_size = 14) +
+  
+  # Enable Markdown for bold text in labels (requires 'ggtext' package usually, 
+  # but standard theme handles basic text well. If **bold** doesn't render, 
+  # remove the ** from the mutate step or use theme(axis.text.y = ggtext::element_markdown())
+  theme(
+    axis.text.y = element_text(hjust = 0), # Left align labels
+    strip.text = element_text(face = "bold", size = 12, color = "white"),
+    strip.background = element_rect(fill = "#56B4E9"),
+    legend.position = "bottom"
+  ) +
+  
+  labs(
+    title = "Small Variant Stratification Performance",
+    subtitle = "Reviewing unique calls by genomic context",
+    x = "# of Variants",
+    y = NULL, # Hide Y label as the text explains itself
+    fill = "Correct in Benchmark"
+  )
 ```
 
+\`
+
+```{r}
+library(ggplot2)
+library(ggalluvial)
+library(patchwork)
+library(dplyr)
+
+# 1. Prepare Data for the Sankey (The Logic Flow)
+# We define the path a variant takes to get to its Stratum ID.
+# We give every stratum a dummy value of 1 so the paths are equal size (Schematic view)
+logic_flow_data <- tribble(
+  ~Type,   ~Context,               ~Strata, ~Source,
+  "SNV",   "Tandem Repeat",        "S01",   "Query",
+  "SNV",   "Difficult Region",     "S02",   "Query",
+  "SNV",   "XY nonPAR",            "S03",   "Query",
+  "SNV",   "Autosomes",            "S04",   "Query",
+  "INDEL", "Homopolymer",          "S05",   "Query",
+  "INDEL", "Tandem Repeat",        "S06",   "Query",
+  "INDEL", "Difficult Region",     "S07",   "Query",
+  "INDEL", "XY nonPAR",            "S08",   "Query",
+  "INDEL", "Autosomes",            "S09",   "Query",
+  
+  # Benchmark (Mirroring the logic)
+  "SNV",   "Tandem Repeat",        "S10",   "Benchmark",
+  "SNV",   "Difficult Region",     "S11",   "Benchmark",
+  "SNV",   "XY nonPAR",            "S12",   "Benchmark",
+  "SNV",   "Autosomes",            "S13",   "Benchmark",
+  "INDEL", "Homopolymer",          "S14",   "Benchmark",
+  "INDEL", "Tandem Repeat",        "S15",   "Benchmark",
+  "INDEL", "Difficult Region",     "S16",   "Benchmark",
+  "INDEL", "XY nonPAR",            "S17",   "Benchmark",
+  "INDEL", "Autosomes",            "S18",   "Benchmark"
+) %>%
+  mutate(Flow_Value = 1) # Equal width for logic visualization
+
+# 2. Create the Sankey Plot (Left Side)
+# We reverse the Y-axis limits so S01 is at the top, matching the bar chart natural order
+p_sankey <- ggplot(logic_flow_data,
+                   aes(y = Flow_Value, axis1 = Type, axis2 = Context, axis3 = Strata)) +
+  geom_alluvium(aes(fill = Type), width = 1/3, alpha = 0.6) +
+  geom_stratum(width = 1/3, fill = "white", color = "grey") +
+  
+  # Add Text Labels to the Nodes
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
+  
+  scale_fill_manual(values = c("SNV" = "#E69F00", "INDEL" = "#56B4E9")) +
+  scale_y_continuous(breaks = NULL) + # Hide Y axis numbers
+  theme_void() + 
+  theme(legend.position = "none") +
+  labs(title = "Stratification Logic")
+
+# 3. Create the Bar Chart (Right Side)
+# Using the same data logic, but normally you'd join this with your real counts
+# We filter to just one 'Source' (e.g. Query) or facet it. 
+# For this demo, let's plot S01-S09 (Query) to keep it readable.
+
+# Filter data to just Query for the demo
+plot_data_subset <- logic_flow_data %>% filter(Source == "Query")
+
+# Mock Count Data
+set.seed(123)
+bar_data <- plot_data_subset %>%
+  mutate(Count = sample(10:30, n(), replace = TRUE))
+
+p_bars <- ggplot(bar_data, aes(y = Strata, x = Count, fill = Type)) +
+  geom_col(alpha = 0.8) +
+  scale_fill_manual(values = c("SNV" = "#E69F00", "INDEL" = "#56B4E9")) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(), # Hide Y labels (The Sankey provides them!)
+    axis.title.y = element_blank(),
+    legend.position = "bottom"
+  ) +
+  labs(title = "Variant Counts", x = "# of Variants")
+
+# 4. Combine with Patchwork
+# We put them side by side. The Layout assures alignment.
+# We focus only on S01-S09 for this specific view to ensure perfect alignment
+# (In production, ensure both dataframes sort the Strata factor identically)
+
+# Enforce same Factor Order on 'Strata' for both plots
+common_levels <- unique(logic_flow_data$Strata)
+logic_flow_data$Strata <- factor(logic_flow_data$Strata, levels = rev(common_levels))
+bar_data$Strata <- factor(bar_data$Strata, levels = rev(common_levels))
+
+# Re-run plots with factors applied... (omitted for brevity, assume applied)
+
+# Combine: Sankey (Width 2) + Bars (Width 1)
+combined_plot <- p_sankey + p_bars + 
+  plot_layout(widths = c(2, 1))
+
+combined_plot
+```
+
+```{r}
+library(ggplot2)
+
+# Using the 'strat_source_first' data frame concept from previous response
+ggplot(strat_long_data, aes(x = Context, y = Group, fill = Source)) +
+  geom_tile(color = "white", size = 1) + # The Tiles
+  geom_text(aes(label = paste0(Strata, "\n(", Count, ")")), color = "white", fontface = "bold") +
+  scale_fill_manual(values = c("Query" = "#E69F00", "Benchmark" = "#56B4E9")) +
+  scale_x_discrete(limits = c("Homopolymer (>6bp)", "In Tandem Repeat", "In Difficult Region", "XY nonPAR", "Autosomes")) +
+  labs(title = "Stratification Periodic Table", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_text(face = "bold", size = 10),
+    axis.text.y = element_text(face = "bold", size = 11)
+  )
+```
 
 ### Structural Variants External Evaluations
 
@@ -348,10 +528,13 @@ A total of `r total_svs` structural variants were evaluated, of which
 )
 ```
 
-
-```{r fig.width = 6, fig.height = 4}
-(stvar_eval_strata_plt <- stvar_curations %>%
-   
+```{r fig.width = 8, fig.height = 16}
+(stvar_eval_strata_plt <- stvar_evals %>%
+  mutate(strata = str_glue("{TR_anno} {sv_cat} {unique_to}")) %>%
+  # count(callset, strata, correct.in.benchmark) %>%
+  mutate(correct.in.benchmark = factor(correct.in.benchmark,
+    levels = c("no", "unsure", "yes")
+  )) %>%
   ggplot() +
   geom_bar(
     aes(
@@ -370,6 +553,29 @@ A total of `r total_svs` structural variants were evaluated, of which
 )
 ```
 
+```{r}
+ggsave(
+  filename = here("manuscript", "figs", "stvar_eval_strata_supplemental.png"),
+  plot = stvar_eval_strata_plt,
+  width = 8,
+  height = 10,
+  dpi = 300
+)
+```
+
+```{r}
+stvars_no_or_unsure <- stvar_evals %>%
+  filter(correct.in.benchmark != "yes") %>%
+  select(-Select, -annot, -comment)
+
+DT::datatable(stvars_no_or_unsure,
+  rownames = FALSE,
+  caption = "Structural Variant Benchmark Not Correct or Unsure Curations",
+  extensions = "Buttons",
+  options = list(dom = "Bfrtip", buttons = c("csv", "excel"))
+)
+```
+
 ## Combined plot by callset
 
 ```{r fig.width = 8}
@@ -379,7 +585,6 @@ A total of `r total_svs` structural variants were evaluated, of which
   plot_layout(guides = "collect", ncol = 2, nrow = 2) & theme(legend.position = "bottom")
 )
 ```
-
 
 ```{r}
 ggsave(

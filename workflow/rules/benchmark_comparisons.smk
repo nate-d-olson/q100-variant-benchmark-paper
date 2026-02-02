@@ -132,6 +132,6 @@ rule stratify_comparison:
     log:
         "logs/stratify/{comp_id}.log",
     conda:
-        "../envs/analysis.yaml"
+        "../envs/truvari.yaml"
     script:
         "../scripts/stratify_comparison.py"

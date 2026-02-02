@@ -15,23 +15,10 @@ execute:
   warning: false
 ---
 
-## TODO
-
-Documentation
-- Column descriptions for variant tables
-
-Analyses
-- Look for small intervals in v5q
-
-Low priority
-- Optimize variant tables: data.table, database, arrow, etc.?
-
-
 ```{r setup}
 #| include=FALSE,
 #| echo=TRUE
 library(tidyverse)
-library(DT)
 library(sessioninfo)
 library(here)
 library(assertthat)
@@ -39,272 +26,277 @@ library(patchwork)
 library(gt)
 library(vroom)
 library(furrr)
-# source(here("scripts", "happy_giab.R"))
 ```
 
 ## Loading Variant Tables
-
-### Column Descriptions
-
-%%TODO%%
 
 
 ```{r}
 #| warning: false
 tidy_smvar <- function(var_tbl) {
-  ## remove variants outside benchmark regions
-  in_bmk <- grepl(x = var_tbl$region_ids, pattern = "^BMKREGIONS")
-  var_tbl <- var_tbl[in_bmk, ]
+    ## remove variants outside benchmark regions
+    in_bmk <- grepl(x = var_tbl$region_ids, pattern = "^BMKREGIONS")
+    var_tbl <- var_tbl[in_bmk, ]
 
-  ## excluding variants less than 50bp
-  lt_50bp <- var_tbl$len_ref < 50 & var_tbl$len_alt < 50
-  var_tbl <- var_tbl[lt_50bp, ]
+    ## excluding variants less than 50bp
+    lt_50bp <- var_tbl$len_ref < 50 & var_tbl$len_alt < 50
+    var_tbl <- var_tbl[lt_50bp, ]
 
-  ## changing var_type for OTHER and OVERLAP
-  var_tbl <- var_tbl %>%
-    mutate(
-      var_type = case_when(
-        ## When REF is different from the first base of ALT
-        var_type == "OTHER" &
-          (len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1) ~ "INDEL",
-        ## Assigning variant types for overlapping (atmoic) variants
-        var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNP",
-        var_type == "OVERLAP" &
-          (len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1) ~ "INDEL",
-        var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
-        TRUE ~ var_type
-      )
-    )
+    ## changing var_type for OTHER and OVERLAP
+    var_tbl <- var_tbl %>%
+        mutate(
+            var_type = case_when(
+                ## When REF is different from the first base of ALT
+                var_type == "OTHER" &
+                    (len_ref > 1 & len_alt == 1) |
+                    (len_ref == 1 & len_alt > 1) ~ "INDEL",
+                ## Assigning variant types for overlapping (atmoic) variants
+                var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNP",
+                var_type == "OVERLAP" &
+                    (len_ref > 1 & len_alt == 1) |
+                    (len_ref == 1 & len_alt > 1) ~ "INDEL",
+                var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
+                TRUE ~ var_type
+            )
+        )
 
-  ## Annotating Variant Length
-  var_tbl$var_size <- var_tbl$len_alt - var_tbl$len_ref
+    ## Annotating Variant Length
+    var_tbl$var_size <- var_tbl$len_alt - var_tbl$len_ref
 
-  return(var_tbl)
+    return(var_tbl)
 }
 
 tidy_stvar <- function(var_tbl) {
-  ## remove variants outside benchmark regions
-  in_bmk <- grepl(x = var_tbl$region_ids, pattern = "^BMKREGIONS")
-  var_tbl <- var_tbl[in_bmk, ]
+    ## remove variants outside benchmark regions
+    in_bmk <- grepl(x = var_tbl$region_ids, pattern = "^BMKREGIONS")
+    var_tbl <- var_tbl[in_bmk, ]
 
-  ## excluding variants less than 50bp
-  gt_50bp <- var_tbl$len_ref > 49 | var_tbl$len_alt > 49
-  var_tbl <- var_tbl[gt_50bp, ]
+    ## excluding variants less than 50bp
+    gt_50bp <- var_tbl$len_ref > 49 | var_tbl$len_alt > 49
+    var_tbl <- var_tbl[gt_50bp, ]
 
-  ## changing var_type for OTHER and OVERLAP
-  var_tbl$var_type <- var_tbl$SVTYPE
+    ## changing var_type for OTHER and OVERLAP
+    var_tbl$var_type <- var_tbl$SVTYPE
 
-  ## Annotating Variant Length
-  var_tbl$var_size <- 0
-  var_tbl$var_size[var_tbl$SVTYPE == "INS"] <- var_tbl$SVLEN[
-    var_tbl$SVTYPE == "INS"
-  ]
-  var_tbl$var_size[var_tbl$SVTYPE == "DEL"] <- -var_tbl$SVLEN[
-    var_tbl$SVTYPE == "DEL"
-  ]
+    ## Annotating Variant Length
+    var_tbl$var_size <- 0
+    var_tbl$var_size[var_tbl$SVTYPE == "INS"] <- var_tbl$SVLEN[
+        var_tbl$SVTYPE == "INS"
+    ]
+    var_tbl$var_size[var_tbl$SVTYPE == "DEL"] <- -var_tbl$SVLEN[
+        var_tbl$SVTYPE == "DEL"
+    ]
 
-  return(var_tbl)
+    return(var_tbl)
 }
 
 get_bench_var_cols <- function(benchmarkset) {
-  ## Common column names and types
-  cnames <- c(
-    "chrom",
-    "pos",
-    "end",
-    "gt",
-    "vkx",
-    "var_type",
-    "len_ref",
-    "len_alt",
-    "strat_ids",
-    "region_ids"
-  )
-  ctypes <- "ciiccciicc"
+    ## Common column names and types
+    cnames <- c(
+        "chrom",
+        "pos",
+        "end",
+        "gt",
+        "vkx",
+        "var_type",
+        "len_ref",
+        "len_alt",
+        "strat_ids",
+        "region_ids"
+    )
+    ctypes <- "ciiccciicc"
 
-  if (str_detect(benchmarkset, "v0.6")) {
-    cnames <- c(
-      cnames,
-      "END",
-      "SVTYPE",
-      "SVLEN",
-      "ClusterIDs",
-      "NumClusterSVs",
-      "ExactMatchIDs",
-      "NumExactMatchSVs",
-      "ClusterMaxShiftDist",
-      "ClusterMaxSizeDiff",
-      "ClusterMaxEditDist",
-      "PBcalls",
-      "Illcalls",
-      "TenXcalls",
-      "CGcalls",
-      "PBexactcalls",
-      "Illexactcalls",
-      "TenXexactcalls",
-      "CGexactcalls",
-      "HG2count",
-      "HG3count",
-      "HG4count",
-      "NumTechs",
-      "NumTechsExact",
-      "DistBack",
-      "DistForward",
-      "DistMin",
-      "DistMinlt1000",
-      "MultiTech",
-      "MultiTechExact",
-      "sizecat",
-      "DistPASSHG2gt49Minlt1000",
-      "DistPASSMinlt1000",
-      "MendelianError",
-      "HG003_GT",
-      "HG004_GT",
-      "BREAKSIMLENGTH",
-      "REFWIDENED",
-      "REPTYPE",
-      "TRall",
-      "TRgt100",
-      "TRgt10k",
-      "segdup"
-    )
-    ctypes <- paste0(ctypes, "ccicicccccccccccccccccccccccccccccc")
-    return(list(col_names = cnames, col_types = ctypes))
-  } else if (str_detect(benchmarkset, "v4.2.1")) {
-    cnames <- c(
-      cnames,
-      "DPSum",
-      "platforms",
-      "platformnames",
-      "platformbias",
-      "datasets",
-      "datasetnames",
-      "datasetsmissingcall",
-      "callsets",
-      "callsetnames",
-      "varType",
-      "filt",
-      "callable",
-      "difficultregion",
-      "arbitrated",
-      "callsetwiththisuniqgenopassing",
-      "callsetwithotheruniqgenopassing"
-    )
-    ctypes <- paste0(ctypes, "icccccccccccccicccccc")
-    return(list(col_names = cnames, col_types = ctypes))
-  } else if (str_detect(benchmarkset, "v5.0q")) {
-    cnames <- c(
-      cnames,
-      "TRF",
-      "TRFdiff",
-      "TRFrepeat",
-      "TRFovl",
-      "TRFstart",
-      "TRFend",
-      "TRFperiod",
-      "TRFcopies",
-      "TRFscore",
-      "TRFentropy",
-      "TRFsim"
-    )
-    ctypes <- paste0(ctypes, "cicdiiiinnn")
-    if (str_detect(benchmarkset, "stvar")) {
-      cnames <- c(
-        cnames,
-        "SVTYPE",
-        "SVLEN",
-        "RM_score",
-        "RM_repeat",
-        "RM_clsfam",
-        "LCR",
-        "REMAP"
-      )
-      ctypes <- paste0(ctypes, "cincccc")
+    if (str_detect(benchmarkset, "v0.6")) {
+        cnames <- c(
+            cnames,
+            "END",
+            "SVTYPE",
+            "SVLEN",
+            "ClusterIDs",
+            "NumClusterSVs",
+            "ExactMatchIDs",
+            "NumExactMatchSVs",
+            "ClusterMaxShiftDist",
+            "ClusterMaxSizeDiff",
+            "ClusterMaxEditDist",
+            "PBcalls",
+            "Illcalls",
+            "TenXcalls",
+            "CGcalls",
+            "PBexactcalls",
+            "Illexactcalls",
+            "TenXexactcalls",
+            "CGexactcalls",
+            "HG2count",
+            "HG3count",
+            "HG4count",
+            "NumTechs",
+            "NumTechsExact",
+            "DistBack",
+            "DistForward",
+            "DistMin",
+            "DistMinlt1000",
+            "MultiTech",
+            "MultiTechExact",
+            "sizecat",
+            "DistPASSHG2gt49Minlt1000",
+            "DistPASSMinlt1000",
+            "MendelianError",
+            "HG003_GT",
+            "HG004_GT",
+            "BREAKSIMLENGTH",
+            "REFWIDENED",
+            "REPTYPE",
+            "TRall",
+            "TRgt100",
+            "TRgt10k",
+            "segdup"
+        )
+        ctypes <- paste0(ctypes, "ccicicccccccccccccccccccccccccccccc")
+        return(list(col_names = cnames, col_types = ctypes))
+    } else if (str_detect(benchmarkset, "v4.2.1")) {
+        cnames <- c(
+            cnames,
+            "DPSum",
+            "platforms",
+            "platformnames",
+            "platformbias",
+            "datasets",
+            "datasetnames",
+            "datasetsmissingcall",
+            "callsets",
+            "callsetnames",
+            "varType",
+            "filt",
+            "callable",
+            "difficultregion",
+            "arbitrated",
+            "callsetwiththisuniqgenopassing",
+            "callsetwithotheruniqgenopassing"
+        )
+        ctypes <- paste0(ctypes, "icccccccccccccicccccc")
+        return(list(col_names = cnames, col_types = ctypes))
+    } else if (str_detect(benchmarkset, "v5.0q")) {
+        cnames <- c(
+            cnames,
+            "TRF",
+            "TRFdiff",
+            "TRFrepeat",
+            "TRFovl",
+            "TRFstart",
+            "TRFend",
+            "TRFperiod",
+            "TRFcopies",
+            "TRFscore",
+            "TRFentropy",
+            "TRFsim"
+        )
+        ctypes <- paste0(ctypes, "cicdiiiinnn")
+        if (str_detect(benchmarkset, "stvar")) {
+            cnames <- c(
+                cnames,
+                "SVTYPE",
+                "SVLEN",
+                "RM_score",
+                "RM_repeat",
+                "RM_clsfam",
+                "LCR",
+                "REMAP"
+            )
+            ctypes <- paste0(ctypes, "cincccc")
+        }
+        return(list(col_names = cnames, col_types = ctypes))
+    } else {
+        stop(paste("Unknown benchmark set :", benchmarkset))
     }
-    return(list(col_names = cnames, col_types = ctypes))
-  } else {
-    stop(paste("Unknown benchmark set :", benchmarkset))
-  }
 
-  return(list(col_names = cnames, col_types = ctypes))
+    return(list(col_names = cnames, col_types = ctypes))
 }
 
 
 # Read function - vroom auto-detects column types
 read_bench_file <- function(path, col_info) {
-  print(path)
-  var_tbl <- vroom(
-    path,
-    delim = "\t",
-    na = ".",
-    skip = 1,
-    col_names = col_info$col_names,
-    col_types = col_info$col_types,
-    progress = TRUE
-  )
-  ## Cleaning up variant tables
-  if (str_detect(path, "smvar")) {
-    print("Tidying small variant table")
-    var_tbl <- tidy_smvar(var_tbl)
-  } else if (str_detect(path, "stvar")) {
-    print("Tidying SV table")
-    var_tbl <- tidy_stvar(var_tbl)
-  } else {
-    print("Dirty Table!! Fix code")
-  }
+    print(path)
+    var_tbl <- vroom(
+        path,
+        delim = "\t",
+        na = ".",
+        skip = 1,
+        col_names = col_info$col_names,
+        col_types = col_info$col_types,
+        progress = TRUE
+    )
+    ## Cleaning up variant tables
+    if (str_detect(path, "smvar")) {
+        print("Tidying small variant table")
+        var_tbl <- tidy_smvar(var_tbl)
+    } else if (str_detect(path, "stvar")) {
+        print("Tidying SV table")
+        var_tbl <- tidy_stvar(var_tbl)
+    } else {
+        print("Dirty Table!! Fix code")
+    }
 
-  ## Consistent chrom names as factors
-  if (str_detect(tolower(path), "grch37")) {
-    var_tbl$chrom <- paste0("chr", var_tbl$chrom)
-    print(unique(var_tbl$chrom))
-  }
-  var_tbl$chrom <- factor(
-    var_tbl$chrom,
-    levels = paste0("chr", c(1:22, "X", "Y"))
-  )
+    ## Consistent chrom names as factors
+    if (str_detect(tolower(path), "grch37")) {
+        var_tbl$chrom <- paste0("chr", var_tbl$chrom)
+        print(unique(var_tbl$chrom))
+    }
+    var_tbl$chrom <- factor(
+        var_tbl$chrom,
+        levels = paste0("chr", c(1:22, "X", "Y"))
+    )
 
-  ## Dropping extra columns
-  var_tbl <- var_tbl %>%
-    select(chrom, pos, end, gt, vkx, var_type, var_size, region_ids, strat_ids)
+    ## Dropping extra columns
+    var_tbl <- var_tbl %>%
+        select(
+            chrom,
+            pos,
+            end,
+            gt,
+            vkx,
+            var_type,
+            var_size,
+            region_ids,
+            strat_ids
+        )
 
-  return(var_tbl)
+    return(var_tbl)
 }
 
 # Parallel read with furrr
 plan(multisession, workers = 12)
 
 anno_var_tbl_files <- list.files(
-  path = here("results/variant_tables"),
-  pattern = "variants.tsv",
-  recursive = TRUE,
-  full.names = TRUE
+    path = here("results/variant_tables"),
+    pattern = "variants.tsv",
+    recursive = TRUE,
+    full.names = TRUE
 )
 
 # derive initial labels then apply textual replacements to the NAMES
 (names(anno_var_tbl_files) <- anno_var_tbl_files %>%
-  str_extract("(?<=variant_tables/).*(?=/variants.tsv)") %>%
-  str_replace_all("^v421", "v4.2.1") %>%
-  str_replace_all("^v06", "v0.6") %>%
-  str_replace_all("^v5q", "v5.0q") %>%
-  str_replace_all("grch", "GRCh") %>%
-  str_replace_all("chm13", "CHM13v2.0"))
+    str_extract("(?<=variant_tables/).*(?=/variants.tsv)") %>%
+    str_replace_all("^v421", "v4.2.1") %>%
+    str_replace_all("^v06", "v0.6") %>%
+    str_replace_all("^v5q", "v5.0q") %>%
+    str_replace_all("grch", "GRCh") %>%
+    str_replace_all("chm13", "CHM13v2.0"))
 
 bench_vars_tbls <- anno_var_tbl_files %>%
-  enframe(name = "benchmarkset", value = "path") %>%
-  mutate(
-    col_info = map(benchmarkset, get_bench_var_cols),
-    data = future_map2(path, col_info, ~ read_bench_file(.x, .y))
-  ) %>%
-  select(benchmarkset, data) %>%
-  separate(
-    col = benchmarkset,
-    into = c("bench_version", "ref", "bench_type"),
-    sep = "_",
-    fill = "right"
-  ) %>%
-  unnest(data)
+    enframe(name = "benchmarkset", value = "path") %>%
+    mutate(
+        col_info = map(benchmarkset, get_bench_var_cols),
+        data = future_map2(path, col_info, ~ read_bench_file(.x, .y))
+    ) %>%
+    select(benchmarkset, data) %>%
+    separate(
+        col = benchmarkset,
+        into = c("bench_version", "ref", "bench_type"),
+        sep = "_",
+        fill = "right"
+    ) %>%
+    unnest(data)
 ```
 
 ```{r}
@@ -319,164 +311,172 @@ glimpse(bench_vars_tbls)
 
 ```{r}
 (smvar_cnt_df <- bench_vars_tbls %>%
-  filter(bench_type == "smvar") %>%
-  group_by(bench_type, ref, bench_version, var_type) %>%
-  count(name = "nvars"))
+    filter(bench_type == "smvar") %>%
+    group_by(bench_type, ref, bench_version, var_type) %>%
+    count(name = "nvars"))
 ```
 
 ```{r}
 (smv_cnt_tbl <- smvar_cnt_df %>%
-  pivot_wider(names_from = "var_type", values_from = "nvars") %>%
-  mutate(Total = SNP + INDEL) %>%
-  arrange(ref) %>%
-  ungroup() %>%
-  gt::gt() %>%
-  gt::fmt_integer(
-    columns = c(SNP, INDEL, Total)
-  ) %>%
-  gt::cols_align(
-    columns = c("ref", "bench_version"),
-    align = "right"
-  ) %>%
-  gt::cols_label(
-    ref = "Reference",
-    bench_version = "Benchmark",
-    SNP = "SNVs",
-    INDEL = "INDELs",
-    Total = "Total Variants"
-  ))
+    pivot_wider(names_from = "var_type", values_from = "nvars") %>%
+    mutate(Total = SNP + INDEL) %>%
+    arrange(ref) %>%
+    ungroup() %>%
+    gt::gt() %>%
+    gt::fmt_integer(
+        columns = c(SNP, INDEL, Total)
+    ) %>%
+    gt::cols_align(
+        columns = c("ref", "bench_version"),
+        align = "right"
+    ) %>%
+    gt::cols_label(
+        ref = "Reference",
+        bench_version = "Benchmark",
+        SNP = "SNVs",
+        INDEL = "INDELs",
+        Total = "Total Variants"
+    ))
+```
 
+```{r}
 # gt::as_word(smv_cnt_tbl,
 #   here("results", "variant_counts", "smvar_counts_table.docx")
 # )
 ```
 
+
 #### Structural Variant Counts
 ```{r}
 (stvar_cnt_df <- bench_vars_tbls %>%
-  filter(bench_type == "stvar") %>%
-  group_by(bench_type, ref, bench_version, var_type) %>%
-  count(name = "nvars"))
+    filter(bench_type == "stvar") %>%
+    group_by(bench_type, ref, bench_version, var_type) %>%
+    count(name = "nvars"))
 
 stvar_cnt_table <- stvar_cnt_df %>%
-  pivot_wider(names_from = var_type, values_from = nvars) %>%
-  mutate(Total = INS + DEL)
+    pivot_wider(names_from = var_type, values_from = nvars) %>%
+    mutate(Total = INS + DEL)
 
 stvar_cnt_table %>%
-  arrange(ref) %>%
-  ungroup() %>%
-  gt::gt() %>%
-  gt::fmt_integer(
-    columns = c(INS, DEL, Total)
-  ) %>%
-  gt::cols_align(
-    columns = c("ref", "bench_version"),
-    align = "right"
-  ) %>%
-  gt::cols_label(
-    ref = "Reference",
-    bench_version = "Benchmark"
-  )
+    arrange(ref) %>%
+    ungroup() %>%
+    gt::gt() %>%
+    gt::fmt_integer(
+        columns = c(INS, DEL, Total)
+    ) %>%
+    gt::cols_align(
+        columns = c("ref", "bench_version"),
+        align = "right"
+    ) %>%
+    gt::cols_label(
+        ref = "Reference",
+        bench_version = "Benchmark"
+    )
 ```
+
 
 ## Variant Size Distributions
 
-
 ```{r}
 sv_len_df <- bench_vars_tbls %>%
-  filter(
-    bench_type == "stvar"
-  ) %>% 
-  mutate(ref = factor(ref, levels = c("GRCh37","GRCh38","CHM13v2.0")))
+    filter(
+        bench_type == "stvar"
+    ) %>%
+    mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
 
 (sv_len_dist_plt <- ggplot(
-  sv_len_df,
-  aes(x = var_size)
+    sv_len_df,
+    aes(x = var_size)
 ) +
-  geom_histogram(
-    data = filter(sv_len_df, bench_version != "v0.6"),
-    fill = "grey80",
-    color = "grey20",
-    bins = 100,
-    drop = "all"
-  ) +
-  geom_histogram(
-    data = filter(sv_len_df, bench_version == "v0.6"),
-    fill = "grey30",
-    color = "grey20",
-    bins = 100,
-    drop = "all"
-  ) +
-  scale_x_continuous(
-    breaks = c(
-      -10000,
-      -5000,
-      -1000,
-      -500,
-      -100,
-      -50,
-      0,
-      50,
-      100,
-      500,
-      1000,
-      5000,
-      10000
-    ),
-    trans = scales::pseudo_log_trans(sigma = 50, base = 10),
-    labels = scales::comma
-  ) +
-  scale_y_continuous(labels = scales::comma) +
-  labs(
-    x = "SV Length (bp)",
-    y = "Count"
-  ) +
-  facet_wrap(~ref, ncol = 1) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = -45, hjust = 0)
-  ))
+    geom_histogram(
+        data = filter(sv_len_df, bench_version != "v0.6"),
+        fill = "grey80",
+        color = "grey20",
+        bins = 100,
+        drop = "all"
+    ) +
+    geom_histogram(
+        data = filter(sv_len_df, bench_version == "v0.6"),
+        fill = "grey30",
+        color = "grey20",
+        bins = 100,
+        drop = "all"
+    ) +
+    scale_x_continuous(
+        breaks = c(
+            -10000,
+            -5000,
+            -1000,
+            -500,
+            -100,
+            -50,
+            0,
+            50,
+            100,
+            500,
+            1000,
+            5000,
+            10000
+        ),
+        trans = scales::pseudo_log_trans(sigma = 50, base = 10),
+        labels = scales::comma
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    labs(
+        x = "SV Length (bp)",
+        y = "Count"
+    ) +
+    facet_wrap(~ref, ncol = 1) +
+    theme_minimal() +
+    theme(
+        axis.text.x = element_text(angle = -45, hjust = 0)
+    ))
 ```
 
 ```{r}
 ggsave(
-  filename = here("manuscript", "figs", "sv_length_distribution.png"),
-  plot = sv_len_dist_plt,
-  width = 8,
-  height = 6,
-  dpi = 300
+    filename = here("manuscript", "figs", "sv_length_distribution.png"),
+    plot = sv_len_dist_plt,
+    width = 8,
+    height = 6,
+    dpi = 300
 )
 ```
 
 ```{r}
 #| warning: false
 smvar_len_df <- bench_vars_tbls %>%
-  filter(
-    bench_type == "smvar",
-    var_type == "INDEL"
-  ) %>% 
-  mutate(ref = factor(ref, levels = c("GRCh37","GRCh38","CHM13v2.0")))
+    filter(
+        bench_type == "smvar",
+        var_type == "INDEL"
+    ) %>%
+    mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
 
 (smvar_len_dist_plt <- ggplot(
-  smvar_len_df,
-  aes(x = var_size)
+    smvar_len_df,
+    aes(x = var_size)
 ) +
-  geom_histogram(
-    data = filter(smvar_len_df, bench_version != "v4.2.1"),
-    fill = "grey80", color = "grey20", binwidth = 1, drop = "all"
-  ) +
-  geom_histogram(
-    data = filter(smvar_len_df, bench_version == "v4.2.1"),
-    fill = "grey30", color = "grey20", binwidth = 1, drop = "all"
-  ) +
-  scale_y_continuous(labels = scales::comma) +
-  labs(
-    x = "INDEL Length (bp)",
-    y = "Count"
-  ) +
-  facet_wrap(~ref, ncol = 1) +
-  theme_minimal()
-)
+    geom_histogram(
+        data = filter(smvar_len_df, bench_version != "v4.2.1"),
+        fill = "grey80",
+        color = "grey20",
+        binwidth = 1,
+        drop = "all"
+    ) +
+    geom_histogram(
+        data = filter(smvar_len_df, bench_version == "v4.2.1"),
+        fill = "grey30",
+        color = "grey20",
+        binwidth = 1,
+        drop = "all"
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    labs(
+        x = "INDEL Length (bp)",
+        y = "Count"
+    ) +
+    facet_wrap(~ref, ncol = 1) +
+    theme_minimal())
 ```
 
 
@@ -484,63 +484,87 @@ smvar_len_df <- bench_vars_tbls %>%
 
 ```{r}
 diff_var_plt_df <- bench_vars_tbls %>%
-  separate_rows(strat_ids, sep = ",") %>%
-  mutate(value = 1)
+    separate_rows(strat_ids, sep = ",") %>%
+    mutate(value = 1)
 ```
 
 
 ```{r}
 (diff_smvar_plt <- diff_var_plt_df %>%
-  mutate(bench_version = factor(bench_version,
-    levels = c("v5.0q", "v4.2.1", "v0.6")
-  )) %>%
-  filter(!is.na(strat_ids), bench_type == "smvar") %>%
-  ggplot() +
-  geom_bar(aes(x = var_type, fill = bench_version),
-    color = "grey20", position = "dodge"
-  ) +
-  facet_wrap(. ~ strat_ids, nrow = 1) +
-  scale_y_continuous(label = scales::label_comma()) +
-  scale_fill_manual(values = c("v5.0q" = "darkgreen", "v4.2.1" = "darkorange", "v0.6" = "purple")) +
-  labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version") +
-  theme_minimal() +
-  theme(legend.position = "bottom", axis.text.x = element_text(angle = -45, vjust = 1))
-)
+    mutate(
+        bench_version = factor(
+            bench_version,
+            levels = c("v5.0q", "v4.2.1", "v0.6")
+        )
+    ) %>%
+    filter(!is.na(strat_ids), bench_type == "smvar") %>%
+    ggplot() +
+    geom_bar(
+        aes(x = var_type, fill = bench_version),
+        color = "grey20",
+        position = "dodge"
+    ) +
+    facet_wrap(. ~ strat_ids, nrow = 1) +
+    scale_y_continuous(label = scales::label_comma()) +
+    scale_fill_manual(
+        values = c(
+            "v5.0q" = "darkgreen",
+            "v4.2.1" = "darkorange",
+            "v0.6" = "purple"
+        )
+    ) +
+    labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version") +
+    theme_minimal() +
+    theme(
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = -45, vjust = 1)
+    ))
 ```
 
 ```{r}
 (diff_stvar_plt <- diff_var_plt_df %>%
-  mutate(bench_version = factor(bench_version,
-    levels = c("v5.0q", "v4.2.1", "v0.6")
-  )) %>%
-  filter(!is.na(strat_ids), bench_type == "stvar") %>%
-  ggplot() +
-  geom_bar(aes(x = var_type, fill = bench_version),
-    color = "grey20", position = "dodge"
-  ) +
-  facet_wrap(. ~ strat_ids, nrow = 1) +
-  scale_y_continuous(label = scales::label_comma()) +
-  scale_fill_manual(values = c("v5.0q" = "darkgreen", "v4.2.1" = "darkorange", "v0.6" = "purple")) +
-  labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-)
+    mutate(
+        bench_version = factor(
+            bench_version,
+            levels = c("v5.0q", "v4.2.1", "v0.6")
+        )
+    ) %>%
+    filter(!is.na(strat_ids), bench_type == "stvar") %>%
+    ggplot() +
+    geom_bar(
+        aes(x = var_type, fill = bench_version),
+        color = "grey20",
+        position = "dodge"
+    ) +
+    facet_wrap(. ~ strat_ids, nrow = 1) +
+    scale_y_continuous(label = scales::label_comma()) +
+    scale_fill_manual(
+        values = c(
+            "v5.0q" = "darkgreen",
+            "v4.2.1" = "darkorange",
+            "v0.6" = "purple"
+        )
+    ) +
+    labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version") +
+    theme_minimal() +
+    theme(legend.position = "bottom"))
 ```
 
 ```{r}
-(diff_var_plt <- diff_smvar_plt + diff_stvar_plt +
-  plot_layout(ncol = 1, guides = "collect") +
-  plot_annotation(tag_levels = "A") & theme(legend.position = "bottom")
-)
+(diff_var_plt <- diff_smvar_plt +
+    diff_stvar_plt +
+    plot_layout(ncol = 1, guides = "collect") +
+    plot_annotation(tag_levels = "A") &
+    theme(legend.position = "bottom"))
 ```
 
 ```{r}
 ggsave(
-  filename = here("manuscript", "figs", "diff_variant_counts.png"),
-  plot = diff_var_plt,
-  width = 8,
-  height = 6,
-  dpi = 300,
+    filename = here("manuscript", "figs", "diff_variant_counts.png"),
+    plot = diff_var_plt,
+    width = 8,
+    height = 6,
+    dpi = 300,
 )
 ```
 
@@ -551,57 +575,61 @@ ggsave(
 
 ```{r}
 bench_region_list <- list.files(
-  path = here("resources/benchmarksets"),
-  pattern = "_benchmark.bed",
-  full.names = TRUE
+    path = here("resources/benchmarksets"),
+    pattern = "_benchmark.bed",
+    full.names = TRUE
 ) %>%
-  set_names(str_extract(., "(?<=benchmarksets/).*(?=_benchmark.bed)"))
+    set_names(str_extract(., "(?<=benchmarksets/).*(?=_benchmark.bed)"))
 
 pg_region_list <- list(
-  "PP_GRCh38_smvar" = here(
-    "data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz"
-  ),
-  "PP_GRCh38_stvar" = here(
-    "data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz"
-  )
+    "PP_GRCh38_smvar" = here(
+        "data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz"
+    ),
+    "PP_GRCh38_stvar" = here(
+        "data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz"
+    )
 )
 ```
 
 
 ```{r}
 regions_df <- c(
-  bench_region_list,
-  pg_region_list
+    bench_region_list,
+    pg_region_list
 ) %>%
-  map_dfr(
-    read_tsv,
-    col_names = c("chrom", "start", "end"),
-    col_types = "cii",
-    .id = "benchmarkset"
-  ) %>%
-  mutate(
-    interval_size = end - start,
-    chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
-  ) %>% 
-  separate(benchmarkset, into = c("bench_version","ref","var_type"), sep = "_")
+    map_dfr(
+        read_tsv,
+        col_names = c("chrom", "start", "end"),
+        col_types = "cii",
+        .id = "benchmarkset"
+    ) %>%
+    mutate(
+        interval_size = end - start,
+        chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
+    ) %>%
+    separate(
+        benchmarkset,
+        into = c("bench_version", "ref", "var_type"),
+        sep = "_"
+    )
 
 # Validate regions_df structure and no FIXME values
 assert_that(
-  is_tibble(regions_df),
-  has_name(
-    regions_df,
-    c(
-      "chrom",
-      "start",
-      "end",
-      "interval_size",
-      "bench_version",
-      "var_type",
-      "ref"
-    )
-  ),
-  nrow(regions_df) > 0,
-  all(regions_df$interval_size > 0)
+    is_tibble(regions_df),
+    has_name(
+        regions_df,
+        c(
+            "chrom",
+            "start",
+            "end",
+            "interval_size",
+            "bench_version",
+            "var_type",
+            "ref"
+        )
+    ),
+    nrow(regions_df) > 0,
+    all(regions_df$interval_size > 0)
 )
 ```
 
@@ -615,16 +643,16 @@ hg002fai_md5 <- "c84f852b1cd4a00b12e6439ae7a2dd87"
 hg002fai <- tempfile()
 download.file(url = hg002fai_url, destfile = hg002fai, quiet = TRUE)
 if (identical(tools::md5sum(hg002fai), hg002fai_md5)) {
-  stop("Downloaded hg002q100v1.1 fai file has incorrect md5sum")
+    stop("Downloaded hg002q100v1.1 fai file has incorrect md5sum")
 }
 
 hg002fai_df <- read_tsv(
     hg002fai,
     col_names = c("chrom", "length", "offset", "line_bases", "line_width"),
     col_types = "cicii"
-  ) |> 
-    mutate(chrom = str_remove(chrom, "_.ATERNAL")) |> 
-    filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |> 
+) |>
+    mutate(chrom = str_remove(chrom, "_.ATERNAL")) |>
+    filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |>
     select(chrom, length)
 file.remove(hg002fai)
 
@@ -632,106 +660,116 @@ file.remove(hg002fai)
 ```
 
 ```{r}
-ref_size_df <- list.files(here("results/ref_genome_sizes"), pattern = "_size.tsv",full.names = TRUE) %>%
-  set_names(str_extract(., "(?<=ref_genome_sizes/).*(?=_size.tsv)")) %>%
-  map_dfr(
-    read_tsv,
-    col_types = "ciii",
-    .id = "ref"
-  ) %>%
-    rename(chrom= '#id') |> 
-    mutate(chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom)),
-    asm_bp = length - N) |> 
-      select(ref, chrom, asm_bp)
+ref_size_df <- list.files(
+    here("results/ref_genome_sizes"),
+    pattern = "_size.tsv",
+    full.names = TRUE
+) %>%
+    set_names(str_extract(., "(?<=ref_genome_sizes/).*(?=_size.tsv)")) %>%
+    map_dfr(
+        read_tsv,
+        col_types = "ciii",
+        .id = "ref"
+    ) %>%
+    rename(chrom = '#id') |>
+    mutate(
+        chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom)),
+        asm_bp = length - N
+    ) |>
+    select(ref, chrom, asm_bp)
 ```
 
 ```{r}
-total_ref_asm_bp <- ref_size_df |> group_by(ref) |> summarise(total_asm_bp = sum(asm_bp))
+total_ref_asm_bp <- ref_size_df |>
+    group_by(ref) |>
+    summarise(total_asm_bp = sum(asm_bp))
 ```
 
 ```{r}
 regions_df %>%
-  filter(bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
-  chrom %in% paste0("chr", c(1:22, "X","Y"))) %>%
-  group_by(var_type, ref, bench_version) %>%
-  summarise(total_bp = sum(interval_size), .groups = "drop") %>%
+    filter(
+        bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
+        chrom %in% paste0("chr", c(1:22, "X", "Y"))
+    ) %>%
+    group_by(var_type, ref, bench_version) %>%
+    summarise(total_bp = sum(interval_size), .groups = "drop") %>%
     left_join(total_ref_asm_bp) %>%
-  mutate(
-    pct_ref_cvg = round(100 * (total_bp / total_asm_bp), 0),
-    pct_q100_cvg = round(100 * (total_bp / hg002q100v1.1_size), 0),
-    total_bp = format(total_bp, big.mark = ",")
-  ) %>%
-  arrange(var_type, bench_version, ref) %>%
-  gt::gt()
+    mutate(
+        pct_ref_cvg = round(100 * (total_bp / total_asm_bp), 0),
+        pct_q100_cvg = round(100 * (total_bp / hg002q100v1.1_size), 0),
+        total_bp = format(total_bp, big.mark = ",")
+    ) %>%
+    arrange(var_type, bench_version, ref) %>%
+    gt::gt()
 ```
 
 Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ```{r fig.width = 8, fig.height = 4}
 (coverage_change_plt <- regions_df %>%
-  filter(
-    bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
-    (var_type == "smvar" & ref == "GRCh38") |
-      (var_type == "stvar" & ref == "GRCh37"),
-    chrom %in% paste0("chr", c(1:22))
-  ) %>%
-  select(-starts_with("X")) %>%
-  group_by(var_type, chrom, bench_version) %>%
-  summarise(total_size = sum(interval_size), .groups = "drop") %>%
-  mutate(
-    vers = if_else(bench_version == "v5.0q", "new", "old"),
-    chrom = factor(chrom, levels = paste0("chr", 1:22))
-  ) %>%
-  select(-bench_version) %>%
-  pivot_wider(names_from = vers, values_from = total_size) %>%
-  mutate(
-    pct_change = 100 * (new - old) / old,
-    total_change = new - old
-  ) %>%
-  ggplot() +
-  geom_hline(yintercept = 0, color = "grey50") +
-  geom_point(
-    aes(
-      x = chrom,
-      y = pct_change,
-      fill = total_change / 1000000,
-      shape = var_type
-    ),
-    size = 4,
-    color = "black",
-    position = "jitterdodge"
-  ) +
-  scale_y_continuous(
-    labels = scales::percent_format(scale = 1),
-    n.breaks = 10
-  ) +
-  scale_fill_gradient2(
-    low = "red",
-    mid = "white",
-    high = "blue",
-    midpoint = 0,
-    labels = scales::comma
-  ) +
-  scale_shape_manual(values = c(21, 24)) +
-  labs(
-    x = "Chromosome",
-    y = "Coverage Change",
-    fill = "Coverage change (Mb)",
-    shape = "Variant Type"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = -45, hjust = 0),
-    legend.position = "bottom"
-  ))
+    filter(
+        bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
+        (var_type == "smvar" & ref == "GRCh38") |
+            (var_type == "stvar" & ref == "GRCh37"),
+        chrom %in% paste0("chr", c(1:22))
+    ) %>%
+    select(-starts_with("X")) %>%
+    group_by(var_type, chrom, bench_version) %>%
+    summarise(total_size = sum(interval_size), .groups = "drop") %>%
+    mutate(
+        vers = if_else(bench_version == "v5.0q", "new", "old"),
+        chrom = factor(chrom, levels = paste0("chr", 1:22))
+    ) %>%
+    select(-bench_version) %>%
+    pivot_wider(names_from = vers, values_from = total_size) %>%
+    mutate(
+        pct_change = 100 * (new - old) / old,
+        total_change = new - old
+    ) %>%
+    ggplot() +
+    geom_hline(yintercept = 0, color = "grey50") +
+    geom_point(
+        aes(
+            x = chrom,
+            y = pct_change,
+            fill = total_change / 1000000,
+            shape = var_type
+        ),
+        size = 4,
+        color = "black",
+        position = "jitterdodge"
+    ) +
+    scale_y_continuous(
+        labels = scales::percent_format(scale = 1),
+        n.breaks = 10
+    ) +
+    scale_fill_gradient2(
+        low = "red",
+        mid = "white",
+        high = "blue",
+        midpoint = 0,
+        labels = scales::comma
+    ) +
+    scale_shape_manual(values = c(21, 24)) +
+    labs(
+        x = "Chromosome",
+        y = "Coverage Change",
+        fill = "Coverage change (Mb)",
+        shape = "Variant Type"
+    ) +
+    theme_minimal() +
+    theme(
+        axis.text.x = element_text(angle = -45, hjust = 0),
+        legend.position = "bottom"
+    ))
 ```
 
 ```{r}
 (ggsave(
-  filename = here("manuscript", "figs", "benchmark_region_size_change.png"),
-  plot = coverage_change_plt,
-  width = 8,
-  height = 4,
-  dpi = 300
+    filename = here("manuscript", "figs", "benchmark_region_size_change.png"),
+    plot = coverage_change_plt,
+    width = 8,
+    height = 4,
+    dpi = 300
 ))
 ```
 
@@ -739,140 +777,175 @@ Relative changes between v5q and v4.2.1/v0.6 by chromosome
 
 ```{r}
 diff_coverage <- list.files(
-  here("results/diff_region_coverage"),
-  pattern = "_cov.bed",
-  recursive = TRUE,
-  full.names = TRUE
+    here("results/diff_region_coverage"),
+    pattern = "_cov.bed",
+    recursive = TRUE,
+    full.names = TRUE
 ) %>%
-  {
-    set_names(., str_extract(., "(?<=coverage/).*(?=_cov.bed)") %>%
-      str_replace("/", "_"))
-  } %>%
-  map_dfr(read_tsv,
-    col_names = c("CHROM", "START", "END", "n_overlap", "bases_cov", "ivl_len", "frac_cov"),
-    col_types = "ciiiiid",
-    .id = "strat"
-  ) %>% 
-  filter(n_overlap > 0) %>% 
-  separate(strat, into = c("bench_version","ref","var_type","strat"), sep = "_")
+    {
+        set_names(
+            .,
+            str_extract(., "(?<=coverage/).*(?=_cov.bed)") %>%
+                str_replace("/", "_")
+        )
+    } %>%
+    map_dfr(
+        read_tsv,
+        col_names = c(
+            "CHROM",
+            "START",
+            "END",
+            "n_overlap",
+            "bases_cov",
+            "ivl_len",
+            "frac_cov"
+        ),
+        col_types = "ciiiiid",
+        .id = "strat"
+    ) %>%
+    filter(n_overlap > 0) %>%
+    separate(
+        strat,
+        into = c("bench_version", "ref", "var_type", "strat"),
+        sep = "_"
+    )
 ```
 
 
 ```{r}
-diff_cov_total <- diff_coverage %>% 
-  group_by(bench_version, ref, var_type, strat) %>% 
-  summarise(total_cov = sum(bases_cov))
+diff_cov_total <- diff_coverage %>%
+    group_by(bench_version, ref, var_type, strat) %>%
+    summarise(total_cov = sum(bases_cov))
 
-diff_cov_total %>% 
-  ggplot() +
-  geom_bar(aes(x = strat, y = total_cov, fill = bench_version), stat = "identity", position = "dodge") +
-  facet_wrap(~var_type, ncol = 1) +
-  theme_minimal()
+diff_cov_total %>%
+    ggplot() +
+    geom_bar(
+        aes(x = strat, y = total_cov, fill = bench_version),
+        stat = "identity",
+        position = "dodge"
+    ) +
+    facet_wrap(~var_type, ncol = 1) +
+    theme_minimal()
 ```
 
 
 #### Difficult Region Bases Included
-%%TODO%% Fix me
-```{r eval=FALSE}
+
+```{r}
 diff_included_tbl <- read_tsv(here(
-  "results/context_coverage/all_context_coverage.tsv"
+    "results/context_coverage/all_context_coverage.tsv"
 )) %>%
-  separate(
-    col = "benchmark",
-    into = c("bench_version", "ref_id", "bench_type"),
-    extra = "drop",
-    sep = "_"
-  ) %>%
-  mutate(
-    included_pct = round(100 * (overlap_bp / context_bp), 2)
-  )
+    separate(
+        col = "benchmark",
+        into = c("bench_version", "ref_id", "bench_type"),
+        extra = "drop",
+        sep = "_"
+    ) %>%
+    mutate(
+        included_pct = round(100 * (overlap_bp / context_bp), 2)
+    )
 
 diff_included_plt_df <- diff_included_tbl %>%
-  filter(
-    (bench_version %in%
-      c("v5q", "v421") &
-      bench_type == "smvar" &
-      ref_id == "grch38") |
-      (bench_version %in%
-        c("v5q", "v06") &
-        bench_type == "stvar" &
-        ref_id == "grch37"),
-    chrom_scope == "autosomes"
-  )
+    filter(
+        (bench_version %in%
+            c("v5q", "v421") &
+            bench_type == "smvar" &
+            ref_id == "grch38") |
+            (bench_version %in%
+                c("v5q", "v06") &
+                bench_type == "stvar" &
+                ref_id == "grch37"),
+        chrom_scope == "autosomes"
+    )
 ```
 
 ```{r eval=FALSE}
 ggplot(diff_included_plt_df) +
-  geom_point(
-    aes(
-      x = bench_type,
-      y = overlap_bp,
-      fill = context,
-      shape = bench_version
-    ),
-    position = "jitterdodge"
-  ) +
-  scale_y_log10() +
-  annotation_logticks(sides = "lr") +
-  scale_shape_manual(values = c(21, 24, 22)) +
-  labs(
-    x = "Benchmark Type",
-    y = "Included Bases (bp)",
-    fill = "Genomic Context",
-    shape = "Benchmark Version"
-  ) +
-  facet_wrap(~context, nrow = 1) +
-  theme_minimal() +
-  theme(legend.position = "bottom", legend.box = "vertical") +
-  guides(
-    fill = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(shape = 21))
-  )
+    geom_point(
+        aes(
+            x = bench_type,
+            y = overlap_bp,
+            fill = context,
+            shape = bench_version
+        ),
+        position = "jitterdodge"
+    ) +
+    scale_y_log10() +
+    annotation_logticks(sides = "lr") +
+    scale_shape_manual(values = c(21, 24, 22)) +
+    labs(
+        x = "Benchmark Type",
+        y = "Included Bases (bp)",
+        fill = "Genomic Context",
+        shape = "Benchmark Version"
+    ) +
+    facet_wrap(~context, nrow = 1) +
+    theme_minimal() +
+    theme(legend.position = "bottom", legend.box = "vertical") +
+    guides(
+        fill = guide_legend(
+            nrow = 2,
+            byrow = TRUE,
+            override.aes = list(shape = 21)
+        )
+    )
 ```
 
 ```{r eval=FALSE}
 ggplot(
-  diff_included_plt_df,
-  aes(
-    x = bench_type,
-    y = included_pct
-  )
-) +
-  geom_point(
+    diff_included_plt_df,
     aes(
-      fill = context,
-      shape = bench_version
-    ),
-    position = position_jitterdodge(dodge.width = 0.5)
-  ) +
-  scale_shape_manual(values = c(21, 24, 22)) +
-  scale_color_manual(values = c("grey20", "darkred")) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
-  labs(
-    x = "Benchmark Type",
-    y = "Included Bases (%)",
-    fill = "Genomic Context",
-    shape = "Benchmark Version"
-  ) +
-  facet_wrap(~context, nrow = 1) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    legend.box = "vertical"
-  ) +
-  guides(
-    fill = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(shape = 21))
-  )
-``
-`
-```{r eval=FALSE}
+        x = bench_type,
+        y = included_pct
+    )
+) +
+    geom_point(
+        aes(
+            fill = context,
+            shape = bench_version
+        ),
+        position = position_jitterdodge(dodge.width = 0.5)
+    ) +
+    scale_shape_manual(values = c(21, 24, 22)) +
+    scale_color_manual(values = c("grey20", "darkred")) +
+    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+    labs(
+        x = "Benchmark Type",
+        y = "Included Bases (%)",
+        fill = "Genomic Context",
+        shape = "Benchmark Version"
+    ) +
+    facet_wrap(~context, nrow = 1) +
+    theme_minimal() +
+    theme(
+        legend.position = "bottom",
+        legend.box = "vertical"
+    ) +
+    guides(
+        fill = guide_legend(
+            nrow = 2,
+            byrow = TRUE,
+            override.aes = list(shape = 21)
+        )
+    )
+```
+
+```{r eval = FALSE}
 diff_included_plt_df %>%
-  select(ref, bench_type, context, bench_version, chrom_scope, included_pct) %>%
-  filter(chrom_scope == "autosomes") %>%
-  # group_by(bench_type) %>%
-  # pivot_wider(names_from = bench_version, values_from = included_pct) #%>%
-  # mutate(pct_change = (v5q - v421)/v421) %>%
-  arrange(bench_type, context, chrom_scope) %>%
-  gt::gt()
+    select(
+        ref,
+        bench_type,
+        context,
+        bench_version,
+        chrom_scope,
+        included_pct
+    ) %>%
+    filter(chrom_scope == "autosomes") %>%
+    # group_by(bench_type) %>%
+    # pivot_wider(names_from = bench_version, values_from = included_pct) #%>%
+    # mutate(pct_change = (v5q - v421)/v421) %>%
+    arrange(bench_type, context, chrom_scope) %>%
+    gt::gt()
 ```
 
 
@@ -881,101 +954,107 @@ diff_included_plt_df %>%
 Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-request s3://platinum-pedigree-data/truthset_v1.2/ . 
 ```{r}
 (interval_size_dist_plt <- regions_df %>%
-  filter(
-    bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
-    (var_type == "smvar" & ref == "GRCh38") |
-      (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
-    chrom %in% paste0("chr", c(1:22))
-  ) %>%
-  select(-starts_with("X")) %>%
-  ggplot() +
-  geom_density(
-    aes(x = interval_size, fill = bench_version),
-    position = "identity",
-    alpha = 0.5,
-    bins = 100,
-    outline.type = "upper"
-  ) +
-  scale_x_log10(labels = scales::comma) +
-  annotation_logticks(sides = "b") +
-  scale_fill_brewer(palette = "Set1") +
-  facet_wrap(~var_type, ncol = 1) +
-  theme_minimal() +
-  theme(legend.position = "bottom") +
-  labs(x = "Benchmark Interval Size (bp)", y = "Density", fill = "Benchmark Version"))
+    filter(
+        bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
+        (var_type == "smvar" & ref == "GRCh38") |
+            (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+        chrom %in% paste0("chr", c(1:22))
+    ) %>%
+    select(-starts_with("X")) %>%
+    ggplot() +
+    geom_density(
+        aes(x = interval_size, fill = bench_version),
+        position = "identity",
+        alpha = 0.5,
+        bins = 100,
+        outline.type = "upper"
+    ) +
+    scale_x_log10(labels = scales::comma) +
+    annotation_logticks(sides = "b") +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~var_type, ncol = 1) +
+    theme_minimal() +
+    theme(legend.position = "bottom") +
+    labs(
+        x = "Benchmark Interval Size (bp)",
+        y = "Density",
+        fill = "Benchmark Version"
+    ))
 ```
 
 ```{r}
 (interval_count_plt <- regions_df %>%
-  filter(
-    bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
-    (var_type == "smvar" & ref == "GRCh38") |
-      (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
-    chrom %in% paste0("chr", c(1:22))
-  ) %>%
-  ggplot() +
-  geom_bar(aes(x = bench_version, fill = bench_version),
-    color = "grey20", position = "dodge", alpha = 0.5
-  ) +
-  facet_wrap(~var_type, nrow = 2, scales = "free") +
-  labs(x = "Benchmark Version", y = "Number of Intervals", fill = "Benchmark Version") +
-  scale_y_continuous(labels = scales::comma) +
-  theme_minimal() +
-  theme(legend.position = "none"))
+    filter(
+        bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
+        (var_type == "smvar" & ref == "GRCh38") |
+            (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+        chrom %in% paste0("chr", c(1:22))
+    ) %>%
+    ggplot() +
+    geom_bar(
+        aes(x = bench_version, fill = bench_version),
+        color = "grey20",
+        position = "dodge",
+        alpha = 0.5
+    ) +
+    facet_wrap(~var_type, nrow = 2, scales = "free") +
+    labs(
+        x = "Benchmark Version",
+        y = "Number of Intervals",
+        fill = "Benchmark Version"
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    theme_minimal() +
+    theme(legend.position = "none"))
 ```
 
 ```{r}
 (interval_plt <- interval_size_dist_plt +
-  interval_count_plt)
+    interval_count_plt)
 
 ggsave(
-  here("manuscript/figs/benchmark_intervals.png"),
-  interval_plt,
-  width = 8,
-  height = 6
+    here("manuscript/figs/benchmark_intervals.png"),
+    interval_plt,
+    width = 8,
+    height = 6
 )
 ```
 
 Number of regions by benchmark set.
 ```{r}
 regions_df %>%
-  filter(
-    bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
-    (var_type == "smvar" & ref == "GRCh38") |
-      (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
-    chrom %in% paste0("chr", c(1:22))
-  ) %>%
-  group_by(bench_version, var_type, ref) %>%
-  count() %>%
-  mutate(
-    bench_version = factor(
-      bench_version,
-      levels = c("v4.2.1", "v0.6", "v5q", "PG")
+    filter(
+        bench_version %in% c("v5q", "v4.2.1", "v0.6", "PG"),
+        (var_type == "smvar" & ref == "GRCh38") |
+            (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+        chrom %in% paste0("chr", c(1:22))
+    ) %>%
+    group_by(bench_version, var_type, ref) %>%
+    count() %>%
+    mutate(
+        bench_version = factor(
+            bench_version,
+            levels = c("v4.2.1", "v0.6", "v5q", "PG")
+        )
+    ) %>%
+    arrange(var_type, bench_version) %>%
+    ungroup() %>%
+    select(var_type, ref, bench_version, n) %>%
+    gt::gt() %>%
+    gt::tab_header(title = "Number of intervals in Benchmark Regions") %>%
+    gt::fmt_integer(columns = n) %>%
+    gt::cols_align(
+        columns = c("var_type", "ref", "bench_version"),
+        align = "right"
+    ) %>%
+    gt::cols_label(
+        var_type = "Variant Type",
+        ref = "Reference",
+        bench_version = "Benchmark",
+        n = "Number of Intervals"
     )
-  ) %>%
-  arrange(var_type, bench_version) %>%
-  ungroup() %>%
-  select(var_type, ref, bench_version, n) %>%
-  gt::gt() %>%
-  gt::tab_header(title = "Number of intervals in Benchmark Regions") %>%
-  gt::fmt_integer(columns = n) %>%
-  gt::cols_align(
-    columns = c("var_type", "ref", "bench_version"),
-    align = "right"
-  ) %>%
-  gt::cols_label(
-    var_type = "Variant Type",
-    ref = "Reference",
-    bench_version = "Benchmark",
-    n = "Number of Intervals"
-  )
 ```
 
-## Medically Relevant Gene Comparison
-
-- number of variants in medically relevant genes in v5 compared to v4 and v0.6 + CMRG
-- Medically relevant gene coverage
-Use code from CMRG paper as starting point https://github.com/usnistgov/cmrg-benchmarkset-manuscript/tree/master
 
 ## Exclusions
 
@@ -985,128 +1064,127 @@ Use code from CMRG paper as starting point https://github.com/usnistgov/cmrg-ben
 
 ```{r}
 exclusion_intersect_files <- list.files(
-  path = here("data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets"),
-  pattern = "exclusion_intersection_summary.csv",
-  recursive = TRUE,
-  full.names = TRUE
+    path = here("data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets"),
+    pattern = "exclusion_intersection_summary.csv",
+    recursive = TRUE,
+    full.names = TRUE
 ) %>%
-  set_names(str_remove(., ".*-excluded/"))
+    set_names(str_remove(., ".*-excluded/"))
 
 exclusion_intersect_df <- exclusion_intersect_files %>%
-  map_dfr(read_csv, show_col_types = FALSE, .id = "benchmarkset") %>%
-  separate(
-    col = benchmarkset,
-    into = c("ref", "assembly", "bench_type", "varcall"),
-    extra = "drop",
-    sep = "_"
-  ) %>%
-  select(-assembly, -varcall) %>%
-  rename(
-    dip_overlap_bp = bp,
-    dip_excluded_pct = pct_of_initial
-  ) %>%
-  mutate(
-    start_end = case_when(
-      str_detect(genomic_region, "start") ~ "start",
-      str_detect(genomic_region, "end") ~ "end",
-      TRUE ~ ""
-    ),
-    genomic_region = str_remove(genomic_region, "_(slop|sorted).*bed$"),
-    exclusion = case_when(
-      genomic_region == "HG002Q100-errors" ~ genomic_region,
-      genomic_region == "initial" ~ "diploid-regions",
-      str_detect(genomic_region, "HG002Q100-") ~ str_extract(
-        genomic_region,
-        "(?<=HG002Q100-).*"
-      ),
-      str_detect(genomic_region, "_dipcall-z2k_") ~ str_extract(
-        genomic_region,
-        "(?<=_dipcall-z2k_).*"
-      ),
-      TRUE ~ genomic_region
+    map_dfr(read_csv, show_col_types = FALSE, .id = "benchmarkset") %>%
+    separate(
+        col = benchmarkset,
+        into = c("ref", "assembly", "bench_type", "varcall"),
+        extra = "drop",
+        sep = "_"
+    ) %>%
+    select(-assembly, -varcall) %>%
+    rename(
+        dip_overlap_bp = bp,
+        dip_excluded_pct = pct_of_initial
+    ) %>%
+    mutate(
+        start_end = case_when(
+            str_detect(genomic_region, "start") ~ "start",
+            str_detect(genomic_region, "end") ~ "end",
+            TRUE ~ ""
+        ),
+        genomic_region = str_remove(genomic_region, "_(slop|sorted).*bed$"),
+        exclusion = case_when(
+            genomic_region == "HG002Q100-errors" ~ genomic_region,
+            genomic_region == "initial" ~ "diploid-regions",
+            str_detect(genomic_region, "HG002Q100-") ~ str_extract(
+                genomic_region,
+                "(?<=HG002Q100-).*"
+            ),
+            str_detect(genomic_region, "_dipcall-z2k_") ~ str_extract(
+                genomic_region,
+                "(?<=_dipcall-z2k_).*"
+            ),
+            TRUE ~ genomic_region
+        )
     )
-  )
 ```
 
 ```{r}
 exclusion_gt_tbl <- exclusion_intersect_df %>%
-  mutate(exclusion = trimws(paste(exclusion, start_end), "both")) %>%
-  select(ref, exclusion, bench_type, dip_overlap_bp, dip_excluded_pct) %>%
-  filter(!(exclusion %in% c("benchmark_regions", "diploid-regions"))) %>%
-  pivot_wider(
-    names_from = ref,
-    values_from = c(dip_overlap_bp, dip_excluded_pct)
-  ) %>%
-  arrange(-dip_overlap_bp_CHM13v2.0)
+    mutate(exclusion = trimws(paste(exclusion, start_end), "both")) %>%
+    select(ref, exclusion, bench_type, dip_overlap_bp, dip_excluded_pct) %>%
+    filter(!(exclusion %in% c("benchmark_regions", "diploid-regions"))) %>%
+    pivot_wider(
+        names_from = ref,
+        values_from = c(dip_overlap_bp, dip_excluded_pct)
+    ) %>%
+    arrange(-dip_overlap_bp_CHM13v2.0)
 
 make_exclusion_tbl <- function(exclusion_tbl, table_title) {
-  gt::gt(exclusion_tbl) %>%
-    gt::fmt_integer(
-      columns = c(
-        dip_overlap_bp_GRCh37,
-        dip_overlap_bp_GRCh38,
-        dip_overlap_bp_CHM13v2.0
-      )
-    ) %>%
-    gt::fmt_number(
-      columns = c(
-        dip_excluded_pct_GRCh37,
-        dip_excluded_pct_GRCh38,
-        dip_excluded_pct_CHM13v2.0
-      ),
-      decimals = 2
-    ) %>%
-    gt::tab_spanner(
-      label = "GRCh37",
-      columns = c(dip_overlap_bp_GRCh37, dip_excluded_pct_GRCh37)
-    ) %>%
-    gt::tab_spanner(
-      label = "GRCh38",
-      columns = c(dip_overlap_bp_GRCh38, dip_excluded_pct_GRCh38)
-    ) %>%
-    gt::tab_spanner(
-      label = "CHM13v2.0",
-      columns = c(dip_overlap_bp_CHM13v2.0, dip_excluded_pct_CHM13v2.0)
-    ) %>%
-    gt::cols_label(
-      dip_overlap_bp_GRCh37 = "bp",
-      dip_excluded_pct_GRCh37 = "%",
-      dip_overlap_bp_GRCh38 = "bp",
-      dip_excluded_pct_GRCh38 = "%",
-      dip_overlap_bp_CHM13v2.0 = "bp",
-      dip_excluded_pct_CHM13v2.0 = "%"
-    ) %>%
-    gt::tab_header(
-      title = table_title
-    ) %>%
-    gt::cols_align(columns = c(exclusion, bench_type), align = "right")
+    gt::gt(exclusion_tbl) %>%
+        gt::fmt_integer(
+            columns = c(
+                dip_overlap_bp_GRCh37,
+                dip_overlap_bp_GRCh38,
+                dip_overlap_bp_CHM13v2.0
+            )
+        ) %>%
+        gt::fmt_number(
+            columns = c(
+                dip_excluded_pct_GRCh37,
+                dip_excluded_pct_GRCh38,
+                dip_excluded_pct_CHM13v2.0
+            ),
+            decimals = 2
+        ) %>%
+        gt::tab_spanner(
+            label = "GRCh37",
+            columns = c(dip_overlap_bp_GRCh37, dip_excluded_pct_GRCh37)
+        ) %>%
+        gt::tab_spanner(
+            label = "GRCh38",
+            columns = c(dip_overlap_bp_GRCh38, dip_excluded_pct_GRCh38)
+        ) %>%
+        gt::tab_spanner(
+            label = "CHM13v2.0",
+            columns = c(dip_overlap_bp_CHM13v2.0, dip_excluded_pct_CHM13v2.0)
+        ) %>%
+        gt::cols_label(
+            dip_overlap_bp_GRCh37 = "bp",
+            dip_excluded_pct_GRCh37 = "%",
+            dip_overlap_bp_GRCh38 = "bp",
+            dip_excluded_pct_GRCh38 = "%",
+            dip_overlap_bp_CHM13v2.0 = "bp",
+            dip_excluded_pct_CHM13v2.0 = "%"
+        ) %>%
+        gt::tab_header(
+            title = table_title
+        ) %>%
+        gt::cols_align(columns = c(exclusion, bench_type), align = "right")
 }
 ```
 
 ```{r}
 combined_exclusion_tbl <- exclusion_intersect_df %>%
-  mutate(exclusion = trimws(paste(exclusion, start_end), "both")) %>%
-  select(ref, exclusion, bench_type, dip_overlap_bp, dip_excluded_pct) %>%
-  filter(!(exclusion %in% c("benchmark_regions", "diploid-regions"))) %>%
-  pivot_wider(
-    names_from = ref,
-    values_from = c(dip_overlap_bp, dip_excluded_pct)
-  ) %>%
-  arrange(-dip_overlap_bp_CHM13v2.0) %>%
-  mutate(
-    bench_type = case_when(
-      exclusion == "total_excluded" ~ bench_type,
-      exclusion == "svs-and-simple-repeats" ~ bench_type,
-      exclusion == "self-discrep" ~ bench_type,
-      TRUE ~ "both"
-    )
-  ) %>%
-  distinct()
+    mutate(exclusion = trimws(paste(exclusion, start_end), "both")) %>%
+    select(ref, exclusion, bench_type, dip_overlap_bp, dip_excluded_pct) %>%
+    filter(!(exclusion %in% c("benchmark_regions", "diploid-regions"))) %>%
+    pivot_wider(
+        names_from = ref,
+        values_from = c(dip_overlap_bp, dip_excluded_pct)
+    ) %>%
+    arrange(-dip_overlap_bp_CHM13v2.0) %>%
+    mutate(
+        bench_type = case_when(
+            exclusion == "total_excluded" ~ bench_type,
+            exclusion == "svs-and-simple-repeats" ~ bench_type,
+            exclusion == "self-discrep" ~ bench_type,
+            TRUE ~ "both"
+        )
+    ) %>%
+    distinct()
 ```
 
 
-%%TODO%% Add variants to the exclusion tables
 ```{r}
 combined_exclusion_tbl %>%
-  make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
+    make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
 ```
