@@ -5,6 +5,7 @@ _site/
 *.html
 !index.html
 _manuscript/*
+analysis/*files/**
 
 # R
 .Rproj.user/
