@@ -107,6 +107,20 @@ def get_reference_checksum_type(ref_name: str) -> str:
         return "md5"
     raise ValueError(f"No checksum found for reference: {ref_name}")
 
+# ============================================================================
+# Variant Table Helpers
+# ============================================================================
+
+def get_stratification_beds(wildcards) -> List[str]:
+    """Get list of stratification BED files with IDs."""
+    ref = config["benchmarksets"][wildcards.benchmark].get("ref")
+    strats = config["references"][ref].get("stratifications", {})
+    beds = []
+    for name, _ in strats.items():
+        # Use short ID in filename (e.g., CHM13_TR.bed.gz)
+        path = f"resources/stratifications/{ref}_{name}.bed.gz"
+        beds.append(f"{path}:{name}")
+    return beds
 
 # ============================================================================
 # Comparison Helpers
