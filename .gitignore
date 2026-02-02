@@ -5,6 +5,7 @@ _site/
 *.html
 !index.html
 _manuscript/*
+analysis/*files/**
 
 # R
 .Rproj.user/
@@ -31,6 +32,7 @@ Thumbs.db
 /.env
 /data/
 /scratch
+.micromamba/**
 
 # Snakemake
 logs/
