@@ -49,14 +49,16 @@ onerror:
 
 
 include: "rules/common.smk"
-include: "rules/downloads.smk"
-include: "rules/vcf_processing.smk"
-include: "rules/ref_processing.smk"
-include: "rules/var_tables.smk"
-include: "rules/exclusions.smk"
 include: "rules/benchmark_comparisons.smk"
-include: "rules/stratify_bench.smk"
+include: "rules/downloads.smk"
 include: "rules/diff_tables.smk"
+include: "rules/exclusions.smk"
+include: "rules/ref_processing.smk"
+include: "rules/strat_metrics.smk"
+include: "rules/stratify_bench.smk"
+include: "rules/vcf_processing.smk"
+include: "rules/var_counts.smk"
+include: "rules/var_tables.smk"
 
 
 rule all:
@@ -69,6 +71,23 @@ rule all:
         ),
         expand(
             "results/diff_region_coverage/{benchmark}/{strat}_cov.bed",
+            benchmark=BENCHMARK,
+            strat=STRAT,
+        ),
+        ## Benchmarkset variant counts by type and difficult region stratifications
+        expand(
+            "results/var_counts/{benchmark}/stratification_combined_metrics.csv",
+            benchmark=BENCHMARK,
+        ),
+        ## Benchmark set exclusion intersection - overlap of exclusion beds with dip.bed
+        expand(
+            "results/exclusions/v5.0q_{ref}_{var_type}/exclusions_intersection_table.csv",
+            ref=REF,
+            var_type=["smvar", "stvar"],
+        ),
+        ## Benchmark regions overlap with difficult region stratifications
+        expand(
+            "results/strat_metrics/{benchmark}/sizes/{strat}_size.txt",
             benchmark=BENCHMARK,
             strat=STRAT,
         ),
@@ -88,10 +107,10 @@ rule all:
         #         if conf.get("type") == "stvar"
         #     ],
         # ),
-        "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_within.tsv",
-        "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_complement.tsv",
-        "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_within.tsv",
-        "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_complement.tsv",
+        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_within.tsv",
+        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_complement.tsv",
+        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_within.tsv",
+        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_complement.tsv",
         # expand(
         #     "results/stratified_bench/{comp_id}/summary_by_region.tsv",
         #     comp_id=[
