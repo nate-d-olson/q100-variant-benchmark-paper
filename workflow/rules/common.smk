@@ -2,7 +2,7 @@
 Common helper functions for the Q100 variant benchmark pipeline
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 # ============================================================================
 # Configuration & Constraints
@@ -56,6 +56,7 @@ wildcard_constraints:
     strat_name=_strat_name_pattern,
     region_type="regions|inverse",
     mode="complement|within",
+
 def get_chromosomes(wildcards) -> str:
     """
     Get list of main chromosomes for the reference genome.
@@ -176,6 +177,8 @@ def get_strat_inputs(wildcards):
             "old_bed": f"resources/benchmarksets/{comp['old_benchmark']}_benchmark.bed",
             "strat_beds": get_stratifications_for_comp(wildcards),
         }
+
+    return inputs
 
 
 def get_stratifications_for_ref(ref: str) -> List[str]:
@@ -400,8 +403,15 @@ def get_exclusion_file_checksum(benchmark: str, exclusion_name: str, file_idx: i
             f"in benchmark {benchmark} (only {len(files)} files)"
         )
     return files[file_idx]["sha256"]
-        Tuple of (checksum_value, checksum_type)
 
+
+def get_reference_checksum_info(ref_name: str) -> Tuple[str, str]:
+    """
+    Get checksum value and type for a reference.
+    Args:
+        ref_name: Name of the reference in config["references"]
+    Returns:
+        Tuple of checksum_value and checksum_type
     Raises:
         KeyError: If reference not found
         ValueError: If no checksum found
