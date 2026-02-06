@@ -1,19 +1,19 @@
 #' Parse Benchmark Identifier from File Path
 #'
 #' Extracts benchmark metadata (version, reference, variant type) from a file path
-#' or benchmark ID string using the standard naming pattern: v{version}_{ref}_{var_type}
+#' or benchmark ID string using the standard naming pattern: v{version}_{ref}_{bechmark type}
 #'
 #' @param file_path Character string containing file path or benchmark ID
 #'
 #' @return Named list with elements:
 #'   - bench_version: Benchmark version (e.g., "v5.0q")
 #'   - ref: Reference genome (e.g., "GRCh38")
-#'   - var_type: Variant type ("smvar" for small variants or "stvar" for structural variants)
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'
 #' @examples
 #' \dontrun{
 #' parse_benchmark_id("results/var_counts/v5.0q_GRCh38_smvar/genomic_context_combined_metrics.csv")
-#' # Returns list(bench_version = "v5.0q", ref = "GRCh38", var_type = "smvar")
+#' # Returns list(bench_version = "v5.0q", ref = "GRCh38", bench_type = "smvar")
 #' }
 #'
 #' @export
@@ -39,7 +39,7 @@ parse_benchmark_id <- function(file_path) {
   list(
     bench_version = components[2],
     ref = components[3],
-    var_type = components[4]
+    bench_type = components[4]
   )
 }
 
@@ -55,7 +55,7 @@ parse_benchmark_id <- function(file_path) {
 #'   - benchmarks: Vector of benchmark IDs
 #'   - num_benchmarks: Number of benchmarks
 #'   - references: Vector of unique reference genomes
-#'   - var_types: Vector of variant types (smvar, stvar)
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'
 #' @examples
 #' \dontrun{
@@ -92,7 +92,7 @@ parse_pipeline_config <- function(config_path = NULL) {
         benchmark_id = .x,
         bench_version = meta$bench_version,
         ref = meta$ref,
-        var_type = meta$var_type
+        bench_type = meta$bench_type
       )
     })
 
@@ -101,8 +101,8 @@ parse_pipeline_config <- function(config_path = NULL) {
     num_benchmarks = length(benchmarks),
     benchmark_meta = benchmark_meta,
     references = unique(benchmark_meta$ref),
-    var_types = unique(benchmark_meta$var_type),
-    num_contexts = 6  # HP, MAP, SD, SD10kb, TR, TR10kb
+    bench_types = unique(benchmark_meta$bench_type),
+    num_contexts = 6 # HP, MAP, SD, SD10kb, TR, TR10kb
   )
 }
 
@@ -118,7 +118,7 @@ parse_pipeline_config <- function(config_path = NULL) {
 #' @return Tibble with columns:
 #'   - bench_version: Benchmark version (factored: v0.6, v4.2.1, v5.0q)
 #'   - ref: Reference genome (factored: GRCh37, GRCh38, CHM13v2.0)
-#'   - var_type: Variant type (factored: smvar, stvar)
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'   - context_name: Genomic context region name (factored: HP, MAP, SD, SD10kb, TR, TR10kb)
 #'   - context_bp: Total bases in genomic context
 #'   - intersect_bp: Bases overlapping with benchmark
@@ -200,7 +200,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
         tibble::add_column(
           bench_version = meta$bench_version,
           ref = meta$ref,
-          var_type = meta$var_type,
+          bench_type = meta$bench_type,
           .before = 1
         )
     })
@@ -209,7 +209,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
   if (!is.null(benchmark_filter)) {
     metrics_df <- metrics_df %>%
       dplyr::filter(
-        paste(bench_version, ref, var_type, sep = "_") %in% benchmark_filter
+        paste(bench_version, ref, bench_type, sep = "_") %in% benchmark_filter
       )
 
     if (nrow(metrics_df) == 0) {
@@ -235,8 +235,8 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
         ref,
         levels = c("GRCh37", "GRCh38", "CHM13v2.0")
       ),
-      var_type = factor(
-        var_type,
+      bench_type = factor(
+        bench_type,
         levels = c("smvar", "stvar")
       ),
       context_name = factor(
@@ -259,7 +259,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
 #' @return Tibble with columns:
 #'   - bench_version: Benchmark version
 #'   - ref: Reference genome
-#'   - var_type: Variant type
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'   - exclusions: Exclusion region name
 #'   - exclusion_bp: Total bases in exclusion
 #'   - intersect_bp: Bases overlapping with benchmark
@@ -319,7 +319,7 @@ load_exclusion_metrics <- function(results_dir = NULL) {
         tibble::add_column(
           bench_version = meta$bench_version,
           ref = meta$ref,
-          var_type = meta$var_type,
+          bench_type = meta$bench_type,
           .before = 1
         )
     })
@@ -451,7 +451,7 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL)
   variant_file <- fs::path(
     results_dir,
     "variant_tables",
-    glue::glue("{meta$bench_version}_{meta$ref}_{meta$var_type}"),
+    glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}"),
     "variants.tsv"
   )
 
@@ -544,7 +544,7 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL, context_filter 
   coverage_dir <- fs::path(
     results_dir,
     "diff_region_coverage",
-    glue::glue("{meta$bench_version}_{meta$ref}_{meta$var_type}")
+    glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}")
   )
 
   if (!fs::dir_exists(coverage_dir)) {
@@ -687,7 +687,7 @@ load_benchmark_regions <- function(resources_dir = NULL) {
       bench_meta = purrr::map(benchmark_id, parse_benchmark_id),
       bench_version = purrr::map_chr(bench_meta, "bench_version"),
       ref = purrr::map_chr(bench_meta, "ref"),
-      bench_type = purrr::map_chr(bench_meta, "var_type")
+      bench_type = purrr::map_chr(bench_meta, "bench_type")
     ) %>%
     # Standardize chromosome names and calculate interval size
     dplyr::mutate(

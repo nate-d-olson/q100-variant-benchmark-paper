@@ -462,28 +462,28 @@ get_context_labels <- function(context_names = NULL) {
   all_labels[context_names]
 }
 
-#' Helper: Get variant type labels
+#' Helper: Get benchmark set type labels
 #'
-#' Creates standardized variant type labels
+#' Creates standardized benchmark set type labels
 #'
-#' @param var_types Vector of variant type codes ("smvar", "stvar")
+#' @param bench_types Vector of benchmark set type codes ("smvar", "stvar")
 #'
 #' @return Named character vector mapping codes to full names
 #'
 #' @keywords internal
 #'
 #' @export
-get_variant_type_labels <- function(var_types = NULL) {
+get_bench_type_labels <- function(bench_types = NULL) {
   all_labels <- c(
     "smvar" = "Small Variants",
     "stvar" = "Structural Variants"
   )
 
-  if (is.null(var_types)) {
+  if (is.null(bench_types)) {
     return(all_labels)
   }
 
-  all_labels[var_types]
+  all_labels[bench_types]
 }
 
 #' Helper: Create publication-ready figure filename
