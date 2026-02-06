@@ -11,6 +11,7 @@ from typing import Optional, List
 
 class PipelineError(Exception):
     """Base exception for all pipeline errors."""
+
     pass
 
 
@@ -23,7 +24,7 @@ class ValidationError(PipelineError):
         file_path: Optional[Path] = None,
         line_number: Optional[int] = None,
         expected: Optional[str] = None,
-        actual: Optional[str] = None
+        actual: Optional[str] = None,
     ):
         """
         Initialize validation error with context.
@@ -65,7 +66,7 @@ class DataFormatError(PipelineError):
         file_path: Optional[Path] = None,
         format_type: Optional[str] = None,
         required_columns: Optional[List[str]] = None,
-        missing_columns: Optional[List[str]] = None
+        missing_columns: Optional[List[str]] = None,
     ):
         """
         Initialize data format error with context.
@@ -110,7 +111,7 @@ class ProcessingError(PipelineError):
         message: str,
         operation: Optional[str] = None,
         file_path: Optional[Path] = None,
-        context: Optional[dict] = None
+        context: Optional[dict] = None,
     ):
         """
         Initialize processing error with context.
@@ -148,7 +149,7 @@ class ConfigurationError(PipelineError):
         message: str,
         parameter: Optional[str] = None,
         expected_type: Optional[str] = None,
-        suggestion: Optional[str] = None
+        suggestion: Optional[str] = None,
     ):
         """
         Initialize configuration error with context.

@@ -12,23 +12,24 @@ import sys
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Extract INFO fields from VCF')
-    parser.add_argument('--vcf', required=True, help='Input VCF file')
-    parser.add_argument('--output', required=True, help='Output file with field names')
-    parser.add_argument('--exclude', nargs='*', default=[],
-                        help='INFO fields to exclude from output')
+    parser = argparse.ArgumentParser(description="Extract INFO fields from VCF")
+    parser.add_argument("--vcf", required=True, help="Input VCF file")
+    parser.add_argument("--output", required=True, help="Output file with field names")
+    parser.add_argument(
+        "--exclude", nargs="*", default=[], help="INFO fields to exclude from output"
+    )
     args = parser.parse_args()
 
     info_fields = []
-    opener = gzip.open if args.vcf.endswith('.gz') else open
+    opener = gzip.open if args.vcf.endswith(".gz") else open
 
     try:
-        with opener(args.vcf, 'rt') as f:
+        with opener(args.vcf, "rt") as f:
             for line in f:
-                if not line.startswith('##'):
+                if not line.startswith("##"):
                     break  # End of header
-                if line.startswith('##INFO='):
-                    match = re.search(r'ID=([^,>]+)', line)
+                if line.startswith("##INFO="):
+                    match = re.search(r"ID=([^,>]+)", line)
                     if match:
                         field_id = match.group(1)
                         if field_id not in args.exclude:
@@ -40,9 +41,9 @@ def main():
         print(f"ERROR: Failed to read VCF: {e}", file=sys.stderr)
         sys.exit(1)
 
-    with open(args.output, 'w') as f:
-        f.write('\n'.join(info_fields))
+    with open(args.output, "w") as f:
+        f.write("\n".join(info_fields))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

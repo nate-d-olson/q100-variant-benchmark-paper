@@ -34,7 +34,7 @@ def main(snakemake):
         stats = validate_vcf_header(input_vcf)
 
         # Write validation report
-        with open(output_report, 'w') as f:
+        with open(output_report, "w") as f:
             f.write("VCF Validation Report\n")
             f.write("=" * 60 + "\n")
             f.write(f"File: {input_vcf}\n")
@@ -52,7 +52,7 @@ def main(snakemake):
         logger.error(f"Validation failed: {e}")
 
         # Write failure report
-        with open(output_report, 'w') as f:
+        with open(output_report, "w") as f:
             f.write("VCF Validation Report\n")
             f.write("=" * 60 + "\n")
             f.write(f"File: {input_vcf}\n")

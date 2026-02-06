@@ -33,11 +33,11 @@ def main(snakemake):
         stats = validate_bed_format(
             input_bed,
             check_sorted=True,
-            max_lines_to_check=10000  # Check first 10k lines
+            max_lines_to_check=10000,  # Check first 10k lines
         )
 
         # Write validation report
-        with open(output_report, 'w') as f:
+        with open(output_report, "w") as f:
             f.write("BED Validation Report\n")
             f.write("=" * 60 + "\n")
             f.write(f"File: {input_bed}\n")
@@ -61,7 +61,7 @@ def main(snakemake):
         logger.error(f"Validation failed: {e}")
 
         # Write failure report
-        with open(output_report, 'w') as f:
+        with open(output_report, "w") as f:
             f.write("BED Validation Report\n")
             f.write("=" * 60 + "\n")
             f.write(f"File: {input_bed}\n")

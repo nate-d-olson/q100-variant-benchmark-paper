@@ -12,9 +12,7 @@ from typing import Optional
 
 
 def setup_logger(
-    name: str,
-    log_file: Optional[Path] = None,
-    level: int = logging.INFO
+    name: str, log_file: Optional[Path] = None, level: int = logging.INFO
 ) -> logging.Logger:
     """
     Configure and return a logger with consistent formatting.
@@ -40,8 +38,8 @@ def setup_logger(
 
     # Consistent format: [TIMESTAMP] [LEVEL] [MODULE] Message
     formatter = logging.Formatter(
-        fmt='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        fmt="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
     # Always log to stderr (Snakemake captures this)

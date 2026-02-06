@@ -10,27 +10,27 @@ import argparse
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate VCF header lines')
-    parser.add_argument('--output', required=True, help='Output header file')
+    parser = argparse.ArgumentParser(description="Generate VCF header lines")
+    parser.add_argument("--output", required=True, help="Output header file")
     args = parser.parse_args()
 
     lines = []
 
     # Stratification IDs field (comma-separated list of stratification region IDs)
     lines.append(
-        '##INFO=<ID=STRAT_IDS,Number=.,Type=String,'
+        "##INFO=<ID=STRAT_IDS,Number=.,Type=String,"
         'Description="Comma-separated list of stratification region IDs overlapping variant">'
     )
 
     # Region IDs field (includes Benchmark Regions and Exclusions)
     lines.append(
-        '##INFO=<ID=REGION_IDS,Number=.,Type=String,'
+        "##INFO=<ID=REGION_IDS,Number=.,Type=String,"
         'Description="Comma-separated list of region IDs (Benchmark, Exclusions) overlapping variant">'
     )
 
-    with open(args.output, 'w') as f:
-        f.write('\n'.join(lines) + '\n')
+    with open(args.output, "w") as f:
+        f.write("\n".join(lines) + "\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

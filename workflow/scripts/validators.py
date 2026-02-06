@@ -31,7 +31,7 @@ def validate_file_exists(file_path: Path, file_type: str = "file") -> None:
             f"{file_type} not found",
             file_path=file_path,
             expected="Existing file",
-            actual="File does not exist"
+            actual="File does not exist",
         )
 
     if not file_path.is_file():
@@ -39,7 +39,7 @@ def validate_file_exists(file_path: Path, file_type: str = "file") -> None:
             f"{file_type} is not a regular file",
             file_path=file_path,
             expected="Regular file",
-            actual=f"{'Directory' if file_path.is_dir() else 'Special file'}"
+            actual=f"{'Directory' if file_path.is_dir() else 'Special file'}",
         )
 
     if not file_path.stat().st_size > 0:
@@ -47,11 +47,11 @@ def validate_file_exists(file_path: Path, file_type: str = "file") -> None:
             f"{file_type} is empty",
             file_path=file_path,
             expected="Non-empty file",
-            actual="0 bytes"
+            actual="0 bytes",
         )
 
 
-def open_maybe_gzip(file_path: Path, mode: str = 'rt'):
+def open_maybe_gzip(file_path: Path, mode: str = "rt"):
     """
     Open a file, automatically handling gzip compression.
 
@@ -62,15 +62,13 @@ def open_maybe_gzip(file_path: Path, mode: str = 'rt'):
     Returns:
         File handle (gzip or regular)
     """
-    if str(file_path).endswith('.gz'):
+    if str(file_path).endswith(".gz"):
         return gzip.open(file_path, mode)
     return open(file_path, mode)
 
 
 def validate_bed_format(
-    file_path: Path,
-    check_sorted: bool = True,
-    max_lines_to_check: int = 1000
+    file_path: Path, check_sorted: bool = True, max_lines_to_check: int = 1000
 ) -> dict:
     """
     Validate BED file format and return basic statistics.
@@ -104,11 +102,11 @@ def validate_bed_format(
                 line = line.strip()
 
                 # Skip empty lines and comments
-                if not line or line.startswith('#') or line.startswith('track'):
+                if not line or line.startswith("#") or line.startswith("track"):
                     continue
 
                 line_count += 1
-                fields = line.split('\t')
+                fields = line.split("\t")
 
                 # BED requires at least 3 columns (chrom, start, end)
                 if len(fields) < 3:
@@ -136,9 +134,7 @@ def validate_bed_format(
 
                 # Validate start < end
                 if start >= end:
-                    errors.append(
-                        f"Line {line_num}: Start ({start}) >= end ({end})"
-                    )
+                    errors.append(f"Line {line_num}: Start ({start}) >= end ({end})")
                     if len(errors) >= 5:
                         break
                     continue
@@ -155,14 +151,14 @@ def validate_bed_format(
                 interval_count += 1
 
                 if line_count >= max_lines_to_check:
-                    logger.info(f"Checked {max_lines_to_check} lines (validation limit)")
+                    logger.info(
+                        f"Checked {max_lines_to_check} lines (validation limit)"
+                    )
                     break
 
     except Exception as e:
         raise DataFormatError(
-            f"Failed to parse BED file: {e}",
-            file_path=file_path,
-            format_type="BED"
+            f"Failed to parse BED file: {e}", file_path=file_path, format_type="BED"
         ) from e
 
     if errors:
@@ -170,7 +166,7 @@ def validate_bed_format(
         raise DataFormatError(
             f"BED format validation failed:\n  {error_summary}",
             file_path=file_path,
-            format_type="BED"
+            format_type="BED",
         )
 
     stats = {
@@ -178,7 +174,7 @@ def validate_bed_format(
         "lines_checked": line_count,
         "intervals": interval_count,
         "chromosomes": len(chromosomes),
-        "chrom_names": sorted(chromosomes)
+        "chrom_names": sorted(chromosomes),
     }
 
     logger.info(
@@ -217,14 +213,14 @@ def validate_vcf_header(file_path: Path) -> dict:
             for line_num, line in enumerate(f, start=1):
                 line = line.strip()
 
-                if line.startswith('##'):
+                if line.startswith("##"):
                     header_lines += 1
-                    if line.startswith('##fileformat=VCF'):
+                    if line.startswith("##fileformat=VCF"):
                         has_fileformat = True
 
-                elif line.startswith('#CHROM'):
+                elif line.startswith("#CHROM"):
                     has_column_header = True
-                    columns = line.split('\t')
+                    columns = line.split("\t")
 
                     # Validate required columns
                     missing = []
@@ -238,11 +234,11 @@ def validate_vcf_header(file_path: Path) -> dict:
                             file_path=file_path,
                             format_type="VCF",
                             required_columns=required_columns,
-                            missing_columns=missing
+                            missing_columns=missing,
                         )
                     break
 
-                elif line and not line.startswith('#'):
+                elif line and not line.startswith("#"):
                     # Reached data without finding header
                     break
 
@@ -253,30 +249,28 @@ def validate_vcf_header(file_path: Path) -> dict:
         raise
     except Exception as e:
         raise DataFormatError(
-            f"Failed to parse VCF header: {e}",
-            file_path=file_path,
-            format_type="VCF"
+            f"Failed to parse VCF header: {e}", file_path=file_path, format_type="VCF"
         ) from e
 
     if not has_fileformat:
         raise DataFormatError(
             "VCF header missing ##fileformat line",
             file_path=file_path,
-            format_type="VCF"
+            format_type="VCF",
         )
 
     if not has_column_header:
         raise DataFormatError(
             "VCF header missing #CHROM column header line",
             file_path=file_path,
-            format_type="VCF"
+            format_type="VCF",
         )
 
     stats = {
         "file": str(file_path),
         "header_lines": header_lines,
         "has_fileformat": has_fileformat,
-        "has_column_header": has_column_header
+        "has_column_header": has_column_header,
     }
 
     logger.info(f"VCF header validation passed: {header_lines} header lines")
@@ -287,7 +281,7 @@ def validate_vcf_header(file_path: Path) -> dict:
 def validate_tsv_columns(
     file_path: Path,
     required_columns: List[str],
-    optional_columns: Optional[List[str]] = None
+    optional_columns: Optional[List[str]] = None,
 ) -> dict:
     """
     Validate TSV file has required column headers.
@@ -317,10 +311,10 @@ def validate_tsv_columns(
                     "TSV file has no header line",
                     file_path=file_path,
                     format_type="TSV",
-                    required_columns=required_columns
+                    required_columns=required_columns,
                 )
 
-            columns = header_line.split('\t')
+            columns = header_line.split("\t")
 
             # Check for required columns
             missing = [col for col in required_columns if col not in columns]
@@ -331,7 +325,7 @@ def validate_tsv_columns(
                     file_path=file_path,
                     format_type="TSV",
                     required_columns=required_columns,
-                    missing_columns=missing
+                    missing_columns=missing,
                 )
 
             # Identify which optional columns are present
@@ -343,9 +337,7 @@ def validate_tsv_columns(
         raise
     except Exception as e:
         raise DataFormatError(
-            f"Failed to parse TSV header: {e}",
-            file_path=file_path,
-            format_type="TSV"
+            f"Failed to parse TSV header: {e}", file_path=file_path, format_type="TSV"
         ) from e
 
     stats = {
@@ -353,7 +345,7 @@ def validate_tsv_columns(
         "total_columns": len(columns),
         "required_present": len(required_columns),
         "optional_present": len(present_optional) if optional_columns else 0,
-        "column_names": columns
+        "column_names": columns,
     }
 
     logger.info(

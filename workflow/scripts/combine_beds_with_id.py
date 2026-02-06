@@ -18,9 +18,9 @@ from collections import defaultdict
 
 def open_bed(path):
     """Open BED file, handling gzip compression."""
-    if str(path).endswith('.gz'):
-        return gzip.open(path, 'rt')
-    return open(path, 'r')
+    if str(path).endswith(".gz"):
+        return gzip.open(path, "rt")
+    return open(path, "r")
 
 
 def flatten_intervals(intervals):
@@ -41,7 +41,7 @@ def flatten_intervals(intervals):
     events = []
     for start, end, annot_id in intervals:
         events.append((start, 1, annot_id))  # Start event
-        events.append((end, -1, annot_id))   # End event
+        events.append((end, -1, annot_id))  # End event
 
     # Sort events by position, with start events (1) before end events (-1) at same position
     events.sort(key=lambda x: (x[0], -x[1]))
@@ -79,28 +79,32 @@ def flatten_intervals(intervals):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Combine BED files with ID column')
-    parser.add_argument('--beds', nargs='+', required=True,
-                        help='BED files with IDs in format path:ID')
-    parser.add_argument('--output', required=True, help='Output BED file')
+    parser = argparse.ArgumentParser(description="Combine BED files with ID column")
+    parser.add_argument(
+        "--beds", nargs="+", required=True, help="BED files with IDs in format path:ID"
+    )
+    parser.add_argument("--output", required=True, help="Output BED file")
     args = parser.parse_args()
 
     intervals_by_chrom = defaultdict(list)
 
     # Read all input BED files
     for bed_spec in args.beds:
-        if ':' not in bed_spec:
-            print(f"ERROR: Invalid bed spec '{bed_spec}'. Expected format: path:ID", file=sys.stderr)
+        if ":" not in bed_spec:
+            print(
+                f"ERROR: Invalid bed spec '{bed_spec}'. Expected format: path:ID",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
-        path, annot_id = bed_spec.rsplit(':', 1)
+        path, annot_id = bed_spec.rsplit(":", 1)
 
         try:
             with open_bed(path) as f:
                 for line in f:
-                    if line.startswith('#'):
+                    if line.startswith("#"):
                         continue
-                    fields = line.strip().split('\t')
+                    fields = line.strip().split("\t")
                     if len(fields) >= 3:
                         chrom, start, end = fields[0], int(fields[1]), int(fields[2])
                         intervals_by_chrom[chrom].append((start, end, annot_id))
@@ -114,7 +118,7 @@ def main():
     # Sort chromosomes
     def sort_key(chrom):
         """Sort chromosomes numerically if possible, otherwise alphabetically."""
-        if chrom.startswith('chr'):
+        if chrom.startswith("chr"):
             chrom_num = chrom[3:]
         else:
             chrom_num = chrom
@@ -126,12 +130,12 @@ def main():
     sorted_chroms = sorted(intervals_by_chrom.keys(), key=sort_key)
 
     # Write output
-    with open(args.output, 'w') as out:
+    with open(args.output, "w") as out:
         for chrom in sorted_chroms:
             flattened = flatten_intervals(intervals_by_chrom[chrom])
             for start, end, ids in flattened:
-                out.write(f'{chrom}\t{start}\t{end}\t{ids}\n')
+                out.write(f"{chrom}\t{start}\t{end}\t{ids}\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

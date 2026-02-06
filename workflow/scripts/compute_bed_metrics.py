@@ -44,7 +44,7 @@ def compute_bed_size(bed_path: str, is_gzipped: bool = False) -> int:
         )
 
     result = subprocess.run(
-        cmd, shell=True, capture_output=True, text=True, executable='/bin/bash'
+        cmd, shell=True, capture_output=True, text=True, executable="/bin/bash"
     )
     if result.returncode != 0:
         raise RuntimeError(f"Failed to compute BED size: {result.stderr}")
@@ -83,7 +83,7 @@ def compute_intersection(
     )
 
     result = subprocess.run(
-        cmd, shell=True, capture_output=True, text=True, executable='/bin/bash'
+        cmd, shell=True, capture_output=True, text=True, executable="/bin/bash"
     )
     if result.returncode != 0:
         raise RuntimeError(f"Failed to compute intersection: {result.stderr}")
@@ -99,8 +99,8 @@ def main():
     bed_a = snakemake.input[0]
     bed_b = snakemake.input[1]
 
-    a_gzipped = bed_a.endswith('.gz')
-    b_gzipped = bed_b.endswith('.gz')
+    a_gzipped = bed_a.endswith(".gz")
+    b_gzipped = bed_b.endswith(".gz")
 
     logger.info(f"Computing metrics for {bed_a} vs {bed_b}")
 
@@ -112,11 +112,11 @@ def main():
     pct_of_b = (intersect / size_b * 100) if size_b > 0 else 0.0
 
     # Get region name from wildcards (different field names in different rules)
-    region_name = snakemake.wildcards.get('exclusion') or snakemake.wildcards.get(
-        'strat_name'
+    region_name = snakemake.wildcards.get("exclusion") or snakemake.wildcards.get(
+        "strat_name"
     )
 
-    with open(snakemake.output[0], 'w') as f:
+    with open(snakemake.output[0], "w") as f:
         f.write(
             f"{region_name}\t{size_a}\t{intersect}\t{pct_of_a:.6f}\t{pct_of_b:.6f}\n"
         )
@@ -127,5 +127,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
