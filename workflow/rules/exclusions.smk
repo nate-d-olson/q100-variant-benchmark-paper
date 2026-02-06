@@ -1,11 +1,13 @@
 """
 Rules for generating exclusion intersection tables.
 
-Computes overlap metrics between exclusion BED regions and benchmark regions (dip.bed).
-For each benchmark set, generates a table with columns:
+ONLY applies to v5.0q benchmark sets. Computes overlap metrics between
+exclusion BED regions and dipcall benchmark regions (dip.bed).
+
+For each v5.0q benchmark set, generates a table with columns:
 - exclusions: Name of the exclusion region
 - exclusion_bp: Total bases in the exclusion BED
-- intersect_bp: Bases overlapping between exclusion and benchmark regions
+- intersect_bp: Bases overlapping between exclusion and dip.bed regions
 - pct_of_dip: Percent of benchmark regions covered by exclusion
 
 Helper functions are defined in rules/common.smk:
@@ -16,6 +18,11 @@ Helper functions are defined in rules/common.smk:
 - get_exclusion_type()
 - get_input_checksums()
 """
+
+
+# Ensure exclusion rules only apply to v5.0q benchmarks
+wildcard_constraints:
+    benchmark="v5\\.0q.*",
 
 
 rule materialize_exclusion:
@@ -136,8 +143,8 @@ rule aggregate_exclusion_table:
         ),
     output:
         csv=ensure(
-                "results/exclusions/{benchmark}/exclusions_intersection_table.csv",
-                non_empty=True,
+            "results/exclusions/{benchmark}/exclusions_intersection_table.csv",
+            non_empty=True,
         ),
     log:
         "logs/exclusions/{benchmark}/aggregate.log",

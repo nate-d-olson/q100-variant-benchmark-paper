@@ -2,12 +2,12 @@
 Rules for computing stratification (difficult region) coverage metrics.
 
 This module computes overlap between stratification BED files (TR, HP, SD, MAP, etc.)
-and benchmark regions (dip.bed), generating tables with:
+and benchmark regions (benchmark.bed), generating tables with:
 - strat_name: Name of the stratification region
 - strat_bp: Total bases in the stratification BED
 - intersect_bp: Bases overlapping between stratification and benchmark regions
 - pct_of_strat: Percent of stratification covered by benchmark
-- pct_of_dip: Percent of benchmark regions covered by stratification
+- pct_of_bench: Percent of benchmark regions covered by stratification
 
 Mirrors the structure of exclusions.smk but for genomic context stratifications.
 """
@@ -86,10 +86,12 @@ rule compute_stratification_size:
 rule compute_stratification_metrics:
     """
     Compute intersection metrics for stratification against benchmark regions.
+
+    Uses benchmark.bed file for all benchmark sets.
     """
     input:
         strat_bed="results/strat_metrics/{benchmark}/stratifications/{strat_name}.bed.gz",
-        dip_bed="resources/benchmarksets/{benchmark}_dip.bed",
+        bench_bed="resources/benchmarksets/{benchmark}_benchmark.bed",
     output:
         tsv="results/strat_metrics/{benchmark}/metrics/{strat_name}.tsv",
     log:
@@ -113,7 +115,7 @@ rule aggregate_stratification_metrics:
     - strat_bp: Total bases in stratification (merged)
     - intersect_bp: Overlap with benchmark regions
     - pct_of_strat: Percent of stratification covered by benchmark
-    - pct_of_dip: Percent of benchmark covered by stratification
+    - pct_of_bench: Percent of benchmark covered by stratification
     """
     input:
         lambda wc: expand(
@@ -143,7 +145,7 @@ rule aggregate_stratification_metrics:
         echo "Started at $(date)" >> {log}
 
         # Write header
-        echo "strat_name,strat_bp,intersect_bp,pct_of_strat,pct_of_dip" > {output.csv}
+        echo "strat_name,strat_bp,intersect_bp,pct_of_strat,pct_of_bench" > {output.csv}
 
         # Concatenate all metric files, converting tabs to commas
         cat {input} | tr '\\t' ',' >> {output.csv}
