@@ -1,0 +1,52 @@
+graph TD
+    subgraph PrimaryFiles["🟢 Primary Analysis Files (Small, Fast)"]
+        STRAT["stratification_combined_metrics.csv<br/>(~5-10 KB per benchmark)<br/>Aggregated metrics with variant counts"]
+        EXCL["exclusions_intersection_table.csv<br/>(v5.0q only)<br/>Exclusion overlap summaries"]
+        REFSIZE["ref_genome_sizes/*_size.tsv<br/>(~1 KB per reference)<br/>Genome sizes & N-content"]
+    end
+
+    subgraph DetailedFiles["🟡 Detailed Data Files (Large, Optional)"]
+        VARIANTS["variant_tables/*/variants.tsv<br/>(~MB-GB per benchmark)<br/>Full variant-level annotations"]
+        COVERAGE["diff_region_coverage/*/*.bed<br/>Base-level coverage data<br/>from bedtools coverage"]
+    end
+
+    subgraph Metadata["🟣 Metadata & Encoding"]
+        BENCHID["Benchmark Identifier<br/>v{version}_{ref}_{var_type}<br/>e.g., v5.0q_GRCh38_smvar"]
+        STRATS["Stratification Names<br/>HP, MAP, SD, SD10kb<br/>TR, TR10kb"]
+        COLS["Shared Column Names<br/>bench_version, ref, var_type<br/>strat_name, chrom"]
+    end
+
+    subgraph InputResources["📋 Input Resources"]
+        BENCHBED["Benchmark Region Files<br/>*_benchmark.bed<br/>Genomic intervals"]
+        STRATBED["Stratification Files<br/>HP.bed, MAP.bed, etc.<br/>Difficult region definitions"]
+    end
+
+    %% Primary file relationships
+    STRAT -->|links via: bench_id + strat_name| COVERAGE
+    STRAT -->|links via: bench_id| REFSIZE
+    STRAT -->|links via: bench_id| VARIANTS
+
+    %% Metadata relationships
+    BENCHID -->|encodes: bench_version,<br/>ref, var_type| STRAT
+    BENCHID -->|encodes: bench_version,<br/>ref, var_type| COVERAGE
+    BENCHID -->|encodes: bench_version,<br/>ref, var_type| EXCL
+
+    STRATS -->|values in:<br/>strat_name column| STRAT
+    STRATS -->|values in:<br/>strat_name column| COVERAGE
+
+    %% Input relationships
+    BENCHBED -->|overlapped with<br/>stratifications| STRAT
+    STRATBED -->|overlapped with<br/>benchmarks| STRAT
+    STRATBED -->|used for<br/>coverage calculation| COVERAGE
+
+    %% Styling
+    classDef primary fill:#90EE90,stroke:#228B22,stroke-width:2px,color:#000
+    classDef detailed fill:#F5DEB3,stroke:#B8860B,stroke-width:2px,color:#000
+    classDef metadata fill:#DDA0DD,stroke:#8B008B,stroke-width:2px,color:#fff
+    classDef input fill:#ADD8E6,stroke:#00008B,stroke-width:2px,color:#000
+    classDef note fill:#FFFACD,stroke:#DAA520,stroke-width:1px,color:#000
+
+    class STRAT,EXCL,REFSIZE primary
+    class VARIANTS,COVERAGE detailed
+    class BENCHID,STRATS,COLS metadata
+    class BENCHBED,STRATBED input

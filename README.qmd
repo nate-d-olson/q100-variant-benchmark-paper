@@ -36,6 +36,25 @@ The Snakemake pipeline processes benchmark set files to:
     - `*_variants.csv`: Stratified counts of shared and unique variants
     - `*_regions.csv`: Stratified counts of shared and unique callable bases
 
+## Analysis Resources
+
+### Data Loading Functions
+The `R/data_loading.R` module provides standardized functions for loading pipeline outputs:
+
+- `load_stratification_metrics()` - Load primary analysis data with variant counts (recommended)
+- `load_exclusion_metrics()` - Load exclusion overlaps (v5.0q only)
+- `load_reference_sizes()` - Load reference genome sizes and N-content
+- `load_variant_table()` - Load full variant data (use sparingly, files are large)
+- `load_diff_coverage()` - Load base-level coverage data
+
+All functions handle automatic file discovery, metadata parsing, column validation, and optional filtering.
+
+### Output Documentation
+
+- **[Pipeline Outputs Reference](docs/pipeline-outputs.md)** - Complete catalog of output files with column schemas and examples
+- **[Data Dictionary](docs/data-dictionary.md)** - Detailed definitions of metrics, stratifications, and variant types
+- **[Output Relationships Diagram](docs/diagrams/output-relationships.mmd)** - Visual guide showing how files link together
+
 # Getting Started
 
 ## Prerequisites

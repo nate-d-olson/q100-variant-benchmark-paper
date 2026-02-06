@@ -1,0 +1,810 @@
+# Data Dictionary
+
+Detailed definitions and interpretations of all metrics, stratifications, exclusions, and variant classifications in the q100-variant-benchmark pipeline.
+
+## Metrics Definitions
+
+### Core Overlap Metrics
+
+#### strat_bp
+**Definition:** Total number of bases in a stratification region
+
+**Calculation:** Sum of all bases in the BED file defining that stratification
+
+**Units:** Bases (bp)
+
+**Range:** Millions to billions depending on stratification
+
+**Interpretation:**
+- Larger values = stratification covers more of the genome
+- Used as denominator for calculating `pct_of_strat`
+- Example: HP stratification has ~84 million bases in GRCh38
+
+**Examples by Stratification:**
+| Stratification | GRCh37 | GRCh38 | CHM13v2.0 |
+|---|---|---|---|
+| HP | 81.2M | 83.9M | 85.4M |
+| MAP | 245.3M | 248.9M | 251.2M |
+| SD | 159.4M | 166.8M | 170.1M |
+| SD10kb | 141.2M | 151.8M | 155.3M |
+| TR | 234.5M | 241.2M | 244.8M |
+| TR10kb | 198.3M | 205.4M | 208.6M |
+
+---
+
+#### intersect_bp
+**Definition:** Number of bases in a stratification that overlap with benchmark regions
+
+**Calculation:**
+```
+bedtools intersect -a stratification.bed -b benchmark.bed | awk '{sum += $3-$2} END {print sum}'
+```
+
+**Units:** Bases (bp)
+
+**Range:** 0 to strat_bp (cannot exceed total stratification size)
+
+**Interpretation:**
+- Shows how much of the difficult region is actually included in the benchmark
+- Larger values = benchmark better covers this difficult region
+- Zero means stratification not covered by benchmark
+
+---
+
+#### pct_of_strat
+**Definition:** Percentage of stratification region included in benchmark
+
+**Formula:**
+```
+pct_of_strat = (intersect_bp / strat_bp) × 100
+```
+
+**Units:** Percentage (0-100%)
+
+**Range:** 0-100%
+
+**Interpretation:**
+- Shows benchmark's completeness for this difficult region type
+- **High values (>80%):** Benchmark includes most of this difficult region
+- **Medium values (40-80%):** Benchmark includes part of this difficult region
+- **Low values (<40%):** Benchmark avoids this difficult region
+- Useful for deciding which benchmarks to use for specific analyses
+
+**Example Interpretation:**
+```
+If pct_of_strat = 45% for MAP region:
+→ Only 45% of all low-complexity regions are in the benchmark
+→ Benchmark may not be suitable for analyzing complexity-related variants
+```
+
+---
+
+#### pct_of_bench
+**Definition:** Percentage of benchmark regions overlapping with a specific stratification
+
+**Formula:**
+```
+pct_of_bench = (intersect_bp / total_benchmark_bp) × 100
+```
+
+**Units:** Percentage (0-100%)
+
+**Range:** 0-100%, but typically sums to ~80-120% (regions overlap)
+
+**Interpretation:**
+- Shows how much of the benchmark consists of a particular difficult region
+- Larger values = this difficult region is a major component of the benchmark
+- Values add to ~100% when summing across all stratifications (but overlap)
+- Useful for understanding benchmark composition
+
+**Example Interpretation:**
+```
+For HP stratification: pct_of_bench = 2.92%
+→ About 2.92% of the entire benchmark overlaps with homopolymer regions
+→ This is the fraction of benchmark bases users will be working with
+```
+
+---
+
+#### variant_density_per_mb
+**Definition:** Number of variants per megabase in the benchmark-stratification overlap region
+
+**Formula:**
+```
+variant_density_per_mb = (total_variants / (intersect_bp / 1,000,000))
+```
+
+**Units:** Variants per megabase (v/Mb)
+
+**Range:** Typically 0 - 50,000 (highest in most difficult regions)
+
+**Interpretation:**
+- Shows variant frequency in difficult regions
+- **Higher values:** Indicates more variant-dense regions
+- **Compare across stratifications:** Identifies which regions have highest variant density
+- **Use for:** Understanding which difficult regions contribute most variants to benchmark
+
+**Example Interpretation:**
+```
+If variant_density_per_mb = 9310 for HP in small variants:
+→ For every million bases in homopolymer regions, there are ~9,310 variants
+→ This is high compared to genome average (~10-50 v/Mb)
+→ Suggests homopolymers are challenging for variant calling
+```
+
+**Density Comparisons:**
+- Genome average small variant density: ~10-50 variants/Mb
+- Low-complexity regions (MAP): 5,000-8,000 v/Mb
+- Homopolymers (HP): 8,000-10,000 v/Mb
+- Tandem repeats (TR): 3,000-6,000 v/Mb
+- Structural variants: 10-100 v/Mb
+
+---
+
+### Variant Counts
+
+#### total_variants
+**Definition:** Total count of all variants in the benchmark-stratification overlap region
+
+**Units:** Integer count
+
+**Calculation:** Sum of all snp_count + indel_count + del_count + ins_count + complex_count + other_count
+
+**Interpretation:**
+- Represents the total number of variants within this stratification-benchmark overlap
+- Useful for understanding how many variants tools must process in difficult regions
+- Larger counts = more challenging region for variant calling
+
+**Context:**
+- For small variants: typically thousands to hundreds of thousands per stratification
+- For structural variants: typically tens to thousands per stratification
+- Varies significantly by stratification type and reference genome
+
+---
+
+#### snp_count
+**Definition:** Number of single nucleotide polymorphisms (SNPs)
+
+**Definition of SNP:**
+- Single base substitution
+- Reference length = 1 bp, Alternate length = 1 bp
+- Example: A → G
+
+**Interpretation:**
+- SNPs are most common variant type
+- Generally easiest to genotype accurately
+- Usually comprise 30-50% of total variants in benchmarks
+
+**Context:**
+- Small variants: 180,000-700,000 SNPs per benchmark-stratification
+- Structural variants: 0 SNPs (structural variants are ≥50bp)
+
+---
+
+#### indel_count
+**Definition:** Number of insertions and deletions combined
+
+**Definition of INDEL:**
+- Change in reference and alternate allele length
+- Typically involves 1-49bp changes
+- Examples: A → AT (insertion), ATG → A (deletion)
+
+**Calculation:**
+- Includes variants with `(len_ref > 1 AND len_alt == 1)` OR `(len_ref == 1 AND len_alt > 1)`
+- Small variants: specifically 1-49 bp
+- Structural variants: specifically ≥50 bp
+
+**Interpretation:**
+- Second most common variant type
+- Harder to genotype than SNPs due to alignment complexity
+- Particularly common in homopolymer and tandem repeat regions
+- Usually comprise 40-65% of small variants
+
+**Context:**
+- Small variants: 50,000-600,000 INDELs per benchmark
+- Density in difficult regions: much higher than non-difficult regions
+
+---
+
+#### del_count
+**Definition:** Number of deletion variants (structural variants only)
+
+**Definition of Deletion:**
+- Removal of bases from reference
+- Reference length > Alternate length
+- Size: ≥50 bp for structural variants
+- Example: 1000bp deletion: position 1000-2000 → single base
+
+**Interpretation:**
+- Only non-zero for structural variant benchmarks (stvar)
+- Represents loss-of-sequence variants
+- Important for detecting copy number losses
+- Usually 10-50% of structural variants
+
+**Context:**
+- Structural variants: 0-10,000 deletions per benchmark
+- Often fewer than insertions
+- Harder to sequence due to missing coverage
+
+---
+
+#### ins_count
+**Definition:** Number of insertion variants (structural variants only)
+
+**Definition of Insertion:**
+- Addition of bases in alternate vs. reference
+- Alternate length > Reference length
+- Size: ≥50 bp for structural variants
+- Example: insertion of 1000bp sequence
+
+**Interpretation:**
+- Only non-zero for structural variant benchmarks
+- Represents extra sequences not in reference
+- Important for detecting copy number gains
+- Usually 10-50% of structural variants
+- May be harder to sequence than deletions
+
+**Context:**
+- Structural variants: 0-10,000 insertions per benchmark
+- Often more common than deletions in complex regions
+
+---
+
+#### complex_count
+**Definition:** Number of complex variants
+
+**Definition of Complex Variant:**
+- Both reference and alternate are >1 bp in length
+- Cannot be classified as simple SNP or INDEL
+- Example: ACGT → TT (deletion + substitution)
+
+**Interpretation:**
+- Indicates variants with simultaneous substitution and length change
+- Harder to genotype due to multiple differences
+- Often results of incorrect alignment or genuine complex events
+- Usually <5% of total variants
+
+**Context:**
+- Small variants: 0-50,000 complex variants per benchmark
+- Structural variants: 0-5,000 complex variants per benchmark
+- More common in difficult regions like segmental duplications
+
+---
+
+#### other_count
+**Definition:** Number of unclassified or other variant types
+
+**When This Occurs:**
+- Variants that don't fit standard categories
+- May result from data quality issues or overlapping calls
+- Includes variants of unknown significance
+
+**Interpretation:**
+- Usually small proportion of total variants (<5%)
+- Investigate if significantly high in a region
+- May indicate data processing artifacts
+
+**Context:**
+- Small variants: typically 0-50,000 other variants
+- Structural variants: typically <1% of calls
+
+---
+
+## Stratification Regions
+
+Stratifications represent different categories of "difficult" genomic regions - areas where variant calling is challenging.
+
+### HP - Homopolymer Regions
+
+**Definition:** Runs of identical nucleotides (≥7 bp)
+
+**Examples:** AAAAAAA, TTTTTTTT, GGGGGGGG, CCCCCCCC
+
+**Biological Significance:**
+- Sequencing and alignment errors common in homopolymers
+- Indels frequently misaligned due to lack of sequence context
+- Particularly problematic for short-read sequencing
+
+**Source & Version:**
+- GRCh37/38 definitions from GIAB
+- CHM13v2.0 adapted from pangenome references
+
+**Coverage in Benchmarks:**
+- ~95-98% of homopolymer regions covered
+- Usually represents 2-3% of benchmark bases
+- Relatively well-covered across all benchmarks
+
+**Variant Characteristics:**
+- Dominated by INDELs (70-80% of variants)
+- High density: ~8,000-10,000 variants/Mb
+- Most challenging region type for variant calling
+
+**Typical Values (v5.0q_GRCh38_smvar):**
+```
+strat_bp = 83,977,437
+intersect_bp = 80,057,238
+pct_of_strat = 95.3% (well covered)
+pct_of_bench = 2.92% (3% of benchmark)
+variant_density = 9,310 v/Mb (very high)
+```
+
+---
+
+### MAP - Low-Complexity/Mapping Regions
+
+**Definition:** Low-complexity regions with mapping quality issues
+
+**Characteristics:**
+- Tandem repeats with short periodicity
+- Low sequence complexity (high AT or GC content)
+- Regions with multiple optimal alignments
+- Often associated with mapping artifacts
+
+**Biological Significance:**
+- Reads align poorly due to multiple valid positions
+- Consensus mappers produce ambiguous alignments
+- Variants in these regions have high false-positive rate
+
+**Coverage in Benchmarks:**
+- ~45-50% of mapping regions covered
+- Usually represents 4-5% of benchmark bases
+- Partial coverage indicates intentional focus on solvable cases
+
+**Variant Characteristics:**
+- High SNP proportion (85% SNPs, 15% INDELs)
+- Medium density: ~7,000-8,000 variants/Mb
+- Many variants result from alignment errors
+
+**Typical Values (v5.0q_GRCh38_smvar):**
+```
+strat_bp = 248,876,839
+intersect_bp = 113,370,415
+pct_of_strat = 45.6% (partially covered)
+pct_of_bench = 4.14% (4% of benchmark)
+total_variants = 851,471
+```
+
+---
+
+### SD - Segmental Duplications
+
+**Definition:** Segmental duplications (>1kb, ≥90% sequence identity)
+
+**Biological Significance:**
+- >90% similar sequences elsewhere in genome
+- Impossible to uniquely map short reads
+- Classic "copy-number variation" regions
+- High false-positive and false-negative rate
+
+**Characteristics:**
+- Very long duplications (often >100kb)
+- Found throughout genome, often pericentromeric
+- Rapidly evolving (sequence diverges over evolutionary time)
+
+**Source & Version:**
+- UCSC genome browser segmental duplication track
+- Consistent across GRCh37/38
+- CHM13v2.0 updated with new duplications
+
+**Coverage in Benchmarks:**
+- ~48-50% of segmental duplications covered
+- Usually represents 3% of benchmark bases
+- Most conservative stratification (heavily avoiding)
+
+**Variant Characteristics:**
+- High proportion SNPs (80-85%)
+- Medium density: ~6,000-6,500 variants/Mb
+- Difficult to validate due to ambiguous mapping
+
+**Typical Values (v5.0q_GRCh38_smvar):**
+```
+strat_bp = 166,860,344
+intersect_bp = 81,066,975
+pct_of_strat = 48.6% (half covered)
+pct_of_bench = 2.96% (3% of benchmark)
+```
+
+---
+
+### SD10kb - Segmental Duplication Flanks ±10kb
+
+**Definition:** Regions ±10kb flanking segmental duplications
+
+**Purpose:** Captures edge effects near segmental duplications
+
+**Biological Significance:**
+- Spillover mapping errors from nearby duplications
+- Still challenging but more tractable than exact duplications
+- Represents transition zone between difficult and easy regions
+
+**Coverage in Benchmarks:**
+- ~44-45% coverage
+- Usually represents 2.5% of benchmark bases
+- Often included when SD regions are avoided
+
+**Variant Characteristics:**
+- Similar profile to SD regions but somewhat less dense
+- Density: ~5,500-7,000 variants/Mb
+- More amenable to variant calling than exact SD
+
+---
+
+### TR - Tandem Repeats
+
+**Definition:** Tandem repeats of any length and periodicity
+
+**Examples:**
+- Satellite DNA (large repeats, >100bp period)
+- Microsatellites (short repeats, 1-6bp period)
+- Minisatellites (medium repeats, 10-100bp period)
+
+**Biological Significance:**
+- Highly polymorphic in human populations
+- Difficult to align and phase
+- Common cause of failed variant calling
+- Important for population genetics and identification
+
+**Source & Version:**
+- RepeatMasker annotations
+- Consistent across GRCh37/38
+- CHM13v2.0 includes additional repeats
+
+**Coverage in Benchmarks:**
+- ~40-50% of tandem repeats covered
+- Usually represents 4-7% of benchmark bases
+- Moderate coverage reflecting difficulty
+
+**Variant Characteristics:**
+- Mixed SNPs and INDELs
+- Medium density: ~5,000-7,000 variants/Mb
+- Many variants are repeat-size variations
+
+**Typical Values (v5.0q_GRCh38_smvar):**
+```
+strat_bp = 241,276,584
+intersect_bp = varies by region
+pct_of_bench = 4-7% (large contributor to benchmark)
+```
+
+---
+
+### TR10kb - Tandem Repeat Flanks ±10kb
+
+**Definition:** Regions ±10kb flanking tandem repeats
+
+**Purpose:** Captures sequence context around tandem repeats
+
+**Biological Significance:**
+- Edge effects from repeat polymorphism
+- Can affect calling in flanking sequences
+- More tractable than exact repeat regions
+
+**Coverage in Benchmarks:**
+- Similar to TR coverage (40-50%)
+- Usually represents 5-6% of benchmark bases
+- Often included alongside TR regions
+
+---
+
+## Exclusion Categories (v5.0q only)
+
+Exclusions represent regions explicitly removed from v5.0q benchmarks.
+
+### consecutive-svs
+**Definition:** Regions with multiple consecutive structural variants in source data
+
+**Rationale:**
+- Complex regions with uncertain true variant structure
+- High risk of incorrect SV breakpoint determination
+- Better to exclude than include unreliable calls
+
+**Typical Impact:**
+- Usually 10-20% of SV benchmark bases excluded
+- Creates gaps in benchmark coverage
+- Concentrated in pericentromeric and telomeric regions
+
+---
+
+### flanks
+**Definition:** Flanking regions around large features (excluded)
+
+**Rationale:**
+- Capture-edge effects near major variants
+- Sequencing depth variations at boundaries
+- Alignment complexity near breakpoints
+
+**Typical Impact:**
+- Smaller exclusion, ~5-10% of benchmark
+- Affects edges of large variants
+- Reduces false positives at variant boundaries
+
+---
+
+### satellites
+**Definition:** Satellite DNA and alpha-satellite regions
+
+**Examples:**
+- Alpha satellite DNA (pericentromeric)
+- Beta satellite DNA
+- Satellite repeats (classical satellites)
+
+**Rationale:**
+- Highly repetitive, unmappable with short reads
+- No unique mapping possible
+- Variants fundamentally uncallable
+
+**Typical Impact:**
+- 5-15% of benchmark bases
+- Concentrated at centromeres and heterochromatin
+- Most conservative exclusion (rightfully excluded)
+
+---
+
+### segdups
+**Definition:** Segmental duplications (>90% identity, >1kb)
+
+**Rationale:**
+- Same as SD stratification
+- Duplicate regions unmappable with short reads
+- Excluded from benchmark as uncallable
+
+**Typical Impact:**
+- 20-30% of benchmark bases
+- Largest single exclusion category
+- But still 50% of segdups are included in benchmark
+
+---
+
+### LCR-unique
+**Definition:** Low-complexity repetitive regions (unique mapping)
+
+**Rationale:**
+- Some LCR regions have unique mapping sites
+- May be callable despite low complexity
+- Excluded only if truly problematic
+
+**Typical Impact:**
+- 10-20% of benchmark bases
+- Overlaps with MAP stratification
+- Partially included to retain challenging-but-solvable regions
+
+---
+
+### tandem-repeats
+**Definition:** All tandem repeats (including satellites)
+
+**Rationale:**
+- Tandem repeats difficult to align and phase
+- Variants ambiguous due to repeat structure
+- Excluded from most benchmarks historically
+
+**Typical Impact:**
+- 15-25% of benchmark bases
+- But 40-50% still included (TR stratification)
+- Reflects modern ability to call some repeat variants
+
+---
+
+## Variant Classifications
+
+### SNP (Single Nucleotide Polymorphism)
+
+**Definition:** Single base substitution
+
+**Characteristics:**
+- Reference allele: 1 base (A, C, G, or T)
+- Alternate allele: 1 different base
+- No length change
+
+**Examples:**
+- A → G (transition)
+- C → T (transition)
+- A → C (transversion)
+- G → T (transversion)
+
+**Prevalence:** 30-50% of variants in small variant benchmarks
+
+**Callability:** Easiest variant type to call accurately
+
+**Stratification Pattern:**
+- Higher density in difficult regions
+- Particularly common in low-complexity regions (MAP)
+- Genome average: 3-5 SNPs per 10,000 bases
+
+---
+
+### INDEL (Insertion or Deletion)
+
+**Definition:** Insertion or deletion of bases (size 1-49 bp for small variants)
+
+**Characteristics:**
+- Net change in sequence length
+- Reference length ≠ Alternate length
+- Typically 1-49 bp for small variant benchmarks
+- 50+ bp classified as structural variants
+
+**Examples:**
+- AT → A (deletion of T)
+- ACGT → ACGATGT (insertion of AT)
+- TTT → T (deletion of TT)
+
+**Size Distribution:**
+- Median size: 2-5 bp
+- Range: 1-49 bp for small variants
+- Longer indels ~50+ bp classified as structural variants
+
+**Prevalence:** 40-65% of variants in small variant benchmarks
+
+**Callability:** Harder than SNPs due to alignment complexity, easier than complex variants
+
+**Stratification Pattern:**
+- Heavily concentrated in homopolymer regions (HP)
+- Also common in tandem repeats (TR)
+- Rarer in low-complexity regions (MAP)
+
+**Special Cases:**
+- **Homopolymer indels:** Most common cause of alignment errors
+- **Repeat indels:** Often represent repeat-size variations
+- **Complex indels:** May be misaligned single variants
+
+---
+
+### DEL (Deletion, Structural Variants)
+
+**Definition:** Deletion of ≥50 bp (structural variant classification)
+
+**Characteristics:**
+- Reference longer than alternate
+- Size: ≥50 bp
+- Often megabase-scale
+
+**Examples:**
+- Deletion of 1 kb: 1000 bp sequence → missing in alternate
+- Deletion of 1 Mb: chromosome segment missing
+
+**Prevalence:** 10-50% of structural variants
+
+**Callability:** Depends on size and flanking sequence; generally harder than small variants
+
+**Detection Methods:**
+- Read depth analysis (coverage drop)
+- Split reads (paired reads spanning breakpoints)
+- Assembly-based methods
+
+**Biological Significance:**
+- Copy number losses
+- Gene disruptions
+- Regulatory element deletions
+
+---
+
+### INS (Insertion, Structural Variants)
+
+**Definition:** Insertion of ≥50 bp (structural variant classification)
+
+**Characteristics:**
+- Alternate longer than reference
+- Size: ≥50 bp
+- Often megabase-scale
+
+**Examples:**
+- Insertion of 1 kb sequence
+- Insertion of transposable element
+- Duplication of chromosome segment
+
+**Prevalence:** 10-50% of structural variants
+
+**Callability:** Often harder than deletions because sequence must be present in reads
+
+**Detection Methods:**
+- Split reads (reads spanning insertion)
+- Pair-end mapping (insert size anomalies)
+- Assembly-based methods
+
+**Biological Significance:**
+- Copy number gains
+- Transposable element insertions
+- Regulatory element duplications
+
+---
+
+### COMPLEX (Complex Variants)
+
+**Definition:** Variants with simultaneous substitution and length change
+
+**Characteristics:**
+- Both reference and alternate >1 bp
+- Cannot be decomposed to simple SNP + INDEL
+
+**Examples:**
+- ACGT → TT (deletion + substitution)
+- A → CGT (insertion + substitution)
+- GATC → TC (deletion + substitution)
+
+**Prevalence:** <5% of variants typically
+
+**Callability:** Most difficult variant type due to ambiguity
+
+**Causes:**
+- True complex events (rare)
+- Alignment artifacts (common)
+- Overlapping variants incorrectly merged
+- VCF representation choices
+
+**Handling Strategies:**
+- Some tools decompose to SNP + INDEL
+- Others treat as single variant
+- Benchmark representation varies
+
+---
+
+### OTHER (Unclassified)
+
+**Definition:** Variants not fitting standard categories
+
+**When Occurs:**
+- Variants with no clear classification
+- Data processing artifacts
+- Potentially poor-quality calls
+
+**Prevalence:** <5% of variants
+
+**Interpretation:**
+- Should be minimal
+- Investigate if percentage is high
+- May indicate upstream quality issues
+
+---
+
+## Chromosome Naming Conventions
+
+### Standard Naming
+- **Autosomes:** chr1 - chr22 (GRCh convention with "chr" prefix)
+- **Sex chromosomes:** chrX, chrY (not chr23/24)
+- **Mitochondrial:** chrM (not chrMT or MT)
+
+### Sources of Variation
+- Some resources use "1" instead of "chr1"
+- Older data may use haplotype-specific names (e.g., "haplotype1.1")
+- Mitochondrial sometimes written as "MT" or "chrMT"
+
+### Our Convention
+- All files standardized to use "chr" prefix
+- All chromosomes in reference size files have "chr" prefix
+- Variant files inherit from source but usually include "chr"
+
+---
+
+## Summary Statistics by Benchmark
+
+### v5.0q_GRCh38 Example
+
+**Small Variants (smvar):**
+- Total variants: ~4.9M
+- Average density: 6,500 variants/Mb
+- Benchmark coverage: 3.0 Gb (94% of assembled genome)
+- Composition: ~35% SNPs, ~60% INDELs, ~5% complex
+
+**Structural Variants (stvar):**
+- Total variants: ~14,000
+- Density: ~4.7 variants/Mb
+- Composition: ~50% deletions, ~45% insertions, ~5% complex
+
+### v5.0q_GRCh37 Example
+
+**Small Variants:**
+- Total variants: ~4.6M
+- Similar distribution to GRCh38
+- Benchmark coverage: 2.9 Gb
+
+**Structural Variants:**
+- Total variants: ~13,000
+- Similar density and composition to GRCh38
+
+---
+
+## Related Documentation
+
+- **[Pipeline Outputs Reference](pipeline-outputs.md)** - File formats and loading instructions
+- **[Output Relationships Diagram](diagrams/output-relationships.mmd)** - Visual guide to data relationships
+- **[Architecture Overview](architecture.md)** - How metrics are calculated in the pipeline
