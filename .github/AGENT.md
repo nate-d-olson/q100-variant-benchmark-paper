@@ -8,7 +8,21 @@ Purpose: give short, prescriptive steps so an agent can make safe, minimal-code 
   - Add `log`, `threads`, `resources`, and `conda` directives.
   - Wrap outputs with `ensure()`; add `sha256` for deterministic outputs when possible.
   - Add `retries: 3` and `ancient()` for download rules.
+- **Terminology consistency** (when refactoring names across the pipeline):
+  1. Update Snakemake rules: rule names, wildcards, `wildcard_constraints` in `common.smk`
+  2. Update file paths and helper functions in `workflow/rules/common.smk`
+  3. Update input/output paths in dependent rules
+  4. Update Python scripts in `workflow/scripts/` that read config values or parse wildcards
+  5. Update column names in all CSV/TSV outputs consistently
+  6. Test with: `snakemake --lint` and dry-run on a single small benchmark
 - Do not change `workflow/envs/*` without confirming tool version compatibility with project maintainers.
+- **Cache management**: When modifying Snakemake rules that generate files, or updating helper scripts
+  (e.g., `workflow/scripts/generate_header_lines.py`), clear affected output directories to force regeneration:
+  ```bash
+  rm -rf results/<target_dir>  # e.g., results/generate_annotation_headers/
+  rm -rf results/<downstream_dir>  # remove dependents too
+  ```
+  Snakemake does not automatically detect when a script changes—cached outputs remain unchanged.
 - Tests: add fixtures to `tests/fixtures` and update `tests/conftest.py` for integration-level smoke tests.
 - Commit messages must use Conventional Commits. Keep changes small and focused.
 

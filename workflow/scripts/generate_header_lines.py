@@ -6,6 +6,7 @@ Usage:
     python generate_header_lines.py \
         --output header_lines.txt
 """
+
 import argparse
 
 
@@ -16,10 +17,10 @@ def main():
 
     lines = []
 
-    # Stratification IDs field (comma-separated list of stratification region IDs)
+    # Genomic Context IDs field (comma-separated list of genomic context region IDs)
     lines.append(
-        "##INFO=<ID=STRAT_IDS,Number=.,Type=String,"
-        'Description="Comma-separated list of stratification region IDs overlapping variant">'
+        "##INFO=<ID=CONTEXT_IDS,Number=.,Type=String,"
+        'Description="Comma-separated list of genomic context region IDs overlapping variant">'
     )
 
     # Region IDs field (includes Benchmark Regions and Exclusions)

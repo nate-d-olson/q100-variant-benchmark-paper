@@ -97,12 +97,12 @@ def get_reference_checksum(ref_name: str) -> str:
 # ============================================================================
 
 
-def get_stratification_beds(wildcards) -> List[str]:
-    """Get list of stratification BED files with IDs."""
+def get_genomic_context_beds(wildcards) -> List[str]:
+    """Get list of genomic context BED files with IDs."""
     ref = config["benchmarksets"][wildcards.benchmark].get("ref")
-    strats = config["references"][ref].get("stratifications", {})
+    contexts = config["references"][ref].get("stratifications", {})
     beds = []
-    for name, _ in strats.items():
+    for name, _ in contexts.items():
         # Use short ID in filename (e.g., CHM13_TR.bed.gz)
         path = f"resources/stratifications/{ref}_{name}.bed.gz"
         beds.append(f"{path}:{name}")

@@ -51,10 +51,10 @@ onerror:
 include: "rules/common.smk"
 include: "rules/benchmark_comparisons.smk"
 include: "rules/downloads.smk"
-include: "rules/diff_tables.smk"
+include: "rules/genomic_context_tables.smk"
 include: "rules/exclusions.smk"
 include: "rules/ref_processing.smk"
-include: "rules/strat_metrics.smk"
+include: "rules/genomic_context_metrics.smk"
 include: "rules/stratify_bench.smk"
 include: "rules/vcf_processing.smk"
 include: "rules/var_counts.smk"
@@ -70,13 +70,13 @@ rule all:
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],
         ),
         expand(
-            "results/diff_region_coverage/{benchmark}/{strat}_cov.bed",
+            "results/genomic-context_coverage/{benchmark}/{context}_cov.bed",
             benchmark=BENCHMARK,
-            strat=STRAT,
+            context=STRAT,
         ),
         ## Benchmarkset variant counts by type and difficult region stratifications
         expand(
-            "results/var_counts/{benchmark}/stratification_combined_metrics.csv",
+            "results/var_counts/{benchmark}/genomic_context_combined_metrics.csv",
             benchmark=BENCHMARK,
         ),
         ## Benchmark set exclusion intersection - overlap of exclusion beds with dip.bed

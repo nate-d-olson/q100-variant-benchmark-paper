@@ -6,7 +6,7 @@ type: object
 
 required:
   - benchmarksets
-  - outputs
+  - references
 
 properties:
   benchmarksets:
@@ -146,14 +146,6 @@ properties:
             type: string
             pattern: "^[a-f0-9]{64}$"
             description: SHA256 checksum
-          autosome_bases:
-            type: integer
-            description: Total assembled bases in autosomes (chr1-22)
-            minimum: 0
-          autosome_sex_bases:
-            type: integer
-            description: Total assembled bases in autosomes and sex chromosomes (chr1-22, X, Y)
-            minimum: 0
           stratifications:
             type: object
             description: Genome stratification BED files for this reference
@@ -180,7 +172,6 @@ properties:
                     type: string
                     pattern: "^[a-f0-9]{64}$"
                     description: SHA256 checksum
-
   comparisons:
     type: object
     description: Benchmark comparison configurations

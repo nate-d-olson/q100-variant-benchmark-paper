@@ -13,9 +13,11 @@ TSV tables with variant-level annotations.
 rule combine_genomic_context_beds:
     """Combine genomic context BEDs with IDs for bcftools annotation."""
     input:
-        beds=lambda w: [b.split(":")[0] for b in get_stratification_beds(w)],
+        beds=lambda w: [b.split(":")[0] for b in get_genomic_context_beds(w)],
     output:
-        bed=temp("results/combine_genomic_context_beds/{benchmark}/context_combined.bed"),
+        bed=temp(
+            "results/combine_genomic_context_beds/{benchmark}/context_combined.bed"
+        ),
         bed_gz=temp(
             ensure(
                 "results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz",
@@ -26,7 +28,7 @@ rule combine_genomic_context_beds:
             "results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi"
         ),
     params:
-        bed_specs=lambda w: get_stratification_beds(w),
+        bed_specs=lambda w: get_genomic_context_beds(w),
     log:
         "logs/combine_genomic_context_beds/{benchmark}.log",
     conda:
@@ -112,8 +114,8 @@ rule annotate_vcf_genomic_contexts:
             if w.benchmark.startswith("v06_")
             else "results/split_multiallelics/{benchmark}/split.vcf.gz.tbi"
         ),
-        strat_bed="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz",
-        strat_tbi="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi",
+        context_bed="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz",
+        context_tbi="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi",
         headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
     output:
         vcf=temp(
@@ -128,7 +130,7 @@ rule annotate_vcf_genomic_contexts:
         echo "Annotating {wildcards.benchmark} with genomic contexts" > {log}
 
         bcftools annotate \
-            --annotations {input.strat_bed} \
+            --annotations {input.context_bed} \
             --columns CHROM,FROM,TO,INFO/CONTEXT_IDS \
             --header-lines {input.headers} \
             --output-type z --output {output.vcf} {input.vcf} 2>> {log}
@@ -175,7 +177,7 @@ rule extract_info_fields:
     output:
         fields=temp("results/extract_info_fields/{benchmark}/info_fields.txt"),
     params:
-        exclude=["STRAT_IDS", "REGION_IDS"],
+        exclude=["CONTEXT_IDS", "REGION_IDS"],
     log:
         "logs/extract_info_fields/{benchmark}.log",
     conda:
