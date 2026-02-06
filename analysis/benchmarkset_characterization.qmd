@@ -35,9 +35,9 @@ This analysis uses **primary aggregated metrics** rather than loading full varia
 ### Primary Metrics (Recommended)
 
 ```{r}
-# Load aggregated stratification metrics with variant counts
-# One row per stratification per benchmark
-strat_metrics_df <- load_stratification_metrics()
+# Load aggregated genomic context metrics with variant counts
+# One row per genomic context per benchmark
+strat_metrics_df <- load_genomic_context_metrics()
 
 # Load reference genome sizes for normalization
 ref_sizes_df <- load_reference_sizes()
@@ -54,22 +54,22 @@ bench_regions_df <- load_benchmark_regions()
 pipeline_config <- parse_pipeline_config()
 
 expected_benchmarks <- pipeline_config$num_benchmarks
-expected_strats <- pipeline_config$num_stratifications
-expected_rows <- expected_benchmarks * expected_strats
+expected_contexts <- pipeline_config$num_contexts
+expected_rows <- expected_benchmarks * expected_contexts
 
 assertthat::assert_that(
   nrow(strat_metrics_df) >= expected_rows - 5,
   msg = glue::glue(
     "Expected {expected_rows} or more rows in strat_metrics_df, ",
-    "got {nrow(strat_metrics_df)} (from config: {expected_benchmarks} benchmarks × {expected_strats} strats)"
+    "got {nrow(strat_metrics_df)} (from config: {expected_benchmarks} benchmarks × {expected_contexts} contexts)"
   )
 )
 
-# Verify all required stratifications are present
-required_strats <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+# Verify all required genomic contexts are present
+required_contexts <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
 assertthat::assert_that(
-  all(required_strats %in% levels(strat_metrics_df$strat_name)),
-  msg = "Missing expected stratification names"
+  all(required_contexts %in% levels(strat_metrics_df$context_name)),
+  msg = "Missing expected genomic context names"
 )
 
 # Verify variant counts are non-negative
@@ -84,10 +84,10 @@ assertthat::assert_that(
 These data frames are the primary inputs for downstream analyses:
 
 **strat_metrics_df** - Aggregated metrics with variant counts
-- One row per stratification per benchmark
+- One row per genomic context per benchmark
 - Contains: variant counts by type, coverage metrics, variant density
 - Use for: variant count comparisons, density calculations, coverage analysis
-- Columns: `bench_version`, `ref`, `bench_type`, `strat_name`, `total_variants`, `snv_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `variant_density_per_mb`
+- Columns: `bench_version`, `ref`, `bench_type`, `context_name`, `total_variants`, `snv_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `variant_density_per_mb`
 - **Variables are pre-factored** with standard levels (no manual factoring needed)
 
 **bench_regions_df** - Benchmark region intervals
@@ -123,8 +123,8 @@ However, this is significantly slower (minutes) and memory-intensive (~1 GB), so
 ### Small Variant Counts
 
 ```{r}
-# Aggregate small variant counts by type across all stratifications
-# Note: snv_count is renamed from snp_count in load_stratification_metrics()
+# Aggregate small variant counts by type across all genomic contexts
+# Note: snv_count is renamed from snp_count in load_genomic_context_metrics()
 smvar_cnt_df <- strat_metrics_df %>%
   filter(bench_type == "smvar") %>%
   group_by(bench_type, ref, bench_version) %>%
@@ -164,7 +164,7 @@ smv_cnt_tbl
 ### Structural Variant Counts
 
 ```{r}
-# Aggregate structural variant counts by type across all stratifications
+# Aggregate structural variant counts by type across all genomic contexts
 stvar_cnt_df <- strat_metrics_df %>%
   filter(bench_type == "stvar") %>%
   group_by(bench_type, ref, bench_version) %>%
@@ -426,10 +426,10 @@ smvar_len_df <- smvar_benchmarks %>%
 
 ## Variants in Difficult Genomic Contexts
 
-This section visualizes variant counts by stratification region, created from aggregated metrics (no full variant loading needed).
+This section visualizes variant counts by genomic context region, created from aggregated metrics (no full variant loading needed).
 
 ```{r}
-# Create variant count breakdown by stratification from aggregated metrics
+# Create variant count breakdown by genomic context from aggregated metrics
 diff_var_plt_df <- strat_metrics_df %>%
   # Expand variant counts to individual rows by type
   pivot_longer(
@@ -447,7 +447,7 @@ diff_var_plt_df <- strat_metrics_df %>%
       count_type == "other_count" ~ "OTHER",
       TRUE ~ "UNKNOWN"
     ),
-    strat_ids = strat_name  # Use stratification name as grouping variable
+    context_id = context_name  # Use genomic context name as grouping variable
   ) %>%
   filter(count > 0) %>%  # Only non-zero counts
   select(-count_type)

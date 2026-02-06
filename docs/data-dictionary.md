@@ -1,24 +1,24 @@
 # Data Dictionary
 
-Detailed definitions and interpretations of all metrics, stratifications, exclusions, and variant classifications in the q100-variant-benchmark pipeline.
+Detailed definitions and interpretations of all metrics, genomic contexts, exclusions, and variant classifications in the q100-variant-benchmark pipeline.
 
 ## Metrics Definitions
 
 ### Core Overlap Metrics
 
-#### strat_bp
-**Definition:** Total number of bases in a stratification region
+#### context_bp
+**Definition:** Total number of bases in a genomic context region
 
-**Calculation:** Sum of all bases in the BED file defining that stratification
+**Calculation:** Sum of all bases in the BED file defining that genomic context
 
 **Units:** Bases (bp)
 
-**Range:** Millions to billions depending on stratification
+**Range:** Millions to billions depending on genomic context
 
 **Interpretation:**
-- Larger values = stratification covers more of the genome
-- Used as denominator for calculating `pct_of_strat`
-- Example: HP stratification has ~84 million bases in GRCh38
+- Larger values = genomic context covers more of the genome
+- Used as denominator for calculating `pct_of_context`
+- Example: HP genomic context has ~84 million bases in GRCh38
 
 **Examples by Stratification:**
 | Stratification | GRCh37 | GRCh38 | CHM13v2.0 |
@@ -33,30 +33,30 @@ Detailed definitions and interpretations of all metrics, stratifications, exclus
 ---
 
 #### intersect_bp
-**Definition:** Number of bases in a stratification that overlap with benchmark regions
+**Definition:** Number of bases in a genomic context that overlap with benchmark regions
 
 **Calculation:**
 ```
-bedtools intersect -a stratification.bed -b benchmark.bed | awk '{sum += $3-$2} END {print sum}'
+bedtools intersect -a genomic context.bed -b benchmark.bed | awk '{sum += $3-$2} END {print sum}'
 ```
 
 **Units:** Bases (bp)
 
-**Range:** 0 to strat_bp (cannot exceed total stratification size)
+**Range:** 0 to context_bp (cannot exceed total genomic context size)
 
 **Interpretation:**
 - Shows how much of the difficult region is actually included in the benchmark
 - Larger values = benchmark better covers this difficult region
-- Zero means stratification not covered by benchmark
+- Zero means genomic context not covered by benchmark
 
 ---
 
-#### pct_of_strat
-**Definition:** Percentage of stratification region included in benchmark
+#### pct_of_context
+**Definition:** Percentage of genomic context region included in benchmark
 
 **Formula:**
 ```
-pct_of_strat = (intersect_bp / strat_bp) × 100
+pct_of_context = (intersect_bp / context_bp) × 100
 ```
 
 **Units:** Percentage (0-100%)
@@ -72,7 +72,7 @@ pct_of_strat = (intersect_bp / strat_bp) × 100
 
 **Example Interpretation:**
 ```
-If pct_of_strat = 45% for MAP region:
+If pct_of_context = 45% for MAP region:
 → Only 45% of all low-complexity regions are in the benchmark
 → Benchmark may not be suitable for analyzing complexity-related variants
 ```
@@ -80,7 +80,7 @@ If pct_of_strat = 45% for MAP region:
 ---
 
 #### pct_of_bench
-**Definition:** Percentage of benchmark regions overlapping with a specific stratification
+**Definition:** Percentage of benchmark regions overlapping with a specific genomic context
 
 **Formula:**
 ```
@@ -94,12 +94,12 @@ pct_of_bench = (intersect_bp / total_benchmark_bp) × 100
 **Interpretation:**
 - Shows how much of the benchmark consists of a particular difficult region
 - Larger values = this difficult region is a major component of the benchmark
-- Values add to ~100% when summing across all stratifications (but overlap)
+- Values add to ~100% when summing across all genomic contexts (but overlap)
 - Useful for understanding benchmark composition
 
 **Example Interpretation:**
 ```
-For HP stratification: pct_of_bench = 2.92%
+For HP genomic context: pct_of_bench = 2.92%
 → About 2.92% of the entire benchmark overlaps with homopolymer regions
 → This is the fraction of benchmark bases users will be working with
 ```
@@ -107,7 +107,7 @@ For HP stratification: pct_of_bench = 2.92%
 ---
 
 #### variant_density_per_mb
-**Definition:** Number of variants per megabase in the benchmark-stratification overlap region
+**Definition:** Number of variants per megabase in the benchmark-genomic context overlap region
 
 **Formula:**
 ```
@@ -121,7 +121,7 @@ variant_density_per_mb = (total_variants / (intersect_bp / 1,000,000))
 **Interpretation:**
 - Shows variant frequency in difficult regions
 - **Higher values:** Indicates more variant-dense regions
-- **Compare across stratifications:** Identifies which regions have highest variant density
+- **Compare across genomic contexts:** Identifies which regions have highest variant density
 - **Use for:** Understanding which difficult regions contribute most variants to benchmark
 
 **Example Interpretation:**
@@ -144,21 +144,21 @@ If variant_density_per_mb = 9310 for HP in small variants:
 ### Variant Counts
 
 #### total_variants
-**Definition:** Total count of all variants in the benchmark-stratification overlap region
+**Definition:** Total count of all variants in the benchmark-genomic context overlap region
 
 **Units:** Integer count
 
 **Calculation:** Sum of all snp_count + indel_count + del_count + ins_count + complex_count + other_count
 
 **Interpretation:**
-- Represents the total number of variants within this stratification-benchmark overlap
+- Represents the total number of variants within this genomic context-benchmark overlap
 - Useful for understanding how many variants tools must process in difficult regions
 - Larger counts = more challenging region for variant calling
 
 **Context:**
-- For small variants: typically thousands to hundreds of thousands per stratification
-- For structural variants: typically tens to thousands per stratification
-- Varies significantly by stratification type and reference genome
+- For small variants: typically thousands to hundreds of thousands per genomic context
+- For structural variants: typically tens to thousands per genomic context
+- Varies significantly by genomic context type and reference genome
 
 ---
 
@@ -176,7 +176,7 @@ If variant_density_per_mb = 9310 for HP in small variants:
 - Usually comprise 30-50% of total variants in benchmarks
 
 **Context:**
-- Small variants: 180,000-700,000 SNPs per benchmark-stratification
+- Small variants: 180,000-700,000 SNPs per benchmark-genomic context
 - Structural variants: 0 SNPs (structural variants are ≥50bp)
 
 ---
@@ -321,9 +321,9 @@ Stratifications represent different categories of "difficult" genomic regions - 
 
 **Typical Values (v5.0q_GRCh38_smvar):**
 ```
-strat_bp = 83,977,437
+context_bp = 83,977,437
 intersect_bp = 80,057,238
-pct_of_strat = 95.3% (well covered)
+pct_of_context = 95.3% (well covered)
 pct_of_bench = 2.92% (3% of benchmark)
 variant_density = 9,310 v/Mb (very high)
 ```
@@ -357,9 +357,9 @@ variant_density = 9,310 v/Mb (very high)
 
 **Typical Values (v5.0q_GRCh38_smvar):**
 ```
-strat_bp = 248,876,839
+context_bp = 248,876,839
 intersect_bp = 113,370,415
-pct_of_strat = 45.6% (partially covered)
+pct_of_context = 45.6% (partially covered)
 pct_of_bench = 4.14% (4% of benchmark)
 total_variants = 851,471
 ```
@@ -389,7 +389,7 @@ total_variants = 851,471
 **Coverage in Benchmarks:**
 - ~48-50% of segmental duplications covered
 - Usually represents 3% of benchmark bases
-- Most conservative stratification (heavily avoiding)
+- Most conservative genomic context (heavily avoiding)
 
 **Variant Characteristics:**
 - High proportion SNPs (80-85%)
@@ -398,9 +398,9 @@ total_variants = 851,471
 
 **Typical Values (v5.0q_GRCh38_smvar):**
 ```
-strat_bp = 166,860,344
+context_bp = 166,860,344
 intersect_bp = 81,066,975
-pct_of_strat = 48.6% (half covered)
+pct_of_context = 48.6% (half covered)
 pct_of_bench = 2.96% (3% of benchmark)
 ```
 
@@ -461,7 +461,7 @@ pct_of_bench = 2.96% (3% of benchmark)
 
 **Typical Values (v5.0q_GRCh38_smvar):**
 ```
-strat_bp = 241,276,584
+context_bp = 241,276,584
 intersect_bp = varies by region
 pct_of_bench = 4-7% (large contributor to benchmark)
 ```
@@ -544,7 +544,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 **Definition:** Segmental duplications (>90% identity, >1kb)
 
 **Rationale:**
-- Same as SD stratification
+- Same as SD genomic context
 - Duplicate regions unmappable with short reads
 - Excluded from benchmark as uncallable
 
@@ -565,7 +565,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 
 **Typical Impact:**
 - 10-20% of benchmark bases
-- Overlaps with MAP stratification
+- Overlaps with MAP genomic context
 - Partially included to retain challenging-but-solvable regions
 
 ---
@@ -580,7 +580,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 
 **Typical Impact:**
 - 15-25% of benchmark bases
-- But 40-50% still included (TR stratification)
+- But 40-50% still included (TR genomic context)
 - Reflects modern ability to call some repeat variants
 
 ---

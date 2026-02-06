@@ -51,9 +51,9 @@ diff_cov_df <- benchmarks %>%
     bases_covered = bases_cov,
     interval_bp = ivl_len
   ) %>%
-  # Create bench_strat column for grouping (benchmark/stratification)
+  # Create bench_context column for grouping (benchmark/genomic context)
   mutate(
-    bench_strat = glue::glue("{benchmark}/{strat_name}")
+    bench_context = glue::glue("{benchmark}/{context_name}")
   ) %>%
   select(-benchmark)
 ```
@@ -64,9 +64,9 @@ glimpse(diff_cov_df)
 ```
 
 ```{r}
-# Aggregate coverage metrics by benchmark and stratification
+# Aggregate coverage metrics by benchmark and genomic context
 diff_cov_total_df <- diff_cov_df %>%
-  group_by(bench_strat, strat_name) %>%
+  group_by(bench_context, context_name) %>%
   summarise(
     bases_covered = sum(bases_covered),
     interval_bp = sum(interval_bp),
@@ -74,15 +74,15 @@ diff_cov_total_df <- diff_cov_df %>%
   ) %>%
   mutate(
     frac_cov = 1 - (bases_covered / interval_bp),
-    bench_strat = str_replace(bench_strat, "/", "_"),
-    strat = strat_name
+    bench_context = str_replace(bench_context, "/", "_"),
+    context = context_name
   ) %>%
   separate(
-    bench_strat,
+    bench_context,
     into = c("bench_version", "ref", "var_type"),
     sep = "_"
   ) %>%
-  select(-strat_name)
+  select(-context_name)
 ```
 
 
@@ -96,7 +96,7 @@ diff_cov_total_df %>%
   ggplot() +
   geom_bar(
     aes(
-      x = strat,
+      x = context,
       y = bases_covered,
       fill = glue::glue("{bench_version} {ref}")
     ),
@@ -113,15 +113,15 @@ diff_cov_total_df %>%
 ```{r}
 diff_top_intervals <- diff_cov_df %>%
   filter(
-    str_detect(bench_strat, "GRCh38_smvar") |
-      str_detect(bench_strat, "GRCh37_stvar")
+    str_detect(bench_context, "GRCh38_smvar") |
+      str_detect(bench_context, "GRCh37_stvar")
   ) %>%
-  group_by(bench_strat) %>%
+  group_by(bench_context) %>%
   slice_max(order_by = interval_bp, n = 10000) %>%
-  mutate(bench_strat = str_replace(bench_strat, "/", "_")) %>%
+  mutate(bench_context = str_replace(bench_context, "/", "_")) %>%
   separate(
-    bench_strat,
-    into = c("bench_version", "ref", "var_type", "strat"),
+    bench_context,
+    into = c("bench_version", "ref", "var_type", "context"),
     sep = "_"
   )
 ```
@@ -134,32 +134,32 @@ diff_top_intervals %>%
   mutate(n_interval = cumsum(bases_covered)) %>%
   ggplot() +
   geom_path(aes(x = n_interval, y = frac_cov, color = bench_version)) +
-  facet_grid(var_type ~ strat)
+  facet_grid(var_type ~ context)
 ```
 
 
 ```{r}
 diff_cov_df %>%
   filter(
-    str_detect(bench_strat, "GRCh38_smvar") |
-      str_detect(bench_strat, "GRCh37_stvar")
+    str_detect(bench_context, "GRCh38_smvar") |
+      str_detect(bench_context, "GRCh37_stvar")
   ) %>%
   mutate(
     fully_covered = if_else(num_overlap == 1 & frac_cov == 1.0, TRUE, FALSE)
   ) %>%
-  group_by(bench_strat, fully_covered) %>%
+  group_by(bench_context, fully_covered) %>%
   summarise(diff_bp = sum(interval_bp)) %>%
   ungroup() %>%
-  mutate(bench_strat = str_replace(bench_strat, "/", "_")) %>%
+  mutate(bench_context = str_replace(bench_context, "/", "_")) %>%
   separate(
-    bench_strat,
-    into = c("bench_version", "ref", "var_type", "strat"),
+    bench_context,
+    into = c("bench_version", "ref", "var_type", "context"),
     sep = "_"
   ) %>%
   filter(fully_covered) %>%
   ggplot() +
   geom_bar(
-    aes(x = strat, fill = bench_version, y = diff_bp),
+    aes(x = context, fill = bench_version, y = diff_bp),
     stat = "identity",
     position = "dodge"
   ) +

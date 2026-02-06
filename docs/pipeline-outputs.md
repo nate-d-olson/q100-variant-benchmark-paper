@@ -23,7 +23,7 @@ Example: `v5.0q_GRCh38_smvar` = v5.0q benchmark, GRCh38 reference, small variant
 
 ### Stratification Names
 
-All stratification-related outputs use these consistent identifiers:
+All genomic context-related outputs use these consistent identifiers:
 
 | Code | Name | Description |
 |------|------|-------------|
@@ -42,9 +42,9 @@ These files contain aggregated metrics and should be your default choice for ana
 
 ### 1. Stratification Combined Metrics
 
-**Path:** `results/var_counts/{benchmark}/stratification_combined_metrics.csv`
+**Path:** `results/var_counts/{benchmark}/genomic context_combined_metrics.csv`
 
-**Purpose:** Primary analysis file with per-stratification metrics and variant counts. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
+**Purpose:** Primary analysis file with per-genomic context metrics and variant counts. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
 
 **Size:** Small (~5-10 KB per benchmark)
 
@@ -55,11 +55,11 @@ These files contain aggregated metrics and should be your default choice for ana
 | bench_version | string | Benchmark version | e.g., "v5.0q" |
 | ref | string | Reference genome | GRCh37, GRCh38, CHM13v2.0 |
 | var_type | string | Variant classification | smvar or stvar |
-| strat_name | string | Stratification region name | HP, MAP, SD, SD10kb, TR, TR10kb |
-| strat_bp | integer | Total bases in stratification | Bases |
+| context_name | string | Stratification region name | HP, MAP, SD, SD10kb, TR, TR10kb |
+| context_bp | integer | Total bases in genomic context | Bases |
 | intersect_bp | integer | Bases overlapping with benchmark | Bases |
-| pct_of_strat | decimal | Percentage of stratification in benchmark | 0-100% |
-| pct_of_bench | decimal | Percentage of benchmark in stratification | 0-100% |
+| pct_of_context | decimal | Percentage of genomic context in benchmark | 0-100% |
+| pct_of_bench | decimal | Percentage of benchmark in genomic context | 0-100% |
 | total_variants | integer | Total variant count in overlap | Count |
 | snp_count | integer | SNP count | Count |
 | indel_count | integer | INDEL count | Count |
@@ -71,7 +71,7 @@ These files contain aggregated metrics and should be your default choice for ana
 
 **Example Data:**
 ```
-strat_name,strat_bp,intersect_bp,pct_of_strat,pct_of_bench,total_variants,snp_count,indel_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
+context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,total_variants,snp_count,indel_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
 HP,83977437,80057238,95.331843,2.922429,745376,180354,554178,0,0,0,10844,9310.54
 MAP,248876839,113370415,45.552819,4.138501,851471,724227,86411,0,0,0,40833,7510.52
 SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,0,0,0,25627,6232.91
@@ -79,19 +79,19 @@ SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,0,0,0,25627,6232.91
 
 **Usage Notes:**
 - Recommended file for most analyses
-- One row per stratification per benchmark
+- One row per genomic context per benchmark
 - Ideal for creating comparison plots and summary tables
-- Use `load_stratification_metrics()` function to load
+- Use `load_genomic context_metrics()` function to load
 
 **Example Usage:**
 ```r
 source("R/data_loading.R")
 
 # Load all metrics
-metrics <- load_stratification_metrics()
+metrics <- load_genomic context_metrics()
 
 # Load specific benchmark
-metrics_v5 <- load_stratification_metrics(
+metrics_v5 <- load_genomic context_metrics(
   benchmark_filter = c("v5.0q_GRCh38_smvar", "v5.0q_GRCh37_stvar")
 )
 
@@ -223,7 +223,7 @@ ref_sizes %>%
   )
 
 # Normalize benchmark coverage to genome size
-metrics <- load_stratification_metrics()
+metrics <- load_genomic context_metrics()
 ref_sizes_df <- load_reference_sizes()
 
 genome_totals <- ref_sizes_df %>%
@@ -253,7 +253,7 @@ These files contain variant-level or base-level data. Load them only when you ne
 
 **Size:** Large (~500 MB - 2 GB per benchmark)
 
-**⚠️ Performance Warning:** Loading full variant tables is slow (several minutes) and memory-intensive. Consider using `load_stratification_metrics()` for summary statistics instead.
+**⚠️ Performance Warning:** Loading full variant tables is slow (several minutes) and memory-intensive. Consider using `load_genomic context_metrics()` for summary statistics instead.
 
 **Column Schema:**
 
@@ -319,7 +319,7 @@ interesting_vars <- variants %>%
 
 **Path:** `results/diff_region_coverage/{benchmark}/{strat}_cov.bed`
 
-**Purpose:** Base-level coverage information from bedtools coverage. Use this to understand how much of each stratification region overlaps with benchmarks at base-level granularity.
+**Purpose:** Base-level coverage information from bedtools coverage. Use this to understand how much of each genomic context region overlaps with benchmarks at base-level granularity.
 
 **Size:** Large (~100 MB - 1 GB per benchmark)
 
@@ -329,7 +329,7 @@ interesting_vars <- variants %>%
 
 | Column | Type | Description |
 |--------|------|-------------|
-| strat_name | string | Stratification region name (extracted from filename) |
+| context_name | string | Stratification region name (extracted from filename) |
 | chrom | string | Chromosome |
 | start | integer | Start position (0-based, BED format) |
 | end | integer | End position (exclusive) |
@@ -340,14 +340,14 @@ interesting_vars <- variants %>%
 
 **Example Data:**
 ```
-strat_name  chrom  start     end       n_overlap  bases_cov  ivl_len  frac_cov
+context_name  chrom  start     end       n_overlap  bases_cov  ivl_len  frac_cov
 HP          chr1   10000     10500     1          500        500      1.0
 HP          chr1   20000     20200     0          0          200      0.0
 HP          chr1   25000     25500     2          450        500      0.9
 ```
 
 **Understanding the Columns:**
-- `n_overlap`: How many benchmark regions overlap this stratification interval
+- `n_overlap`: How many benchmark regions overlap this genomic context interval
   - 0 = not covered by any benchmark
   - 1+ = covered by one or more benchmark regions
 - `frac_cov`: Useful for identifying partially covered regions
@@ -356,8 +356,8 @@ HP          chr1   25000     25500     2          450        500      0.9
   - 0.0-1.0 = partially covered (edge cases)
 
 **Usage Notes:**
-- One file per stratification per benchmark (6 strat × 8 benchmarks = 48 files)
-- Files are generated from `bedtools coverage -a stratification.bed -b benchmark.bed`
+- One file per genomic context per benchmark (6 strat × 8 benchmarks = 48 files)
+- Files are generated from `bedtools coverage -a genomic context.bed -b benchmark.bed`
 - Start positions are 0-based (BED format); add 1 for 1-based coordinates if needed
 - Use `load_diff_coverage()` to load and parse
 
@@ -365,23 +365,23 @@ HP          chr1   25000     25500     2          450        500      0.9
 ```r
 source("R/data_loading.R")
 
-# Load coverage for all stratifications
+# Load coverage for all genomic contexts
 coverage <- load_diff_coverage("v5.0q_GRCh38_smvar")
 
-# Load only specific stratifications
+# Load only specific genomic contexts
 hp_tr_coverage <- load_diff_coverage(
   "v5.0q_GRCh38_smvar",
-  strat_filter = c("HP", "TR")
+  context_filter = c("HP", "TR")
 )
 
-# Find uncovered regions in HP stratification
+# Find uncovered regions in HP genomic context
 uncovered <- coverage %>%
-  filter(strat_name == "HP", frac_cov == 0.0) %>%
+  filter(context_name == "HP", frac_cov == 0.0) %>%
   arrange(chrom, start)
 
-# Calculate coverage statistics by stratification
+# Calculate coverage statistics by genomic context
 coverage %>%
-  group_by(strat_name) %>%
+  group_by(context_name) %>%
   summarise(
     total_intervals = n(),
     fully_covered = sum(frac_cov == 1.0),
@@ -399,9 +399,9 @@ coverage %>%
 results/
 ├── var_counts/
 │   ├── v5.0q_GRCh38_smvar/
-│   │   ├── stratification_combined_metrics.csv    ✓ Primary (load first)
-│   │   ├── stratification_summary.csv             (intermediate)
-│   │   └── variants_by_stratification.csv         (intermediate)
+│   │   ├── genomic context_combined_metrics.csv    ✓ Primary (load first)
+│   │   ├── genomic context_summary.csv             (intermediate)
+│   │   └── variants_by_genomic context.csv         (intermediate)
 │   ├── v5.0q_GRCh38_stvar/
 │   ├── v5.0q_GRCh37_smvar/
 │   ├── v5.0q_GRCh37_stvar/
@@ -454,7 +454,7 @@ Legend:
 source("R/data_loading.R")
 
 # 1. Load primary metrics
-metrics <- load_stratification_metrics()
+metrics <- load_genomic context_metrics()
 ref_sizes <- load_reference_sizes()
 
 # 2. Combine with genome sizes for normalization
@@ -468,7 +468,7 @@ metrics_normalized <- metrics %>%
 
 # 3. Create visualizations
 metrics_normalized %>%
-  ggplot(aes(x = strat_name, y = variant_density_per_mb, fill = var_type)) +
+  ggplot(aes(x = context_name, y = variant_density_per_mb, fill = var_type)) +
   geom_col(position = "dodge") +
   facet_wrap(~ref) +
   theme_minimal()
@@ -480,7 +480,7 @@ metrics_normalized %>%
 source("R/data_loading.R")
 
 # 1. Start with metrics to understand distribution
-metrics <- load_stratification_metrics()
+metrics <- load_genomic context_metrics()
 filter(metrics, var_type == "smvar", ref == "GRCh38")
 
 # 2. If you need details, load variant table with filters
@@ -510,12 +510,12 @@ source("R/data_loading.R")
 # Load coverage data
 coverage <- load_diff_coverage(
   "v5.0q_GRCh38_smvar",
-  strat_filter = c("HP", "TR")
+  context_filter = c("HP", "TR")
 )
 
 # Analyze coverage patterns
 coverage %>%
-  group_by(strat_name, chrom) %>%
+  group_by(context_name, chrom) %>%
   summarise(
     pct_covered = 100 * sum(bases_cov) / sum(ivl_len),
     n_regions = n(),
@@ -531,7 +531,7 @@ All output files can be loaded using functions in `R/data_loading.R`:
 
 | Function | Purpose | Returns | Notes |
 |----------|---------|---------|-------|
-| `load_stratification_metrics()` | Load primary analysis metrics | Tibble | 48+ rows (6 strats × benchmarks) |
+| `load_genomic context_metrics()` | Load primary analysis metrics | Tibble | 48+ rows (6 strats × benchmarks) |
 | `load_exclusion_metrics()` | Load exclusion overlaps | Tibble | v5.0q only, warns if empty |
 | `load_reference_sizes()` | Load reference genomes | Tibble | 88-94 rows (24-31 chroms × refs) |
 | `load_variant_table()` | Load full variant data | Tibble | Millions of rows, SLOW |
@@ -563,20 +563,20 @@ All functions handle:
 
 ## Troubleshooting
 
-### "No stratification_combined_metrics.csv files found"
+### "No genomic context_combined_metrics.csv files found"
 - Check that `results/var_counts/` directory exists
 - Verify pipeline completed successfully
-- Run `find results/ -name "*stratification_combined_metrics*"`
+- Run `find results/ -name "*genomic context_combined_metrics*"`
 
 ### Slow loading of variant tables
 - Expected - these files are ~1 GB each
 - Use filters to reduce memory: `load_variant_table(..., filters = list(chromosomes = c("chr1")))`
-- Consider using `load_stratification_metrics()` instead for summary statistics
+- Consider using `load_genomic context_metrics()` instead for summary statistics
 
 ### Missing exclusion files
 - Exclusion data only available for v5.0q benchmarks
 - Earlier benchmarks use different exclusion definitions
-- Check benchmark version with: `load_stratification_metrics() %>% distinct(bench_version)`
+- Check benchmark version with: `load_genomic context_metrics() %>% distinct(bench_version)`
 
 ### Chromosome name mismatches
 - Reference sizes always have "chr" prefix (chr1, chr2, ...)
@@ -587,7 +587,7 @@ All functions handle:
 
 ## Related Documentation
 
-- **[Data Dictionary](data-dictionary.md)** - Detailed definitions of metrics and stratifications
+- **[Data Dictionary](data-dictionary.md)** - Detailed definitions of metrics and genomic contexts
 - **[Output Relationships Diagram](diagrams/output-relationships.mmd)** - Visual guide to file dependencies
 - **[Architecture Overview](architecture.md)** - How outputs are generated in the pipeline
 - **[R Data Loading Functions](../R/data_loading.R)** - Function documentation and examples

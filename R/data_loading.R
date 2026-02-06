@@ -12,7 +12,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' parse_benchmark_id("results/var_counts/v5.0q_GRCh38_smvar/stratification_combined_metrics.csv")
+#' parse_benchmark_id("results/var_counts/v5.0q_GRCh38_smvar/genomic_context_combined_metrics.csv")
 #' # Returns list(bench_version = "v5.0q", ref = "GRCh38", var_type = "smvar")
 #' }
 #'
@@ -102,14 +102,14 @@ parse_pipeline_config <- function(config_path = NULL) {
     benchmark_meta = benchmark_meta,
     references = unique(benchmark_meta$ref),
     var_types = unique(benchmark_meta$var_type),
-    num_stratifications = 6  # HP, MAP, SD, SD10kb, TR, TR10kb
+    num_contexts = 6  # HP, MAP, SD, SD10kb, TR, TR10kb
   )
 }
 
 
-#' Load Stratification Metrics
+#' Load Genomic Context Metrics
 #'
-#' Loads primary analysis data files containing per-stratification metrics and variant counts.
+#' Loads primary analysis data files containing per-genomic-context metrics and variant counts.
 #' These are the smallest, fastest-loading files and should be used for most analyses.
 #'
 #' @param results_dir Path to results directory. Default: `here::here("results")`
@@ -119,11 +119,11 @@ parse_pipeline_config <- function(config_path = NULL) {
 #'   - bench_version: Benchmark version (factored: v0.6, v4.2.1, v5.0q)
 #'   - ref: Reference genome (factored: GRCh37, GRCh38, CHM13v2.0)
 #'   - var_type: Variant type (factored: smvar, stvar)
-#'   - strat_name: Stratification region name (factored: HP, MAP, SD, SD10kb, TR, TR10kb)
-#'   - strat_bp: Total bases in stratification
+#'   - context_name: Genomic context region name (factored: HP, MAP, SD, SD10kb, TR, TR10kb)
+#'   - context_bp: Total bases in genomic context
 #'   - intersect_bp: Bases overlapping with benchmark
-#'   - pct_of_strat: Percentage of stratification overlapping benchmark
-#'   - pct_of_bench: Percentage of benchmark overlapping stratification
+#'   - pct_of_context: Percentage of genomic context overlapping benchmark
+#'   - pct_of_bench: Percentage of benchmark overlapping genomic context
 #'   - total_variants: Total variant count
 #'   - snv_count: Single Nucleotide Variant count (SNV)
 #'   - indel_count: INDEL count
@@ -136,31 +136,31 @@ parse_pipeline_config <- function(config_path = NULL) {
 #' @examples
 #' \dontrun{
 #' # Load all metrics
-#' metrics <- load_stratification_metrics()
+#' metrics <- load_genomic_context_metrics()
 #'
 #' # Load specific benchmarks
-#' metrics <- load_stratification_metrics(
+#' metrics <- load_genomic_context_metrics(
 #'   benchmark_filter = c("v5.0q_GRCh38_smvar", "v5.0q_GRCh37_stvar")
 #' )
 #' }
 #'
 #' @export
-load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
+load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
 
-  # Find all stratification metrics files
+  # Find all genomic context metrics files
   metrics_files <- fs::dir_ls(
     results_dir,
     recurse = TRUE,
-    glob = "**/stratification_combined_metrics.csv"
+    glob = "**/genomic_context_combined_metrics.csv"
   )
 
   if (length(metrics_files) == 0) {
     stop(
       glue::glue(
-        "No stratification_combined_metrics.csv files found in {results_dir}"
+        "No genomic_context_combined_metrics.csv files found in {results_dir}"
       ),
       call. = FALSE
     )
@@ -180,10 +180,10 @@ load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = N
       file %>%
         vroom::vroom(
           col_types = vroom::cols(
-            strat_name = "c",
-            strat_bp = "d",
+            context_name = "c",
+            context_bp = "d",
             intersect_bp = "d",
-            pct_of_strat = "d",
+            pct_of_context = "d",
             pct_of_bench = "d",
             total_variants = "i",
             snp_count = "i",
@@ -239,8 +239,8 @@ load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = N
         var_type,
         levels = c("smvar", "stvar")
       ),
-      strat_name = factor(
-        strat_name,
+      context_name = factor(
+        context_name,
         levels = c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
       )
     )
@@ -507,11 +507,11 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL)
 #'
 #' @param benchmark_id Single benchmark identifier (e.g., "v5.0q_GRCh38_smvar")
 #' @param results_dir Path to results directory. Default: `here::here("results")`
-#' @param strat_filter Optional character vector of stratification names to include
+#' @param context_filter Optional character vector of genomic context names to include
 #'   (e.g., c("HP", "TR")). Valid values: HP, MAP, SD, SD10kb, TR, TR10kb
 #'
 #' @return Tibble with columns:
-#'   - strat_name: Stratification region name
+#'   - context_name: Genomic context region name
 #'   - chrom: Chromosome
 #'   - start: Start position (0-based)
 #'   - end: End position
@@ -522,18 +522,18 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL)
 #'
 #' @examples
 #' \dontrun{
-#' # Load all stratifications
+#' # Load all genomic contexts
 #' coverage <- load_diff_coverage("v5.0q_GRCh38_smvar")
 #'
-#' # Load specific stratifications
+#' # Load specific genomic contexts
 #' coverage <- load_diff_coverage(
 #'   "v5.0q_GRCh38_smvar",
-#'   strat_filter = c("HP", "TR")
+#'   context_filter = c("HP", "TR")
 #' )
 #' }
 #'
 #' @export
-load_diff_coverage <- function(benchmark_id, results_dir = NULL, strat_filter = NULL) {
+load_diff_coverage <- function(benchmark_id, results_dir = NULL, context_filter = NULL) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -575,8 +575,8 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL, strat_filter = 
   # Read all coverage files
   coverage_df <- coverage_files %>%
     purrr::map_dfr(function(file) {
-      # Extract stratification name from filename
-      strat <- fs::path_file(file) %>%
+      # Extract genomic context name from filename
+      context <- fs::path_file(file) %>%
         stringr::str_remove("_cov.bed")
 
       file %>%
@@ -585,22 +585,22 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL, strat_filter = 
           col_types = "ciiiii",
           show_col_types = FALSE
         ) %>%
-        tibble::add_column(strat_name = strat, .before = 1) %>%
+        tibble::add_column(context_name = context, .before = 1) %>%
         dplyr::mutate(
           frac_cov = bases_cov / ivl_len
         )
     })
 
-  # Apply stratification filter if provided
-  if (!is.null(strat_filter)) {
+  # Apply genomic context filter if provided
+  if (!is.null(context_filter)) {
     coverage_df <- coverage_df %>%
-      dplyr::filter(strat_name %in% strat_filter)
+      dplyr::filter(context_name %in% context_filter)
 
     if (nrow(coverage_df) == 0) {
       warning(
         glue::glue(
-          "No rows remaining after applying stratification filter. ",
-          "Check that stratification names are valid."
+          "No rows remaining after applying genomic context filter. ",
+          "Check that genomic context names are valid."
         )
       )
     }
@@ -723,4 +723,19 @@ load_benchmark_regions <- function(resources_dir = NULL) {
     )
 
   return(bench_regions_df)
+}
+
+
+#' Backward Compatibility Aliases
+#'
+#' These functions maintain backward compatibility with code using old terminology
+#' ("stratification" instead of "genomic context").
+#'
+#' @keywords internal
+#' @name stratification-aliases
+
+#' @rdname stratification-aliases
+#' @export
+load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
+  load_genomic_context_metrics(results_dir = results_dir, benchmark_filter = benchmark_filter)
 }
