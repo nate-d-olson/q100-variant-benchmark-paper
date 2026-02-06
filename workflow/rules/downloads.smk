@@ -174,7 +174,7 @@ rule prepare_reference:
     params:
         url=lambda w: config["references"][w.ref_name]["url"],
         checksum=lambda w: get_reference_checksum(w.ref_name),
-        checksum_type=lambda w: get_reference_checksum_type(w.ref_name),
+        checksum_type="sha256",  ## hardcoded using sha256 in config
     log:
         "logs/references/{ref_name}_prepare.log",
     retries: 3

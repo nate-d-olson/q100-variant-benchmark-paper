@@ -8,9 +8,17 @@ from typing import List, Dict, Any, Tuple
 # Configuration & Constraints
 # ============================================================================
 
+# Collect all unique stratification names from all references
+_all_strat_names = set()
+for ref_config in config.get("references", {}).values():
+    _all_strat_names.update(ref_config.get("stratifications", {}).keys())
+
 
 wildcard_constraints:
     comp_id="[^/]+",
+    strat_name="|".join(sorted(_all_strat_names)),
+    region_type="regions|inverse",
+    mode="complement|within",
 
 
 # ============================================================================
@@ -36,11 +44,6 @@ def get_var_table_inputs(wildcards) -> List[str]:
     ]
 
 
-# Collect all unique stratification names from all references
-_all_strat_names = set()
-for ref_config in config.get("references", {}).values():
-    _all_strat_names.update(ref_config.get("stratifications", {}).keys())
-_strat_name_pattern = "|".join(sorted(_all_strat_names))
 # ============================================================================
 # Reference Helpers
 # ============================================================================
@@ -91,26 +94,10 @@ def get_reference_checksum(ref_name: str) -> str:
     raise ValueError(f"No checksum found for reference: {ref_name}")
 
 
-def get_reference_checksum_type(ref_name: str) -> str:
-    """
-    Determine checksum type for a reference genome.
-
-    Args:
-        ref_name: Name of the reference in config["references"]
-
-    Returns:
-        "md5" or "sha256"
-    """
-    ref_config = config["references"].get(ref_name, {})
-    if "sha256" in ref_config:
-        return "sha256"
-    if "md5" in ref_config:
-        return "md5"
-    raise ValueError(f"No checksum found for reference: {ref_name}")
-
 # ============================================================================
 # Variant Table Helpers
 # ============================================================================
+
 
 def get_stratification_beds(wildcards) -> List[str]:
     """Get list of stratification BED files with IDs."""
@@ -122,6 +109,45 @@ def get_stratification_beds(wildcards) -> List[str]:
         path = f"resources/stratifications/{ref}_{name}.bed.gz"
         beds.append(f"{path}:{name}")
     return beds
+
+
+def get_region_beds(wildcards) -> List[str]:
+    """
+    Get benchmark region BED and exclusion BEDs.
+
+    Returns paths that match download rule outputs.
+    """
+    benchmark = wildcards.benchmark
+    beds = []
+
+    # Benchmark regions
+    bed_path = f"resources/benchmarksets/{benchmark}_benchmark.bed"
+    beds.append(f"{bed_path}:BMKREGIONS")
+
+    # Exclusions
+    exclusions = get_exclusion_config(benchmark)
+    for excl in exclusions:
+        name = _format_exclusion_name(excl["name"])
+        for idx, _ in enumerate(excl["files"]):
+            path = get_exclusion_file_path(benchmark, excl["name"], idx)
+            beds.append(f"{path}:EXCL_{name}")
+
+    return beds
+
+
+def get_region_ids(wildcards) -> List[str]:
+    """
+    Get list of region IDs (benchmark + exclusions).
+
+    All exclusions configured in config are included.
+    """
+    ids = ["BMKREGIONS"]
+    exclusions = get_exclusion_config(wildcards.benchmark)
+    for excl in exclusions:
+        name = _format_exclusion_name(excl["name"])
+        ids.append(f"EXCL_{name}")
+    return ids
+
 
 # ============================================================================
 # Comparison Helpers
@@ -207,8 +233,8 @@ def get_stratify_inputs(wildcards):
     ref = comp["ref"]
 
     inputs = {
-        "bench_dir": f"results/comparisons/stvar/{wildcards.comp_id}/",
-        "summary_json": f"results/comparisons/stvar/{wildcards.comp_id}/summary.json",
+        "bench_dir": f"results/comparisons/stvar/{comp}/",
+        "summary_json": f"results/comparisons/stvar/{comp}/summary.json",
     }
 
     # Select bed file based on region_type
@@ -320,44 +346,6 @@ def get_exclusion_type(wildcards) -> str:
     """Get type (single/pair) for an exclusion."""
     entry = get_exclusion_entry(wildcards.benchmark, wildcards.exclusion)
     return entry["type"]
-
-
-def get_region_beds(wildcards) -> List[str]:
-    """
-    Get benchmark region BED and exclusion BEDs.
-
-    Returns paths that match download rule outputs.
-    """
-    benchmark = wildcards.benchmark
-    beds = []
-
-    # Benchmark regions
-    bed_path = f"resources/benchmarksets/{benchmark}_benchmark.bed"
-    beds.append(f"{bed_path}:BMKREGIONS")
-
-    # Exclusions
-    exclusions = get_exclusion_config(benchmark)
-    for excl in exclusions:
-        name = _format_exclusion_name(excl["name"])
-        for idx, _ in enumerate(excl["files"]):
-            path = get_exclusion_file_path(benchmark, excl["name"], idx)
-            beds.append(f"{path}:EXCL_{name}")
-
-    return beds
-
-
-def get_region_ids(wildcards) -> List[str]:
-    """
-    Get list of region IDs (benchmark + exclusions).
-
-    All exclusions configured in config are included.
-    """
-    ids = ["BMKREGIONS"]
-    exclusions = get_exclusion_config(wildcards.benchmark)
-    for excl in exclusions:
-        name = _format_exclusion_name(excl["name"])
-        ids.append(f"EXCL_{name}")
-    return ids
 
 
 def get_exclusion_file_url(benchmark: str, exclusion_name: str, file_idx: int) -> str:
