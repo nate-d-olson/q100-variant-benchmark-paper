@@ -81,7 +81,7 @@ rule combine_metrics_and_counts:
     - strat_bp: Total stratification size
     - intersect_bp: Overlap with benchmark
     - pct_of_strat: % of stratification in benchmark
-    - pct_of_dip: % of benchmark in stratification
+    - pct_of_bench: % of benchmark in stratification
     - total_variants: Total variant count
     - variant_density: Variants per Mb of benchmark-covered stratification
 

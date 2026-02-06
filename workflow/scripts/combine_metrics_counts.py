@@ -8,7 +8,7 @@ to create a unified table for analysis and plotting.
 
 import csv
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def combine_metrics_and_counts(
@@ -47,7 +47,7 @@ def combine_metrics_and_counts(
                         "strat_bp": int(row["strat_bp"]),
                         "intersect_bp": int(row["intersect_bp"]),
                         "pct_of_strat": float(row["pct_of_strat"]),
-                        "pct_of_dip": float(row["pct_of_dip"]),
+                        "pct_of_bench": float(row["pct_of_bench"]),
                     }
 
             log.write(f"Loaded metrics for {len(metrics)} stratifications\n")
@@ -97,7 +97,7 @@ def combine_metrics_and_counts(
                         "strat_bp",
                         "intersect_bp",
                         "pct_of_strat",
-                        "pct_of_dip",
+                        "pct_of_bench",
                         "total_variants",
                         "snp_count",
                         "indel_count",
@@ -117,7 +117,7 @@ def combine_metrics_and_counts(
                             "strat_bp": 0,
                             "intersect_bp": 0,
                             "pct_of_strat": 0.0,
-                            "pct_of_dip": 0.0,
+                            "pct_of_bench": 0.0,
                         },
                     )
 
@@ -148,7 +148,7 @@ def combine_metrics_and_counts(
                             m["strat_bp"],
                             m["intersect_bp"],
                             f"{m['pct_of_strat']:.6f}",
-                            f"{m['pct_of_dip']:.6f}",
+                            f"{m['pct_of_bench']:.6f}",
                             c["total_variants"],
                             c["snp_count"],
                             c["indel_count"],
