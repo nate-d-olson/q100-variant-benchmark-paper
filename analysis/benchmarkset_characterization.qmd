@@ -367,9 +367,6 @@ glimpse(bench_vars_tbls)
 ```
 
 ### Combined Variant Table
-```{r}
-bind_rows(smvar_cnt_df, stvar_cnt_df) %>% colnames()
-```
 
 ```{r}
 combined_var_cnt_df <- bind_rows(smvar_cnt_df, stvar_cnt_df) %>%
@@ -434,7 +431,7 @@ gtsave(
 ```
 
 ## Variant Size Distributions
-
+FIXME - deletions missing for v0.6
 ```{r}
 sv_len_df <- bench_vars_tbls %>%
     filter(
@@ -550,41 +547,43 @@ diff_var_plt_df <- bench_vars_tbls %>%
 
 ```{r}
 bench_version_cols <- c(
-            "v5.0q" = "darkgreen",
-            "v4.2.1" = "darkorange",
-            "v0.6" = "purple"
-        )
+  "v5.0q" = "darkgreen",
+  "v4.2.1" = "darkorange",
+  "v0.6" = "purple"
+)
 
 (diff_smvar_plt <- diff_var_plt_df %>%
-    filter(bench_type == "smvar") %>% 
-        mutate(
-        bench_version = factor(
-            bench_version,
-            levels = c("v5.0q", "v4.2.1", "v0.6")
-        )
-    ) %>% 
-    ggplot() +
-    geom_bar(
-        aes(
-        x = var_type, fill = bench_version),
-        color = "grey20",
-        position = "dodge",
-        show.legened = TRUE
-    ) +
-    facet_wrap(. ~ strat_ids, nrow = 1) +
-    scale_y_continuous(label = scales::label_comma()) +
-    scale_fill_manual(
-        name = "Benchmark Version",
-        values = bench_version_cols,
-        breaks = c("v5.0q", "v4.2.1", "v0.6"),
-        drop = FALSE
-    ) +
-    labs(x = "Variant Type", y = "Variant Count") +
-    theme_minimal() +
-    theme(
-        legend.position = "bottom",
-        axis.text.x = element_text(angle = -45, vjust = 1)
-    ))
+  filter(bench_type == "smvar", .preserve = FALSE) %>%
+  mutate(
+    bench_version = factor(
+      bench_version,
+      levels = c("v5.0q", "v4.2.1", "v0.6")
+    )
+  ) %>%
+  ggplot() +
+  geom_bar(
+    aes(
+      x = var_type,
+      fill = bench_version
+    ),
+    color = "grey20",
+    position = "dodge",
+    show.legend = TRUE
+  ) +
+  facet_wrap(. ~ strat_ids, nrow = 1) +
+  scale_y_continuous(label = scales::label_comma()) +
+  scale_fill_manual(
+    name = "Benchmark Version",
+    values = bench_version_cols,
+    breaks = c("v5.0q", "v4.2.1", "v0.6"),
+    drop = FALSE
+  ) +
+  labs(x = "Variant Type", y = "Variant Count") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = -45, vjust = 1)
+  ))
 ```
 
 ```{r}
@@ -601,7 +600,7 @@ bench_version_cols <- c(
     aes(x = var_type, fill = bench_version),
     color = "grey20",
     position = "dodge",
-    show.legend =TRUE
+    show.legend = TRUE
   ) +
   facet_wrap(. ~ strat_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
@@ -610,8 +609,7 @@ bench_version_cols <- c(
     values = bench_version_cols,
     breaks = c("v5.0q", "v4.2.1", "v0.6"),
     labels = c("v5.0q", "v4.2.1", "v0.6"),
-    drop = FALSE #,
-    # na.value = "fill"
+    drop = FALSE
   ) +
   labs(x = "Variant Type", y = "Variant Count") +
   theme_minimal() +
@@ -619,11 +617,13 @@ bench_version_cols <- c(
 ```
 
 ```{r}
-(diff_var_plt <- diff_smvar_plt |
-    diff_stvar_plt +
-    plot_layout(guides = 'collect') +
-    plot_annotation(tag_levels = "A")
-)
+(diff_var_plt <- diff_smvar_plt +
+  diff_stvar_plt +
+  plot_layout(guides = , nrow = 2, ncol = 1) +
+  plot_annotation(tag_levels = "A") %>%
+    theme(
+      legend.position = "bottom"
+    ))
 ```
 
 ```{r}
@@ -634,40 +634,6 @@ ggsave(
     height = 6,
     dpi = 300,
 )
-```
-
-```{r}
-(diff_stvar_plt <- diff_var_plt_df %>%
-    mutate(
-        bench_version = factor(
-            bench_version,
-            levels = c("v5.0q", "v4.2.1", "v0.6")
-        )
-    ) %>%
-    ggplot() +
-    # geom_bar(
-    #     aes(x = var_type, 
-    #     fill = bench_version),
-    #     color = "grey20",
-    #     position = "dodge"
-    # ) +
-    geom_bar(
-        aes(x = bench_version, 
-        fill = var_type),
-        color = "grey20"
-    ) +
-    facet_wrap(vars(bench_type, strat_ids), nrow = 2, scales = "free") +
-    scale_y_continuous(label = scales::label_comma()) +
-    # scale_fill_manual(
-    #     values = c(
-    #         "v5.0q" = "darkgreen",
-    #         "v4.2.1" = "darkorange",
-    #         "v0.6" = "purple"
-    #     )
-    # ) +
-    labs(x = "Variant Type", y = "Variant Count", fill = "Benchmark Version") +
-    theme_minimal() +
-    theme(legend.position = "bottom"))
 ```
 
 
@@ -701,12 +667,18 @@ diff_var_fld_chg <- diff_var_plt_df %>%
   )
 ```
 
+
 ```{r}
-diff_var_fld_chg
-```
-```{r}
-ggplot(diff_var_fld_chg %>% filter(strat_ids %in% c("HP", "MAP", "SD", "TR"))) +
-  geom_hline(yintercept = 0, color = "grey50") +
+diff_var_fld_chg %>%
+  filter(strat_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  mutate(
+    bench_type = factor(
+      bench_type,
+      levels = c("smvar", "stvar"),
+      labels = c("Small Variants", "Structural Variants")
+    )
+  ) %>%
+  ggplot() +
   geom_point(
     aes(
       x = strat_ids,
@@ -723,14 +695,16 @@ ggplot(diff_var_fld_chg %>% filter(strat_ids %in% c("HP", "MAP", "SD", "TR"))) +
     values = c(21, 22, 23, 24),
     guide = guide_legend(override.aes = list(fill = "grey80"))
   ) +
-  scale_fill_viridis_(
-     = c("<15bp", "15-49bp", "50bp-1kb", "1kb-10kb", ">10kb"),
+  scale_fill_viridis_d(
+    labels = c("<15bp", "15-49bp", "50bp-1kb", "1kb-10kb", ">10kb"),
     guide = guide_legend(override.aes = list(shape = 21))
   ) +
-  scale_y_continuous(labels = scales::comma) +
+  scale_y_continuous(
+    labels = scales::comma
+  ) +
   labs(
     x = "Difficult Genomic Context",
-    y = "Fold Change Number of Variants",
+    y = "Fold Change Variant Count",
     fill = "Variants Type",
     shape = "Benchmark Set"
   ) +
@@ -738,7 +712,7 @@ ggplot(diff_var_fld_chg %>% filter(strat_ids %in% c("HP", "MAP", "SD", "TR"))) +
   theme(
     legend.position = "bottom",
     legend.box = "vertical"
-  ) 
+  )
 ```
 
 ## Benchmark region characterization
@@ -1013,24 +987,6 @@ Not sure how this is different from above - might just have been a renamed secti
 
 ```{r eval = FALSE}
 
-  # {set_names(., str_extract(., "(?<=diff_region_coverage/).*(?=_cov.bed)"))} %>% 
-)
-  # map_dfr(
-  #   read_tsv, .id = cov_bed
-  # ) %>%
-  #   separate(
-  #       col = "benchmark",
-  #       into = c("bench_version", "ref_id", "bench_type"),
-  #       extra = "drop",
-  #       sep = "_"
-  #   ) %>%
-  #   mutate(
-  #       included_pct = round(100 * (overlap_bp / context_bp), 2)
-  #   )
-
-diff_included_plt_df <- diff_included_tbl %>%
-    )
-
 diff_included_plt_df <- diff_included_tbl %>%
     filter(
         (bench_version %in%
@@ -1135,37 +1091,128 @@ diff_included_plt_df %>%
 ```
 
 
+```{r}
+diff_var_fld_chg <- diff_var_plt_df %>%
+  mutate(
+    var_size_bin = case_when(
+      abs(var_size) < 15 ~ "<15bp",
+      abs(var_size) < 50 ~ "15-49bp",
+      abs(var_size) < 1001 ~ "50 - 1,000bp",
+      abs(var_size) < 10001 ~ "1,001 - 10,000bp",
+      TRUE ~ ">10kb"
+    )
+  ) %>%
+  count(bench_version, ref, bench_type, var_type, var_size_bin, strat_ids) %>%
+  pivot_wider(
+    names_from = bench_version,
+    values_from = n,
+    id_cols = c(ref, bench_type, var_type, var_size_bin, strat_ids)
+  ) %>%
+  filter(
+    !is.na(v0.6) | !is.na(v4.2.1),
+    !(ref == "GRCh37" & bench_type == "smvar")
+  ) %>%
+  mutate(
+    fold_chg = case_when(
+      !is.na(v0.6) ~ v5.0q / v0.6,
+      !is.na(v4.2.1) ~ v5.0q / v4.2.1,
+      TRUE ~ NA
+    )
+  )
+```
+
+
+```{r}
+diff_var_fld_chg %>%
+  filter(strat_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  mutate(
+    bench_type = factor(
+      bench_type,
+      levels = c("smvar", "stvar"),
+      labels = c("Small Variants", "Structural Variants")
+    )
+  ) %>%
+  ggplot() +
+  geom_point(
+    aes(
+      x = strat_ids,
+      y = fold_chg,
+      fill = var_size_bin,
+      shape = var_type
+    ),
+    size = 4,
+    color = "black",
+    position = "jitterdodge"
+  ) +
+  facet_grid(bench_type ~ strat_ids, scales = "free") +
+  scale_shape_manual(
+    values = c(21, 22, 23, 24),
+    guide = guide_legend(override.aes = list(fill = "grey80"))
+  ) +
+  scale_fill_viridis_d(
+    labels = c("<15bp", "15-49bp", "50bp-1kb", "1kb-10kb", ">10kb"),
+    guide = guide_legend(override.aes = list(shape = 21))
+  ) +
+  scale_y_continuous(
+    labels = scales::comma
+  ) +
+  labs(
+    x = "Difficult Genomic Context",
+    y = "Fold Change Variant Count",
+    fill = "Variants Type",
+    shape = "Benchmark Set"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical"
+  )
+```
+
 ### Benchmark Interval Size Distributions
 
 Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-request s3://platinum-pedigree-data/truthset_v1.2/ . 
 ```{r}
 (interval_size_dist_plt <- regions_df %>%
-    filter(
-        bench_version %in% c("v5.0q", "v4.2.1", "v0.6", "PP"),
-        (var_type == "smvar" & ref == "GRCh38") |
-            (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
-        chrom %in% paste0("chr", c(1:22))
-    ) %>%
-    select(-starts_with("X")) %>%
-    ggplot() +
-    geom_density(
-        aes(x = interval_size, fill = bench_version),
-        position = "identity",
-        alpha = 0.5,
-        bins = 100,
-        outline.type = "upper"
-    ) +
-    scale_x_log10(labels = scales::comma) +
-    annotation_logticks(sides = "b") +
-    scale_fill_brewer(palette = "Set1") +
-    facet_wrap(~var_type, ncol = 1) +
-    theme_minimal() +
-    theme(legend.position = "bottom") +
-    labs(
-        x = "Benchmark Interval Size (bp)",
-        y = "Density",
-        fill = "Benchmark Version"
-    ))
+  filter(
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6", "PP"),
+    (var_type == "smvar" & ref == "GRCh38") |
+      (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+    chrom %in% paste0("chr", c(1:22))
+  ) %>%
+  select(-starts_with("X")) %>%
+  mutate(
+    bench_version = factor(
+      bench_version,
+      levels = c("v4.2.1", "v0.6", "v5.0q", "PP")
+    ),
+    var_type = case_when(
+      var_type == "smvar" ~ "Small Variants",
+      var_type == "stvar" ~ "Structural Variants"
+    )
+  ) %>%
+  ggplot() +
+  geom_density(
+    aes(x = interval_size, fill = bench_version),
+    position = "identity",
+    kernel = "gaussian",
+    alpha = 0.5,
+    bw = "sj",
+    adjust = 0.20,
+    outline.type = "upper",
+    trim = TRUE
+  ) +
+  scale_x_log10(labels = scales::comma) +
+  annotation_logticks(sides = "b") +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap(~var_type, ncol = 1, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(
+    x = "Benchmark Interval Size (bp)",
+    y = "Included Based",
+    fill = "Benchmark Version"
+  ))
 ```
 
 ```{r}
@@ -1183,7 +1230,7 @@ Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-req
         position = "dodge",
         alpha = 0.5
     ) +
-    facet_wrap(~var_type, nrow = 2, scales = "free") +
+    facet_wrap(~var_type, ncol = 2, scales = "free") +
     labs(
         x = "Benchmark Version",
         y = "Number of Intervals",
@@ -1195,8 +1242,9 @@ Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-req
 ```
 
 ```{r}
-(interval_plt <- interval_size_dist_plt +
-    interval_count_plt)
+(interval_plt <- interval_count_plt + 
+    interval_size_dist_plt +
+    plot_layout(ncol = 1))
 ```
 
 ```{r}
@@ -1375,4 +1423,25 @@ combined_exclusion_tbl <- exclusion_intersect_df %>%
 ```{r}
 combined_exclusion_tbl %>%
     make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
+```
+
+
+
+```{r}
+list.files(
+  path = here("results/exclusions"),
+  pattern = "exclusions_intersection_table.csv",
+  recursive = TRUE,
+  full.names = TRUE
+) %>%
+  {
+    set_names(., str_extract(., "(?<=exclusions/).*(?=/)"))
+  } %>%
+  map_dfr(read_csv, show_col_types = FALSE, .id = "benchmarkset") %>%
+  separate(
+    col = benchmarkset,
+    into = c("bench_version", "ref", "bench_type"),
+    sep = "_"
+  ) %>% 
+    View(.)
 ```
