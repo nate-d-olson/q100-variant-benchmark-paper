@@ -676,9 +676,3 @@ references:
         url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.6/CHM13@all/Mappability/CHM13_lowmappabilityall.bed.gz"
         description: "Low mappability regions"
         sha256: "50ab57270e9d11e939c0c90fdde538fa048ef6b0751d5cb55f5b74cdd9c4800c"
-
-## TODO: update and use or remove
-outputs:
-  sv_len: "sv_len.tsv"
-  rtg_stats_dir: "results/vcfstats"
-  subset_vcf_dir: "results/subset_vcfs"

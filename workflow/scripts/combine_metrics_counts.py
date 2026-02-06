@@ -15,16 +15,16 @@ def combine_metrics_and_counts(
     metrics_csv: Path, counts_csv: Path, output_csv: Path, log_path: Path
 ) -> None:
     """
-    Combine coverage metrics with variant counts.
+    Combine genomic context coverage metrics with variant counts.
 
     Args:
-        metrics_csv: Path to stratification_coverage_table.csv
-        counts_csv: Path to stratification_summary.csv
+        metrics_csv: Path to genomic_context_coverage_table.csv
+        counts_csv: Path to genomic_context_summary.csv
         output_csv: Path to output combined CSV
         log_path: Path to log file
 
     Output format:
-        strat_name,strat_bp,intersect_bp,pct_of_strat,pct_of_dip,
+        context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,
         total_variants,snp_count,indel_count,del_count,ins_count,
         complex_count,other_count,variant_density_per_mb
     """
@@ -42,22 +42,22 @@ def combine_metrics_and_counts(
             with open(metrics_csv, "r") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    strat_name = row["strat_name"]
-                    metrics[strat_name] = {
-                        "strat_bp": int(row["strat_bp"]),
+                    context_name = row["context_name"]
+                    metrics[context_name] = {
+                        "context_bp": int(row["context_bp"]),
                         "intersect_bp": int(row["intersect_bp"]),
-                        "pct_of_strat": float(row["pct_of_strat"]),
+                        "pct_of_context": float(row["pct_of_context"]),
                         "pct_of_bench": float(row["pct_of_bench"]),
                     }
 
-            log.write(f"Loaded metrics for {len(metrics)} stratifications\n")
+            log.write(f"Loaded metrics for {len(metrics)} genomic contexts\n")
 
             # Read counts
             with open(counts_csv, "r") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    strat_name = row["strat_name"]
-                    counts[strat_name] = {
+                    context_name = row["context_name"]
+                    counts[context_name] = {
                         "total_variants": int(row["total_variants"]),
                         "snp_count": int(row["snp_count"]),
                         "indel_count": int(row["indel_count"]),
@@ -67,11 +67,11 @@ def combine_metrics_and_counts(
                         "other_count": int(row["other_count"]),
                     }
 
-            log.write(f"Loaded counts for {len(counts)} stratifications\n\n")
+            log.write(f"Loaded counts for {len(counts)} genomic contexts\n\n")
 
             # Combine data
-            all_strats = set(metrics.keys()) | set(counts.keys())
-            log.write(f"Total unique stratifications: {len(all_strats)}\n")
+            all_contexts = set(metrics.keys()) | set(counts.keys())
+            log.write(f"Total unique genomic contexts: {len(all_contexts)}\n")
 
             # Check for mismatches
             metrics_only = set(metrics.keys()) - set(counts.keys())
@@ -79,11 +79,11 @@ def combine_metrics_and_counts(
 
             if metrics_only:
                 log.write(
-                    f"WARNING: Stratifications in metrics but not counts: {metrics_only}\n"
+                    f"WARNING: Genomic contexts in metrics but not counts: {metrics_only}\n"
                 )
             if counts_only:
                 log.write(
-                    f"WARNING: Stratifications in counts but not metrics: {counts_only}\n"
+                    f"WARNING: Genomic contexts in counts but not metrics: {counts_only}\n"
                 )
 
             log.write("\n")
@@ -93,10 +93,10 @@ def combine_metrics_and_counts(
                 writer = csv.writer(out_f)
                 writer.writerow(
                     [
-                        "strat_name",
-                        "strat_bp",
+                        "context_name",
+                        "context_bp",
                         "intersect_bp",
-                        "pct_of_strat",
+                        "pct_of_context",
                         "pct_of_bench",
                         "total_variants",
                         "snp_count",
@@ -109,21 +109,21 @@ def combine_metrics_and_counts(
                     ]
                 )
 
-                for strat_name in sorted(all_strats):
+                for context_name in sorted(all_contexts):
                     # Get metrics (default to 0 if missing)
                     m = metrics.get(
-                        strat_name,
+                        context_name,
                         {
-                            "strat_bp": 0,
+                            "context_bp": 0,
                             "intersect_bp": 0,
-                            "pct_of_strat": 0.0,
+                            "pct_of_context": 0.0,
                             "pct_of_bench": 0.0,
                         },
                     )
 
                     # Get counts (default to 0 if missing)
                     c = counts.get(
-                        strat_name,
+                        context_name,
                         {
                             "total_variants": 0,
                             "snp_count": 0,
@@ -135,7 +135,7 @@ def combine_metrics_and_counts(
                         },
                     )
 
-                    # Calculate variant density (variants per Mb of benchmark-covered stratification)
+                    # Calculate variant density (variants per Mb of benchmark-covered genomic context)
                     intersect_mb = m["intersect_bp"] / 1_000_000
                     if intersect_mb > 0:
                         density = c["total_variants"] / intersect_mb
@@ -144,10 +144,10 @@ def combine_metrics_and_counts(
 
                     writer.writerow(
                         [
-                            strat_name,
-                            m["strat_bp"],
+                            context_name,
+                            m["context_bp"],
                             m["intersect_bp"],
-                            f"{m['pct_of_strat']:.6f}",
+                            f"{m['pct_of_context']:.6f}",
                             f"{m['pct_of_bench']:.6f}",
                             c["total_variants"],
                             c["snp_count"],
@@ -161,7 +161,7 @@ def combine_metrics_and_counts(
                     )
 
             log.write(f"Combined output written to {output_csv}\n")
-            log.write(f"Output rows: {len(all_strats)}\n")
+            log.write(f"Output rows: {len(all_contexts)}\n")
 
         except Exception as e:
             log.write(f"ERROR: {str(e)}\n")

@@ -13,18 +13,18 @@ from typing import Dict
 
 def summarize_variant_counts(input_csv: Path, output_csv: Path, log_path: Path) -> None:
     """
-    Summarize variant counts by stratification.
+    Summarize variant counts by genomic context.
 
     Args:
-        input_csv: Path to variants_by_stratification.csv
+        input_csv: Path to variants_by_genomic_context.csv
         output_csv: Path to output summary CSV
         log_path: Path to log file
 
     Output format:
-        strat_name,total_variants,snp_count,indel_count,other_count
+        context_name,total_variants,snp_count,indel_count,other_count
     """
-    # {strat_name: {var_type: count}}
-    strat_summary: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    # {context_name: {var_type: count}}
+    context_summary: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     with open(log_path, "w") as log:
         log.write(f"Summarizing variant counts\n")
@@ -36,20 +36,20 @@ def summarize_variant_counts(input_csv: Path, output_csv: Path, log_path: Path) 
             with open(input_csv, "r") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    strat_name = row["strat_name"]
+                    context_name = row["context_name"]
                     var_type = row["var_type"]
                     count = int(row["count"])
 
-                    strat_summary[strat_name][var_type] += count
+                    context_summary[context_name][var_type] += count
 
-            log.write(f"Processed {len(strat_summary)} stratifications\n\n")
+            log.write(f"Processed {len(context_summary)} genomic contexts\n\n")
 
             # Write summary
             with open(output_csv, "w", newline="") as out_f:
                 writer = csv.writer(out_f)
                 writer.writerow(
                     [
-                        "strat_name",
+                        "context_name",
                         "total_variants",
                         "snp_count",
                         "indel_count",
@@ -60,8 +60,8 @@ def summarize_variant_counts(input_csv: Path, output_csv: Path, log_path: Path) 
                     ]
                 )
 
-                for strat_name in sorted(strat_summary.keys()):
-                    var_counts = strat_summary[strat_name]
+                for context_name in sorted(context_summary.keys()):
+                    var_counts = context_summary[context_name]
 
                     # Calculate totals
                     total = sum(var_counts.values())
@@ -80,10 +80,10 @@ def summarize_variant_counts(input_csv: Path, output_csv: Path, log_path: Path) 
                     )
 
                     writer.writerow(
-                        [strat_name, total, snp, indel, dels, ins, complex_var, other]
+                        [context_name, total, snp, indel, dels, ins, complex_var, other]
                     )
 
-                    log.write(f"{strat_name}: {total:,} total variants\n")
+                    log.write(f"{context_name}: {total:,} total variants\n")
 
             log.write(f"\nSummary written to {output_csv}\n")
 

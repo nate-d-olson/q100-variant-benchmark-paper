@@ -13,10 +13,14 @@ _all_strat_names = set()
 for ref_config in config.get("references", {}).values():
     _all_strat_names.update(ref_config.get("stratifications", {}).keys())
 
+# Genomic context names (same sources as stratifications, used in updated analysis pipeline)
+_all_genomic_context_names = _all_strat_names.copy()
+
 
 wildcard_constraints:
     comp_id="[^/]+",
     strat_name="|".join(sorted(_all_strat_names)),
+    genomic_context="|".join(sorted(_all_genomic_context_names)),
     region_type="regions|inverse",
     mode="complement|within",
 
@@ -215,6 +219,23 @@ def get_stratification_ids(wildcards) -> List[str]:
 
     Returns:
         List of stratification names for the benchmark's reference
+    """
+    benchmark = wildcards.benchmark
+    ref = config["benchmarksets"][benchmark]["ref"]
+    return get_stratifications_for_ref(ref)
+
+
+def get_genomic_context_ids(wildcards) -> List[str]:
+    """
+    Get list of genomic context IDs for a benchmark.
+
+    These are the same sources as stratifications but used in the updated analysis pipeline.
+
+    Args:
+        wildcards: Snakemake wildcards with benchmark attribute
+
+    Returns:
+        List of genomic context names for the benchmark's reference
     """
     benchmark = wildcards.benchmark
     ref = config["benchmarksets"][benchmark]["ref"]

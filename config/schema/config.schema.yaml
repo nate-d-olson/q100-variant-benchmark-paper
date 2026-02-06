@@ -181,22 +181,6 @@ properties:
                     pattern: "^[a-f0-9]{64}$"
                     description: SHA256 checksum
 
-  stratifications:
-    type: object
-    description: Stratification BED files for variant context annotation
-    patternProperties:
-      "^[A-Z0-9]+$":
-        type: object
-        required:
-          - url
-        properties:
-          url:
-            type: string
-            description: URL template with {ref} placeholder
-          description:
-            type: string
-            description: Description of this stratification
-
   comparisons:
     type: object
     description: Benchmark comparison configurations
@@ -222,21 +206,3 @@ properties:
           ref:
             type: string
             description: Reference genome ID (from references)
-
-  outputs:
-    type: object
-    description: Output configuration
-    required:
-      - sv_len
-      - rtg_stats_dir
-      - subset_vcf_dir
-    properties:
-      sv_len:
-        type: string
-        description: SV length output filename
-      rtg_stats_dir:
-        type: string
-        description: Directory for RTG stats outputs
-      subset_vcf_dir:
-        type: string
-        description: Directory for subset VCF outputs
