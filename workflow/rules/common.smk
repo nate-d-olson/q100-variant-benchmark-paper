@@ -54,12 +54,6 @@ def get_ref_ids(wildcards) -> List[str]:
     return list(config.get("references", {}).keys())
 
 
-wildcard_constraints:
-    comp_id="[^/]+",
-    strat_name=_strat_name_pattern,
-    region_type="regions|inverse",
-    mode="complement|within",
-
 def get_chromosomes(wildcards) -> str:
     """
     Get list of main chromosomes for the reference genome.
