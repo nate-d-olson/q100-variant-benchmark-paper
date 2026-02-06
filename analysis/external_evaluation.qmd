@@ -21,6 +21,10 @@ library(googlesheets4)
 googlesheets4::gs4_auth(email = "nathanael.olson@nist.gov")
 ```
 
+## Data Loading
+
+### External Evaluation Data
+
 ```{r message=FALSE}
 eval_csvs <- list.files(
   path = here("data/external-evaluations"),

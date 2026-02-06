@@ -23,364 +23,224 @@ library(here)
 library(assertthat)
 library(patchwork)
 library(gt)
-library(vroom)
-library(furrr)
+
+# Load shared data loading functions
+source(here("R/data_loading.R"))
 ```
 
-## Loading Variant Tables
+## Data Loading
 
+This analysis uses **primary aggregated metrics** rather than loading full variant tables directly. This approach is faster, more memory-efficient, and sufficient for most analyses. See the [Pipeline Outputs Reference](../docs/pipeline-outputs.md) for details on when to load detailed variant tables.
 
-```{r cache.lazy=FALSE, cache=TRUE}
-#| warning: false
-tidy_smvar <- function(var_tbl) {
-    ## remove variants outside benchmark regions
-    in_bmk <- grepl(x = var_tbl$region_ids, pattern = "^BMKREGIONS")
-    var_tbl <- var_tbl[in_bmk, ]
+### Primary Metrics (Recommended)
 
-    ## excluding variants less than 50bp
-    lt_50bp <- var_tbl$len_ref < 50 & var_tbl$len_alt < 50
-    var_tbl <- var_tbl[lt_50bp, ]
+```{r}
+# Load aggregated stratification metrics with variant counts
+# One row per stratification per benchmark
+strat_metrics_df <- load_stratification_metrics()
 
-    ## changing var_type for OTHER and OVERLAP
-    var_tbl <- var_tbl %>%
-        mutate(
-            var_type = case_when(
-                ## When REF is different from the first base of ALT
-                var_type == "OTHER" &
-                    (len_ref > 1 & len_alt == 1) |
-                    (len_ref == 1 & len_alt > 1) ~ "INDEL",
-                ## Assigning variant types for overlapping (atmoic) variants
-                var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNP",
-                var_type == "OVERLAP" &
-                    (len_ref > 1 & len_alt == 1) |
-                    (len_ref == 1 & len_alt > 1) ~ "INDEL",
-                var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
-                TRUE ~ var_type
-            )
-        )
+# Load reference genome sizes for normalization
+ref_sizes_df <- load_reference_sizes()
 
-    ## Annotating Variant Length
-    var_tbl$var_size <- var_tbl$len_alt - var_tbl$len_ref
+# Load benchmark region files for downstream analysis
+bench_region_files <- list.files(
+  path = here("resources/benchmarksets"),
+  pattern = "_benchmark.bed",
+  full.names = TRUE
+) %>%
+  set_names(str_extract(., "(?<=benchmarksets/).*(?=_benchmark.bed)"))
 
-    return(var_tbl)
-}
+regions_df <- bench_region_files %>%
+  map_dfr(
+    ~ read_tsv(
+      .x,
+      col_names = c("chrom", "start", "end"),
+      col_types = "cii",
+      show_col_types = FALSE
+    ),
+    .id = "benchmark"
+  ) %>%
+  mutate(
+    interval_size = end - start,
+    chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom)),
+    # Parse benchmark identifier from directory name
+    bench_meta = map(benchmark, parse_benchmark_id),
+    bench_version = map_chr(bench_meta, "bench_version"),
+    ref = map_chr(bench_meta, "ref"),
+    bench_type = map_chr(bench_meta, "var_type")
+  ) %>%
+  select(-bench_meta, -benchmark)
+```
 
-tidy_stvar <- function(var_tbl) {
-    ## remove variants outside benchmark regions
-    in_bmk <- grepl(x = var_tbl$region_ids, pattern = "^BMKREGIONS")
-    var_tbl <- var_tbl[in_bmk, ]
+### Data Verification
 
-    ## excluding variants less than 50bp
-    gt_50bp <- var_tbl$len_ref > 49 | var_tbl$len_alt > 49
-    var_tbl <- var_tbl[gt_50bp, ]
+```{r}
+# Verify expected number of metrics rows
+expected_benchmarks <- 8
+expected_strats <- 6
+expected_rows <- expected_benchmarks * expected_strats
 
-    ## changing var_type for OTHER and OVERLAP
-    var_tbl$var_type <- var_tbl$SVTYPE
-
-    ## Annotating Variant Length
-    var_tbl$var_size <- 0
-    var_tbl$var_size[var_tbl$SVTYPE == "INS"] <- var_tbl$SVLEN[
-        var_tbl$SVTYPE == "INS"
-    ]
-    var_tbl$var_size[var_tbl$SVTYPE == "DEL"] <- -var_tbl$SVLEN[
-        var_tbl$SVTYPE == "DEL"
-    ]
-
-    return(var_tbl)
-}
-
-get_bench_var_cols <- function(benchmarkset) {
-    ## Common column names and types
-    cnames <- c(
-        "chrom",
-        "pos",
-        "end",
-        "gt",
-        "vkx",
-        "var_type",
-        "len_ref",
-        "len_alt",
-        "strat_ids",
-        "region_ids"
-    )
-    ctypes <- "ciiccciicc"
-
-    if (str_detect(benchmarkset, "v0.6")) {
-        cnames <- c(
-            cnames,
-            "END",
-            "SVTYPE",
-            "SVLEN",
-            "ClusterIDs",
-            "NumClusterSVs",
-            "ExactMatchIDs",
-            "NumExactMatchSVs",
-            "ClusterMaxShiftDist",
-            "ClusterMaxSizeDiff",
-            "ClusterMaxEditDist",
-            "PBcalls",
-            "Illcalls",
-            "TenXcalls",
-            "CGcalls",
-            "PBexactcalls",
-            "Illexactcalls",
-            "TenXexactcalls",
-            "CGexactcalls",
-            "HG2count",
-            "HG3count",
-            "HG4count",
-            "NumTechs",
-            "NumTechsExact",
-            "DistBack",
-            "DistForward",
-            "DistMin",
-            "DistMinlt1000",
-            "MultiTech",
-            "MultiTechExact",
-            "sizecat",
-            "DistPASSHG2gt49Minlt1000",
-            "DistPASSMinlt1000",
-            "MendelianError",
-            "HG003_GT",
-            "HG004_GT",
-            "BREAKSIMLENGTH",
-            "REFWIDENED",
-            "REPTYPE",
-            "TRall",
-            "TRgt100",
-            "TRgt10k",
-            "segdup"
-        )
-        ctypes <- paste0(ctypes, "ccicicccccccccccccccccccccccccccccc")
-        return(list(col_names = cnames, col_types = ctypes))
-    } else if (str_detect(benchmarkset, "v4.2.1")) {
-        cnames <- c(
-            cnames,
-            "DPSum",
-            "platforms",
-            "platformnames",
-            "platformbias",
-            "datasets",
-            "datasetnames",
-            "datasetsmissingcall",
-            "callsets",
-            "callsetnames",
-            "varType",
-            "filt",
-            "callable",
-            "difficultregion",
-            "arbitrated",
-            "callsetwiththisuniqgenopassing",
-            "callsetwithotheruniqgenopassing"
-        )
-        ctypes <- paste0(ctypes, "icccccccccccccicccccc")
-        return(list(col_names = cnames, col_types = ctypes))
-    } else if (str_detect(benchmarkset, "v5.0q")) {
-        cnames <- c(
-            cnames,
-            "TRF",
-            "TRFdiff",
-            "TRFrepeat",
-            "TRFovl",
-            "TRFstart",
-            "TRFend",
-            "TRFperiod",
-            "TRFcopies",
-            "TRFscore",
-            "TRFentropy",
-            "TRFsim"
-        )
-        ctypes <- paste0(ctypes, "cicdiiiinnn")
-        if (str_detect(benchmarkset, "stvar")) {
-            cnames <- c(
-                cnames,
-                "SVTYPE",
-                "SVLEN",
-                "RM_score",
-                "RM_repeat",
-                "RM_clsfam",
-                "LCR",
-                "REMAP"
-            )
-            ctypes <- paste0(ctypes, "cincccc")
-        }
-        return(list(col_names = cnames, col_types = ctypes))
-    } else {
-        stop(paste("Unknown benchmark set :", benchmarkset))
-    }
-
-    return(list(col_names = cnames, col_types = ctypes))
-}
-
-
-# Read function - vroom auto-detects column types
-read_bench_file <- function(path, col_info) {
-    print(path)
-    var_tbl <- vroom(
-        path,
-        delim = "\t",
-        na = ".",
-        skip = 1,
-        col_names = col_info$col_names,
-        col_types = col_info$col_types,
-        progress = TRUE
-    )
-    ## Cleaning up variant tables
-    if (str_detect(path, "smvar")) {
-        print("Tidying small variant table")
-        var_tbl <- tidy_smvar(var_tbl)
-    } else if (str_detect(path, "stvar")) {
-        print("Tidying SV table")
-        var_tbl <- tidy_stvar(var_tbl)
-    } else {
-        print("Dirty Table!! Fix code")
-    }
-
-    ## Consistent chrom names as factors
-    if (str_detect(tolower(path), "grch37")) {
-        var_tbl$chrom <- paste0("chr", var_tbl$chrom)
-        print(unique(var_tbl$chrom))
-    }
-    var_tbl$chrom <- factor(
-        var_tbl$chrom,
-        levels = paste0("chr", c(1:22, "X", "Y"))
-    )
-
-    ## Dropping extra columns
-    var_tbl <- var_tbl %>%
-        select(
-            chrom,
-            pos,
-            end,
-            gt,
-            vkx,
-            var_type,
-            var_size,
-            region_ids,
-            strat_ids
-        )
-
-    return(var_tbl)
-}
-
-# Parallel read with furrr
-plan(multisession, workers = 12)
-
-anno_var_tbl_files <- list.files(
-    path = here("results/variant_tables"),
-    pattern = "variants.tsv",
-    recursive = TRUE,
-    full.names = TRUE
+assertthat::assert_that(
+  nrow(strat_metrics_df) >= expected_rows - 5,
+  msg = glue::glue("Expected {expected_rows} or more rows in strat_metrics_df, got {nrow(strat_metrics_df)}")
 )
 
-# derive initial labels then apply textual replacements to the NAMES
-(names(anno_var_tbl_files) <- anno_var_tbl_files %>%
-    str_extract("(?<=variant_tables/).*(?=/variants.tsv)") %>%
-    str_replace_all("^v421", "v4.2.1") %>%
-    str_replace_all("^v06", "v0.6") %>%
-    str_replace_all("^v5q", "v5.0q") %>%
-    str_replace_all("grch", "GRCh") %>%
-    str_replace_all("chm13", "CHM13v2.0"))
+# Verify all required stratifications are present
+required_strats <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+assertthat::assert_that(
+  all(required_strats %in% unique(strat_metrics_df$strat_name)),
+  msg = glue::glue("Missing expected stratification names")
+)
 
-bench_vars_tbls <- anno_var_tbl_files %>%
-    enframe(name = "benchmarkset", value = "path") %>%
-    mutate(
-        col_info = map(benchmarkset, get_bench_var_cols),
-        data = future_map2(path, col_info, ~ read_bench_file(.x, .y))
-    ) %>%
-    select(benchmarkset, data) %>%
-    separate(
-        col = benchmarkset,
-        into = c("bench_version", "ref", "bench_type"),
-        sep = "_",
-        fill = "right"
-    ) %>%
-    unnest(data)
+# Verify variant counts are non-negative
+assertthat::assert_that(
+  all(strat_metrics_df$total_variants >= 0),
+  msg = "Found negative variant counts"
+)
 ```
 
-```{r eval=FALSE}
-glimpse(bench_vars_tbls)
+### Key Data Frames for Analysis
+
+These data frames are the primary inputs for downstream analyses:
+
+**strat_metrics_df** - Aggregated metrics with variant counts
+- One row per stratification per benchmark
+- Contains: variant counts by type, coverage metrics, variant density
+- Use for: variant count comparisons, density calculations, coverage analysis
+- Columns: `bench_version`, `ref`, `bench_type`, `strat_name`, `total_variants`, `snp_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `variant_density_per_mb`
+
+**regions_df** - Benchmark region intervals
+- All intervals from benchmark BED files
+- Use for: coverage calculations, interval size distributions, spatial analysis
+- Columns: `chrom`, `start`, `end`, `interval_size`, `bench_version`, `ref`, `bench_type`
+
+**ref_sizes_df** - Reference genome sizes
+- Chromosome-level sizes and N-content
+- Use for: percentage calculations, normalization, completeness assessment
+- Columns: `ref`, `chrom`, `length`, `ns`, `asm_bp`
+
+### Note on Full Variant Data
+
+If variant-level detail is required (analyzing specific variant properties, edge cases, etc.), full variant tables can be loaded using:
+
+```r
+variants <- load_variant_table(
+  "v5.0q_GRCh38_smvar",
+  filters = list(
+    chromosomes = c("chr1", "chr2"),  # Reduce memory usage
+    variant_types = c("SNP"),
+    in_benchmark_only = TRUE
+  )
+)
 ```
+
+However, this is significantly slower (minutes) and memory-intensive (~1 GB), so use only when aggregate metrics are insufficient.
 
 ## Variant Counts
-
-
 
 ### Small Variant Counts
 
 ```{r}
-(smvar_cnt_df <- bench_vars_tbls %>%
-    filter(bench_type == "smvar") %>%
-    group_by(bench_type, ref, bench_version, var_type) %>%
-    count(name = "nvars") %>% 
-   mutate(var_type = if_else(var_type == "SNP", "SNV", var_type)))
+# Aggregate small variant counts by type across all stratifications
+smvar_cnt_df <- strat_metrics_df %>%
+  filter(bench_type == "smvar") %>%
+  group_by(bench_type, ref, bench_version) %>%
+  summarise(
+    SNV = sum(snp_count),
+    INDEL = sum(indel_count),
+    .groups = "drop"
+  ) %>%
+  mutate(Total = SNV + INDEL)
+
+smvar_cnt_df
 ```
 
 ```{r}
-(smv_cnt_tbl <- smvar_cnt_df %>%
-    pivot_wider(names_from = "var_type", values_from = "nvars") %>%
-    mutate(Total = SNV + INDEL) %>%
-    arrange(ref) %>%
-    ungroup() %>%
-    gt::gt(caption = "Number of indels (<50bp), single nucleotide variants (SNV) and total small variants by benchmark set.") %>%
-    gt::fmt_integer(
-        columns = c(SNV, INDEL, Total)
-    ) %>%
-    gt::cols_align(
-        columns = c("ref", "bench_version"),
-        align = "right"
-    ) %>%
-    gt::cols_label(
-        ref = "Reference",
-        bench_version = "Benchmark",
-        SNV = "SNVs",
-        INDEL = "INDELs",
-        Total = "Total Variants"
-    ))
+smv_cnt_tbl <- smvar_cnt_df %>%
+  arrange(ref) %>%
+  ungroup() %>%
+  gt::gt(caption = "Number of indels (<50bp), single nucleotide variants (SNV) and total small variants by benchmark set.") %>%
+  gt::fmt_integer(
+    columns = c(SNV, INDEL, Total)
+  ) %>%
+  gt::cols_align(
+    columns = c("ref", "bench_version"),
+    align = "right"
+  ) %>%
+  gt::cols_label(
+    ref = "Reference",
+    bench_version = "Benchmark",
+    SNV = "SNVs",
+    INDEL = "INDELs",
+    Total = "Total Variants"
+  )
+
+smv_cnt_tbl
 ```
 
 ### Structural Variant Counts
-```{r}
-(stvar_cnt_df <- bench_vars_tbls %>%
-    filter(bench_type == "stvar") %>%
-    group_by(bench_type, ref, bench_version, var_type) %>%
-    count(name = "nvars"))
 
-(stvar_cnt_table <- stvar_cnt_df %>%
-    pivot_wider(names_from = var_type, values_from = nvars) %>%
-    mutate(Total = INS + DEL) %>%
-    arrange(ref) %>%
-    ungroup() %>%
-    gt::gt(caption = "Number of insertion, deletion, and total structural variants ( >49bp) by benchmark set.") %>%
-    gt::fmt_integer(
-        columns = c(INS, DEL, Total)
-    ) %>%
-    gt::cols_align(
-        columns = c("ref", "bench_version"),
-        align = "right"
-    ) %>%
-    gt::cols_label(
-        ref = "Reference",
-        bench_version = "Benchmark"
-    )
-)
+```{r}
+# Aggregate structural variant counts by type across all stratifications
+stvar_cnt_df <- strat_metrics_df %>%
+  filter(bench_type == "stvar") %>%
+  group_by(bench_type, ref, bench_version) %>%
+  summarise(
+    INS = sum(ins_count),
+    DEL = sum(del_count),
+    .groups = "drop"
+  ) %>%
+  mutate(Total = INS + DEL)
+
+stvar_cnt_table <- stvar_cnt_df %>%
+  arrange(ref) %>%
+  ungroup() %>%
+  gt::gt(caption = "Number of insertion, deletion, and total structural variants (≥50bp) by benchmark set.") %>%
+  gt::fmt_integer(
+    columns = c(INS, DEL, Total)
+  ) %>%
+  gt::cols_align(
+    columns = c("ref", "bench_version"),
+    align = "right"
+  ) %>%
+  gt::cols_label(
+    ref = "Reference",
+    bench_version = "Benchmark"
+  )
+
+stvar_cnt_table
+```
 ```
 
 ### Combined Variant Table
 
 ```{r}
-combined_var_cnt_df <- bind_rows(smvar_cnt_df, stvar_cnt_df) %>%
-   filter(bench_version == "v5.0q") %>% 
-   select(-bench_version) %>% 
-  pivot_wider(names_from = ref, values_from = nvars, 
-              id_cols = c(bench_type, var_type)) %>% 
-   ungroup() %>% 
-   group_by(bench_type) %>%
-   mutate(var_type = factor(var_type, levels = c("SNV", "INDEL", "INS", "DEL")))
+# Create variant type breakdown for combined table
+combined_var_cnt_df <- strat_metrics_df %>%
+  filter(bench_version == "v5.0q") %>%
+  group_by(bench_type, ref) %>%
+  summarise(
+    SNV = sum(snp_count),
+    INDEL = sum(indel_count),
+    INS = sum(ins_count),
+    DEL = sum(del_count),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(
+    cols = c(SNV, INDEL, INS, DEL),
+    names_to = "var_type",
+    values_to = "count"
+  ) %>%
+  pivot_wider(
+    names_from = ref,
+    values_from = count
+  ) %>%
+  mutate(var_type = factor(var_type, levels = c("SNV", "INDEL", "INS", "DEL"))) %>%
+  arrange(bench_type, var_type)
 
-var_cnt_gt <- gt(combined_var_cnt_df, 
-                 rowname_col = "var_type", 
-                 groupname_col = "bench_type") %>% 
+var_cnt_gt <- gt(combined_var_cnt_df,
+                 rowname_col = "var_type",
+                 groupname_col = "bench_type") %>%
   tab_options(
     row_group.as_column = TRUE,
     table.border.bottom.style = "solid",
@@ -390,13 +250,13 @@ var_cnt_gt <- gt(combined_var_cnt_df,
     row.striping.include_stub = TRUE,
     row.striping.background_color = "grey80"
   ) %>%
-  tab_spanner(label = "Reference Genome", 
+  tab_spanner(label = "Reference Genome",
               id = "ref_span",
               columns = c("GRCh37", "GRCh38", "CHM13v2.0")) %>%
   fmt_integer(
-        columns = c(GRCh37, GRCh38, CHM13v2.0),
-    ) %>%
-  tab_stubhead(label = "Benchmark Type") %>%
+    columns = c(GRCh37, GRCh38, CHM13v2.0),
+  ) %>%
+  tab_stubhead(label = "Variant Type") %>%
   tab_row_group(
     label = "Structural Variants (>49bp)",
     rows = bench_type == "stvar",
@@ -431,13 +291,39 @@ gtsave(
 ```
 
 ## Variant Size Distributions
+
+**Note:** This section loads full variant-level data (large files, several minutes to load). These analyses require variant-level granularity and cannot be computed from aggregated metrics.
+
 FIXME - deletions missing for v0.6
+
 ```{r}
-sv_len_df <- bench_vars_tbls %>%
-    filter(
-        bench_type == "stvar"
-    ) %>%
-    mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
+#| message: true
+# Load structural variant data for selected benchmarks
+# This loads full variant tables for size distribution analysis
+message("Loading full variant tables for size distribution analysis...")
+message("This may take several minutes as files are large (~1 GB)...")
+
+sv_benchmarks <- c(
+  "v5.0q_GRCh38_stvar",
+  "v5.0q_GRCh37_stvar",
+  "v0.6_GRCh37_stvar"
+)
+
+sv_len_df <- sv_benchmarks %>%
+  map_dfr(
+    ~ {
+      message(glue::glue("Loading {.x}..."))
+      load_variant_table(.x) %>%
+        select(chrom, pos, len_ref, len_alt) %>%
+        mutate(
+          var_size = len_alt - len_ref,
+          bench_id = .x
+        ) %>%
+        select(bench_id, var_size)
+    }
+  ) %>%
+  separate(bench_id, into = c("bench_version", "ref", "bench_type"), sep = "_") %>%
+  mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
 
 (sv_len_dist_plt <- ggplot(
     sv_len_df,
@@ -499,13 +385,33 @@ ggsave(
 ```
 
 ```{r}
+#| message: true
 #| warning: false
-smvar_len_df <- bench_vars_tbls %>%
-    filter(
-        bench_type == "smvar",
-        var_type == "INDEL"
-    ) %>%
-    mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
+# Load small variant data for selected benchmarks
+message("Loading full variant tables for indel size analysis...")
+
+smvar_benchmarks <- c(
+  "v5.0q_GRCh38_smvar",
+  "v5.0q_GRCh37_smvar",
+  "v4.2.1_GRCh38_smvar"
+)
+
+smvar_len_df <- smvar_benchmarks %>%
+  map_dfr(
+    ~ {
+      message(glue::glue("Loading {.x}..."))
+      load_variant_table(.x) %>%
+        filter(var_type == "INDEL") %>%
+        select(chrom, pos, len_ref, len_alt) %>%
+        mutate(
+          var_size = len_alt - len_ref,
+          bench_id = .x
+        ) %>%
+        select(bench_id, var_size)
+    }
+  ) %>%
+  separate(bench_id, into = c("bench_version", "ref", "bench_type"), sep = "_") %>%
+  mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
 
 (smvar_len_dist_plt <- ggplot(
     smvar_len_df,
@@ -537,13 +443,32 @@ smvar_len_df <- bench_vars_tbls %>%
 
 ## Variants in Difficult Genomic Contexts
 
-```{r}
-diff_var_plt_df <- bench_vars_tbls %>%
-    separate_rows(strat_ids, sep = ",") %>%
-    mutate(value = 1) %>%
-    filter(!is.na(strat_ids))
-```
+This section visualizes variant counts by stratification region, created from aggregated metrics (no full variant loading needed).
 
+```{r}
+# Create variant count breakdown by stratification from aggregated metrics
+diff_var_plt_df <- strat_metrics_df %>%
+  # Expand variant counts to individual rows by type
+  pivot_longer(
+    cols = c(snp_count, indel_count, del_count, ins_count, complex_count, other_count),
+    names_to = "count_type",
+    values_to = "count"
+  ) %>%
+  mutate(
+    var_type = case_when(
+      count_type == "snp_count" ~ "SNP",
+      count_type == "indel_count" ~ "INDEL",
+      count_type == "del_count" ~ "DEL",
+      count_type == "ins_count" ~ "INS",
+      count_type == "complex_count" ~ "COMPLEX",
+      count_type == "other_count" ~ "OTHER",
+      TRUE ~ "UNKNOWN"
+    ),
+    strat_ids = strat_name  # Use stratification name as grouping variable
+  ) %>%
+  filter(count > 0) %>%  # Only non-zero counts
+  select(-count_type)
+```
 
 ```{r}
 bench_version_cols <- c(
@@ -553,7 +478,7 @@ bench_version_cols <- c(
 )
 
 (diff_smvar_plt <- diff_var_plt_df %>%
-  filter(bench_type == "smvar", .preserve = FALSE) %>%
+  filter(bench_type == "smvar") %>%
   mutate(
     bench_version = factor(
       bench_version,
@@ -564,10 +489,12 @@ bench_version_cols <- c(
   geom_bar(
     aes(
       x = var_type,
+      y = count,
       fill = bench_version
     ),
     color = "grey20",
     position = "dodge",
+    stat = "identity",
     show.legend = TRUE
   ) +
   facet_wrap(. ~ strat_ids, nrow = 1) +
@@ -597,9 +524,10 @@ bench_version_cols <- c(
   ) %>%
   ggplot() +
   geom_bar(
-    aes(x = var_type, fill = bench_version),
+    aes(x = var_type, y = count, fill = bench_version),
     color = "grey20",
     position = "dodge",
+    stat = "identity",
     show.legend = TRUE
   ) +
   facet_wrap(. ~ strat_ids, nrow = 1) +

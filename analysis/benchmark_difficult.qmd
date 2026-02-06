@@ -20,59 +20,69 @@ execute:
 library(tidyverse)
 library(here)
 library(patchwork)
+
+# Load shared data loading functions
+source(here("R/data_loading.R"))
 ```
 
+## Data Loading
 
 ```{r}
-diff_cov_files <- list.files(
-  path = here("results/diff_region_coverage"),
-  recursive = TRUE,
-  full.names = TRUE
+# Load base-level coverage for difficult regions using standardized loading function
+benchmarks <- c(
+  "v5.0q_GRCh38_smvar",
+  "v5.0q_GRCh37_stvar",
+  "v4.2.1_GRCh38_smvar",
+  "v0.6_GRCh37_stvar"
 ) %>%
-  set_names(nm = str_extract(., "(?<=_coverage/).*(?=_cov.bed)"))
-```
+  set_names()
 
-
-```{r}
-diff_cov_df <- diff_cov_files %>%
+diff_cov_df <- benchmarks %>%
   map_dfr(
-    read_tsv,
-    col_names = c(
-      "CHROM",
-      "START",
-      "END",
-      "num_overlap",
-      "bases_covered",
-      "interval_bp",
-      "frac_cov"
-    ),
-    col_types = "ciiiiid",
-    .id = "bench_strat"
-  )
+    ~ load_diff_coverage(.x),
+    .id = "benchmark"
+  ) %>%
+  # Standardize column names for compatibility with existing analysis code
+  rename(
+    CHROM = chrom,
+    START = start,
+    END = end,
+    num_overlap = n_overlap,
+    bases_covered = bases_cov,
+    interval_bp = ivl_len
+  ) %>%
+  # Create bench_strat column for grouping (benchmark/stratification)
+  mutate(
+    bench_strat = glue::glue("{benchmark}/{strat_name}")
+  ) %>%
+  select(-benchmark)
 ```
 
-
 ```{r}
+#| echo: false
 glimpse(diff_cov_df)
 ```
 
-
 ```{r}
+# Aggregate coverage metrics by benchmark and stratification
 diff_cov_total_df <- diff_cov_df %>%
-  group_by(bench_strat) %>%
+  group_by(bench_strat, strat_name) %>%
   summarise(
     bases_covered = sum(bases_covered),
-    interval_bp = sum(interval_bp)
+    interval_bp = sum(interval_bp),
+    .groups = "drop"
   ) %>%
   mutate(
     frac_cov = 1 - (bases_covered / interval_bp),
-    bench_strat = str_replace(bench_strat, "/", "_")
+    bench_strat = str_replace(bench_strat, "/", "_"),
+    strat = strat_name
   ) %>%
   separate(
     bench_strat,
-    into = c("bench_version", "ref", "var_type", "strat"),
+    into = c("bench_version", "ref", "var_type"),
     sep = "_"
-  )
+  ) %>%
+  select(-strat_name)
 ```
 
 
