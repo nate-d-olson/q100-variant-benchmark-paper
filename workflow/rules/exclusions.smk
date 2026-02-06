@@ -20,11 +20,6 @@ Helper functions are defined in rules/common.smk:
 """
 
 
-# Ensure exclusion rules only apply to v5.0q benchmarks
-wildcard_constraints:
-    benchmark="v5\\.0q.*",
-
-
 rule materialize_exclusion:
     """
     Materialize exclusion BED file from source.
