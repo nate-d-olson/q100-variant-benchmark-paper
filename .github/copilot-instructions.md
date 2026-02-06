@@ -1,6 +1,5 @@
 # Copilot Instructions for q100-variant-benchmark-paper
 
-Short, action-focused guidance to help AI coding agents be immediately productive.
 
 ## 1) What this repo is
 - A Snakemake-driven genomics analysis pipeline + analysis/manuscript (Quarto/R).

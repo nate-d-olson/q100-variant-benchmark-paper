@@ -13,7 +13,9 @@
       "Skill(ralph-loop:cancel-ralph)",
       "Skill(ralph-loop:cancel-ralph:*)",
       "WebFetch(domain:github.com)",
-      "Skill(superpowers:executing-plans)"
+      "Skill(superpowers:executing-plans)",
+      "Bash(snakemake:*)",
+      "Bash(snakefmt:*)"
     ]
   },
   "sandbox": {
