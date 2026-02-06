@@ -44,6 +44,69 @@ parse_benchmark_id <- function(file_path) {
 }
 
 
+#' Parse Snakemake Configuration for Benchmarks
+#'
+#' Reads the Snakemake pipeline config.yaml and extracts benchmark metadata.
+#' Used for dynamic validation without hardcoding expected values.
+#'
+#' @param config_path Path to config.yaml file. Default: `here::here("config/config.yaml")`
+#'
+#' @return Named list with:
+#'   - benchmarks: Vector of benchmark IDs
+#'   - num_benchmarks: Number of benchmarks
+#'   - references: Vector of unique reference genomes
+#'   - var_types: Vector of variant types (smvar, stvar)
+#'
+#' @examples
+#' \dontrun{
+#' config <- parse_pipeline_config()
+#' config$num_benchmarks  # Get number of benchmarks
+#' config$benchmarks      # Get all benchmark IDs
+#' }
+#'
+#' @export
+parse_pipeline_config <- function(config_path = NULL) {
+  if (is.null(config_path)) {
+    config_path <- here::here("config/config.yaml")
+  }
+
+  if (!fs::file_exists(config_path)) {
+    stop(glue::glue("Config file not found: {config_path}"), call. = FALSE)
+  }
+
+  # Parse YAML
+  config <- yaml::read_yaml(config_path)
+
+  # Extract benchmarks section
+  if (is.null(config$benchmarksets)) {
+    stop("No 'benchmarksets' section found in config.yaml", call. = FALSE)
+  }
+
+  benchmarks <- names(config$benchmarksets)
+
+  # Parse benchmark metadata
+  benchmark_meta <- benchmarks %>%
+    purrr::map_df(~ {
+      meta <- parse_benchmark_id(.x)
+      tibble::tibble(
+        benchmark_id = .x,
+        bench_version = meta$bench_version,
+        ref = meta$ref,
+        var_type = meta$var_type
+      )
+    })
+
+  list(
+    benchmarks = benchmarks,
+    num_benchmarks = length(benchmarks),
+    benchmark_meta = benchmark_meta,
+    references = unique(benchmark_meta$ref),
+    var_types = unique(benchmark_meta$var_type),
+    num_stratifications = 6  # HP, MAP, SD, SD10kb, TR, TR10kb
+  )
+}
+
+
 #' Load Stratification Metrics
 #'
 #' Loads primary analysis data files containing per-stratification metrics and variant counts.
@@ -53,16 +116,16 @@ parse_benchmark_id <- function(file_path) {
 #' @param benchmark_filter Optional character vector of benchmark IDs to filter results
 #'
 #' @return Tibble with columns:
-#'   - bench_version: Benchmark version
-#'   - ref: Reference genome
-#'   - var_type: Variant type (smvar or stvar)
-#'   - strat_name: Stratification region name (HP, MAP, SD, SD10kb, TR, TR10kb)
+#'   - bench_version: Benchmark version (factored: v0.6, v4.2.1, v5.0q)
+#'   - ref: Reference genome (factored: GRCh37, GRCh38, CHM13v2.0)
+#'   - var_type: Variant type (factored: smvar, stvar)
+#'   - strat_name: Stratification region name (factored: HP, MAP, SD, SD10kb, TR, TR10kb)
 #'   - strat_bp: Total bases in stratification
 #'   - intersect_bp: Bases overlapping with benchmark
 #'   - pct_of_strat: Percentage of stratification overlapping benchmark
 #'   - pct_of_bench: Percentage of benchmark overlapping stratification
 #'   - total_variants: Total variant count
-#'   - snp_count: SNP count
+#'   - snv_count: Single Nucleotide Variant count (SNV)
 #'   - indel_count: INDEL count
 #'   - del_count: Deletion count (structural variants only)
 #'   - ins_count: Insertion count (structural variants only)
@@ -158,6 +221,29 @@ load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = N
       )
     }
   }
+
+  # Rename snp_count to snv_count (SNV = Single Nucleotide Variant)
+  # and factor categorical variables with standard levels
+  metrics_df <- metrics_df %>%
+    dplyr::rename(snv_count = snp_count) %>%
+    dplyr::mutate(
+      bench_version = factor(
+        bench_version,
+        levels = c("v0.6", "v4.2.1", "v5.0q")
+      ),
+      ref = factor(
+        ref,
+        levels = c("GRCh37", "GRCh38", "CHM13v2.0")
+      ),
+      var_type = factor(
+        var_type,
+        levels = c("smvar", "stvar")
+      ),
+      strat_name = factor(
+        strat_name,
+        levels = c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+      )
+    )
 
   return(metrics_df)
 }
@@ -521,4 +607,120 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL, strat_filter = 
   }
 
   return(coverage_df)
+}
+
+
+#' Load Benchmark Region Files
+#'
+#' Loads all benchmark region BED files from the resources directory and combines them
+#' into a single tibble with standardized column names and factored variables.
+#'
+#' @param resources_dir Path to resources directory. Default: `here::here("resources/benchmarksets")`
+#'
+#' @return Tibble with columns:
+#'   - bench_version: Benchmark version (factored)
+#'   - ref: Reference genome (factored)
+#'   - bench_type: Variant type classification (factored: smvar, stvar)
+#'   - chrom: Chromosome name with "chr" prefix (factored)
+#'   - start: Start position (0-based)
+#'   - end: End position (1-based)
+#'   - interval_size: Size of region in bases (end - start)
+#'
+#' @examples
+#' \dontrun{
+#' bench_regions <- load_benchmark_regions()
+#'
+#' # Get regions for specific benchmark
+#' bench_regions %>%
+#'   filter(bench_version == "v5.0q", ref == "GRCh38")
+#' }
+#'
+#' @export
+load_benchmark_regions <- function(resources_dir = NULL) {
+  if (is.null(resources_dir)) {
+    resources_dir <- here::here("resources/benchmarksets")
+  }
+
+  if (!fs::dir_exists(resources_dir)) {
+    stop(
+      glue::glue(
+        "Resources directory not found: {resources_dir}"
+      ),
+      call. = FALSE
+    )
+  }
+
+  # Find all benchmark BED files
+  bench_files <- fs::dir_ls(
+    resources_dir,
+    glob = "*_benchmark.bed",
+    fail = FALSE
+  )
+
+  if (length(bench_files) == 0) {
+    stop(
+      glue::glue(
+        "No benchmark BED files found in {resources_dir}"
+      ),
+      call. = FALSE
+    )
+  }
+
+  # Read all benchmark region files
+  bench_regions_df <- bench_files %>%
+    purrr::map_dfr(
+      ~ vroom::vroom(
+        .x,
+        col_names = c("chrom", "start", "end"),
+        col_types = "cii",
+        show_col_types = FALSE
+      ) %>%
+        tibble::add_column(
+          benchmark_file = fs::path_file(.x),
+          .before = 1
+        ),
+      .id = "file_id"
+    ) %>%
+    # Extract benchmark identifier from filename
+    dplyr::mutate(
+      benchmark_id = stringr::str_remove(benchmark_file, "_benchmark.bed"),
+      bench_meta = purrr::map(benchmark_id, parse_benchmark_id),
+      bench_version = purrr::map_chr(bench_meta, "bench_version"),
+      ref = purrr::map_chr(bench_meta, "ref"),
+      bench_type = purrr::map_chr(bench_meta, "var_type")
+    ) %>%
+    # Standardize chromosome names and calculate interval size
+    dplyr::mutate(
+      chrom = dplyr::if_else(
+        stringr::str_detect(chrom, "^chr"),
+        chrom,
+        stringr::str_c("chr", chrom)
+      ),
+      interval_size = end - start,
+      # Factor variables with standard levels
+      bench_version = factor(
+        bench_version,
+        levels = c("v0.6", "v4.2.1", "v5.0q")
+      ),
+      ref = factor(
+        ref,
+        levels = c("GRCh37", "GRCh38", "CHM13v2.0")
+      ),
+      bench_type = factor(
+        bench_type,
+        levels = c("smvar", "stvar")
+      ),
+      chrom = factor(
+        chrom,
+        levels = stringr::str_c("chr", c(1:22, "X", "Y"))
+      )
+    ) %>%
+    dplyr::select(
+      -file_id,
+      -benchmark_file,
+      -benchmark_id,
+      -bench_meta
+    )
+
+  return(bench_regions_df)
 }

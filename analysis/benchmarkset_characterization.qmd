@@ -43,53 +43,33 @@ strat_metrics_df <- load_stratification_metrics()
 ref_sizes_df <- load_reference_sizes()
 
 # Load benchmark region files for downstream analysis
-bench_region_files <- list.files(
-  path = here("resources/benchmarksets"),
-  pattern = "_benchmark.bed",
-  full.names = TRUE
-) %>%
-  set_names(str_extract(., "(?<=benchmarksets/).*(?=_benchmark.bed)"))
-
-regions_df <- bench_region_files %>%
-  map_dfr(
-    ~ read_tsv(
-      .x,
-      col_names = c("chrom", "start", "end"),
-      col_types = "cii",
-      show_col_types = FALSE
-    ),
-    .id = "benchmark"
-  ) %>%
-  mutate(
-    interval_size = end - start,
-    chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom)),
-    # Parse benchmark identifier from directory name
-    bench_meta = map(benchmark, parse_benchmark_id),
-    bench_version = map_chr(bench_meta, "bench_version"),
-    ref = map_chr(bench_meta, "ref"),
-    bench_type = map_chr(bench_meta, "var_type")
-  ) %>%
-  select(-bench_meta, -benchmark)
+# Load benchmark region files using shared function (with factored variables)
+bench_regions_df <- load_benchmark_regions()
 ```
 
 ### Data Verification
 
 ```{r}
-# Verify expected number of metrics rows
-expected_benchmarks <- 8
-expected_strats <- 6
+# Parse pipeline config for expected values (dynamic, not hardcoded)
+pipeline_config <- parse_pipeline_config()
+
+expected_benchmarks <- pipeline_config$num_benchmarks
+expected_strats <- pipeline_config$num_stratifications
 expected_rows <- expected_benchmarks * expected_strats
 
 assertthat::assert_that(
   nrow(strat_metrics_df) >= expected_rows - 5,
-  msg = glue::glue("Expected {expected_rows} or more rows in strat_metrics_df, got {nrow(strat_metrics_df)}")
+  msg = glue::glue(
+    "Expected {expected_rows} or more rows in strat_metrics_df, ",
+    "got {nrow(strat_metrics_df)} (from config: {expected_benchmarks} benchmarks × {expected_strats} strats)"
+  )
 )
 
 # Verify all required stratifications are present
 required_strats <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
 assertthat::assert_that(
-  all(required_strats %in% unique(strat_metrics_df$strat_name)),
-  msg = glue::glue("Missing expected stratification names")
+  all(required_strats %in% levels(strat_metrics_df$strat_name)),
+  msg = "Missing expected stratification names"
 )
 
 # Verify variant counts are non-negative
@@ -107,12 +87,14 @@ These data frames are the primary inputs for downstream analyses:
 - One row per stratification per benchmark
 - Contains: variant counts by type, coverage metrics, variant density
 - Use for: variant count comparisons, density calculations, coverage analysis
-- Columns: `bench_version`, `ref`, `bench_type`, `strat_name`, `total_variants`, `snp_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `variant_density_per_mb`
+- Columns: `bench_version`, `ref`, `bench_type`, `strat_name`, `total_variants`, `snv_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `variant_density_per_mb`
+- **Variables are pre-factored** with standard levels (no manual factoring needed)
 
-**regions_df** - Benchmark region intervals
-- All intervals from benchmark BED files
+**bench_regions_df** - Benchmark region intervals
+- All intervals from benchmark BED files with standardized format
 - Use for: coverage calculations, interval size distributions, spatial analysis
 - Columns: `chrom`, `start`, `end`, `interval_size`, `bench_version`, `ref`, `bench_type`
+- **Variables are pre-factored** with standard levels (chromosomes, benchmark versions, references)
 
 **ref_sizes_df** - Reference genome sizes
 - Chromosome-level sizes and N-content
@@ -128,7 +110,7 @@ variants <- load_variant_table(
   "v5.0q_GRCh38_smvar",
   filters = list(
     chromosomes = c("chr1", "chr2"),  # Reduce memory usage
-    variant_types = c("SNP"),
+    variant_types = c("SNP", "INDEL"),
     in_benchmark_only = TRUE
   )
 )
@@ -142,11 +124,12 @@ However, this is significantly slower (minutes) and memory-intensive (~1 GB), so
 
 ```{r}
 # Aggregate small variant counts by type across all stratifications
+# Note: snv_count is renamed from snp_count in load_stratification_metrics()
 smvar_cnt_df <- strat_metrics_df %>%
   filter(bench_type == "smvar") %>%
   group_by(bench_type, ref, bench_version) %>%
   summarise(
-    SNV = sum(snp_count),
+    SNV = sum(snv_count),
     INDEL = sum(indel_count),
     .groups = "drop"
   ) %>%
@@ -170,8 +153,8 @@ smv_cnt_tbl <- smvar_cnt_df %>%
   gt::cols_label(
     ref = "Reference",
     bench_version = "Benchmark",
-    SNV = "SNVs",
-    INDEL = "INDELs",
+    SNV = "Single Nucleotide Variants (SNVs)",
+    INDEL = "Insertions/Deletions",
     Total = "Total Variants"
   )
 
@@ -215,12 +198,12 @@ stvar_cnt_table
 ### Combined Variant Table
 
 ```{r}
-# Create variant type breakdown for combined table
+# Create variant type breakdown for combined table (v5.0q only)
 combined_var_cnt_df <- strat_metrics_df %>%
   filter(bench_version == "v5.0q") %>%
   group_by(bench_type, ref) %>%
   summarise(
-    SNV = sum(snp_count),
+    SNV = sum(snv_count),
     INDEL = sum(indel_count),
     INS = sum(ins_count),
     DEL = sum(del_count),
@@ -450,13 +433,13 @@ This section visualizes variant counts by stratification region, created from ag
 diff_var_plt_df <- strat_metrics_df %>%
   # Expand variant counts to individual rows by type
   pivot_longer(
-    cols = c(snp_count, indel_count, del_count, ins_count, complex_count, other_count),
+    cols = c(snv_count, indel_count, del_count, ins_count, complex_count, other_count),
     names_to = "count_type",
     values_to = "count"
   ) %>%
   mutate(
     var_type = case_when(
-      count_type == "snp_count" ~ "SNP",
+      count_type == "snv_count" ~ "SNV",
       count_type == "indel_count" ~ "INDEL",
       count_type == "del_count" ~ "DEL",
       count_type == "ins_count" ~ "INS",
