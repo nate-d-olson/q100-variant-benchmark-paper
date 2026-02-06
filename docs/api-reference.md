@@ -20,14 +20,14 @@ This document provides detailed reference for helper functions in the Q100 varia
 Get exclusion configuration for a benchmark set.
 
 **Parameters:**
-- `benchmark` (str): Benchmark set name (e.g., "v5q_GRCh38")
+- `benchmark` (str): Benchmark set name (e.g., "v5.0q_GRCh38")
 
 **Returns:**
 - `list`: List of exclusion dictionaries with keys: `name`, `type`, `files`
 
 **Example:**
 ```python
-exclusions = get_exclusion_config("v5q_GRCh38")
+exclusions = get_exclusion_config("v5.0q_GRCh38")
 # Returns: [
 #     {"name": "consecutive-svs", "type": "single", "files": [{"url": "...", "sha256": "..."}]},
 #     {"name": "lc-regions", "type": "single", "files": [...]},
@@ -80,7 +80,7 @@ Get a specific exclusion entry by name.
 
 **Example:**
 ```python
-entry = get_exclusion_entry("v5q_GRCh38", "consecutive-svs")
+entry = get_exclusion_entry("v5.0q_GRCh38", "consecutive-svs")
 # Returns: {"name": "consecutive-svs", "type": "single", "files": [...]}
 ```
 
@@ -100,8 +100,8 @@ Get the standardized local path for an exclusion file.
 
 **Example:**
 ```python
-path = get_exclusion_file_path("v5q_GRCh38", "consecutive-svs", 0)
-# Returns: "resources/exclusions/v5q_GRCh38/consecutive-svs_0.bed"
+path = get_exclusion_file_path("v5.0q_GRCh38", "consecutive-svs", 0)
+# Returns: "resources/exclusions/v5.0q_GRCh38/consecutive-svs_0.bed"
 ```
 
 **Notes:**
@@ -125,8 +125,8 @@ Get input file paths for an exclusion.
 # For exclusion with 2 files:
 paths = get_exclusion_inputs(wildcards)
 # Returns: [
-#     "resources/exclusions/v5q_GRCh38/consecutive-svs_0.bed",
-#     "resources/exclusions/v5q_GRCh38/consecutive-svs_1.bed"
+#     "resources/exclusions/v5.0q_GRCh38/consecutive-svs_0.bed",
+#     "resources/exclusions/v5.0q_GRCh38/consecutive-svs_1.bed"
 # ]
 ```
 
@@ -215,9 +215,9 @@ Get benchmark region BED and exclusion BEDs with IDs.
 ```python
 beds = get_region_beds(wildcards)
 # Returns: [
-#     "resources/benchmarksets/v5q_GRCh38_benchmark.bed:BMKREGIONS",
-#     "resources/exclusions/v5q_GRCh38/consecutive-svs_0.bed:EXCL_CONSECUTIVE_SVS",
-#     "resources/exclusions/v5q_GRCh38/lc-regions_0.bed:EXCL_LC_REGIONS",
+#     "resources/benchmarksets/v5.0q_GRCh38_benchmark.bed:BMKREGIONS",
+#     "resources/exclusions/v5.0q_GRCh38/consecutive-svs_0.bed:EXCL_CONSECUTIVE_SVS",
+#     "resources/exclusions/v5.0q_GRCh38/lc-regions_0.bed:EXCL_LC_REGIONS",
 #     ...
 # ]
 ```
@@ -329,9 +329,9 @@ Generate list of variant table files for all benchmarks.
 ```python
 files = get_var_table_inputs(wildcards)
 # Returns: [
-#     "results/variant_tables/v5q_GRCh38/variants.tsv",
-#     "results/variant_tables/v5q_GRCh37/variants.tsv",
-#     "results/variant_tables/v421_GRCh38/variants.tsv",
+#     "results/variant_tables/v5.0q_GRCh38/variants.tsv",
+#     "results/variant_tables/v5.0q_GRCh37/variants.tsv",
+#     "results/variant_tables/v4.2.1_GRCh38/variants.tsv",
 #     ...
 # ]
 ```
@@ -352,8 +352,8 @@ Generate list of exclusion intersection tables for all benchmarks that have excl
 ```python
 files = get_exclusion_table_inputs(wildcards)
 # Returns: [
-#     "results/exclusions/v5q_GRCh38/exclusions_intersection_table.csv",
-#     "results/exclusions/v5q_GRCh37/exclusions_intersection_table.csv",
+#     "results/exclusions/v5.0q_GRCh38/exclusions_intersection_table.csv",
+#     "results/exclusions/v5.0q_GRCh37/exclusions_intersection_table.csv",
 #     ...
 # ]
 ```
@@ -378,8 +378,8 @@ Generate list of stratification metrics table files for all benchmarks.
 ```python
 files = get_strat_metrics_inputs(wildcards)
 # Returns: [
-#     "results/strat_metrics/v5q_GRCh38/stratification_coverage_table.csv",
-#     "results/strat_metrics/v5q_GRCh37/stratification_coverage_table.csv",
+#     "results/genomic_context_metrics/v5.0q_GRCh38/genomic_context_coverage_table.csv",
+#     "results/genomic_context_metrics/v5.0q_GRCh37/genomic_context_coverage_table.csv",
 #     ...
 # ]
 ```
@@ -404,8 +404,8 @@ Generate list of variant count table files for all benchmarks.
 ```python
 files = get_var_counts_inputs(wildcards)
 # Returns: [
-#     "results/var_counts/v5q_GRCh38/stratification_combined_metrics.csv",
-#     "results/var_counts/v5q_GRCh37/stratification_combined_metrics.csv",
+#     "results/var_counts/v5.0q_GRCh38/genomic_context_combined_metrics.csv",
+#     "results/var_counts/v5.0q_GRCh37/genomic_context_combined_metrics.csv",
 #     ...
 # ]
 ```
@@ -505,7 +505,7 @@ rule process:
 # In Python script or interactive session:
 from snakemake import Wildcards
 
-wildcards = Wildcards(benchmark="v5q_GRCh38", exclusion="consecutive-svs")
+wildcards = Wildcards(benchmark="v5.0q_GRCh38", exclusion="consecutive-svs")
 print(get_exclusion_inputs(wildcards))
 ```
 
@@ -517,7 +517,7 @@ import yaml
 config = yaml.safe_load(open("config/config.yaml"))
 
 # Test function:
-print(get_region_beds(Wildcards(benchmark="v5q_GRCh38")))
+print(get_region_beds(Wildcards(benchmark="v5.0q_GRCh38")))
 ```
 
 ### Dry-run to See Resolved Paths

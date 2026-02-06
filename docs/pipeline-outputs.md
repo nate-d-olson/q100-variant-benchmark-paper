@@ -42,7 +42,7 @@ These files contain aggregated metrics and should be your default choice for ana
 
 ### 1. Stratification Combined Metrics
 
-**Path:** `results/var_counts/{benchmark}/genomic context_combined_metrics.csv`
+**Path:** `results/var_counts/{benchmark}/genomic_context_combined_metrics.csv`
 
 **Purpose:** Primary analysis file with per-genomic context metrics and variant counts. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
 
@@ -81,14 +81,14 @@ SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,0,0,0,25627,6232.91
 - Recommended file for most analyses
 - One row per genomic context per benchmark
 - Ideal for creating comparison plots and summary tables
-- Use `load_genomic context_metrics()` function to load
+- Use `load_genomic_context_metrics()` function to load
 
 **Example Usage:**
 ```r
 source("R/data_loading.R")
 
 # Load all metrics
-metrics <- load_genomic context_metrics()
+metrics <- load_genomic_context_metrics()
 
 # Load specific benchmark
 metrics_v5 <- load_genomic context_metrics(
@@ -223,7 +223,7 @@ ref_sizes %>%
   )
 
 # Normalize benchmark coverage to genome size
-metrics <- load_genomic context_metrics()
+metrics <- load_genomic_context_metrics()
 ref_sizes_df <- load_reference_sizes()
 
 genome_totals <- ref_sizes_df %>%
@@ -253,7 +253,7 @@ These files contain variant-level or base-level data. Load them only when you ne
 
 **Size:** Large (~500 MB - 2 GB per benchmark)
 
-**⚠️ Performance Warning:** Loading full variant tables is slow (several minutes) and memory-intensive. Consider using `load_genomic context_metrics()` for summary statistics instead.
+**⚠️ Performance Warning:** Loading full variant tables is slow (several minutes) and memory-intensive. Consider using `load_genomic_context_metrics()` for summary statistics instead.
 
 **Column Schema:**
 
@@ -399,7 +399,7 @@ coverage %>%
 results/
 ├── var_counts/
 │   ├── v5.0q_GRCh38_smvar/
-│   │   ├── genomic context_combined_metrics.csv    ✓ Primary (load first)
+│   │   ├── genomic_context_combined_metrics.csv    ✓ Primary (load first)
 │   │   ├── genomic context_summary.csv             (intermediate)
 │   │   └── variants_by_genomic context.csv         (intermediate)
 │   ├── v5.0q_GRCh38_stvar/
@@ -454,7 +454,7 @@ Legend:
 source("R/data_loading.R")
 
 # 1. Load primary metrics
-metrics <- load_genomic context_metrics()
+metrics <- load_genomic_context_metrics()
 ref_sizes <- load_reference_sizes()
 
 # 2. Combine with genome sizes for normalization
@@ -480,7 +480,7 @@ metrics_normalized %>%
 source("R/data_loading.R")
 
 # 1. Start with metrics to understand distribution
-metrics <- load_genomic context_metrics()
+metrics <- load_genomic_context_metrics()
 filter(metrics, var_type == "smvar", ref == "GRCh38")
 
 # 2. If you need details, load variant table with filters
@@ -531,7 +531,7 @@ All output files can be loaded using functions in `R/data_loading.R`:
 
 | Function | Purpose | Returns | Notes |
 |----------|---------|---------|-------|
-| `load_genomic context_metrics()` | Load primary analysis metrics | Tibble | 48+ rows (6 strats × benchmarks) |
+| `load_genomic_context_metrics()` | Load primary analysis metrics | Tibble | 48+ rows (6 strats × benchmarks) |
 | `load_exclusion_metrics()` | Load exclusion overlaps | Tibble | v5.0q only, warns if empty |
 | `load_reference_sizes()` | Load reference genomes | Tibble | 88-94 rows (24-31 chroms × refs) |
 | `load_variant_table()` | Load full variant data | Tibble | Millions of rows, SLOW |
@@ -563,7 +563,7 @@ All functions handle:
 
 ## Troubleshooting
 
-### "No genomic context_combined_metrics.csv files found"
+### "No genomic_context_combined_metrics.csv files found"
 - Check that `results/var_counts/` directory exists
 - Verify pipeline completed successfully
 - Run `find results/ -name "*genomic context_combined_metrics*"`
@@ -571,12 +571,12 @@ All functions handle:
 ### Slow loading of variant tables
 - Expected - these files are ~1 GB each
 - Use filters to reduce memory: `load_variant_table(..., filters = list(chromosomes = c("chr1")))`
-- Consider using `load_genomic context_metrics()` instead for summary statistics
+- Consider using `load_genomic_context_metrics()` instead for summary statistics
 
 ### Missing exclusion files
 - Exclusion data only available for v5.0q benchmarks
 - Earlier benchmarks use different exclusion definitions
-- Check benchmark version with: `load_genomic context_metrics() %>% distinct(bench_version)`
+- Check benchmark version with: `load_genomic_context_metrics() %>% distinct(bench_version)`
 
 ### Chromosome name mismatches
 - Reference sizes always have "chr" prefix (chr1, chr2, ...)
