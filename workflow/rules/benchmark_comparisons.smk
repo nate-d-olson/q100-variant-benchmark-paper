@@ -104,7 +104,7 @@ rule run_truvari_refine:
             "refine.variant_summary.json",
         ),
     params:
-        bench_dir="results/comparisons/stvar/{comp_id}",
+        bench_dir=lambda w, output: os.path.dirname(output[0]),
     log:
         "logs/compare_stvar_refine/{comp_id}.log",
     threads: 16
