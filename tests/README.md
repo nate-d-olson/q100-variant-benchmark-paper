@@ -6,7 +6,9 @@ This directory contains tests for the Q100 variant benchmark pipeline.
 
 ```
 tests/
-├── unit/                    # Unit tests for individual functions/modules
+├── test_cache.R             # R tests for schemas and caching (45 tests)
+├── test_data_loading.R      # R tests for data loading functions
+├── unit/                    # Python unit tests for individual functions/modules
 │   ├── test_common_helpers.py      # Tests for workflow/rules/common.smk
 │   └── test_stratify_comparison.py # Tests for stratify_comparison.py
 ├── integration/             # Integration tests for workflow rules
@@ -17,7 +19,23 @@ tests/
 
 ## Running Tests
 
-### Prerequisites
+### R Tests
+
+R tests use `testthat` and can be run from the repository root:
+
+```bash
+# Schema registry and Parquet caching tests (45 tests, self-contained with synthetic data)
+Rscript -e 'testthat::test_file("tests/test_cache.R")'
+
+# Data loading function tests (requires pipeline outputs in results/)
+Rscript -e 'testthat::test_file("tests/test_data_loading.R")'
+```
+
+The cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation -- they create temporary directories and never touch the real cache.
+
+### Python Tests
+
+#### Prerequisites
 
 Install test dependencies:
 
@@ -25,7 +43,7 @@ Install test dependencies:
 pip install pytest pytest-cov
 ```
 
-### Run All Tests
+#### Run All Tests
 
 ```bash
 # From repository root
@@ -35,7 +53,7 @@ pytest tests/ -v
 pytest tests/ -v --cov=workflow/scripts --cov=workflow/rules
 ```
 
-### Run Specific Test Files
+#### Run Specific Test Files
 
 ```bash
 # Unit tests only

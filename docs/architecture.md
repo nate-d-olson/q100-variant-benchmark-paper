@@ -395,6 +395,74 @@ config.yaml
                     └─▶ Manuscript figures
 ```
 
+## R Data Loading and Caching Layer
+
+The R analysis layer provides data loading, schema validation, and Parquet-based caching for pipeline outputs.
+
+### Module Architecture
+
+```
+R/
+├── schemas.R       ← Arrow schema registry, factor levels, validation rules
+├── cache.R         ← Parquet caching infrastructure (sources schemas.R)
+└── data_loading.R  ← Loading functions with cache integration (sources both)
+```
+
+### Schema Registry (`R/schemas.R`)
+
+Centralized definitions used by both writing and reading:
+
+| Component | Purpose |
+|-----------|---------|
+| `get_arrow_schema(dataset)` | Arrow type definitions for Parquet write |
+| `get_factor_levels(dataset)` | Factor level restoration after Parquet read |
+| `get_validation_rules(dataset)` | Column predicate functions for fail-fast validation |
+| `validate_data(df, dataset)` | Run all validations on a data frame |
+
+Supported datasets: `variant_table`, `diff_coverage`, `benchmark_regions`
+
+### Caching Infrastructure (`R/cache.R`)
+
+Parquet-only caching with automatic invalidation:
+
+| Function | Purpose |
+|----------|---------|
+| `write_cache()` | Validate, strip factors, embed metadata, write Parquet |
+| `read_cache()` | Read Parquet, restore factors, return tibble (or NULL) |
+| `cache_is_valid()` | Check if valid cache exists for given inputs |
+| `invalidate_cache(dataset)` | Remove all cache files for a dataset |
+| `clear_cache()` | Remove entire cache directory |
+| `cache_info()` | List cached files with size, age, dataset name |
+| `collect_pipeline_metadata()` | Gather R version, package versions, config summary |
+
+**Design decisions:**
+- Cache directory configurable via `getOption("q100.cache_dir")` (default: `analysis/cache/`)
+- Cache key: `rlang::hash()` of dataset name + source file mtimes + parameters
+- Compression: zstd level 3 for speed/compression tradeoff
+- Pipeline metadata stored as JSON in Parquet file-level key-value metadata
+- Factors stripped before write, restored on read from schema registry
+- Validation runs on write (fail-fast), optional on read
+
+### Data Loading Functions (`R/data_loading.R`)
+
+Three functions support caching via `use_cache` and `force_refresh` parameters:
+
+| Function | Dataset | Source Files |
+|----------|---------|--------------|
+| `load_variant_table()` | `variant_table` | `variants.tsv` |
+| `load_diff_coverage()` | `diff_coverage` | `*_cov.bed` files |
+| `load_benchmark_regions()` | `benchmark_regions` | `*_benchmark.bed` files |
+
+Functions NOT cached (small datasets, load directly from pipeline output):
+- `load_genomic_context_metrics()`, `load_exclusion_metrics()`, `load_reference_sizes()`
+
+### Adding a New Cached Dataset
+
+1. **`R/schemas.R`**: Add entries to `get_arrow_schema()`, `get_factor_levels()`, `get_validation_rules()`
+2. **`R/data_loading.R`**: Add `use_cache`/`force_refresh` params, call `read_cache()` before loading, `write_cache()` after
+
+No changes needed in `R/cache.R` -- it is dataset-agnostic.
+
 ## Technology Stack
 
 | Layer | Technology | Purpose |
@@ -406,6 +474,8 @@ config.yaml
 | Indexing | samtools | FASTA indexing |
 | Data Processing | Python 3.x | Custom scripts with logging (NEW) |
 | Analysis | R 4.5 + Quarto | Statistical analysis and reporting |
+| Data Caching | Arrow/Parquet | Schema-validated Parquet caching for large datasets |
+| Code Quality | air + lintr | R code formatting and linting |
 | Validation | Custom Python (NEW) | Format checking, integrity validation |
 
 ## Error Handling (NEW)
@@ -457,6 +527,16 @@ The pipeline now includes comprehensive error handling:
    - Improved docstrings with examples
    - Better error messages with actionable suggestions
 
+4. **Parquet Caching and Schema Registry**
+   - `R/schemas.R` - Arrow schema definitions, factor levels, validation rules
+   - `R/cache.R` - Parquet caching with zstd compression and pipeline metadata
+   - Cache integration in `load_variant_table()`, `load_diff_coverage()`, `load_benchmark_regions()`
+   - 45 tests in `tests/test_cache.R` covering schemas, cache round-trips, invalidation, metadata
+
+5. **Code Quality Tooling**
+   - `air.toml` - Air formatter configuration (100-char lines, 2-space indent)
+   - `.lintr` - Lintr configuration (snake_case + dotted.case, 100-char lines)
+
 ## Future Enhancements
 
 See `IMPROVEMENT_SUGGESTIONS.md` for:
@@ -467,5 +547,5 @@ See `IMPROVEMENT_SUGGESTIONS.md` for:
 
 ---
 
-*Last Updated: 2026-01-20*
+*Last Updated: 2026-02-07*
 *Documentation synchronized with codebase (common.smk duplicate functions removed)*

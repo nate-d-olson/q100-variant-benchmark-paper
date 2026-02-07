@@ -416,6 +416,76 @@ WorkflowError: Config validation failed
 
 ---
 
+## R Data Caching Issues
+
+### Stale cached data after pipeline re-run
+
+**Symptom:** Notebooks show old data after re-running the Snakemake pipeline
+
+The cache should auto-invalidate when source file modification times change. If it doesn't:
+
+```r
+source("R/data_loading.R")
+
+# Option 1: Force refresh a specific dataset
+variants <- load_variant_table("v5.0q_GRCh38_smvar", force_refresh = TRUE)
+
+# Option 2: Clear all cached data
+clear_cache()
+```
+
+---
+
+### Cache directory consuming too much disk space
+
+**Symptom:** `analysis/cache/` grows large with multiple cached datasets
+
+```r
+source("R/data_loading.R")
+
+# Check what's cached
+cache_info()
+
+# Remove cache for a specific dataset
+invalidate_cache("variant_table")
+
+# Or remove everything
+clear_cache()
+```
+
+---
+
+### Cache write failures
+
+**Symptom:** Warning message like "Failed to write cache for variant_table: ..."
+
+Cache write failures are non-fatal -- the data is still returned from the loading function. Common causes:
+
+- **Disk full:** Free space in `analysis/cache/`
+- **Permission errors:** Check write access to `analysis/cache/`
+- **Validation failure:** Data doesn't match schema in `R/schemas.R`
+
+```bash
+# Check permissions
+ls -la analysis/cache/
+
+# Check disk space
+df -h .
+```
+
+---
+
+### Using a different cache directory
+
+Set the `q100.cache_dir` option before loading data:
+
+```r
+options(q100.cache_dir = "/path/to/custom/cache")
+source("R/data_loading.R")
+```
+
+---
+
 ## Performance Optimization
 
 ### Slow Pipeline Execution
@@ -545,5 +615,5 @@ snakemake --dag 2>&1 | grep -i "cycle"
 
 ---
 
-*Last Updated: 2026-01-13*
-*Branch: feature/codebase-improvements*
+*Last Updated: 2026-02-07*
+*Branch: copilot/improve-data-loading-methods*

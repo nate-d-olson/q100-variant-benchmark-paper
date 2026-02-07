@@ -1,3 +1,7 @@
+# Source schema and cache infrastructure
+source(here::here("R/schemas.R"))
+source(here::here("R/cache.R"))
+
 #' Parse Benchmark Identifier from File Path
 #'
 #' Extracts benchmark metadata (version, reference, variant type) from a file path
@@ -448,8 +452,12 @@ load_reference_sizes <- function(results_dir = NULL) {
 #' )
 #' }
 #'
+#' @param use_cache Logical; if TRUE (default), use Parquet caching
+#' @param force_refresh Logical; if TRUE, ignore existing cache and reload
+#'
 #' @export
-load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL) {
+load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL,
+                               use_cache = TRUE, force_refresh = FALSE) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -472,6 +480,17 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL)
       ),
       call. = FALSE
     )
+  }
+
+  # Try cache first
+  source_files <- as.character(variant_file)
+  cache_params <- list(benchmark_id = benchmark_id, filters = filters)
+
+  if (use_cache && !force_refresh) {
+    cached <- read_cache("variant_table", source_files, cache_params)
+    if (!is.null(cached)) {
+      return(cached)
+    }
   }
 
   message(
@@ -500,6 +519,19 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL)
       variants_df <- variants_df %>%
         dplyr::filter(chrom %in% filters$chromosomes)
     }
+  }
+
+  # Write to cache
+  if (use_cache) {
+    tryCatch(
+      write_cache(variants_df, "variant_table", source_files, cache_params),
+      error = function(e) {
+        warning(
+          glue::glue("Failed to write cache for variant_table: {e$message}"),
+          call. = FALSE
+        )
+      }
+    )
   }
 
   return(variants_df)
@@ -829,8 +861,13 @@ load_all_variant_tables <- function(results_dir = NULL) {
 #' )
 #' }
 #'
+#' @param use_cache Logical; if TRUE (default), use Parquet caching
+#' @param force_refresh Logical; if TRUE, ignore existing cache and reload
+#'
 #' @export
-load_diff_coverage <- function(benchmark_id, results_dir = NULL, context_filter = NULL) {
+load_diff_coverage <- function(benchmark_id, results_dir = NULL,
+                               context_filter = NULL,
+                               use_cache = TRUE, force_refresh = FALSE) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -869,6 +906,17 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL, context_filter 
     )
   }
 
+  # Try cache first
+  source_files <- as.character(coverage_files)
+  cache_params <- list(benchmark_id = benchmark_id, context_filter = context_filter)
+
+  if (use_cache && !force_refresh) {
+    cached <- read_cache("diff_coverage", source_files, cache_params)
+    if (!is.null(cached)) {
+      return(cached)
+    }
+  }
+
   # Read all coverage files
   coverage_df <- coverage_files %>%
     purrr::map_dfr(function(file) {
@@ -903,6 +951,19 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL, context_filter 
     }
   }
 
+  # Write to cache
+  if (use_cache) {
+    tryCatch(
+      write_cache(coverage_df, "diff_coverage", source_files, cache_params),
+      error = function(e) {
+        warning(
+          glue::glue("Failed to write cache for diff_coverage: {e$message}"),
+          call. = FALSE
+        )
+      }
+    )
+  }
+
   return(coverage_df)
 }
 
@@ -932,8 +993,12 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL, context_filter 
 #'   filter(bench_version == "v5.0q", ref == "GRCh38")
 #' }
 #'
+#' @param use_cache Logical; if TRUE (default), use Parquet caching
+#' @param force_refresh Logical; if TRUE, ignore existing cache and reload
+#'
 #' @export
-load_benchmark_regions <- function(resources_dir = NULL) {
+load_benchmark_regions <- function(resources_dir = NULL,
+                                   use_cache = TRUE, force_refresh = FALSE) {
   if (is.null(resources_dir)) {
     resources_dir <- here::here("resources/benchmarksets")
   }
@@ -964,6 +1029,17 @@ load_benchmark_regions <- function(resources_dir = NULL) {
       ),
       call. = FALSE
     )
+  }
+
+  # Try cache first
+  source_files <- as.character(bench_files)
+  cache_params <- list(resources_dir = resources_dir)
+
+  if (use_cache && !force_refresh) {
+    cached <- read_cache("benchmark_regions", source_files, cache_params)
+    if (!is.null(cached)) {
+      return(cached)
+    }
   }
 
   # Read all benchmark region files
@@ -1021,6 +1097,19 @@ load_benchmark_regions <- function(resources_dir = NULL) {
       -benchmark_id,
       -bench_meta
     )
+
+  # Write to cache
+  if (use_cache) {
+    tryCatch(
+      write_cache(bench_regions_df, "benchmark_regions", source_files, cache_params),
+      error = function(e) {
+        warning(
+          glue::glue("Failed to write cache for benchmark_regions: {e$message}"),
+          call. = FALSE
+        )
+      }
+    )
+  }
 
   return(bench_regions_df)
 }
