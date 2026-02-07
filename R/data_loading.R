@@ -19,7 +19,7 @@
 #' @export
 parse_benchmark_id <- function(file_path) {
   # Extract benchmark ID pattern: v[number]q?_[alphanumeric]_[smvar|stvar]
-  pattern <- "v([0-9.]+q?)_([A-Za-z0-9.]+)_(smvar|stvar)"
+  pattern <- "(.*)_(.*)_(smvar|stvar)"
 
   matches <- stringr::str_extract(file_path, pattern)
 
@@ -116,17 +116,17 @@ context_names <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
 std_ <- function(x, levels) {
   factor(x, levels = levels, labels = levels, ordered = TRUE)
 }
-std_references <- function(x) std_(x, refs = refs)
-std_bench_versions <- function(x) std_(x, bench_version = bench_version)
-std_bench_types <- function(x) std_(x, bench_type = bench_type)
-std_context_name <- function(x) std_(x, context_name = context_names)
-std_chrom <- function(x, chromosomes = chromosomes) {
+std_references <- function(x) std_(x, levels = refs)
+std_bench_versions <- function(x) std_(x, levels = bench_version)
+std_bench_types <- function(x) std_(x, levels = bench_type)
+std_context_name <- function(x) std_(x, levels = context_names)
+std_chrom <- function(x, chromx = chromosomes) {
   dplyr::if_else(
     stringr::str_detect(x, "^chr"),
     x,
     stringr::str_c("chr", x)
   ) %>%
-    std_(chromosomes)
+    std_(levels = chromx)
 }
 
 #' Load Genomic Context Metrics
@@ -516,7 +516,7 @@ get_bench_var_cols <- function(benchmarkset) {
     "var_type",
     "len_ref",
     "len_alt",
-    "strat_ids",
+    "context_ids",
     "region_ids"
   )
   ctypes <- "ciiccciicc"
@@ -628,13 +628,13 @@ get_bench_var_cols <- function(benchmarkset) {
   return(list(col_names = cnames, col_types = ctypes))
 }
 
-tidy_smvar <- function(var_tbl) {
+tidy_smvar <- function(var_df) {
   ## excluding variants less than 50bp
-  lt_50bp <- var_tbl$len_ref < 50 & var_tbl$len_alt < 50
-  var_tbl <- var_tbl[lt_50bp, ]
+  lt_50bp <- var_df$len_ref < 50 & var_df$len_alt < 50
+  var_df <- var_df[lt_50bp, ]
 
   ## changing var_type for OTHER and OVERLAP
-  var_tbl <- var_tbl %>%
+  var_df <- var_df %>%
     mutate(
       var_type = case_when(
         ## When REF is different from the first base of ALT
@@ -652,29 +652,29 @@ tidy_smvar <- function(var_tbl) {
     )
 
   ## Annotating Variant Length
-  var_tbl$var_size <- var_tbl$len_alt - var_tbl$len_ref
+  var_df$var_size <- var_df$len_alt - var_df$len_ref
 
-  return(var_tbl)
+  return(var_df)
 }
 
-tidy_stvar <- function(var_tbl) {
+tidy_stvar <- function(var_df) {
   ## excluding variants less than 50bp
-  gt_50bp <- var_tbl$len_ref > 49 | var_tbl$len_alt > 49
-  var_tbl <- var_tbl[gt_50bp, ]
+  gt_50bp <- var_df$len_ref > 49 | var_df$len_alt > 49
+  var_df <- var_df[gt_50bp, ]
 
   ## changing var_type for OTHER and OVERLAP
-  var_tbl$var_type <- var_tbl$SVTYPE
+  var_df$var_type <- var_df$SVTYPE
 
   ## Annotating Variant Length
-  var_tbl$var_size <- 0
-  var_tbl$var_size[var_tbl$SVTYPE == "INS"] <- var_tbl$SVLEN[
-    var_tbl$SVTYPE == "INS"
+  var_df$var_size <- 0
+  var_df$var_size[var_df$SVTYPE == "INS"] <- var_df$SVLEN[
+    var_df$SVTYPE == "INS"
   ]
-  var_tbl$var_size[var_tbl$SVTYPE == "DEL"] <- -var_tbl$SVLEN[
-    var_tbl$SVTYPE == "DEL"
+  var_df$var_size[var_df$SVTYPE == "DEL"] <- -var_df$SVLEN[
+    var_df$SVTYPE == "DEL"
   ]
 
-  return(var_tbl)
+  return(var_df)
 }
 
 
@@ -702,31 +702,19 @@ read_variant_table <- function(table_path) {
   ) %>%
     dplyr::mutate(
       chrom = std_chrom(chrom)
-    ) %>%
-    dplyr::select(
-      chrom,
-      pos,
-      end,
-      gt,
-      vkx,
-      var_type,
-      len_ref,
-      len_alt,
-      region_ids,
-      context_ids
     )
 
   ## remove variants outside benchmark regions
-  in_bmk <- grepl(x = var_tbl$region_ids, pattern = "^BMKREGIONS")
-  var_tbl <- var_tbl[in_bmk, ]
+  in_bmk <- grepl(x = var_df$region_ids, pattern = "^BMKREGIONS")
+  var_df <- var_df[in_bmk, ]
 
   ## Cleaning up variant tables
   if (meta$bench_type == "smvar") {
     print("Tidying small variant table")
-    var_tbl <- tidy_smvar(var_tbl)
+    var_df <- tidy_smvar(var_df)
   } else if (meta$bench_type == "stvar") {
     print("Tidying SV table")
-    var_tbl <- tidy_stvar(var_tbl)
+    var_df <- tidy_stvar(var_df)
   } else {
     print("Dirty Table!! Fix code")
   }
@@ -742,7 +730,25 @@ read_variant_table <- function(table_path) {
       )
     var_df
   }
-  return(var_df)
+
+  ## Reducing number of columns
+  var_df %>%
+    dplyr::select(
+      bench_version,
+      ref,
+      bench_type,
+      chrom,
+      pos,
+      end,
+      gt,
+      vkx,
+      var_type,
+      var_size,
+      len_ref,
+      len_alt,
+      region_ids,
+      context_ids
+    )
 }
 
 #' Load All Variant Tables
@@ -946,7 +952,10 @@ load_benchmark_regions <- function(resources_dir = NULL) {
     resources_dir,
     glob = "*_benchmark.bed",
     fail = FALSE
-  )
+  ) %>%
+    {
+      set_names(., stringr::str_extract(., "(?<=/)[^/]+(?=_benchmark.bed$)"))
+    }
 
   if (length(bench_files) == 0) {
     stop(

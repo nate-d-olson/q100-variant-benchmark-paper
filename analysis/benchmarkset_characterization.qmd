@@ -34,10 +34,13 @@ This analysis uses **primary aggregated metrics** rather than loading full varia
 
 ### Primary Metrics (Recommended)
 
-```{r}
+```{r load_primary}
+# Load variant tables for variant counts and size distribution analyses
+variants_df <- load_all_variant_tables()
+
 # Load aggregated genomic context metrics with variant counts
 # One row per genomic context per benchmark
-strat_metrics_df <- load_genomic_context_metrics()
+genomic_context_metrics_df <- load_genomic_context_metrics()
 
 # Load reference genome sizes for normalization
 ref_sizes_df <- load_reference_sizes()
@@ -58,23 +61,23 @@ expected_contexts <- pipeline_config$num_contexts
 expected_rows <- expected_benchmarks * expected_contexts
 
 assertthat::assert_that(
-  nrow(strat_metrics_df) >= expected_rows - 5,
+  nrow(genomic_context_metrics_df) >= expected_rows - 5,
   msg = glue::glue(
-    "Expected {expected_rows} or more rows in strat_metrics_df, ",
-    "got {nrow(strat_metrics_df)} (from config: {expected_benchmarks} benchmarks × {expected_contexts} contexts)"
+    "Expected {expected_rows} or more rows in genomic_context_metrics_df, ",
+    "got {nrow(genomic_context_metrics_df)} (from config: {expected_benchmarks} benchmarks × {expected_contexts} contexts)"
   )
 )
 
 # Verify all required genomic contexts are present
 required_contexts <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
 assertthat::assert_that(
-  all(required_contexts %in% levels(strat_metrics_df$context_name)),
+  all(required_contexts %in% levels(genomic_context_metrics_df$context_name)),
   msg = "Missing expected genomic context names"
 )
 
 # Verify variant counts are non-negative
 assertthat::assert_that(
-  all(strat_metrics_df$total_variants >= 0),
+  all(genomic_context_metrics_df$total_variants >= 0),
   msg = "Found negative variant counts"
 )
 ```
@@ -83,7 +86,7 @@ assertthat::assert_that(
 
 These data frames are the primary inputs for downstream analyses:
 
-**strat_metrics_df** - Aggregated metrics with variant counts
+**genomic_context_metrics_df** - Aggregated metrics with variant counts
 - One row per genomic context per benchmark
 - Contains: variant counts by type, coverage metrics, variant density
 - Use for: variant count comparisons, density calculations, coverage analysis
@@ -120,19 +123,17 @@ However, this is significantly slower (minutes) and memory-intensive (~1 GB), so
 
 ## Variant Counts
 
+
 ### Small Variant Counts
 
 ```{r}
-# Aggregate small variant counts by type across all genomic contexts
-# Note: snv_count is renamed from snp_count in load_genomic_context_metrics()
-smvar_cnt_df <- strat_metrics_df %>%
+# Aggregate small variant counts by variant type
+smvar_cnt_df <- variants_df %>%
   filter(bench_type == "smvar") %>%
-  group_by(bench_type, ref, bench_version) %>%
-  summarise(
-    SNV = sum(snv_count),
-    INDEL = sum(indel_count),
-    .groups = "drop"
-  ) %>%
+  count(bench_type, ref, bench_version, var_type) %>%
+  pivot_wider(names_from = var_type, values_from = n, values_fill = 0) %>%
+  rename(SNV = SNP) %>%
+  select(bench_type, ref, bench_version, SNV, INDEL) %>%
   mutate(Total = SNV + INDEL)
 
 smvar_cnt_df
@@ -165,20 +166,18 @@ smv_cnt_tbl
 
 ```{r}
 # Aggregate structural variant counts by type across all genomic contexts
-stvar_cnt_df <- strat_metrics_df %>%
+stvar_cnt_df <- variants_df %>%
   filter(bench_type == "stvar") %>%
-  group_by(bench_type, ref, bench_version) %>%
-  summarise(
-    INS = sum(ins_count),
-    DEL = sum(del_count),
-    .groups = "drop"
-  ) %>%
+  count(bench_type, ref, bench_version, var_type) %>%
+  pivot_wider(names_from = var_type, values_from = n, values_fill = 0) %>%
   mutate(Total = INS + DEL)
 
 stvar_cnt_table <- stvar_cnt_df %>%
   arrange(ref) %>%
   ungroup() %>%
-  gt::gt(caption = "Number of insertion, deletion, and total structural variants (≥50bp) by benchmark set.") %>%
+  gt::gt(
+    caption = "Number of insertion, deletion, and total structural variants (≥50bp) by benchmark set."
+  ) %>%
   gt::fmt_integer(
     columns = c(INS, DEL, Total)
   ) %>%
@@ -193,37 +192,27 @@ stvar_cnt_table <- stvar_cnt_df %>%
 
 stvar_cnt_table
 ```
-```
+
 
 ### Combined Variant Table
 
 ```{r}
 # Create variant type breakdown for combined table (v5.0q only)
-combined_var_cnt_df <- strat_metrics_df %>%
+combined_var_cnt_df <- variants_df %>%
   filter(bench_version == "v5.0q") %>%
   group_by(bench_type, ref) %>%
-  summarise(
-    SNV = sum(snv_count),
-    INDEL = sum(indel_count),
-    INS = sum(ins_count),
-    DEL = sum(del_count),
-    .groups = "drop"
-  ) %>%
-  pivot_longer(
-    cols = c(SNV, INDEL, INS, DEL),
-    names_to = "var_type",
-    values_to = "count"
-  ) %>%
+  count(bench_type, ref, bench_version, var_type) %>%
   pivot_wider(
     names_from = ref,
-    values_from = count
+    values_from = n
   ) %>%
-  mutate(var_type = factor(var_type, levels = c("SNV", "INDEL", "INS", "DEL"))) %>%
   arrange(bench_type, var_type)
 
-var_cnt_gt <- gt(combined_var_cnt_df,
-                 rowname_col = "var_type",
-                 groupname_col = "bench_type") %>%
+var_cnt_gt <- gt(
+  combined_var_cnt_df,
+  rowname_col = "var_type",
+  groupname_col = "bench_type"
+) %>%
   tab_options(
     row_group.as_column = TRUE,
     table.border.bottom.style = "solid",
@@ -233,9 +222,11 @@ var_cnt_gt <- gt(combined_var_cnt_df,
     row.striping.include_stub = TRUE,
     row.striping.background_color = "grey80"
   ) %>%
-  tab_spanner(label = "Reference Genome",
-              id = "ref_span",
-              columns = c("GRCh37", "GRCh38", "CHM13v2.0")) %>%
+  tab_spanner(
+    label = "Reference Genome",
+    id = "ref_span",
+    columns = c("GRCh37", "GRCh38", "CHM13v2.0")
+  ) %>%
   fmt_integer(
     columns = c(GRCh37, GRCh38, CHM13v2.0),
   ) %>%
@@ -249,13 +240,13 @@ var_cnt_gt <- gt(combined_var_cnt_df,
     label = "Small Variants (<50bp)",
     rows = bench_type == "smvar",
     id = "smvar_group"
-  ) %>% 
+  ) %>%
   summary_rows(
     groups = everything(),
     columns = c("GRCh37", "GRCh38", "CHM13v2.0"),
     fns = list(Total = ~ sum(., na.rm = TRUE)),
-    fmt = ~ fmt_integer(.) 
-  ) 
+    fmt = ~ fmt_integer(.)
+  )
 
 var_cnt_gt
 ```
@@ -286,75 +277,60 @@ FIXME - deletions missing for v0.6
 message("Loading full variant tables for size distribution analysis...")
 message("This may take several minutes as files are large (~1 GB)...")
 
-sv_benchmarks <- c(
-  "v5.0q_GRCh38_stvar",
-  "v5.0q_GRCh37_stvar",
-  "v0.6_GRCh37_stvar"
-)
-
-sv_len_df <- sv_benchmarks %>%
-  map_dfr(
-    ~ {
-      message(glue::glue("Loading {.x}..."))
-      load_variant_table(.x) %>%
-        select(chrom, pos, len_ref, len_alt) %>%
-        mutate(
-          var_size = len_alt - len_ref,
-          bench_id = .x
-        ) %>%
-        select(bench_id, var_size)
-    }
+sv_len_df <- variants_df %>%
+  filter(
+    bench_version %in% c("v5.0q", "v0.6"),
+    bench_type == "stvar"
   ) %>%
-  separate(bench_id, into = c("bench_version", "ref", "bench_type"), sep = "_") %>%
-  mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
+  select(bench_version, bench_type, ref, chrom, pos, var_size)
 
 (sv_len_dist_plt <- ggplot(
-    sv_len_df,
-    aes(x = var_size)
+  sv_len_df,
+  aes(x = var_size)
 ) +
-    geom_histogram(
-        data = filter(sv_len_df, bench_version != "v0.6"),
-        fill = "grey80",
-        color = "grey20",
-        bins = 100,
-        drop = "all"
-    ) +
-    geom_histogram(
-        data = filter(sv_len_df, bench_version == "v0.6"),
-        fill = "grey30",
-        color = "grey20",
-        bins = 100,
-        drop = "all"
-    ) +
-    scale_x_continuous(
-        breaks = c(
-            -10000,
-            -5000,
-            -1000,
-            -500,
-            -100,
-            -50,
-            0,
-            50,
-            100,
-            500,
-            1000,
-            5000,
-            10000
-        ),
-        trans = scales::pseudo_log_trans(sigma = 50, base = 10),
-        labels = scales::comma
-    ) +
-    scale_y_continuous(labels = scales::comma) +
-    labs(
-        x = "SV Length (bp)",
-        y = "Count"
-    ) +
-    facet_wrap(~ref, ncol = 1) +
-    theme_minimal() +
-    theme(
-        axis.text.x = element_text(angle = -45, hjust = 0)
-    ))
+  geom_histogram(
+    data = filter(sv_len_df, bench_version != "v0.6"),
+    fill = "grey80",
+    color = "grey20",
+    bins = 100,
+    drop = "all"
+  ) +
+  geom_histogram(
+    data = filter(sv_len_df, bench_version == "v0.6"),
+    fill = "grey30",
+    color = "grey20",
+    bins = 100,
+    drop = "all"
+  ) +
+  scale_x_continuous(
+    breaks = c(
+      -10000,
+      -5000,
+      -1000,
+      -500,
+      -100,
+      -50,
+      0,
+      50,
+      100,
+      500,
+      1000,
+      5000,
+      10000
+    ),
+    trans = scales::pseudo_log_trans(sigma = 50, base = 10),
+    labels = scales::comma
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    x = "SV Length (bp)",
+    y = "Count"
+  ) +
+  facet_wrap(~ref, ncol = 1) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0)
+  ))
 ```
 
 ```{r}
@@ -379,22 +355,12 @@ smvar_benchmarks <- c(
   "v4.2.1_GRCh38_smvar"
 )
 
-smvar_len_df <- smvar_benchmarks %>%
-  map_dfr(
-    ~ {
-      message(glue::glue("Loading {.x}..."))
-      load_variant_table(.x) %>%
-        filter(var_type == "INDEL") %>%
-        select(chrom, pos, len_ref, len_alt) %>%
-        mutate(
-          var_size = len_alt - len_ref,
-          bench_id = .x
-        ) %>%
-        select(bench_id, var_size)
-    }
+smvar_len_df <- variants_df %>%
+  filter(
+    bench_version %in% c("v5.0q", "v4.2.1"),
+    bench_type == "smvar"
   ) %>%
-  separate(bench_id, into = c("bench_version", "ref", "bench_type"), sep = "_") %>%
-  mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38", "CHM13v2.0")))
+  select(bench_version, bench_type, ref, chrom, pos, var_size)
 
 (smvar_len_dist_plt <- ggplot(
     smvar_len_df,
@@ -429,28 +395,14 @@ smvar_len_df <- smvar_benchmarks %>%
 This section visualizes variant counts by genomic context region, created from aggregated metrics (no full variant loading needed).
 
 ```{r}
+glimpse(variants_df)
+```
+```{r}
 # Create variant count breakdown by genomic context from aggregated metrics
-diff_var_plt_df <- strat_metrics_df %>%
-  # Expand variant counts to individual rows by type
-  pivot_longer(
-    cols = c(snv_count, indel_count, del_count, ins_count, complex_count, other_count),
-    names_to = "count_type",
-    values_to = "count"
-  ) %>%
-  mutate(
-    var_type = case_when(
-      count_type == "snv_count" ~ "SNV",
-      count_type == "indel_count" ~ "INDEL",
-      count_type == "del_count" ~ "DEL",
-      count_type == "ins_count" ~ "INS",
-      count_type == "complex_count" ~ "COMPLEX",
-      count_type == "other_count" ~ "OTHER",
-      TRUE ~ "UNKNOWN"
-    ),
-    context_id = context_name  # Use genomic context name as grouping variable
-  ) %>%
-  filter(count > 0) %>%  # Only non-zero counts
-  select(-count_type)
+genomic_context_var_df <- variants_df %>% 
+  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  count(bench_version, ref, bench_type, var_type, context_ids, name = "count")
+
 ```
 
 ```{r}
@@ -460,7 +412,7 @@ bench_version_cols <- c(
   "v0.6" = "purple"
 )
 
-(diff_smvar_plt <- diff_var_plt_df %>%
+(genomic_context_smvar_plt <- genomic_context_var_df  %>%
   filter(bench_type == "smvar") %>%
   mutate(
     bench_version = factor(
@@ -480,7 +432,7 @@ bench_version_cols <- c(
     stat = "identity",
     show.legend = TRUE
   ) +
-  facet_wrap(. ~ strat_ids, nrow = 1) +
+  facet_wrap(. ~ context_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
   scale_fill_manual(
     name = "Benchmark Version",
@@ -497,7 +449,7 @@ bench_version_cols <- c(
 ```
 
 ```{r}
-(diff_stvar_plt <- diff_var_plt_df %>%
+(genomic_context_stvar_plt <- genomic_context_var_df  %>%
   filter(bench_type == "stvar", .preserve = TRUE) %>%
   mutate(
     bench_version = factor(
@@ -513,7 +465,7 @@ bench_version_cols <- c(
     stat = "identity",
     show.legend = TRUE
   ) +
-  facet_wrap(. ~ strat_ids, nrow = 1) +
+  facet_wrap(. ~ context_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
   scale_fill_manual(
     name = "Benchmark Version",
@@ -528,8 +480,8 @@ bench_version_cols <- c(
 ```
 
 ```{r}
-(diff_var_plt <- diff_smvar_plt +
-  diff_stvar_plt +
+(diff_var_plt <- genomic_context_smvar_plt +
+  genomic_context_stvar_plt +
   plot_layout(guides = , nrow = 2, ncol = 1) +
   plot_annotation(tag_levels = "A") %>%
     theme(
@@ -549,7 +501,7 @@ ggsave(
 
 
 ```{r}
-diff_var_fld_chg <- diff_var_plt_df %>%
+genomic_context_var_fld_chg <- variants_df %>%
   mutate(
     var_size_bin = case_when(
       abs(var_size) < 15 ~ "<15bp",
@@ -559,11 +511,11 @@ diff_var_fld_chg <- diff_var_plt_df %>%
       TRUE ~ ">10kb"
     )
   ) %>%
-  count(bench_version, ref, bench_type, var_type, var_size_bin, strat_ids) %>%
+  count(bench_version, ref, bench_type, var_type, var_size_bin, context_ids) %>%
   pivot_wider(
     names_from = bench_version,
     values_from = n,
-    id_cols = c(ref, bench_type, var_type, var_size_bin, strat_ids)
+    id_cols = c(ref, bench_type, var_type, var_size_bin, context_ids)
   ) %>%
   filter(
     !is.na(v0.6) | !is.na(v4.2.1),
@@ -580,8 +532,8 @@ diff_var_fld_chg <- diff_var_plt_df %>%
 
 
 ```{r}
-diff_var_fld_chg %>%
-  filter(strat_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+genomic_context_var_fld_chg %>%
+  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
   mutate(
     bench_type = factor(
       bench_type,
@@ -592,7 +544,7 @@ diff_var_fld_chg %>%
   ggplot() +
   geom_point(
     aes(
-      x = strat_ids,
+      x = context_ids,
       y = fold_chg,
       fill = var_size_bin,
       shape = var_type
@@ -601,7 +553,7 @@ diff_var_fld_chg %>%
     color = "black",
     position = "jitterdodge"
   ) +
-  facet_grid(bench_type ~ strat_ids, scales = "free") +
+  facet_wrap(~bench_type, scales = "free", ncol = 1) +
   scale_shape_manual(
     values = c(21, 22, 23, 24),
     guide = guide_legend(override.aes = list(fill = "grey80"))
