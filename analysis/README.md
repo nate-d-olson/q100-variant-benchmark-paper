@@ -95,6 +95,8 @@ quarto render analysis/
 The notebooks use the following R packages:
 
 - `tidyverse` - Data manipulation and visualization
+- `arrow` - Parquet caching and Arrow schema support
+- `jsonlite` - Pipeline metadata serialization
 - `DT` - Interactive data tables
 - `here` - Project-relative file paths
 - `assertthat` - Data validation assertions
@@ -107,8 +109,26 @@ The notebooks use the following R packages:
 Install packages via:
 
 ```r
-install.packages(c("tidyverse", "DT", "here", "assertthat",
-                   "patchwork", "gt", "vroom", "furrr", "yaml"))
+install.packages(c("tidyverse", "arrow", "jsonlite", "DT", "here",
+                   "assertthat", "patchwork", "gt", "vroom", "furrr", "yaml"))
+```
+
+### Parquet Data Cache
+
+Large datasets (variant tables, coverage files, benchmark regions) are cached as Parquet files in `analysis/cache/` for fast reloading. The cache is:
+
+- Automatically populated on first load via `R/data_loading.R` functions
+- Invalidated when source files change (based on modification times)
+- Excluded from git (see `.gitignore`)
+
+Cache management:
+
+```r
+source(here::here("R/data_loading.R"))
+
+cache_info()                        # List cached files
+invalidate_cache("variant_table")   # Clear one dataset
+clear_cache()                       # Clear everything
 ```
 
 ## Data Dependencies

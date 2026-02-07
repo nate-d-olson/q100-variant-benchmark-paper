@@ -15,7 +15,9 @@
       "WebFetch(domain:github.com)",
       "Skill(superpowers:executing-plans)",
       "Bash(snakemake:*)",
-      "Bash(snakefmt:*)"
+      "Bash(snakefmt:*)",
+      "WebSearch",
+      "Bash(Rscript:*)"
     ]
   },
   "sandbox": {
