@@ -50,6 +50,20 @@ This directory contains comprehensive proposals for improving data loading in Qu
    - Risk assessment and rollback strategy
    - Success metrics and validation procedures
 
+6. **[cache_format_comparison.md](./cache_format_comparison.md)** (20 KB) ⭐ NEW
+   - **Response to PR comment:** Comparison of cache formats (RDS vs Arrow/Parquet vs SQLite/DuckDB)
+   - Performance benchmarks for different data sizes
+   - Memory usage analysis for exploratory analysis
+   - **Recommendation:** Arrow/Parquet for 2-4x performance, optional DuckDB for queries
+   - Use case analysis and migration path
+
+7. **[implementation_plan_parquet_addendum.md](./implementation_plan_parquet_addendum.md)** (19 KB) ⭐ NEW
+   - **Extension to implementation plan:** Adds Arrow/Parquet format support
+   - Multi-format caching (RDS + Parquet) with auto-selection
+   - Optional DuckDB query support for large datasets
+   - Maintains 100% backward compatibility with RDS-only design
+   - Graceful fallback when arrow package not installed
+
 ## Selection Summary
 
 **Selected Proposal: #1 - Enhanced Data Loading Library with Intelligent Caching**
@@ -71,6 +85,39 @@ This directory contains comprehensive proposals for improving data loading in Qu
 - ✅ **Simple Management:** `clear_analysis_cache()` and `cache_stats()` utilities
 - ✅ **Transparent:** Developers barely notice caching is happening
 - ✅ **Low Maintenance:** ~200 lines of code, single file changes
+
+## Cache Format Enhancement (Updated 2025-02-07)
+
+Following PR feedback, the implementation plan has been enhanced to support multiple cache formats:
+
+### Format Options
+
+| Format | Performance | Compression | Memory | Best For |
+|--------|-------------|-------------|--------|----------|
+| **RDS** | Fast | Good | High | Small data (<5 MB) |
+| **Parquet** | 2-4x faster | Excellent | Low | Medium/large data |
+| **DuckDB** | Query-based | Good | Very Low | Exploratory queries |
+
+### Key Enhancements
+
+1. **Multi-format support:** RDS (default) + Parquet (optional, requires arrow package)
+2. **Auto-selection:** Automatically chooses format based on data size
+3. **Backward compatible:** Works without arrow, falls back to RDS gracefully
+4. **Optional queries:** DuckDB integration for SQL-based exploratory analysis
+
+### Performance Benefits
+
+**Parquet vs RDS:**
+- Read speed: 2-4x faster
+- Compression: 40-60% smaller files
+- Memory: Column subsetting reduces memory usage
+- Queries: Direct SQL queries without full data load (with DuckDB)
+
+**See:** 
+- [cache_format_comparison.md](./cache_format_comparison.md) - Detailed analysis
+- [implementation_plan_parquet_addendum.md](./implementation_plan_parquet_addendum.md) - Implementation details
+
+---
 
 ## Current Status
 
