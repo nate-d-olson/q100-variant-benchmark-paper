@@ -12,6 +12,7 @@ and benchmark regions (benchmark.bed), generating tables with:
 Sources genomic context stratifications from references.stratifications in config.
 """
 
+
 ## TODO - remove and replace with input function call for rule that use these
 ##        symlinked paths
 rule materialize_genomic_context:
@@ -35,9 +36,9 @@ rule materialize_genomic_context:
     message:
         "Materializing genomic context {wildcards.genomic_context} for {wildcards.benchmark}"
     resources:
-        mem_mb=1024, 
+        mem_mb=1024,
     ## Place holder env to pass lint prior to removal of this rule and replacement with input function call
-    conda: 
+    conda:
         "../envs/bedtools.yaml"
     shell:
         """

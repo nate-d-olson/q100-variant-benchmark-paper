@@ -87,7 +87,7 @@ rule all:
         ),
         ## Benchmark regions overlap with difficult region stratifications
         expand(
-            "results/strat_metrics/{benchmark}/sizes/{strat}_size.txt",
+            "results/genomic_context_metrics/{benchmark}/sizes/{strat}_size.txt",
             benchmark=BENCHMARK,
             strat=STRAT,
         ),
