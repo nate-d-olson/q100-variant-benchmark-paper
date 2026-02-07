@@ -5,25 +5,25 @@ source(here::here("R/cache.R"))
 #' Parse Benchmark Identifier from File Path
 #'
 #' Extracts benchmark metadata (version, reference, variant type) from a file path
-#' or benchmark ID string using the standard naming pattern: v{version}_{ref}_{var_type}
+#' or benchmark ID string using the standard naming pattern: v{version}_{ref}_{bechmark type}
 #'
 #' @param file_path Character string containing file path or benchmark ID
 #'
 #' @return Named list with elements:
 #'   - bench_version: Benchmark version (e.g., "v5.0q")
 #'   - ref: Reference genome (e.g., "GRCh38")
-#'   - var_type: Variant type ("smvar" for small variants or "stvar" for structural variants)
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'
 #' @examples
 #' \dontrun{
 #' parse_benchmark_id("results/var_counts/v5.0q_GRCh38_smvar/genomic_context_combined_metrics.csv")
-#' # Returns list(bench_version = "v5.0q", ref = "GRCh38", var_type = "smvar")
+#' # Returns list(bench_version = "v5.0q", ref = "GRCh38", bench_type = "smvar")
 #' }
 #'
 #' @export
 parse_benchmark_id <- function(file_path) {
   # Extract benchmark ID pattern: v[number]q?_[alphanumeric]_[smvar|stvar]
-  pattern <- "v([0-9.]+q?)_([A-Za-z0-9.]+)_(smvar|stvar)"
+  pattern <- "(.*)_(.*)_(smvar|stvar)"
 
   matches <- stringr::str_extract(file_path, pattern)
 
@@ -43,7 +43,7 @@ parse_benchmark_id <- function(file_path) {
   list(
     bench_version = components[2],
     ref = components[3],
-    var_type = components[4]
+    bench_type = components[4]
   )
 }
 
@@ -59,7 +59,7 @@ parse_benchmark_id <- function(file_path) {
 #'   - benchmarks: Vector of benchmark IDs
 #'   - num_benchmarks: Number of benchmarks
 #'   - references: Vector of unique reference genomes
-#'   - var_types: Vector of variant types (smvar, stvar)
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'
 #' @examples
 #' \dontrun{
@@ -96,7 +96,7 @@ parse_pipeline_config <- function(config_path = NULL) {
         benchmark_id = .x,
         bench_version = meta$bench_version,
         ref = meta$ref,
-        var_type = meta$var_type
+        bench_type = meta$bench_type
       )
     })
 
@@ -105,11 +105,33 @@ parse_pipeline_config <- function(config_path = NULL) {
     num_benchmarks = length(benchmarks),
     benchmark_meta = benchmark_meta,
     references = unique(benchmark_meta$ref),
-    var_types = unique(benchmark_meta$var_type),
-    num_contexts = 6  # HP, MAP, SD, SD10kb, TR, TR10kb
+    bench_types = unique(benchmark_meta$bench_type),
+    num_contexts = 6 # HP, MAP, SD, SD10kb, TR, TR10kb
   )
 }
 
+## Heler functions to standardize variables and factor levels
+refs <- c("GRCh37", "GRCh38", "CHM13v2.0")
+bench_version <- c("v0.6", "v4.2.1", "v5.0q")
+bench_type <- c("smvar", "stvar")
+chromosomes <- stringr::str_c("chr", c(1:22, "X", "Y"))
+context_names <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+
+std_ <- function(x, levels) {
+  factor(x, levels = levels, labels = levels, ordered = TRUE)
+}
+std_references <- function(x) std_(x, levels = refs)
+std_bench_versions <- function(x) std_(x, levels = bench_version)
+std_bench_types <- function(x) std_(x, levels = bench_type)
+std_context_name <- function(x) std_(x, levels = context_names)
+std_chrom <- function(x, chromx = chromosomes) {
+  dplyr::if_else(
+    stringr::str_detect(x, "^chr"),
+    x,
+    stringr::str_c("chr", x)
+  ) %>%
+    std_(levels = chromx)
+}
 
 #' Load Genomic Context Metrics
 #'
@@ -122,7 +144,7 @@ parse_pipeline_config <- function(config_path = NULL) {
 #' @return Tibble with columns:
 #'   - bench_version: Benchmark version (factored: v0.6, v4.2.1, v5.0q)
 #'   - ref: Reference genome (factored: GRCh37, GRCh38, CHM13v2.0)
-#'   - var_type: Variant type (factored: smvar, stvar)
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'   - context_name: Genomic context region name (factored: HP, MAP, SD, SD10kb, TR, TR10kb)
 #'   - context_bp: Total bases in genomic context
 #'   - intersect_bp: Bases overlapping with benchmark
@@ -204,7 +226,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
         tibble::add_column(
           bench_version = meta$bench_version,
           ref = meta$ref,
-          var_type = meta$var_type,
+          bench_type = meta$bench_type,
           .before = 1
         )
     })
@@ -213,7 +235,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
   if (!is.null(benchmark_filter)) {
     metrics_df <- metrics_df %>%
       dplyr::filter(
-        paste(bench_version, ref, var_type, sep = "_") %in% benchmark_filter
+        paste(bench_version, ref, bench_type, sep = "_") %in% benchmark_filter
       )
 
     if (nrow(metrics_df) == 0) {
@@ -231,25 +253,12 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
   metrics_df <- metrics_df %>%
     dplyr::rename(snv_count = snp_count) %>%
     dplyr::mutate(
-      bench_version = factor(
-        bench_version,
-        levels = c("v0.6", "v4.2.1", "v5.0q")
-      ),
-      ref = factor(
-        ref,
-        levels = c("GRCh37", "GRCh38", "CHM13v2.0")
-      ),
-      var_type = factor(
-        var_type,
-        levels = c("smvar", "stvar")
-      ),
-      context_name = factor(
-        context_name,
-        levels = c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
-      )
+      bench_version = std_bench_versions(bench_version),
+      ref = std_references(ref),
+      bench_type = std_bench_types(bench_type),
+      context_name = std_context_name(context_name)
     )
-
-  return(metrics_df)
+    return(metrics_df)
 }
 
 
@@ -263,7 +272,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
 #' @return Tibble with columns:
 #'   - bench_version: Benchmark version
 #'   - ref: Reference genome
-#'   - var_type: Variant type
+#'   - bench_type: benchmark set type small or structural variants (factored: smvar, stvar)
 #'   - exclusions: Exclusion region name
 #'   - exclusion_bp: Total bases in exclusion
 #'   - intersect_bp: Bases overlapping with benchmark
@@ -323,7 +332,7 @@ load_exclusion_metrics <- function(results_dir = NULL) {
         tibble::add_column(
           bench_version = meta$bench_version,
           ref = meta$ref,
-          var_type = meta$var_type,
+          bench_type = meta$bench_type,
           .before = 1
         )
     })
@@ -459,7 +468,7 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL,
   variant_file <- fs::path(
     results_dir,
     "variant_tables",
-    glue::glue("{meta$bench_version}_{meta$ref}_{meta$var_type}"),
+    glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}"),
     "variants.tsv"
   )
 
@@ -492,10 +501,7 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL,
   )
 
   # Read variant table
-  variants_df <- vroom::vroom(
-    variant_file,
-    show_col_types = FALSE
-  )
+  variants_df <- read_variant_table(variant_file, benchmark_id)
 
   # Apply filters if provided
   if (!is.null(filters)) {
@@ -531,6 +537,297 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL,
   return(variants_df)
 }
 
+get_bench_var_cols <- function(benchmarkset) {
+  ## Common column names and types
+  cnames <- c(
+    "chrom",
+    "pos",
+    "end",
+    "gt",
+    "vkx",
+    "var_type",
+    "len_ref",
+    "len_alt",
+    "context_ids",
+    "region_ids"
+  )
+  ctypes <- "ciiccciicc"
+
+  if (str_detect(benchmarkset, "v0.6")) {
+    cnames <- c(
+      cnames,
+      "END",
+      "SVTYPE",
+      "SVLEN",
+      "ClusterIDs",
+      "NumClusterSVs",
+      "ExactMatchIDs",
+      "NumExactMatchSVs",
+      "ClusterMaxShiftDist",
+      "ClusterMaxSizeDiff",
+      "ClusterMaxEditDist",
+      "PBcalls",
+      "Illcalls",
+      "TenXcalls",
+      "CGcalls",
+      "PBexactcalls",
+      "Illexactcalls",
+      "TenXexactcalls",
+      "CGexactcalls",
+      "HG2count",
+      "HG3count",
+      "HG4count",
+      "NumTechs",
+      "NumTechsExact",
+      "DistBack",
+      "DistForward",
+      "DistMin",
+      "DistMinlt1000",
+      "MultiTech",
+      "MultiTechExact",
+      "sizecat",
+      "DistPASSHG2gt49Minlt1000",
+      "DistPASSMinlt1000",
+      "MendelianError",
+      "HG003_GT",
+      "HG004_GT",
+      "BREAKSIMLENGTH",
+      "REFWIDENED",
+      "REPTYPE",
+      "TRall",
+      "TRgt100",
+      "TRgt10k",
+      "segdup"
+    )
+    ctypes <- paste0(ctypes, "ccicicccccccccccccccccccccccccccccc")
+    return(list(col_names = cnames, col_types = ctypes))
+  } else if (str_detect(benchmarkset, "v4.2.1")) {
+    cnames <- c(
+      cnames,
+      "DPSum",
+      "platforms",
+      "platformnames",
+      "platformbias",
+      "datasets",
+      "datasetnames",
+      "datasetsmissingcall",
+      "callsets",
+      "callsetnames",
+      "varType",
+      "filt",
+      "callable",
+      "difficultregion",
+      "arbitrated",
+      "callsetwiththisuniqgenopassing",
+      "callsetwithotheruniqgenopassing"
+    )
+    ctypes <- paste0(ctypes, "icccccccccccccicccccc")
+    return(list(col_names = cnames, col_types = ctypes))
+  } else if (str_detect(benchmarkset, "v5.0q")) {
+    cnames <- c(
+      cnames,
+      "TRF",
+      "TRFdiff",
+      "TRFrepeat",
+      "TRFovl",
+      "TRFstart",
+      "TRFend",
+      "TRFperiod",
+      "TRFcopies",
+      "TRFscore",
+      "TRFentropy",
+      "TRFsim"
+    )
+    ctypes <- paste0(ctypes, "cicdiiiinnn")
+    if (str_detect(benchmarkset, "stvar")) {
+      cnames <- c(
+        cnames,
+        "SVTYPE",
+        "SVLEN",
+        "RM_score",
+        "RM_repeat",
+        "RM_clsfam",
+        "LCR",
+        "REMAP"
+      )
+      ctypes <- paste0(ctypes, "cincccc")
+    }
+    return(list(col_names = cnames, col_types = ctypes))
+  } else {
+    stop(paste("Unknown benchmark set :", benchmarkset))
+  }
+
+  return(list(col_names = cnames, col_types = ctypes))
+}
+
+tidy_smvar <- function(var_df) {
+  ## excluding variants less than 50bp
+  lt_50bp <- var_df$len_ref < 50 & var_df$len_alt < 50
+  var_df <- var_df[lt_50bp, ]
+
+  ## changing var_type for OTHER and OVERLAP
+  var_df <- var_df %>%
+    mutate(
+      var_type = case_when(
+        ## When REF is different from the first base of ALT
+        var_type == "OTHER" &
+          (len_ref > 1 & len_alt == 1) |
+          (len_ref == 1 & len_alt > 1) ~ "INDEL",
+        ## Assigning variant types for overlapping (atmoic) variants
+        var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNP",
+        var_type == "OVERLAP" &
+          (len_ref > 1 & len_alt == 1) |
+          (len_ref == 1 & len_alt > 1) ~ "INDEL",
+        var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
+        TRUE ~ var_type
+      )
+    )
+
+  ## Annotating Variant Length
+  var_df$var_size <- var_df$len_alt - var_df$len_ref
+
+  return(var_df)
+}
+
+tidy_stvar <- function(var_df) {
+  ## excluding variants less than 50bp
+  gt_50bp <- var_df$len_ref > 49 | var_df$len_alt > 49
+  var_df <- var_df[gt_50bp, ]
+
+  ## changing var_type for OTHER and OVERLAP
+  var_df$var_type <- var_df$SVTYPE
+
+  ## Annotating Variant Length
+  var_df$var_size <- 0
+  var_df$var_size[var_df$SVTYPE == "INS"] <- var_df$SVLEN[
+    var_df$SVTYPE == "INS"
+  ]
+  var_df$var_size[var_df$SVTYPE == "DEL"] <- -var_df$SVLEN[
+    var_df$SVTYPE == "DEL"
+  ]
+
+  return(var_df)
+}
+
+
+#' Read Variant Table
+read_variant_table <- function(table_path) {
+  ## Extracting benchmark set id from file path and metadata from benchmark_id
+  benchmark_id <- str_extract(
+    table_path,
+    "(?<=variant_tables/).*(?=/variants.tsv)"
+  )
+  meta <- parse_benchmark_id(benchmark_id)
+
+  ## Getting column info based on benchmarkset
+  col_info <- get_bench_var_cols(benchmark_id)
+
+  ## reading variant table with vroom and selecting relevant columns
+  var_df <- vroom::vroom(
+    table_path,
+    delim = "\t",
+    na = ".",
+    skip = 1,
+    col_names = col_info$col_names,
+    col_types = col_info$col_types,
+    progress = TRUE
+  ) %>%
+    dplyr::mutate(
+      chrom = std_chrom(chrom)
+    )
+
+  ## remove variants outside benchmark regions
+  in_bmk <- grepl(x = var_df$region_ids, pattern = "^BMKREGIONS")
+  var_df <- var_df[in_bmk, ]
+
+  ## Cleaning up variant tables
+  if (meta$bench_type == "smvar") {
+    print("Tidying small variant table")
+    var_df <- tidy_smvar(var_df)
+  } else if (meta$bench_type == "stvar") {
+    print("Tidying SV table")
+    var_df <- tidy_stvar(var_df)
+  } else {
+    print("Dirty Table!! Fix code")
+  }
+
+  ## Adding benchmark metadata columns
+  if (!is.null(benchmark_id)) {
+    var_df <- var_df %>%
+      tibble::add_column(
+        bench_version = meta$bench_version,
+        ref = meta$ref,
+        bench_type = meta$bench_type,
+        .before = 1
+      )
+    var_df
+  }
+
+  ## Reducing number of columns
+  var_df %>%
+    dplyr::select(
+      bench_version,
+      ref,
+      bench_type,
+      chrom,
+      pos,
+      end,
+      gt,
+      vkx,
+      var_type,
+      var_size,
+      len_ref,
+      len_alt,
+      region_ids,
+      context_ids
+    )
+}
+
+#' Load All Variant Tables
+#'
+#' Loads and combines all variant tables from the results directory into a single tibble.
+#' This is a large operation and should be used with caution.
+#' Consider using smaller input data with pre-aggregated metrics for most analyses.
+#'
+load_all_variant_tables <- function(results_dir = NULL) {
+  require(furrr)
+  if (is.null(results_dir)) {
+    results_dir <- here::here("results")
+  }
+
+  # Find all variant tables
+  variant_files <- fs::dir_ls(
+    fs::path(results_dir, "variant_tables"),
+    recurse = TRUE,
+    glob = "**/variants.tsv",
+    fail = FALSE
+  )
+
+  if (length(variant_files) == 0) {
+    stop(
+      glue::glue(
+        "No variant tables found in {results_dir}/variant_tables"
+      ),
+      call. = FALSE
+    )
+  }
+
+  ## Loading and combining large variant tables
+  future::plan(future::multisession, workers = parallel::detectCores() - 1)
+
+  all_variants_df <- furrr::future_map_dfr(
+    variant_files,
+    read_variant_table,
+    .progress = TRUE
+  ) %>%
+    dplyr::mutate(
+      bench_version = std_bench_versions(bench_version),
+      ref = std_references(ref),
+      bench_type = std_bench_types(bench_type)
+    )
+
+  return(all_variants_df)
+}
 
 #' Load Difficult Region Coverage
 #'
@@ -581,7 +878,7 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL,
   coverage_dir <- fs::path(
     results_dir,
     "diff_region_coverage",
-    glue::glue("{meta$bench_version}_{meta$ref}_{meta$var_type}")
+    glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}")
   )
 
   if (!fs::dir_exists(coverage_dir)) {
@@ -720,7 +1017,10 @@ load_benchmark_regions <- function(resources_dir = NULL,
     resources_dir,
     glob = "*_benchmark.bed",
     fail = FALSE
-  )
+  ) %>%
+    {
+      set_names(., stringr::str_extract(., "(?<=/)[^/]+(?=_benchmark.bed$)"))
+    }
 
   if (length(bench_files) == 0) {
     stop(
@@ -763,7 +1063,7 @@ load_benchmark_regions <- function(resources_dir = NULL,
       bench_meta = purrr::map(benchmark_id, parse_benchmark_id),
       bench_version = purrr::map_chr(bench_meta, "bench_version"),
       ref = purrr::map_chr(bench_meta, "ref"),
-      bench_type = purrr::map_chr(bench_meta, "var_type")
+      bench_type = purrr::map_chr(bench_meta, "bench_type")
     ) %>%
     # Standardize chromosome names and calculate interval size
     dplyr::mutate(
@@ -828,3 +1128,4 @@ load_benchmark_regions <- function(resources_dir = NULL,
 load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
   load_genomic_context_metrics(results_dir = results_dir, benchmark_filter = benchmark_filter)
 }
+  

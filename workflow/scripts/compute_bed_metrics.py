@@ -113,7 +113,7 @@ def main():
 
     # Get region name from wildcards (different field names in different rules)
     region_name = snakemake.wildcards.get("exclusion") or snakemake.wildcards.get(
-        "strat_name"
+        "genomic_context"
     )
 
     with open(snakemake.output[0], "w") as f:

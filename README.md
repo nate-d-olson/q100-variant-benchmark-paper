@@ -1,18 +1,6 @@
----
-title: "GIAB v5q HG002 Variant Benchmark Set Analysis"
-author: "Genome in a Bottle Consortium"
-date: today
-format:
-  html:
-    toc: true
-    number-sections: true
-  gfm:
-    toc: true
-    number-sections: true
-bibliography: manuscript/references.bib
----
+# GIAB v5q HG002 Variant Benchmark Set Analysis
 
-# Overview
+## Overview
 
 This repository contains the analysis pipeline and manuscript for the **GIAB v5q HG002 Variant Benchmark Set**. The benchmark set provides high-confidence variant calls for HG002 (NA24385) using the T2T HG002 Q100 diploid assembly, with coordinates available for GRCh37, GRCh38, and CHM13v2.0 (T2T) reference genomes.
 
@@ -21,15 +9,15 @@ This repository contains the analysis pipeline and manuscript for the **GIAB v5q
 The Snakemake pipeline processes benchmark set files to:
 
 1. **Download and validate** benchmark VCF/BED files and reference genomes
-2. **Annotate variants** with genomic stratification contexts using bcftools
+2. **Annotate variants** with benchmark regions, exclusions (v5 only), and difficult genomic contexts using bcftools
 3. **Generate variant tables** with comprehensive per-variant annotations (type, size, genomic context)
-4. **Calculate overlap** with stratification regions (tandem repeats, homopolymers, segmental duplications, low mappability)
+4. **Calculate overlap** with difficult genomic context (tandem repeats, homopolymers, segmental duplications, low mappability)
 5. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
 6. **Compare with historical benchmarks** (v4.2.1, v0.6 SV) to quantify improvements in callable regions and variant detection
 
 ## Key Outputs
 
-- Annotated VCFs with stratification and region annotations (`results/annotate_vcf_regions/`)
+- Annotated VCFs with region annotations (`results/annotate_vcf_regions/`)
 - Comprehensive variant tables with per-variant annotations (`results/variant_tables/`)
 - Exclusion intersection tables (`results/exclusions/`)
 - **Benchmark Comparisons** (`results/stats/`):
@@ -41,11 +29,14 @@ The Snakemake pipeline processes benchmark set files to:
 ### Data Loading Functions
 The `R/data_loading.R` module provides standardized functions for loading pipeline outputs:
 
-- `load_stratification_metrics()` - Load primary analysis data with variant counts (recommended)
+- `load_genomic_context_metrics()` - Load primary analysis data with variant counts per genomic context (recommended)
+- `load_stratification_metrics()` - Legacy alias for genomic context metrics (for backwards compatibility)
 - `load_exclusion_metrics()` - Load exclusion overlaps (v5.0q only)
 - `load_reference_sizes()` - Load reference genome sizes and N-content
 - `load_variant_table()` - Load full variant data (use sparingly, files are large)
 - `load_diff_coverage()` - Load base-level coverage data
+- `load_benchmark_regions()` - Load benchmark region BED files
+- `parse_benchmark_id()` - Parse benchmark metadata from file path
 
 All functions handle automatic file discovery, metadata parsing, column validation, and optional filtering.
 
@@ -91,24 +82,26 @@ make test      # Run all validation tests
 make run       # Execute the pipeline
 ```
 
-# Repository Structure
+## Repository Structure
 
 ```
 project-root/
 ├── workflow/                        # Snakemake pipeline
 │   ├── Snakefile                   # Main workflow entry point
-│   ├── rules/                      # Rule definitions (11 files, 1,810 lines)
-│   │   ├── common.smk              # Helper functions (391 lines)
+│   ├── rules/                      # Rule definitions (13 files, 2,080 lines)
+│   │   ├── common.smk              # Helper functions (523 lines)
 │   │   ├── downloads.smk           # Download rules (329 lines)
-│   │   ├── var_tables.smk          # Variant annotation (233 lines)
-│   │   ├── strat_metrics.smk       # Stratification metrics (201 lines)
-│   │   ├── exclusions.smk          # Exclusion analysis (200 lines)
-│   │   ├── benchmark_comparisons.smk  # Benchmark comparisons (133 lines)
-│   │   ├── var_counts.smk          # Variant counting (110 lines)
-│   │   ├── validation.smk          # Data validation - WIP (87 lines)
-│   │   ├── vcf_processing.smk      # VCF processing (80 lines)
-│   │   ├── ref_processing.smk      # Reference indexing (31 lines)
-│   │   └── diff_tables.smk         # Coverage differences (15 lines)
+│   │   ├── var_tables.smk          # Variant annotation & table generation (237 lines)
+│   │   ├── genomic_context_metrics.smk  # Genomic context overlap metrics (155 lines)
+│   │   ├── exclusions.smk          # Exclusion analysis (166 lines)
+│   │   ├── benchmark_comparisons.smk    # Benchmark comparisons (137 lines)
+│   │   ├── stratify_bench.smk      # Truvari stratification analysis (112 lines)
+│   │   ├── var_counts.smk          # Variant counting (107 lines)
+│   │   ├── output_organization.smk # Organize outputs (102 lines)
+│   │   ├── validation.smk          # Data validation (87 lines)
+│   │   ├── vcf_processing.smk      # VCF processing (79 lines)
+│   │   ├── genomic_context_tables.smk   # Aggregate metrics (15 lines)
+│   │   └── ref_processing.smk      # Reference indexing (31 lines)
 │   ├── envs/                       # Conda environment definitions (8 files)
 │   │   ├── bcftools.yaml
 │   │   ├── bedtools.yaml
@@ -118,18 +111,18 @@ project-root/
 │   │   ├── samtools.yaml
 │   │   ├── truvari.yaml
 │   │   └── analysis.yaml
-│   └── scripts/                    # Custom Python scripts (14 files)
+│   └── scripts/                    # Custom Python scripts (15 files)
 │       ├── logging_config.py
 │       ├── exceptions.py
 │       ├── validators.py
 │       ├── validate_vcf.py
 │       ├── validate_bed.py
 │       ├── combine_beds_with_id.py
+│       ├── compute_bed_metrics.py
 │       ├── extract_info_fields.py
 │       ├── generate_header_lines.py
-│       ├── expand_annotations.py
-│       ├── count_variants_by_type.py
-│       ├── count_variants_by_strat.py
+│       ├── count_variants_by_genomic_context.py
+│       ├── aggregate_stratified_bench.py
 │       ├── stratify_comparison.py
 │       ├── summarize_var_counts.py
 │       └── combine_metrics_counts.py
@@ -162,9 +155,9 @@ project-root/
 │   └── exclusions/
 ├── results/                        # Pipeline outputs (gitignored)
 │   ├── variant_tables/
-│   ├── exclusions/
-│   ├── strat_metrics/
 │   ├── var_counts/
+│   ├── genomic_context_metrics/
+│   ├── exclusions/
 │   └── stats/
 ├── environment.yaml                # Mamba environment spec
 ├── pyproject.toml                  # Python project configuration
@@ -174,16 +167,16 @@ project-root/
 
 # Benchmark Sets Analyzed
 
-| Benchmark | Reference | Variant Type | Description |
-|-----------|-----------|--------------|-------------|
-| v5q_chm13_smvar | CHM13v2.0 | Small variants | T2T Q100 benchmark (SNPs + indels <50bp) |
-| v5q_chm13_stvar | CHM13v2.0 | Structural variants | T2T Q100 benchmark (SVs ≥50bp) |
-| v5q_grch38_smvar | GRCh38 | Small variants | T2T Q100 liftover |
-| v5q_grch38_stvar | GRCh38 | Structural variants | T2T Q100 liftover |
-| v5q_grch37_smvar | GRCh37 | Small variants | T2T Q100 liftover |
-| v5q_grch37_stvar | GRCh37 | Structural variants | T2T Q100 liftover |
-| v421_grch38_smvar | GRCh38 | Small variants | Historical GIAB v4.2.1 |
-| v06_grch37_stvar | GRCh37 | Structural variants | Historical SV v0.6 |
+| Benchmark ID | Reference | Variant Type | Description |
+|--------------|-----------|--------------|-------------|
+| v5.0q_CHM13v2.0_smvar | CHM13v2.0 | Small variants | T2T Q100 benchmark (SNPs + indels <50bp) |
+| v5.0q_CHM13v2.0_stvar | CHM13v2.0 | Structural variants | T2T Q100 benchmark (SVs ≥50bp) |
+| v5.0q_GRCh38_smvar | GRCh38 | Small variants | T2T Q100 liftover |
+| v5.0q_GRCh38_stvar | GRCh38 | Structural variants | T2T Q100 liftover |
+| v5.0q_GRCh37_smvar | GRCh37 | Small variants | T2T Q100 liftover |
+| v5.0q_GRCh37_stvar | GRCh37 | Structural variants | T2T Q100 liftover |
+| v4.2.1_GRCh38_smvar | GRCh38 | Small variants | Historical GIAB v4.2.1 |
+| v0.6_GRCh37_stvar | GRCh37 | Structural variants | Historical SV v0.6 |
 
 # Genomic Stratification Contexts
 
@@ -202,44 +195,14 @@ The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
 
 Recent enhancements have significantly improved pipeline reliability, maintainability, and usability. See [`IMPROVEMENT_SUGGESTIONS.md`](IMPROVEMENT_SUGGESTIONS.md) and [`IMPLEMENTATION_SUMMARY.md`](IMPLEMENTATION_SUMMARY.md) for complete details.
 
-## New Features
-
-### Structured Logging & Error Handling
-- Professional logging with consistent format: `[TIMESTAMP] [LEVEL] [MODULE] Message`
-- Context-rich error messages with file paths, line numbers, and actionable suggestions
-- Custom exception classes for different failure modes (ValidationError, DataFormatError, ProcessingError)
-
-### Data Validation Layer
-- Automated VCF/BED/TSV format validation before processing
-- Early detection of corrupted files and format violations
-- Detailed validation reports in `results/validation/`
-
 ### Comprehensive Documentation
 - **[Architecture Documentation](docs/architecture.md)** - System design with visual diagrams
 - **[API Reference](docs/api-reference.md)** - Complete documentation of 15+ helper functions
 - **[Troubleshooting Guide](docs/troubleshooting.md)** - Solutions for common issues
 
-### Unit Testing Framework
-- 35+ tests with 80%+ code coverage for core modules
-- Pytest infrastructure with fixtures and coverage reporting
-- See [`tests/README.md`](tests/README.md) for usage
+## Development
 
-## Testing
-
-```bash
-# Install test dependencies
-pip install -e ".[dev]"
-
-# Run all tests with coverage
-pytest
-
-# Generate HTML coverage report
-pytest --cov-report=html
-```
-
-# Development
-
-## Code Quality
+### Code Quality
 
 ```bash
 # Run linting and format checks
@@ -249,7 +212,7 @@ make test
 make format
 ```
 
-## Commit Conventions
+### Commit Conventions
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -259,7 +222,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/):
 - `chore:` - Maintenance (dependencies, configs)
 - `refactor:` - Code restructuring
 
-# Citation
+## Citation
 
 If you use this benchmark set, please cite:
 
@@ -268,7 +231,3 @@ If you use this benchmark set, please cite:
 # License
 
 This project is licensed under CC0 1.0 Universal - see the LICENSE file for details.
-
-# Acknowledgments
-
-This work was supported by the Genome in a Bottle Consortium at NIST.

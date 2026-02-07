@@ -158,7 +158,7 @@ results/
 │   └── {benchmark}/{ref}/
 ├── var_counts/               # Variant count summaries (PRIMARY OUTPUTS)
 │   └── {benchmark}/{ref}/
-│       └── stratification_combined_metrics.csv ✓ Use first
+│       └── genomic_context_combined_metrics.csv ✓ Use first
 ├── exclusions/               # Exclusion overlaps (v5.0q only)
 │   └── {benchmark}/{ref}/
 │       └── exclusions_intersection_table.csv ✓ Use first
@@ -189,7 +189,7 @@ results/
 The pipeline generates two tiers of outputs optimized for different use cases:
 
 #### 1. Primary Analysis Files (Small, ~KB per file)
-- `stratification_combined_metrics.csv` - Aggregated metrics with variant counts
+- `genomic_context_combined_metrics.csv` - Aggregated metrics with variant counts
 - `exclusions_intersection_table.csv` - Exclusion overlap summaries (v5.0q only)
 - `ref_genome_sizes/*.tsv` - Reference genome metadata
 
@@ -243,25 +243,27 @@ The pipeline generates two tiers of outputs optimized for different use cases:
 
 ### Core Workflow Rules
 
-The pipeline consists of 11 modular rule files totaling 1,810 lines of Snakemake code:
+The pipeline consists of 13 modular rule files totaling 2,080 lines of Snakemake code:
 
 | Module | Lines | Purpose | Key Rules |
 |--------|-------|---------|-----------|
-| `common.smk` | 391 | Helper functions and config parsing | `get_region_beds()`, `get_exclusion_inputs()`, `get_comparison_files()` |
+| `common.smk` | 523 | Helper functions and config parsing | `get_region_beds()`, `get_exclusion_inputs()`, `get_genomic_context_ids()` |
 | `downloads.smk` | 329 | File downloads with SHA256 validation | `download_benchmark_vcf`, `download_reference` |
-| `var_tables.smk` | 233 | Variant annotation tables | `combine_region_beds`, `expand_annotations` |
-| `strat_metrics.smk` | 201 | Stratification coverage metrics | `calculate_strat_coverage`, `aggregate_stratification_metrics` |
-| `exclusions.smk` | 200 | Exclusion region analysis | `materialize_exclusion`, `compute_exclusion_metrics` |
-| `benchmark_comparisons.smk` | 133 | Benchmark set comparisons | `run_vcfeval`, `stratify_comparison_variants` |
-| `var_counts.smk` | 110 | Variant counting by type/strat | `count_variants_by_stratification`, `combine_metrics_and_counts` |
-| `validation.smk` | 87 | Data validation (WIP - not yet integrated) | `validate_benchmark_vcf`, `validate_benchmark_bed` |
-| `vcf_processing.smk` | 80 | VCF indexing and normalization | `index_vcf`, `split_multiallelics` |
+| `var_tables.smk` | 237 | Variant annotation and table generation | `combine_genomic_context_beds`, `annotate_vcf_genomic_contexts` |
+| `genomic_context_metrics.smk` | 155 | Genomic context coverage metrics | `compute_genomic_context_metrics`, `aggregate_genomic_context_metrics` |
+| `exclusions.smk` | 166 | Exclusion region analysis | `materialize_exclusion`, `compute_exclusion_metrics` |
+| `benchmark_comparisons.smk` | 137 | Benchmark set comparisons | `run_truvari_compare`, `stratify_comparison` |
+| `stratify_bench.smk` | 112 | Truvari stratification analysis | `truvari_stratify` |
+| `var_counts.smk` | 107 | Variant counting by type/genomic context | `count_variants_by_genomic_context`, `combine_metrics_and_counts` |
+| `output_organization.smk` | 102 | Organize outputs into final structure | `organize_outputs` |
+| `validation.smk` | 87 | Data validation | `validate_benchmark_vcf`, `validate_benchmark_bed` |
+| `vcf_processing.smk` | 79 | VCF indexing and normalization | `index_vcf`, `split_multiallelics` |
+| `genomic_context_tables.smk` | 15 | Aggregate genomic context tables | `aggregate_genomic_context_tables` |
 | `ref_processing.smk` | 31 | Reference genome indexing | `index_reference` |
-| `diff_tables.smk` | 15 | Regional coverage differences | `compute_diff_region_coverage` |
 
 ### Python Data Processing Scripts
 
-The pipeline includes 14 Python scripts organized by function:
+The pipeline includes 15 Python scripts organized by function:
 
 | Script | Purpose | Key Features |
 |--------|---------|--------------|
@@ -274,14 +276,14 @@ The pipeline includes 14 Python scripts organized by function:
 | `validate_bed.py` | BED format validation | Coordinate and structure checks |
 | **BED Processing** | | |
 | `combine_beds_with_id.py` | Merge BED files with unique IDs | Adds ID column for tracking |
+| `compute_bed_metrics.py` | Compute coverage metrics from BEDs | Intersect and percentage calculations |
 | **VCF Annotation** | | |
 | `extract_info_fields.py` | Extract VCF INFO field names | Dynamic header generation |
 | `generate_header_lines.py` | Create VCF annotation headers | For bcftools annotate |
-| `expand_annotations.py` | Convert ID lists to binary flags | STRAT_IDS → STRAT_* columns |
 | **Variant Analysis** | | |
-| `count_variants_by_type.py` | Count variants by TYPE/SVTYPE | Auto-detects variant types |
-| `count_variants_by_strat.py` | Count variants per stratification | Binary flag counting |
-| `stratify_comparison.py` | Compare variants across strats | Benchmark comparison analysis |
+| `count_variants_by_genomic_context.py` | Count variants per genomic context | Aggregates variant types |
+| `aggregate_stratified_bench.py` | Aggregate stratified benchmark results | Cross-context summaries |
+| `stratify_comparison.py` | Compare variants across benchmarks | Benchmark comparison analysis |
 | **Metrics Aggregation** | | |
 | `summarize_var_counts.py` | Aggregate variant count tables | Cross-benchmark summaries |
 | `combine_metrics_counts.py` | Combine metrics into final tables | Merges coverage + counts |

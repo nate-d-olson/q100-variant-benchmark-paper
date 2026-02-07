@@ -10,30 +10,32 @@ TSV tables with variant-level annotations.
 # The combine_stratification_beds rule accepts URLs directly
 
 
-rule combine_stratification_beds:
-    """Combine stratification BEDs with IDs for bcftools annotation."""
+rule combine_genomic_context_beds:
+    """Combine genomic context BEDs with IDs for bcftools annotation."""
     input:
-        beds=lambda w: [b.split(":")[0] for b in get_stratification_beds(w)],
+        beds=lambda w: [b.split(":")[0] for b in get_genomic_context_beds(w)],
     output:
-        bed=temp("results/combine_stratification_beds/{benchmark}/strat_combined.bed"),
+        bed=temp(
+            "results/combine_genomic_context_beds/{benchmark}/context_combined.bed"
+        ),
         bed_gz=temp(
             ensure(
-                "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz",
+                "results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz",
                 non_empty=True,
             )
         ),
         tbi=temp(
-            "results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi"
+            "results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi"
         ),
     params:
-        bed_specs=lambda w: get_stratification_beds(w),
+        bed_specs=lambda w: get_genomic_context_beds(w),
     log:
-        "logs/combine_stratification_beds/{benchmark}.log",
+        "logs/combine_genomic_context_beds/{benchmark}.log",
     conda:
         "../envs/python.yaml"
     shell:
         """
-        echo "Combining stratification BEDs for {wildcards.benchmark}" > {log}
+        echo "Combining genomic context BEDs for {wildcards.benchmark}" > {log}
 
         python workflow/scripts/combine_beds_with_id.py \
             --beds {params.bed_specs} \
@@ -97,8 +99,8 @@ rule generate_annotation_headers:
         """
 
 
-rule annotate_vcf_stratifications:
-    """Annotate VCF with stratification region IDs."""
+rule annotate_vcf_genomic_contexts:
+    """Annotate VCF with genomic context region IDs."""
     input:
         vcf=lambda w: (
             (
@@ -112,24 +114,24 @@ rule annotate_vcf_stratifications:
             if w.benchmark.startswith("v06_")
             else "results/split_multiallelics/{benchmark}/split.vcf.gz.tbi"
         ),
-        strat_bed="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz",
-        strat_tbi="results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz.tbi",
+        context_bed="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz",
+        context_tbi="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi",
         headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
     output:
         vcf=temp(
-            "results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz"
+            "results/annotate_vcf_genomic_contexts/{benchmark}/context_annotated.vcf.gz"
         ),
     log:
-        "logs/annotate_vcf_stratifications/{benchmark}.log",
+        "logs/annotate_vcf_genomic_contexts/{benchmark}.log",
     conda:
         "../envs/bcftools.yaml"
     shell:
         """
-        echo "Annotating {wildcards.benchmark} with stratifications" > {log}
+        echo "Annotating {wildcards.benchmark} with genomic contexts" > {log}
 
         bcftools annotate \
-            --annotations {input.strat_bed} \
-            --columns CHROM,FROM,TO,INFO/STRAT_IDS \
+            --annotations {input.context_bed} \
+            --columns CHROM,FROM,TO,INFO/CONTEXT_IDS \
             --header-lines {input.headers} \
             --output-type z --output {output.vcf} {input.vcf} 2>> {log}
 
@@ -140,8 +142,8 @@ rule annotate_vcf_stratifications:
 rule annotate_vcf_regions:
     """Annotate VCF with benchmark region and exclusion IDs."""
     input:
-        vcf="results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz",
-        tbi="results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz.tbi",
+        vcf="results/annotate_vcf_genomic_contexts/{benchmark}/context_annotated.vcf.gz",
+        tbi="results/annotate_vcf_genomic_contexts/{benchmark}/context_annotated.vcf.gz.tbi",
         region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
         region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
@@ -175,7 +177,7 @@ rule extract_info_fields:
     output:
         fields=temp("results/extract_info_fields/{benchmark}/info_fields.txt"),
     params:
-        exclude=["STRAT_IDS", "REGION_IDS"],
+        exclude=["CONTEXT_IDS", "REGION_IDS"],
     log:
         "logs/extract_info_fields/{benchmark}.log",
     conda:
@@ -213,7 +215,7 @@ rule generate_var_table:
         echo "Generating variant table for {wildcards.benchmark}" > {log}
 
         # Build base format string
-        BASE_FMT="%CHROM\\t%POS\\t%END\\t[%GT]\\t%VKX\\t%TYPE\\t%STRLEN(REF)\\t%STRLEN(ALT)\\t%INFO/STRAT_IDS\\t%INFO/REGION_IDS"
+        BASE_FMT="%CHROM\\t%POS\\t%END\\t[%GT]\\t%VKX\\t%TYPE\\t%STRLEN(REF)\\t%STRLEN(ALT)\\t%INFO/CONTEXT_IDS\\t%INFO/REGION_IDS"
 
         # Add dynamic INFO fields
         DYN_FIELDS=$(cat {input.fields} | sed 's@^@%INFO/@' | paste -sd'\\t' -)
