@@ -70,5 +70,4 @@ jobs:
       - name: Dry-run workflow
         shell: bash -l {0}
         run: |
-          cd workflow
           snakemake -n --dry-run --quiet
