@@ -64,8 +64,8 @@ parse_benchmark_id <- function(file_path) {
 #' @examples
 #' \dontrun{
 #' config <- parse_pipeline_config()
-#' config$num_benchmarks  # Get number of benchmarks
-#' config$benchmarks      # Get all benchmark IDs
+#' config$num_benchmarks # Get number of benchmarks
+#' config$benchmarks # Get all benchmark IDs
 #' }
 #'
 #' @export
@@ -90,15 +90,17 @@ parse_pipeline_config <- function(config_path = NULL) {
 
   # Parse benchmark metadata
   benchmark_meta <- benchmarks %>%
-    purrr::map_df(~ {
-      meta <- parse_benchmark_id(.x)
-      tibble::tibble(
-        benchmark_id = .x,
-        bench_version = meta$bench_version,
-        ref = meta$ref,
-        bench_type = meta$bench_type
-      )
-    })
+    purrr::map_df(
+      ~ {
+        meta <- parse_benchmark_id(.x)
+        tibble::tibble(
+          benchmark_id = .x,
+          bench_version = meta$bench_version,
+          ref = meta$ref,
+          bench_type = meta$bench_type
+        )
+      }
+    )
 
   list(
     benchmarks = benchmarks,
@@ -110,7 +112,7 @@ parse_pipeline_config <- function(config_path = NULL) {
   )
 }
 
-## Heler functions to standardize variables and factor levels
+## Helper functions to standardize variables and factor levels
 refs <- c("GRCh37", "GRCh38", "CHM13v2.0")
 bench_version <- c("v0.6", "v4.2.1", "v5.0q")
 bench_type <- c("smvar", "stvar")
@@ -258,7 +260,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
       bench_type = std_bench_types(bench_type),
       context_name = std_context_name(context_name)
     )
-    return(metrics_df)
+  return(metrics_df)
 }
 
 
@@ -391,9 +393,10 @@ load_reference_sizes <- function(results_dir = NULL) {
 
       file %>%
         vroom::vroom(
-          col_names = c("chrom", "length", "ns"),
-          col_types = "cii",
-          show_col_types = FALSE
+          col_names = c("chrom", "length", "atgcs", "ns"),
+          col_types = "ciii",
+          show_col_types = FALSE,
+          comment = "#"
         ) %>%
         tibble::add_column(ref = ref_name, .before = 1) %>%
         dplyr::mutate(
@@ -411,8 +414,56 @@ load_reference_sizes <- function(results_dir = NULL) {
   return(size_df)
 }
 
+## Reference Genome Sizes
+## Get hg002q100v1.1 size
+#' Get HG002 Q100 assembly size
+#'
+#' Retrieve the genome size associated with the HG002 Q100 maternal assembly used by the q100 variant benchmark.
+#'
+#' @details
+#' Returns a single numeric value representing the total bp for the mat assembly.
+#'
+#' @return
+#' genome in in base pairs (numeric)
+#'
+#' @examples
+#' \dontrun{
+#' size <- get_hg002q100_size()
+#' print(size)
+#' }
+#'
+load_hg002q100_size <- function(
+  asm_verison = "v1.1",
+  fai_url = "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai",
+  fai_md5 = "c84f852b1cd4a00b12e6439ae7a2dd87"
+) {
+  fai_path <- tempfile()
+  download.file(url = fai_url, destfile = fai_path, quiet = TRUE)
+  if (identical(tools::md5sum(fai_path), fai_md5)) {
+    stop("Downloaded hg002q100v1.1 fai file has incorrect md5sum")
+  }
 
-#' Load Full Variant Table
+  fai_df <- readr::read_tsv(
+    fai_path,
+    col_names = c("chrom", "length", "offset", "line_bases", "line_width"),
+    col_types = "cicii"
+  ) |>
+    dplyr::mutate(chrom = str_remove(chrom, "_.ATERNAL")) |>
+    filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |>
+    dplyr::select(chrom, length)
+  file.remove(fai_path)
+
+  asm_size <- sum(fai_df$length)
+
+  if (is.na(asm_size) || asm_size <= 0) {
+    stop("Error calculating hg002q100 size from fai file")
+  }
+
+  ## Return size in base pairs
+  return(asm_size)
+}
+
+#' Load Full Variant Table For a Single Benchmarkset
 #'
 #' Loads full variant-level data from variants.tsv files. These are large
 #' files (~GB per benchmark) and should be used only when variant-level
@@ -456,8 +507,7 @@ load_reference_sizes <- function(results_dir = NULL) {
 #' @param force_refresh Logical; if TRUE, ignore existing cache and reload
 #'
 #' @export
-load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL,
-                               use_cache = TRUE, force_refresh = FALSE) {
+load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -480,17 +530,6 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL,
       ),
       call. = FALSE
     )
-  }
-
-  # Try cache first
-  source_files <- as.character(variant_file)
-  cache_params <- list(benchmark_id = benchmark_id, filters = filters)
-
-  if (use_cache && !force_refresh) {
-    cached <- read_cache("variant_table", source_files, cache_params)
-    if (!is.null(cached)) {
-      return(cached)
-    }
   }
 
   message(
@@ -520,20 +559,6 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL,
         dplyr::filter(chrom %in% filters$chromosomes)
     }
   }
-
-  # Write to cache
-  if (use_cache) {
-    tryCatch(
-      write_cache(variants_df, "variant_table", source_files, cache_params),
-      error = function(e) {
-        warning(
-          glue::glue("Failed to write cache for variant_table: {e$message}"),
-          call. = FALSE
-        )
-      }
-    )
-  }
-
   return(variants_df)
 }
 
@@ -698,13 +723,15 @@ tidy_stvar <- function(var_df) {
   var_df$var_type <- var_df$SVTYPE
 
   ## Annotating Variant Length
-  var_df$var_size <- 0
-  var_df$var_size[var_df$SVTYPE == "INS"] <- var_df$SVLEN[
-    var_df$SVTYPE == "INS"
-  ]
-  var_df$var_size[var_df$SVTYPE == "DEL"] <- -var_df$SVLEN[
-    var_df$SVTYPE == "DEL"
-  ]
+  var_df <- var_df %>%
+    dplyr::mutate(
+      var_size = case_when(
+        SVTYPE == "INS" ~ SVLEN,
+        SVTYPE == "DEL" & SVLEN < 0 ~ SVLEN,
+        SVTYPE == "DEL" & SVLEN > 0 ~ -SVLEN,
+        TRUE ~ 0
+      )
+    )
 
   return(var_df)
 }
@@ -789,8 +816,7 @@ read_variant_table <- function(table_path) {
 #' This is a large operation and should be used with caution.
 #' Consider using smaller input data with pre-aggregated metrics for most analyses.
 #'
-load_all_variant_tables <- function(results_dir = NULL) {
-  require(furrr)
+load_all_variant_tables <- function(results_dir = NULL, use_cache = TRUE, force_refresh = FALSE) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -812,10 +838,25 @@ load_all_variant_tables <- function(results_dir = NULL) {
     )
   }
 
+  # Try cache first
+  source_files <- as.character(variant_files)
+
+  if (use_cache && !force_refresh) {
+    cached <- read_cache("variant_table", source_files)
+    if (!is.null(cached)) {
+      return(cached)
+    }
+  }
+
+  require(furrr)
+  if (is.null(results_dir)) {
+    results_dir <- here::here("results")
+  }
+
   ## Loading and combining large variant tables
   future::plan(future::multisession, workers = parallel::detectCores() - 1)
 
-  all_variants_df <- furrr::future_map_dfr(
+  variants_df <- furrr::future_map_dfr(
     variant_files,
     read_variant_table,
     .progress = TRUE
@@ -823,15 +864,29 @@ load_all_variant_tables <- function(results_dir = NULL) {
     dplyr::mutate(
       bench_version = std_bench_versions(bench_version),
       ref = std_references(ref),
-      bench_type = std_bench_types(bench_type)
+      bench_type = std_bench_types(bench_type),
+      .before = 1
     )
 
-  return(all_variants_df)
+  # Write to cache
+  if (use_cache) {
+    tryCatch(
+      write_cache(variants_df, "variant_table", source_files),
+      error = function(e) {
+        warning(
+          glue::glue("Failed to write cache for variant_table: {e$message}"),
+          call. = FALSE
+        )
+      }
+    )
+  }
+
+  return(variants_df)
 }
 
-#' Load Difficult Region Coverage
+#' Load Genomic Context Coverage
 #'
-#' Loads base-level coverage data for difficult regions generated by
+#' Loads base-level coverage data for difficult genomic context generated by
 #' bedtools coverage. These files are in BED format with overlap counts.
 #'
 #' @param benchmark_id Single benchmark identifier (e.g., "v5.0q_GRCh38_smvar")
@@ -852,7 +907,7 @@ load_all_variant_tables <- function(results_dir = NULL) {
 #' @examples
 #' \dontrun{
 #' # Load all genomic contexts
-#' coverage <- load_diff_coverage("v5.0q_GRCh38_smvar")
+#' coverage <- load_genomic_context_coverage("v5.0q_GRCh38_smvar")
 #'
 #' # Load specific genomic contexts
 #' coverage <- load_diff_coverage(
@@ -865,9 +920,13 @@ load_all_variant_tables <- function(results_dir = NULL) {
 #' @param force_refresh Logical; if TRUE, ignore existing cache and reload
 #'
 #' @export
-load_diff_coverage <- function(benchmark_id, results_dir = NULL,
-                               context_filter = NULL,
-                               use_cache = TRUE, force_refresh = FALSE) {
+load_genomic_context_coverage <- function(
+  benchmark_id,
+  results_dir = NULL,
+  context_filter = NULL,
+  use_cache = TRUE,
+  force_refresh = FALSE
+) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -997,8 +1056,7 @@ load_diff_coverage <- function(benchmark_id, results_dir = NULL,
 #' @param force_refresh Logical; if TRUE, ignore existing cache and reload
 #'
 #' @export
-load_benchmark_regions <- function(resources_dir = NULL,
-                                   use_cache = TRUE, force_refresh = FALSE) {
+load_benchmark_regions <- function(resources_dir = NULL, use_cache = TRUE, force_refresh = FALSE) {
   if (is.null(resources_dir)) {
     resources_dir <- here::here("resources/benchmarksets")
   }
@@ -1022,6 +1080,15 @@ load_benchmark_regions <- function(resources_dir = NULL,
       set_names(., stringr::str_extract(., "(?<=/)[^/]+(?=_benchmark.bed$)"))
     }
 
+  # pp_region_list <- list(
+  #   "PP_GRCh38_smvar" = here::here(
+  #     "data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz"
+  #   ),
+  #   "PP_GRCh38_stvar" = here::here(
+  #     "data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz"
+  #   )
+  # )
+
   if (length(bench_files) == 0) {
     stop(
       glue::glue(
@@ -1030,6 +1097,20 @@ load_benchmark_regions <- function(resources_dir = NULL,
       call. = FALSE
     )
   }
+
+  # for (path in pp_region_list) {
+  #   if (!fs::file_exists(path)) {
+  #     stop(
+  #       glue::glue(
+  #         "Platinum pedigree benchmark BED file not found at: {path}"
+  #       ),
+  #       call. = FALSE
+  #     )
+  #   }
+  # }
+
+  # Include platinum pedigree regions
+  # bench_files <- c(bench_files, pp_region_list)
 
   # Try cache first
   source_files <- as.character(bench_files)
@@ -1050,20 +1131,18 @@ load_benchmark_regions <- function(resources_dir = NULL,
         col_names = c("chrom", "start", "end"),
         col_types = "cii",
         show_col_types = FALSE
-      ) %>%
-        tibble::add_column(
-          benchmark_file = fs::path_file(.x),
-          .before = 1
-        ),
-      .id = "file_id"
+      ),
+      .id = "benchmark_id"
     ) %>%
     # Extract benchmark identifier from filename
     dplyr::mutate(
-      benchmark_id = stringr::str_remove(benchmark_file, "_benchmark.bed"),
       bench_meta = purrr::map(benchmark_id, parse_benchmark_id),
       bench_version = purrr::map_chr(bench_meta, "bench_version"),
+      bench_version = std_bench_versions(bench_version),
       ref = purrr::map_chr(bench_meta, "ref"),
-      bench_type = purrr::map_chr(bench_meta, "bench_type")
+      ref = std_references(ref),
+      bench_type = purrr::map_chr(bench_meta, "bench_type"),
+      bench_type = std_bench_types(bench_type)
     ) %>%
     # Standardize chromosome names and calculate interval size
     dplyr::mutate(
@@ -1085,17 +1164,16 @@ load_benchmark_regions <- function(resources_dir = NULL,
       bench_type = factor(
         bench_type,
         levels = c("smvar", "stvar")
-      ),
-      chrom = factor(
-        chrom,
-        levels = stringr::str_c("chr", c(1:22, "X", "Y"))
       )
     ) %>%
     dplyr::select(
-      -file_id,
-      -benchmark_file,
-      -benchmark_id,
-      -bench_meta
+      bench_version,
+      ref,
+      bench_type,
+      chrom,
+      start,
+      end,
+      interval_size
     )
 
   # Write to cache
@@ -1114,6 +1192,45 @@ load_benchmark_regions <- function(resources_dir = NULL,
   return(bench_regions_df)
 }
 
+## I
+# regions_df <- c(
+#     bench_region_list,
+#     pg_region_list
+# ) %>%
+#     map_dfr(
+#         read_tsv,
+#         col_names = c("chrom", "start", "end"),
+#         col_types = "cii",
+#         .id = "benchmarkset"
+#     ) %>%
+#     mutate(
+#         interval_size = end - start,
+#         chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
+#     ) %>%
+#     separate(
+#         benchmarkset,
+#         into = c("bench_version", "ref", "var_type"),
+#         sep = "_"
+#     )
+
+# # Validate regions_df structure and no FIXME values
+# assert_that(
+#     is_tibble(regions_df),
+#     has_name(
+#         regions_df,
+#         c(
+#             "chrom",
+#             "start",
+#             "end",
+#             "interval_size",
+#             "bench_version",
+#             "var_type",
+#             "ref"
+#         )
+#     ),
+#     nrow(regions_df) > 0,
+#     all(regions_df$interval_size > 0)
+# )
 
 #' Backward Compatibility Aliases
 #'
@@ -1128,4 +1245,3 @@ load_benchmark_regions <- function(resources_dir = NULL,
 load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
   load_genomic_context_metrics(results_dir = results_dir, benchmark_filter = benchmark_filter)
 }
-  

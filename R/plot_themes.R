@@ -41,38 +41,39 @@ get_color_palettes <- function() {
   list(
     # Benchmark versions - distinct, progressive colors
     bench_version = c(
-      "v0.6" = "#1B9E77",      # Teal (oldest)
-      "v4.2.1" = "#D95F02",    # Orange (intermediate)
-      "v5.0q" = "#7570B3"      # Purple (newest)
+      "v0.6" = "#1B9E77", # Teal (oldest)
+      "v4.2.1" = "#D95F02", # Orange (intermediate)
+      "v5.0q" = "#7570B3", # Purple (newest)
+      "PP" = "#E7298A" # Magenta (Platinum Pedigree)
     ),
 
     # Reference genomes - clearly distinguishable
     ref = c(
-      "GRCh37" = "#E41A1C",    # Red
-      "GRCh38" = "#377EB8",    # Blue
-      "CHM13v2.0" = "#4DAF4A"  # Green
+      "GRCh37" = "#E41A1C", # Red
+      "GRCh38" = "#377EB8", # Blue
+      "CHM13v2.0" = "#4DAF4A" # Green
     ),
 
     # Variant types - simple contrast
     var_type = c(
-      "smvar" = "#1B9E77",     # Teal (small variants)
-      "stvar" = "#D95F02"      # Orange (structural variants)
+      "smvar" = "#1B9E77", # Teal (small variants)
+      "stvar" = "#D95F02" # Orange (structural variants)
     ),
 
     # Genomic contexts - distinctive palette for 6 categories
     context_name = c(
-      "HP" = "#E41A1C",        # Red (Homopolymers)
-      "MAP" = "#377EB8",       # Blue (Low Mappability)
-      "SD" = "#4DAF4A",        # Green (Segmental Duplications)
-      "SD10kb" = "#984EA3",    # Purple (Large SD)
-      "TR" = "#FF7F00",        # Orange (Tandem Repeats)
-      "TR10kb" = "#A65628"     # Brown (Large TR)
+      "HP" = "#E41A1C", # Red (Homopolymers)
+      "MAP" = "#377EB8", # Blue (Low Mappability)
+      "SD" = "#4DAF4A", # Green (Segmental Duplications)
+      "SD10kb" = "#984EA3", # Purple (Large SD)
+      "TR" = "#FF7F00", # Orange (Tandem Repeats)
+      "TR10kb" = "#A65628" # Brown (Large TR)
     ),
 
     # Chromosomes - grayscale for clarity
     chrom_type = c(
       "autosomes" = "#333333", # Dark gray
-      "sex_chrom" = "#888888"  # Light gray
+      "sex_chrom" = "#888888" # Light gray
     ),
 
     # Boolean/categorical - binary contrast
@@ -192,9 +193,10 @@ theme_manuscript <- function() {
 #'
 #' @export
 scale_benchmark_version <- function(
-    aesthetic = "color",
-    name = "Benchmark",
-    guide = "legend") {
+  aesthetic = "color",
+  name = "Benchmark",
+  guide = "legend"
+) {
   palettes <- get_color_palettes()
 
   switch(aesthetic,
@@ -224,9 +226,10 @@ scale_benchmark_version <- function(
 #'
 #' @export
 scale_reference_genome <- function(
-    aesthetic = "color",
-    name = "Reference",
-    guide = "legend") {
+  aesthetic = "color",
+  name = "Reference",
+  guide = "legend"
+) {
   palettes <- get_color_palettes()
 
   switch(aesthetic,
@@ -256,9 +259,10 @@ scale_reference_genome <- function(
 #'
 #' @export
 scale_variant_type <- function(
-    aesthetic = "color",
-    name = "Variant Type",
-    guide = "legend") {
+  aesthetic = "color",
+  name = "Variant Type",
+  guide = "legend"
+) {
   palettes <- get_color_palettes()
 
   switch(aesthetic,
@@ -296,9 +300,10 @@ scale_variant_type <- function(
 #'
 #' @export
 scale_genomic_context <- function(
-    aesthetic = "color",
-    name = "Genomic Context",
-    guide = "legend") {
+  aesthetic = "color",
+  name = "Genomic Context",
+  guide = "legend"
+) {
   palettes <- get_color_palettes()
 
   # Create readable labels for genomic contexts
@@ -364,7 +369,7 @@ theme_gt_manuscript <- function(gt_object, striped = TRUE) {
     gt::tab_options(
       # Font sizing
       table.font.size = "9pt",
-      table.heading.font.size = "10pt",
+      heading.title.font.size = "10pt",
       stub.font.size = "9pt",
       summary_row.text_transform = "uppercase",
 
@@ -421,10 +426,11 @@ theme_gt_manuscript <- function(gt_object, striped = TRUE) {
 #'
 #' @export
 fmt_publication <- function(
-    gt_object,
-    columns,
-    decimals = 2,
-    sep_mark = ",") {
+  gt_object,
+  columns,
+  decimals = 2,
+  sep_mark = ","
+) {
   gt_object %>%
     gt::fmt_number(
       columns = all_of(columns),
@@ -502,11 +508,12 @@ get_bench_type_labels <- function(bench_types = NULL) {
 #'
 #' @export
 get_figure_params <- function(
-    figure_name,
-    figure_number,
-    format = "pdf",
-    width = 4.5,
-    height = 3.5) {
+  figure_name,
+  figure_number,
+  format = "pdf",
+  width = 4.5,
+  height = 3.5
+) {
   list(
     filename = sprintf("Figure%d_%s.%s", figure_number, figure_name, format),
     width = width,

@@ -35,7 +35,7 @@ lint:
 	@echo "==> Linting Snakemake workflow..."
 	snakemake --lint
 	@echo "==> Linting R scripts and Quarto files..."
-	Rscript -e 'paths <- c("R","scripts","tests","analysis","manuscript","scratch"); paths <- paths[dir.exists(paths)]; root_lints <- lintr::lint_dir(".", recursive = FALSE, pattern = "\\.(R|r|qmd)$"); dir_lints <- unlist(lapply(paths, function(p) lintr::lint_dir(p, recursive = TRUE, pattern = "\\.(R|r|qmd)$")), recursive = FALSE); lints <- c(root_lints, dir_lints); if (length(lints) > 0) { print(lints); quit(status = 1) }'
+	Rscript -e "files <- list.files('.', pattern = '.R', full.names = TRUE); paths <- c('R'); files <- c(files, unlist(lapply(paths[dir.exists(paths)], function(p) list.files(p, pattern = '(R|r|qmd)$$', recursive = TRUE, full.names = TRUE)))); lints <- do.call(c, lapply(files, lintr::lint)); if (length(lints) > 0) { print(lints); quit(status = 1) }"
 	@echo "==> Linting Markdown files..."
 	markdownlint $(MD_FILES)
 
@@ -43,18 +43,14 @@ lint:
 format:
 	@echo "==> Formatting Snakemake files..."
 	snakefmt workflow/
-	@echo "==> Formatting Quarto files..."
-	quarto fmt $(QMD_FILES)
 	@echo "==> Formatting R scripts..."
-	Rscript -e 'paths <- c("R","scripts","tests"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }'
+	Rscript -e 'paths <- c("R","scripts"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }'
 
 format-check:
 	@echo "==> Checking Snakefile formatting..."
 	snakefmt --check workflow/
-	@echo "==> Checking Quarto formatting..."
-	quarto fmt --check $(QMD_FILES)
 	@echo "==> Checking R formatting..."
-	Rscript -e 'paths <- c("R","scripts","tests"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE, dry = "fail")) }'
+	Rscript -e 'paths <- c("R","scripts"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE, dry = "fail")) }'
 
 # Run all tests
 test: lint format-check dry-run

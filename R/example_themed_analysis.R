@@ -34,7 +34,6 @@ example_figure_variant_counts <- function() {
       total_variants = snv_count + indel_count,
       .groups = "drop"
     ) %>%
-
     # Visualization
     ggplot(aes(
       x = context_name,
@@ -86,7 +85,6 @@ example_figure_variant_density <- function() {
 
   plot <- metrics %>%
     filter(ref == "GRCh38", var_type == "smvar") %>%
-
     ggplot(aes(
       x = bench_version,
       y = variant_density_per_mb,
@@ -100,16 +98,14 @@ example_figure_variant_density <- function() {
     # Apply themes
     scale_genomic_context(aesthetic = "color") +
     theme_manuscript() +
-
     labs(
       title = "Variant Density by Genomic Context",
       x = "Benchmark Version",
       y = "Variants per Megabase",
       color = "Genomic Context"
     ) +
-
     theme(
-      legend.position = "none"  # Remove legend since facets show context
+      legend.position = "none" # Remove legend since facets show context
     )
 
   return(plot)
@@ -134,13 +130,10 @@ example_table_summary <- function() {
       .groups = "drop"
     ) %>%
     arrange(bench_version, var_type) %>%
-
     # Create gt table
     gt(groupname_col = "bench_version") %>%
-
     # Apply theme
     theme_gt_manuscript(striped = TRUE) %>%
-
     # Format numeric columns
     gt::fmt_number(
       columns = c(`Total Variants`, `SNVs`, `Indels`),
@@ -151,7 +144,6 @@ example_table_summary <- function() {
       columns = `Avg Density`,
       decimals = 1
     ) %>%
-
     # Labels
     gt::cols_label(
       var_type = "Variant Type",
@@ -160,7 +152,6 @@ example_table_summary <- function() {
       `Indels` = "Insertions/Deletions",
       `Avg Density` = "Avg Density (per Mb)"
     ) %>%
-
     # Title
     gt::tab_header(
       title = "Variant Summary by Benchmark and Type",
@@ -193,13 +184,10 @@ example_table_context_coverage <- function() {
       `Coverage %` = pct_of_context
     ) %>%
     arrange(`Variant Type`, `Genomic Context`) %>%
-
     # Create table
     gt(groupname_col = "`Variant Type`") %>%
-
     # Apply theme
     theme_gt_manuscript(striped = FALSE) %>%
-
     # Format columns
     gt::fmt_number(
       columns = c(`Context Size (bp)`, `Overlapping (bp)`),
@@ -210,7 +198,6 @@ example_table_context_coverage <- function() {
       columns = `Coverage %`,
       decimals = 1
     ) %>%
-
     # Color code coverage
     gt::tab_style(
       style = list(
@@ -231,7 +218,6 @@ example_table_context_coverage <- function() {
         rows = `Coverage %` > 50 & `Coverage %` <= 80
       )
     ) %>%
-
     # Title
     gt::tab_header(
       title = "Genomic Context Coverage",
@@ -257,7 +243,6 @@ example_figure_benchmark_comparison <- function() {
       total_variants = sum(total_variants),
       .groups = "drop"
     ) %>%
-
     ggplot(aes(
       x = ref,
       y = avg_density,
@@ -270,7 +255,6 @@ example_figure_benchmark_comparison <- function() {
     scale_benchmark_version(aesthetic = "fill") +
     scale_benchmark_version(aesthetic = "color", guide = "none") +
     theme_manuscript() +
-
     labs(
       title = "Mean Variant Density Across Benchmarks",
       x = "Reference Genome",
@@ -374,21 +358,24 @@ generate_themed_report <- function(output_dir = "figures", format = "pdf") {
   p1 <- example_figure_variant_counts()
   ggsave(
     file.path(output_dir, "Figure1_variant_counts.pdf"),
-    p1, width = 5.5, height = 3.5, dpi = 300
+    p1,
+    width = 5.5, height = 3.5, dpi = 300
   )
   message("✓ Figure 1 saved")
 
   p2 <- example_figure_variant_density()
   ggsave(
     file.path(output_dir, "Figure2_variant_density.pdf"),
-    p2, width = 7, height = 4, dpi = 300
+    p2,
+    width = 7, height = 4, dpi = 300
   )
   message("✓ Figure 2 saved")
 
   p3 <- example_figure_comprehensive()
   ggsave(
     file.path(output_dir, "Figure3_comprehensive.pdf"),
-    p3, width = 7, height = 5, dpi = 300
+    p3,
+    width = 7, height = 5, dpi = 300
   )
   message("✓ Figure 3 saved")
 
