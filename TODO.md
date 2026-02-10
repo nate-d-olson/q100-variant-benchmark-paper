@@ -1,5 +1,6 @@
 # Project To Dos
 
+- Update variant cache schema
 ## Analysis Notebooks
 
 - update input and outputs for notebooks are consistent with code

@@ -17,7 +17,8 @@
       "Bash(snakemake:*)",
       "Bash(snakefmt:*)",
       "WebSearch",
-      "Bash(Rscript:*)"
+      "Bash(Rscript:*)",
+      "Bash(micromamba activate:*)"
     ]
   },
   "sandbox": {
