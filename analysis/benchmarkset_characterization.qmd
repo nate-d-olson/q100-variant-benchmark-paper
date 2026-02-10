@@ -159,10 +159,12 @@ bench_var_cnt_df <- variants_df %>%
 ```{r}
 full_join(bench_var_cnt_df, bench_region_stats_df) %>%
   select(-bench_version) %>%
-  ungroup() %>%
-  gt::gt(caption = "v5.0q Benchmark Summary Statistics") %>%
+  gt::gt() %>%
   gt::fmt_integer(
     columns = c(contains("var"), total_bp)
+  ) %>%
+  gt::sub_missing(
+    missing_text = ""
   ) %>%
   gt::cols_align(
     columns = c("ref", "bench_type"),
@@ -176,76 +178,6 @@ full_join(bench_var_cnt_df, bench_region_stats_df) %>%
     pct_q100_cvg = "% Asm. Cov."
   ) %>%
   theme_gt_manuscript()
-```
-
-
-## Variant Counts
-
-
-### Small Variant Counts
-
-```{r small_variant_counts}
-# Aggregate small variant counts by variant type
-smvar_cnt_df <- variants_df %>%
-  filter(bench_type == "smvar") %>%
-  count(bench_type, ref, bench_version, var_type) %>%
-  pivot_wider(names_from = var_type, values_from = n, values_fill = 0) %>%
-  rename(SNV = SNP) %>%
-  select(bench_type, ref, bench_version, SNV, INDEL) %>%
-  mutate(Total = SNV + INDEL)
-```
-
-```{r small_variant_counts_table}
-smv_cnt_tbl <- smvar_cnt_df %>%
-  arrange(ref) %>%
-  ungroup() %>%
-  gt::gt(caption = "Number of indels (<50bp), single nucleotide variants (SNV) and total small variants by benchmark set.") %>%
-  gt::fmt_integer(
-    columns = c(SNV, INDEL, Total)
-  ) %>%
-  gt::cols_align(
-    columns = c("ref", "bench_version"),
-    align = "right"
-  ) %>%
-  gt::cols_label(
-    ref = "Reference",
-    bench_version = "Benchmark",
-    SNV = "Single Nucleotide Variants (SNVs)",
-    INDEL = "Insertions/Deletions",
-    Total = "Total Variants"
-  )
-
-```
-
-### Structural Variant Counts
-
-```{r structural_variant_counts}
-# Aggregate structural variant counts by type across all genomic contexts
-stvar_cnt_df <- variants_df %>%
-  filter(bench_type == "stvar") %>%
-  count(bench_type, ref, bench_version, var_type) %>%
-  pivot_wider(names_from = var_type, values_from = n, values_fill = 0) %>%
-  mutate(Total = INS + DEL)
-
-stvar_cnt_table <- stvar_cnt_df %>%
-  arrange(ref) %>%
-  ungroup() %>%
-  gt::gt(
-    caption = "Number of insertion, deletion, and total structural variants (≥50bp) by benchmark set."
-  ) %>%
-  gt::fmt_integer(
-    columns = c(INS, DEL, Total)
-  ) %>%
-  gt::cols_align(
-    columns = c("ref", "bench_version"),
-    align = "right"
-  ) %>%
-  gt::cols_label(
-    ref = "Reference",
-    bench_version = "Benchmark"
-  )
-
-stvar_cnt_table
 ```
 
 ## Variant Size Distributions
@@ -442,7 +374,6 @@ bench_version_cols <- c(
   ) +
   facet_wrap(. ~ context_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
-  scale_y_continuous(label = scales::label_comma()) +
   scale_benchmark_version(aesthetic = "fill") +
   labs(x = "Variant Type", y = "Variant Count") +
   theme_manuscript())
@@ -549,76 +480,17 @@ genomic_context_var_fld_chg %>%
 
 - Number of bases in benchmark regions in v5 compared to v4 and v0.6
 
-## Exclusion Impact Analysis
-
-This section quantifies the number of variants removed by each exclusion region in the v5.0q benchmark.
-
-```{r exclusion_impact}
-# Load exclusion metrics with variant counts
-exclusion_df <- load_exclusion_metrics()
-
-if (nrow(exclusion_df) > 0) {
-  # Summary table of exclusion impact
-  exclusion_df %>%
-    filter(bench_version == "v5.0q") %>%
-    select(
-      ref, bench_type, exclusion, 
-      total_variants, 
-      # Conditionally select columns if they exist (handled by select helpers or explicit check)
-      any_of(c("snv_count", "indel_count", "ins_count", "del_count"))
-    ) %>%
-    arrange(ref, bench_type, desc(total_variants)) %>%
-    group_by(ref, bench_type) %>%
-    gt::gt() %>%
-    gt::fmt_integer(columns = where(is.integer)) %>%
-    gt::cols_label(
-      exclusion = "Exclusion Region",
-      total_variants = "Total Variants",
-      snv_count = "SNVs",
-      indel_count = "INDELs",
-      ins_count = "Insertions",
-      del_count = "Deletions"
-    ) %>%
-    gt::tab_header(
-      title = "Variants Removed by Exclusion Regions (v5.0q)"
-    )
-} else {
-  print("No exclusion data available.")
-}
-```
-
-### Total Included Base Comparisons
-
-```{r}
-bench_regions_df %>%
-  filter(
-    bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
-    chrom %in% paste0("chr", c(1:22, "X", "Y"))
-  ) %>%
-  group_by(bench_type, ref, bench_version) %>%
-  summarise(total_bp = sum(interval_size), .groups = "drop") %>%
-  left_join(total_ref_asm_bp) %>%
-  mutate(
-    pct_ref_cvg = round(100 * (total_bp / total_asm_bp), 0),
-    pct_q100_cvg = round(100 * (total_bp / hg002q100_size), 0),
-    total_bp = format(total_bp, big.mark = ",")
-  ) %>%
-  arrange(bench_type, bench_version, ref) %>%
-  gt::gt()
-```
-
-
 ### Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ```{r fig.width = 8, fig.height = 4}
-(coverage_change_plt <- benchmark_regions_df %>%
+(coverage_change_plt <- bench_regions_df %>%
     filter(
         bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
-        (var_type == "smvar" & ref == "GRCh38") |
-            (var_type == "stvar" & ref == "GRCh37"),
+        (bench_type == "smvar" & ref == "GRCh38") |
+            (bench_type == "stvar" & ref == "GRCh37"),
         chrom %in% paste0("chr", c(1:22))
     ) %>%
     select(-starts_with("X")) %>%
-    group_by(var_type, chrom, bench_version) %>%
+    group_by(bench_type, chrom, bench_version) %>%
     summarise(total_size = sum(interval_size), .groups = "drop") %>%
     mutate(
         vers = if_else(bench_version == "v5.0q", "new", "old"),
@@ -637,7 +509,7 @@ bench_regions_df %>%
             x = chrom,
             y = pct_change,
             fill = total_change / 1000000,
-            shape = var_type
+            shape = bench_type
         ),
         size = 4,
         color = "black",
@@ -680,173 +552,50 @@ bench_regions_df %>%
 
 ### Inclusion of Difficult Regions
 
-```{r eval=FALSE}
-diff_coverage <- list.files(
-    here("results/diff_region_coverage"),
-    pattern = "_cov.bed",
-    recursive = TRUE,
-    full.names = TRUE
-) %>%
-    {
-        set_names(
-            .,
-            str_extract(., "(?<=coverage/).*(?=_cov.bed)") %>%
-                str_replace("/", "_")
-        )
-    } %>%
-    map_dfr(
-        read_tsv,
-        col_names = c(
-            "CHROM",
-            "START",
-            "END",
-            "n_overlap",
-            "bases_cov",
-            "ivl_len",
-            "frac_cov"
-        ),
-        col_types = "ciiiiid",
-        .id = "strat"
-    ) %>%
-    filter(n_overlap > 0) %>%
-    separate(
-        strat,
-        into = c("bench_version", "ref", "var_type", "strat"),
-        sep = "_"
-    )
-```
+```{r difficult_region_coverage}
+# Load coverage data for all benchmarks
+benchmarks <- parse_pipeline_config()$benchmarks
 
+diff_coverage_df <- benchmarks %>%
+  purrr::map_dfr(function(bench_id) {
+    # Skip PP benchmarks as they don't have coverage data yet
+    if (str_detect(bench_id, "^PP")) return(NULL)
+    
+    tryCatch({
+      load_genomic_context_coverage(bench_id) %>%
+        # Parse benchmark ID to get metadata columns
+        bind_cols(parse_benchmark_id(bench_id))
+    }, error = function(e) {
+      warning(glue::glue("Could not load coverage for {bench_id}: {e$message}"))
+      return(NULL)
+    })
+  })
 
-```{r eval = FALSE}
-diff_cov_total <- diff_coverage %>%
-    group_by(bench_version, ref, var_type, strat) %>%
-    summarise(total_cov = sum(bases_cov))
+# Calculate total coverage per context
+diff_cov_total <- diff_coverage_df %>%
+  group_by(bench_version, ref, bench_type, context_name) %>%
+  summarise(total_cov = sum(bases_cov), .groups = "drop")
 
+# Visualize coverage
 diff_cov_total %>%
-    ggplot() +
-    geom_bar(
-        aes(x = strat, y = total_cov, fill = bench_version),
-        stat = "identity",
-        position = "dodge"
-    ) +
-    facet_wrap(~var_type, ncol = 1) +
-    theme_minimal()
-```
-
-#### Difficult Region Bases Included
-Not sure how this is different from above - might just have been a renamed section and revised figures
-```{r eval = FALSE}
-(diff_included_tbl <- list.files(path = here("results/diff_region_coverage"), pattern = "_cov.bed$",recursive = TRUE, full.names = TRUE) %>% {tibble(file_path = .)} %>% 
-   mutate(bench_id = str_extract(file_path, "(?<=diff_region_coverage/).*(?=/)"),
-          diff_region = str_extract(file_path, "(?<=var/).*(?=_cov.bed)"))) %>% 
-  
-)
-```
-
-
-```{r eval = FALSE}
-
-diff_included_plt_df <- diff_included_tbl %>%
-    filter(
-        (bench_version %in%
-            c("v5q", "v421") &
-            bench_type == "smvar" &
-            ref_id == "grch38") |
-            (bench_version %in%
-                c("v5q", "v06") &
-                bench_type == "stvar" &
-                ref_id == "grch37"),
-        chrom_scope == "autosomes"
-    )
-```
-
-```{r eval=FALSE}
-ggplot(diff_included_plt_df) +
-    geom_point(
-        aes(
-            x = bench_type,
-            y = overlap_bp,
-            fill = context,
-            shape = bench_version
-        ),
-        position = "jitterdodge"
-    ) +
-    scale_y_log10() +
-    annotation_logticks(sides = "lr") +
-    scale_shape_manual(values = c(21, 24, 22)) +
-    labs(
-        x = "Benchmark Type",
-        y = "Included Bases (bp)",
-        fill = "Genomic Context",
-        shape = "Benchmark Version"
-    ) +
-    facet_wrap(~context, nrow = 1) +
-    theme_minimal() +
-    theme(legend.position = "bottom", legend.box = "vertical") +
-    guides(
-        fill = guide_legend(
-            nrow = 2,
-            byrow = TRUE,
-            override.aes = list(shape = 21)
-        )
-    )
-```
-
-```{r eval=FALSE}
-ggplot(
-    diff_included_plt_df,
-    aes(
-        x = bench_type,
-        y = included_pct
-    )
-) +
-    geom_point(
-        aes(
-            fill = context,
-            shape = bench_version
-        ),
-        position = position_jitterdodge(dodge.width = 0.5)
-    ) +
-    scale_shape_manual(values = c(21, 24, 22)) +
-    scale_color_manual(values = c("grey20", "darkred")) +
-    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
-    labs(
-        x = "Benchmark Type",
-        y = "Included Bases (%)",
-        fill = "Genomic Context",
-        shape = "Benchmark Version"
-    ) +
-    facet_wrap(~context, nrow = 1) +
-    theme_minimal() +
-    theme(
-        legend.position = "bottom",
-        legend.box = "vertical"
-    ) +
-    guides(
-        fill = guide_legend(
-            nrow = 2,
-            byrow = TRUE,
-            override.aes = list(shape = 21)
-        )
-    )
-```
-
-```{r eval = FALSE}
-diff_included_plt_df %>%
-    select(
-        ref,
-        bench_type,
-        context,
-        bench_version,
-        chrom_scope,
-        included_pct
-    ) %>%
-    filter(chrom_scope == "autosomes") %>%
-    # group_by(bench_type) %>%
-    # pivot_wider(names_from = bench_version, values_from = included_pct) #%>%
-    # mutate(pct_change = (v5q - v421)/v421) %>%
-    arrange(bench_type, context, chrom_scope) %>%
-    gt::gt()
+  mutate(
+    bench_type = factor(bench_type, levels = c("smvar", "stvar"), labels = c("Small Variants", "Structural Variants"))
+  ) %>%
+  ggplot() +
+  geom_bar(
+    aes(x = context_name, y = total_cov, fill = bench_version),
+    stat = "identity",
+    position = "dodge"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    x = "Genomic Context",
+    y = "Total Bases Covered (bp)",
+    fill = "Benchmark Version"
+  ) +
+  facet_wrap(~bench_type, ncol = 1, scales = "free_y") +
+  theme_manuscript() +
+  theme(legend.position = "bottom")
 ```
 
 
