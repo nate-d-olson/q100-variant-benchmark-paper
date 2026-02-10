@@ -18,9 +18,9 @@ This phase implements the analytical logic and visualizations in the Quarto note
 - [x] **Task: Implement Small Variant Breakdowns** [fc0335b]
     - [x] Sub-task: Write test for small variant binning logic (R unit test).
     - [x] Sub-task: Update `benchmarkset_characterization.qmd` to calculate and display <15bp vs 15-49bp counts.
-- [ ] **Task: Incorporate Exclusion Variant Counts**
-    - [ ] Sub-task: Update `benchmarkset_characterization.qmd` to join exclusion regions with variant counts.
-    - [ ] Sub-task: Generate summary table of variants removed by each exclusion.
+- [x] **Task: Incorporate Exclusion Variant Counts** [38eedad]
+    - [x] Sub-task: Update `benchmarkset_characterization.qmd` to join exclusion regions with variant counts.
+    - [x] Sub-task: Generate summary table of variants removed by each exclusion.
 - [ ] **Task: Fix Difficult Region Metrics**
     - [ ] Sub-task: Debug and fix the logic for "difficult regions included" vs "excluded".
     - [ ] Sub-task: Verify against known ground truth or manual spot check (documented in notebook).
