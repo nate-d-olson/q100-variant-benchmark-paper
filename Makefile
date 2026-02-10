@@ -70,7 +70,7 @@ dag:
 # Run the pipeline
 run:
 	@echo "==> Running pipeline with conda environments..."
-	snakemake --cores 4 --sdm conda --conda-frontend conda
+	snakemake --cores 12 --sdm conda --conda-frontend conda
 	@echo "==> Pipeline execution complete"
 
 # Clean logs and temporary files
