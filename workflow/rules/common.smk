@@ -418,26 +418,20 @@ def get_exclusion_name_mapping(benchmark: str) -> Dict[str, str]:
     """
     exclusions = get_exclusion_config(benchmark)
     return {
-        f"EXCL_{_format_exclusion_name(excl['name'])}": excl["name"]
-        for excl in exclusions
+        f"EXCL_{_format_exclusion_name(excl['name'])}": excl["name"] for excl in exclusions
     }
 
 
 def get_exclusion_bed_paths(benchmark: str) -> List[str]:
     """Get list of materialized exclusion BED file paths for a benchmark."""
     exclusions = get_exclusion_config(benchmark)
-    return [
-        f"results/exclusions/{benchmark}/{excl['name']}.bed"
-        for excl in exclusions
-    ]
+    return [f"results/exclusions/{benchmark}/{excl['name']}.bed" for excl in exclusions]
 
 
 def get_exclusion_impact_inputs(wildcards):
     """Get inputs for the compute_exclusion_impact rule."""
     benchmark = wildcards.benchmark
-    excl_names = [
-        e["name"] for e in get_exclusion_config(benchmark)
-    ]
+    excl_names = [e["name"] for e in get_exclusion_config(benchmark)]
     return {
         "variant_table": f"results/variant_tables/{benchmark}/variants.tsv",
         "exclusion_tsvs": expand(
@@ -479,9 +473,7 @@ def get_exclusion_impact_targets(wildcards) -> List[str]:
     targets = []
     for benchmark, conf in config["benchmarksets"].items():
         if conf.get("exclusions"):
-            targets.append(
-                f"results/exclusions/{benchmark}/exclusion_impact.csv"
-            )
+            targets.append(f"results/exclusions/{benchmark}/exclusion_impact.csv")
     return targets
 
 
@@ -490,9 +482,7 @@ def get_exclusion_interaction_targets(wildcards) -> List[str]:
     targets = []
     for benchmark, conf in config["benchmarksets"].items():
         if conf.get("exclusions"):
-            targets.append(
-                f"results/exclusions/{benchmark}/exclusion_interactions.csv"
-            )
+            targets.append(f"results/exclusions/{benchmark}/exclusion_interactions.csv")
     return targets
 
 

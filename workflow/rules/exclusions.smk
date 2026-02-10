@@ -134,7 +134,9 @@ rule compute_exclusion_impact:
             non_empty=True,
         ),
     params:
-        excl_name_mapping=lambda wc: list(get_exclusion_name_mapping(wc.benchmark).items()),
+        excl_name_mapping=lambda wc: list(
+            get_exclusion_name_mapping(wc.benchmark).items()
+        ),
     log:
         "logs/exclusions/{benchmark}/impact.log",
     message:
@@ -163,7 +165,9 @@ rule compute_exclusion_interactions:
             non_empty=True,
         ),
     params:
-        excl_name_mapping=lambda wc: list(get_exclusion_name_mapping(wc.benchmark).items()),
+        excl_name_mapping=lambda wc: list(
+            get_exclusion_name_mapping(wc.benchmark).items()
+        ),
     log:
         "logs/exclusions/{benchmark}/interactions.log",
     message:
