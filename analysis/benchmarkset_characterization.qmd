@@ -312,7 +312,7 @@ sv_len_df <- variants_df %>%
     y = "Count"
   ) +
   facet_wrap(~ref, ncol = 1) +
-  theme_minimal() +
+  theme_manuscript() +
   theme(
     axis.text.x = element_text(angle = -45, hjust = 0)
   ))
@@ -416,14 +416,9 @@ bench_version_cols <- c(
   ) +
   facet_wrap(. ~ context_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
-  scale_fill_manual(
-    name = "Benchmark Version",
-    values = bench_version_cols,
-    breaks = c("v5.0q", "v4.2.1", "v0.6"),
-    drop = FALSE
-  ) +
+  scale_benchmark_version(aesthetic = "fill") +
   labs(x = "Variant Type", y = "Variant Count") +
-  theme_minimal() +
+  theme_manuscript() +
   theme(
     legend.position = "bottom",
     axis.text.x = element_text(angle = -45, vjust = 1)
@@ -449,16 +444,10 @@ bench_version_cols <- c(
   ) +
   facet_wrap(. ~ context_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
-  scale_fill_manual(
-    name = "Benchmark Version",
-    values = bench_version_cols,
-    breaks = c("v5.0q", "v4.2.1", "v0.6"),
-    labels = c("v5.0q", "v4.2.1", "v0.6"),
-    drop = FALSE
-  ) +
+  scale_y_continuous(label = scales::label_comma()) +
+  scale_benchmark_version(aesthetic = "fill") +
   labs(x = "Variant Type", y = "Variant Count") +
-  theme_minimal() +
-  theme(legend.position = "bottom"))
+  theme_manuscript())
 ```
 
 ```{r  combined_variant_counts_by_context_plot}
@@ -994,34 +983,34 @@ Number of regions by benchmark set.
 May want to include in summary table or part of a single large supplemental table
 ```{r eval = FALSE}
 regions_df %>%
-    filter(
-        bench_version %in% c("v5.0q", "v4.2.1", "v0.6", "PP"),
-        (var_type == "smvar" & ref == "GRCh38") |
-            (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
-        chrom %in% paste0("chr", c(1:22))
-    ) %>%
-    group_by(bench_version, var_type, ref) %>%
-    count() %>%
-    mutate(
-        bench_version = factor(
-            bench_version,
-            levels = c("v4.2.1", "v0.6", "v5.0q", "PP")
-        )
-    ) %>%
-    arrange(var_type, bench_version) %>%
-    ungroup() %>%
-    select(var_type, ref, bench_version, n) %>%
-    gt::gt() %>%
-    gt::tab_header(title = "Number of intervals in Benchmark Regions") %>%
-    gt::fmt_integer(columns = n) %>%
-    gt::cols_align(
-        columns = c("var_type", "ref", "bench_version"),
-        align = "right"
-    ) %>%
-    gt::cols_label(
-        var_type = "Variant Type",
-        ref = "Reference",
-        bench_version = "Benchmark",
-        n = "Number of Intervals"
+  filter(
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6", "PP"),
+    (var_type == "smvar" & ref == "GRCh38") |
+      (var_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+    chrom %in% paste0("chr", c(1:22))
+  ) %>%
+  group_by(bench_version, var_type, ref) %>%
+  count() %>%
+  mutate(
+    bench_version = factor(
+      bench_version,
+      levels = c("v4.2.1", "v0.6", "v5.0q", "PP")
     )
+  ) %>%
+  arrange(var_type, bench_version) %>%
+  ungroup() %>%
+  select(var_type, ref, bench_version, n) %>%
+  gt::gt() %>%
+  gt::tab_header(title = "Number of intervals in Benchmark Regions") %>%
+  gt::fmt_integer(columns = n) %>%
+  gt::cols_align(
+    columns = c("var_type", "ref", "bench_version"),
+    align = "right"
+  ) %>%
+  gt::cols_label(
+    var_type = "Variant Type",
+    ref = "Reference",
+    bench_version = "Benchmark",
+    n = "Number of Intervals"
+  )
 ```
