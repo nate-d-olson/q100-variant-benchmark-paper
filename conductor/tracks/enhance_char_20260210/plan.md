@@ -7,9 +7,9 @@ This phase ensures the underlying data structures support the required analysis.
     - [x] Write test for new schema fields (variant length bins).
     - [x] Update `R/schemas.R` to include variant length/type definitions.
     - [x] Update `R/cache.R` (if needed) to ensure these fields are preserved.
-- [ ] **Task: Refactor Data Loading for Exclusions**
-    - [ ] Sub-task: Write test for loading exclusion variant counts.
-    - [ ] Sub-task: Update `R/data_loading.R` to load `results/exclusions/{benchmark}/exclusion_impact.csv` with variant counts.
+- [x] **Task: Refactor Data Loading for Exclusions** [57ecf79]
+    - [x] Sub-task: Write test for loading exclusion variant counts.
+    - [x] Sub-task: Update `R/data_loading.R` to load `results/exclusions/{benchmark}/exclusion_impact.csv` with variant counts.
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)**
 
 ## Phase 2: Notebook Refinement (Characterization)
