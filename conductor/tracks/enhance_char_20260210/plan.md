@@ -15,9 +15,9 @@ This phase ensures the underlying data structures support the required analysis.
 ## Phase 2: Notebook Refinement (Characterization)
 This phase implements the analytical logic and visualizations in the Quarto notebook.
 
-- [ ] **Task: Implement Small Variant Breakdowns**
-    - [ ] Sub-task: Write test for small variant binning logic (R unit test).
-    - [ ] Sub-task: Update `benchmarkset_characterization.qmd` to calculate and display <15bp vs 15-49bp counts.
+- [x] **Task: Implement Small Variant Breakdowns** [fc0335b]
+    - [x] Sub-task: Write test for small variant binning logic (R unit test).
+    - [x] Sub-task: Update `benchmarkset_characterization.qmd` to calculate and display <15bp vs 15-49bp counts.
 - [ ] **Task: Incorporate Exclusion Variant Counts**
     - [ ] Sub-task: Update `benchmarkset_characterization.qmd` to join exclusion regions with variant counts.
     - [ ] Sub-task: Generate summary table of variants removed by each exclusion.
