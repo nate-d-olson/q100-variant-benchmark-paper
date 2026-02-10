@@ -152,8 +152,7 @@ bench_var_cnt_df <- variants_df %>%
   ungroup() %>%
   pivot_wider(
     names_from = var_type,
-    values_from = n,
-    values_fill = ""
+    values_from = n
   )
 ```
 
@@ -216,34 +215,6 @@ smv_cnt_tbl <- smvar_cnt_df %>%
     Total = "Total Variants"
   )
 
-```
-
-### Small Variant Counts Breakdown
-
-```{r small_variant_breakdown}
-# Calculate breakdown of small variants by size bin
-smvar_breakdown_df <- variants_df %>%
-  filter(bench_type == "smvar") %>%
-  mutate(
-    size_bin = if_else(abs(var_size) < 15, "<15bp", "15-49bp")
-  ) %>%
-  count(ref, bench_version, size_bin) %>%
-  pivot_wider(names_from = size_bin, values_from = n, values_fill = 0) %>%
-  mutate(Total = `<15bp` + `15-49bp`)
-
-# Display as table
-smvar_breakdown_df %>%
-  arrange(ref, bench_version) %>%
-  gt::gt(caption = "Breakdown of small variant counts by size (<15bp and 15-49bp).") %>%
-  gt::fmt_integer(columns = c(`<15bp`, `15-49bp`, Total)) %>%
-  gt::cols_align(
-    columns = c("ref", "bench_version"),
-    align = "right"
-  ) %>%
-  gt::cols_label(
-    ref = "Reference",
-    bench_version = "Benchmark"
-  )
 ```
 
 ### Structural Variant Counts
@@ -577,6 +548,44 @@ genomic_context_var_fld_chg %>%
 ## Benchmark region characterization
 
 - Number of bases in benchmark regions in v5 compared to v4 and v0.6
+
+## Exclusion Impact Analysis
+
+This section quantifies the number of variants removed by each exclusion region in the v5.0q benchmark.
+
+```{r exclusion_impact}
+# Load exclusion metrics with variant counts
+exclusion_df <- load_exclusion_metrics()
+
+if (nrow(exclusion_df) > 0) {
+  # Summary table of exclusion impact
+  exclusion_df %>%
+    filter(bench_version == "v5.0q") %>%
+    select(
+      ref, bench_type, exclusion, 
+      total_variants, 
+      # Conditionally select columns if they exist (handled by select helpers or explicit check)
+      any_of(c("snv_count", "indel_count", "ins_count", "del_count"))
+    ) %>%
+    arrange(ref, bench_type, desc(total_variants)) %>%
+    group_by(ref, bench_type) %>%
+    gt::gt() %>%
+    gt::fmt_integer(columns = where(is.integer)) %>%
+    gt::cols_label(
+      exclusion = "Exclusion Region",
+      total_variants = "Total Variants",
+      snv_count = "SNVs",
+      indel_count = "INDELs",
+      ins_count = "Insertions",
+      del_count = "Deletions"
+    ) %>%
+    gt::tab_header(
+      title = "Variants Removed by Exclusion Regions (v5.0q)"
+    )
+} else {
+  print("No exclusion data available.")
+}
+```
 
 ### Total Included Base Comparisons
 
