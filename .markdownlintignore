@@ -1,0 +1,7 @@
+analysis/_cache/
+analysis/cache/
+analysis/*_cache/
+analysis/**/figure-html/
+results/
+logs/
+.snakemake/

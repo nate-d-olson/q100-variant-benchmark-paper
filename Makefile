@@ -1,4 +1,7 @@
-.PHONY: help dry-run lint format test clean dag run
+.PHONY: help dry-run lint format format-check test clean dag run
+
+QMD_FILES := $(shell find . -name '*.qmd' -not -path './.snakemake/*' -not -path './results/*' -not -path './logs/*')
+MD_FILES := "**/*.md"
 
 # Default target
 help:
@@ -7,9 +10,10 @@ help:
 	@echo "Available targets:"
 	@echo "  help      - Show this help message"
 	@echo "  dry-run   - Validate workflow with dry-run"
-	@echo "  lint      - Run workflow linting"
-	@echo "  format    - Format Snakemake files with snakefmt"
-	@echo "  test      - Run all tests (lint + format check + dry-run)"
+	@echo "  lint      - Run linting (Snakemake + R/Quarto + Markdown)"
+	@echo "  format    - Format Snakemake, Quarto, and R files"
+	@echo "  format-check - Check formatting without modifying files"
+	@echo "  test      - Run all tests (lint + format-check + dry-run)"
 	@echo "  dag       - Generate pipeline DAG visualization (PDF + DOT)"
 	@echo "  run       - Execute the pipeline with conda environments"
 	@echo "  clean     - Remove logs and temporary files"
@@ -30,16 +34,30 @@ dry-run:
 lint:
 	@echo "==> Linting Snakemake workflow..."
 	snakemake --lint
-	@echo "==> Checking Snakefile formatting..."
-	snakefmt --check workflow/
+	@echo "==> Linting R scripts and Quarto files..."
+	Rscript -e 'paths <- c("R","scripts","tests","analysis","manuscript","scratch"); paths <- paths[dir.exists(paths)]; root_lints <- lintr::lint_dir(".", recursive = FALSE, pattern = "\\.(R|r|qmd)$"); dir_lints <- unlist(lapply(paths, function(p) lintr::lint_dir(p, recursive = TRUE, pattern = "\\.(R|r|qmd)$")), recursive = FALSE); lints <- c(root_lints, dir_lints); if (length(lints) > 0) { print(lints); quit(status = 1) }'
+	@echo "==> Linting Markdown files..."
+	markdownlint $(MD_FILES)
 
 # Format Snakemake files
 format:
 	@echo "==> Formatting Snakemake files..."
 	snakefmt workflow/
+	@echo "==> Formatting Quarto files..."
+	quarto fmt $(QMD_FILES)
+	@echo "==> Formatting R scripts..."
+	Rscript -e 'paths <- c("R","scripts","tests"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }'
+
+format-check:
+	@echo "==> Checking Snakefile formatting..."
+	snakefmt --check workflow/
+	@echo "==> Checking Quarto formatting..."
+	quarto fmt --check $(QMD_FILES)
+	@echo "==> Checking R formatting..."
+	Rscript -e 'paths <- c("R","scripts","tests"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE, dry = "fail")) }'
 
 # Run all tests
-test: lint dry-run
+test: lint format-check dry-run
 	@echo "==> All tests passed!"
 
 # Generate pipeline DAG visualization

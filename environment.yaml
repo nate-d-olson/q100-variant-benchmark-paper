@@ -9,3 +9,8 @@ dependencies:
   - mamba
   - conda
   - graphviz
+  - quarto
+  - r-base
+  - r-lintr
+  - r-styler
+  - markdownlint-cli
