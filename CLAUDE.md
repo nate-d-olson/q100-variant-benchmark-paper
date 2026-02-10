@@ -86,6 +86,13 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 ## R Data Loading Infrastructure
 
+### Data Dictionary
+
+For a detailed description of the data objects returned by the loading functions, see:
+[`docs/data_dictionary.md`](docs/data_dictionary.md)
+
+> **Maintenance Note:** The data dictionary document must be updated whenever changes are made to `R/data_loading.R` or `R/schemas.R` that affect the structure of the returned data objects.
+
 ### File Organization
 
 ```
