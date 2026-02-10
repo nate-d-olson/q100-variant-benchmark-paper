@@ -3,10 +3,10 @@
 ## Phase 1: Schema Updates and Data Loading
 This phase ensures the underlying data structures support the required analysis.
 
-- [ ] **Task: Update Variant Cache Schema**
-    - [ ] Sub-task: Write test for new schema fields (variant length bins).
-    - [ ] Sub-task: Update `R/schemas.R` to include variant length/type definitions.
-    - [ ] Sub-task: Update `R/cache.R` (if needed) to ensure these fields are preserved.
+- [x] **Task: Update Variant Cache Schema** [51edaf3]
+    - [x] Write test for new schema fields (variant length bins).
+    - [x] Update `R/schemas.R` to include variant length/type definitions.
+    - [x] Update `R/cache.R` (if needed) to ensure these fields are preserved.
 - [ ] **Task: Refactor Data Loading for Exclusions**
     - [ ] Sub-task: Write test for loading exclusion variant counts.
     - [ ] Sub-task: Update `R/data_loading.R` to load `results/exclusions/{benchmark}/exclusion_impact.csv` with variant counts.
