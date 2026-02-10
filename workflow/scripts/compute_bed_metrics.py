@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# AI Disclosure: This script was modified with assistance from Claude (Anthropic)
+# for bug fix and code review.
 """
 Compute overlap metrics between two BED files.
 
@@ -11,8 +13,6 @@ Uses bedtools to calculate:
 """
 
 import subprocess
-import sys
-from pathlib import Path
 from logging_config import setup_logger
 
 logger = setup_logger(__name__)
@@ -79,6 +79,7 @@ def compute_intersection(
 
     cmd = (
         f"bedtools intersect -a <({a_cmd}) -b <({b_cmd}) | "
+        f"bedtools sort -i - | bedtools merge -i - | "
         f"awk '{{sum+=$3-$2}} END {{print sum+0}}'"
     )
 

@@ -27,7 +27,7 @@ def summarize_variant_counts(input_csv: Path, output_csv: Path, log_path: Path) 
     context_summary: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     with open(log_path, "w") as log:
-        log.write(f"Summarizing variant counts\n")
+        log.write("Summarizing variant counts\n")
         log.write(f"Input: {input_csv}\n")
         log.write(f"Output: {output_csv}\n\n")
 

@@ -5,6 +5,7 @@ Extract INFO field names from VCF header for bcftools query.
 Usage:
     python extract_info_fields.py --vcf input.vcf.gz --output fields.txt
 """
+
 import argparse
 import gzip
 import re

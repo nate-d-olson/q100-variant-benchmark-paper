@@ -62,7 +62,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/CHM13v2.0/HG002Q100-errors_sorted.bed"
             sha256: "a7fdc04e69fd6112cfcd5a707412ad9fa5570e6fc1b585b6d4bc499f9b1d900e"
-      - name: "HG002Q100-mosaic"
+      - name: "HG002-mosaic"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/CHM13v2.0/HG002Q100-mosaic_sorted.bed"
@@ -119,7 +119,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_consecutive-svs_sorted.bed"
             sha256: "077d4b9bf2f2c0c86b5b545c4c81fe3d6290d22655caa0912d8277bdd7574eee"
-      - name: "dip.bed_flanks"
+      - name: "flanks"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/CHM13_HG002-T2TQ100v1.1-dipz2k_stvar-excluded/exclusions/intersections/CHM13v2.0_HG2-T2TQ100-V1.1_stvar_dipcall-z2k_flanks_sorted.bed"
@@ -212,14 +212,14 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_flanks_sorted.bed"
             sha256: "57ae2f1dd4814228ec6197bdc2268b0f67f882b8a1beffcfe5156ff2930f5a0b"
-      - name: "satellites_slopmerge_sorted"
+      - name: "satellites"
         type: "pair"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_start_sorted.bed"
             sha256: "ed671567cf8a9957ae983f74dc5f417ab2565584b9f6fd3efe35fe1b9b6a1ec3"
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_satellites_slopmerge_sorted_end_sorted.bed"
             sha256: "fab4d05f9ff63745b34e0841a4c789da0c1bdc726305409c2034e310d5464363"
-      - name: "segdups_slopmerge_sorted"
+      - name: "segdups"
         type: "pair"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/GRCh37_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh37_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_start_sorted.bed"
@@ -258,7 +258,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh37/HG002Q100-pav-discrep-smvar_sorted.bed"
             sha256: "261bd2650b7f70124b9f183ee2f0cb5dea8fa7d784a8e515b657ecd906213e6f"
-      - name: "pav-discrep-stvar"
+      - name: "dipcall-pav_discrep-stvar"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh37/HG002Q100-pav-discrep-stvar_sorted.bed"
@@ -341,12 +341,12 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh37/HG002Q100-mosaic_sorted.bed"
             sha256: "62902c8636f5c4911543e7a7d61103406e2540c4be149a2749a1f93ba9a4d5b4"
-      - name: "dip.call-pav_discrep-smvar"
+      - name: "dipcall-pav_discrep-smvar"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh37/HG002Q100-pav-discrep-smvar_sorted.bed"
             sha256: "261bd2650b7f70124b9f183ee2f0cb5dea8fa7d784a8e515b657ecd906213e6f"
-      - name: "dip.call-pav_discrep-stvar"
+      - name: "dipcall-pav_discrep-stvar"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh37/HG002Q100-pav-discrep-stvar_sorted.bed"
@@ -412,7 +412,7 @@ benchmarksets:
             sha256: "3f6b1b95bc8f6372c2c7e2e3e54c0603a7d62197ff871229a5e0530cf414444b"
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_segdups_slopmerge_sorted_end_sorted.bed"
             sha256: "447dd6f808a522b6f519c9c17d748ccc68e0ae371aca0a07bf8f2ce1d7bbf19a"
-      - name: "GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_self-discrep"
+      - name: "self-discrep"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/results/draft_benchmarksets/GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded/exclusions/intersections/GRCh38_HG2-T2TQ100-V1.1_smvar_dipcall-z2k_self-discrep_sorted.bed"
@@ -469,7 +469,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh38/dipcall-bugs-T2TACE_sorted.bed"
             sha256: "576cddeacfa7d9aa897ba05be957262aa1fc9ec170aaf38b2ac6363be9adc0de"
-      - name: "gaps_slop"
+      - name: "gaps"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh38/gaps_slop_sorted.bed"
@@ -557,7 +557,7 @@ benchmarksets:
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh38/dipcall-bugs-T2TACE_sorted.bed"
             sha256: "576cddeacfa7d9aa897ba05be957262aa1fc9ec170aaf38b2ac6363be9adc0de"
-      - name: "gaps_slop"
+      - name: "gaps"
         type: "single"
         files:
           - url: "https://giab-data.s3.amazonaws.com/defrabb_runs/20250117_v0.020_HG002Q100v1.1/resources/exclusions/GRCh38/gaps_slop_sorted.bed"

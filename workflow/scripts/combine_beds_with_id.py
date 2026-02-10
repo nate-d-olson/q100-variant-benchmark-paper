@@ -10,6 +10,7 @@ Usage:
         --beds file1.bed:ID1 file2.bed:ID2 ... \
         --output combined.bed
 """
+
 import argparse
 import gzip
 import sys

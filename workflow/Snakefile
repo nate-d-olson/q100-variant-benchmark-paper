@@ -57,6 +57,15 @@ include: "rules/ref_processing.smk"
 include: "rules/genomic_context_metrics.smk"
 include: "rules/stratify_bench.smk"
 include: "rules/vcf_processing.smk"
+# Optional rule-all outputs (currently disabled):
+# - results/stats/{comp_id}_variants.csv
+# - results/stats/{comp_id}_regions.csv
+# - results/stratified_bench/{comp_id}/summary_by_variant.tsv (type=stvar)
+# - results/stratified_bench/{comp_id}/summary_by_region.tsv (type=stvar)
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_within.tsv
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_complement.tsv
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_within.tsv
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_complement.tsv
 include: "rules/var_counts.smk"
 include: "rules/var_tables.smk"
 
@@ -64,7 +73,6 @@ include: "rules/var_tables.smk"
 rule all:
     input:
         get_var_table_inputs,
-        get_exclusion_table_inputs,
         expand(
             "results/ref_genome_sizes/{ref}_size.tsv",
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],
@@ -79,11 +87,14 @@ rule all:
             "results/var_counts/{benchmark}/genomic_context_combined_metrics.csv",
             benchmark=BENCHMARK,
         ),
-        ## Benchmark set exclusion intersection - overlap of exclusion beds with dip.bed
+        ## Per-exclusion impact: BED metrics + variant counts
+        get_exclusion_impact_targets,
+        ## Exclusion interactions (upset-style decomposition)
+        get_exclusion_interaction_targets,
+        ## Cross-version comparison: old benchmark vs v5.0q exclusion status
         expand(
-            "results/exclusions/v5.0q_{ref}_{var_type}/exclusions_intersection_table.csv",
-            ref=REF,
-            var_type=["smvar", "stvar"],
+            "results/exclusions/{comp_id}/old_only_summary.csv",
+            comp_id=config.get("comparisons", {}).keys(),
         ),
         ## Benchmark regions overlap with difficult region stratifications
         expand(
@@ -91,31 +102,3 @@ rule all:
             benchmark=BENCHMARK,
             strat=STRAT,
         ),
-        # expand(
-        #     "results/stats/{comp_id}_variants.csv",
-        #     comp_id=config.get("comparisons", {}).keys(),
-        # ),
-        # expand(
-        #     "results/stats/{comp_id}_regions.csv",
-        #     comp_id=config.get("comparisons", {}).keys(),
-        # ),
-        # expand(
-        #     "results/stratified_bench/{comp_id}/summary_by_variant.tsv",
-        #     comp_id=[
-        #         c
-        #         for c, conf in config.get("comparisons", {}).items()
-        #         if conf.get("type") == "stvar"
-        #     ],
-        # ),
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_within.tsv",
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_complement.tsv",
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_within.tsv",
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_complement.tsv",
-        # expand(
-        #     "results/stratified_bench/{comp_id}/summary_by_region.tsv",
-        #     comp_id=[
-        #         c
-        #         for c, conf in config.get("comparisons", {}).items()
-        #         if conf.get("type") == "stvar"
-        #     ],
-        # ),

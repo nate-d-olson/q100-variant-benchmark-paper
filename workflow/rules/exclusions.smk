@@ -1,22 +1,22 @@
+# AI Disclosure: This file was modified with assistance from Claude (Anthropic)
+# for code generation and pipeline design.
 """
-Rules for generating exclusion intersection tables.
+Rules for exclusion analysis of v5.0q benchmark sets.
 
-ONLY applies to v5.0q benchmark sets. Computes overlap metrics between
-exclusion BED regions and dipcall benchmark regions (dip.bed).
+Generates three types of output:
 
-For each v5.0q benchmark set, generates a table with columns:
-- exclusions: Name of the exclusion region
-- exclusion_bp: Total bases in the exclusion BED
-- intersect_bp: Bases overlapping between exclusion and dip.bed regions
-- pct_of_dip: Percent of benchmark regions covered by exclusion
+1. Per-exclusion impact (Q1): BED overlap metrics + variant counts
+   Output: results/exclusions/{benchmark}/exclusion_impact.csv
 
-Helper functions are defined in rules/common.smk:
-- get_exclusion_config()
-- get_exclusion_items()
-- get_exclusion_entry()
-- get_exclusion_inputs()
-- get_exclusion_type()
-- get_input_checksums()
+2. Exclusion interactions (Q2): upset-style decomposition showing which
+   combinations of exclusions overlap bases and variants
+   Output: results/exclusions/{benchmark}/exclusion_interactions.csv
+
+3. Cross-version comparison (Q3): why old benchmark regions/variants
+   are absent in v5.0q (not in dip.bed vs excluded vs other)
+   Output: results/exclusions/{comp_id}/old_only_*.csv
+
+Helper functions are defined in rules/common.smk.
 """
 
 
@@ -44,6 +44,7 @@ rule materialize_exclusion:
         "Materializing exclusion {wildcards.exclusion} for {wildcards.benchmark}"
     resources:
         mem_mb=2048,
+    threads: 1
     conda:
         "../envs/bedtools.yaml"
     shell:
@@ -82,6 +83,7 @@ rule compute_dip_size:
         "Computing dip.bed size for {wildcards.benchmark}"
     resources:
         mem_mb=2048,
+    threads: 1
     conda:
         "../envs/bedtools.yaml"
     shell:
@@ -113,54 +115,112 @@ rule compute_exclusion_metrics:
         "Computing metrics for {wildcards.exclusion} in {wildcards.benchmark}"
     resources:
         mem_mb=4096,
+    threads: 1
     conda:
-        "../envs/python.yaml"
+        "../envs/bedtools.yaml"
     script:
         "../scripts/compute_bed_metrics.py"
 
 
-rule aggregate_exclusion_table:
+rule compute_exclusion_impact:
     """
-    Aggregate all exclusion metrics into a single CSV table.
+    Compute per-exclusion impact: BED metrics + variant counts.
 
-    Output format:
-    - exclusions: Name of the exclusion
-    - exclusion_bp: Total bases in exclusion
-    - intersect_bp: Overlap with benchmark regions
-    - pct_of_exclusion: Percent of exclusion covered by benchmark
-    - pct_of_dip: Percent of benchmark covered by exclusion
+    Combines per-exclusion BED overlap metrics with variant counts from the
+    variant table. Applies size filtering: smvar <50bp, stvar >=50bp.
     """
     input:
-        lambda wc: expand(
-            "results/exclusions/{benchmark}/coverage/{exclusion}.tsv",
-            benchmark=wc.benchmark,
-            exclusion=get_exclusion_items(wc),
-        ),
+        unpack(get_exclusion_impact_inputs),
     output:
         csv=ensure(
-            "results/exclusions/{benchmark}/exclusions_intersection_table.csv",
+            "results/exclusions/{benchmark}/exclusion_impact.csv",
             non_empty=True,
         ),
+    params:
+        excl_name_mapping=lambda wc: list(
+            get_exclusion_name_mapping(wc.benchmark).items()
+        ),
     log:
-        "logs/exclusions/{benchmark}/aggregate.log",
+        "logs/exclusions/{benchmark}/impact.log",
     message:
-        "Aggregating exclusion table for {wildcards.benchmark}"
+        "Computing exclusion impact for {wildcards.benchmark}"
     resources:
-        mem_mb=1024,
+        mem_mb=4096,
+    threads: 1
     conda:
         "../envs/bedtools.yaml"
-    shell:
-        """
-        echo "Aggregating exclusion metrics for {wildcards.benchmark}" > {log}
-        echo "Input files: {input}" >> {log}
-        echo "Started at $(date)" >> {log}
+    script:
+        "../scripts/count_exclusion_variants.py"
 
-        # Write header
-        echo "exclusions,exclusion_bp,intersect_bp,pct_of_exclusion,pct_of_dip" > {output.csv}
 
-        # Concatenate all metric files, converting tabs to commas
-        cat {input} | tr '\\t' ',' >> {output.csv}
+rule compute_exclusion_interactions:
+    """
+    Compute exclusion interaction (upset-style) decomposition.
 
-        echo "Output lines: $(wc -l < {output.csv})" >> {log}
-        echo "Completed at $(date)" >> {log}
-        """
+    For each unique combination of overlapping exclusions, computes bases
+    and variant counts. Uses bedtools multiinter for bases and variant table
+    REGION_IDS for variants. Size filtering: smvar <50bp, stvar >=50bp.
+    """
+    input:
+        unpack(get_exclusion_interaction_inputs),
+    output:
+        csv=ensure(
+            "results/exclusions/{benchmark}/exclusion_interactions.csv",
+            non_empty=True,
+        ),
+    params:
+        excl_name_mapping=lambda wc: list(
+            get_exclusion_name_mapping(wc.benchmark).items()
+        ),
+    log:
+        "logs/exclusions/{benchmark}/interactions.log",
+    message:
+        "Computing exclusion interactions for {wildcards.benchmark}"
+    resources:
+        mem_mb=4096,
+    threads: 1
+    conda:
+        "../envs/bedtools.yaml"
+    script:
+        "../scripts/compute_exclusion_interactions.py"
+
+
+rule annotate_old_benchmark_status:
+    """
+    Annotate old benchmark variants/regions with v5.0q exclusion status.
+
+    For variants in the old benchmark that are NOT in v5.0q benchmark regions,
+    determines whether they are: not in dip.bed, excluded by an exclusion, or
+    in dip.bed but not excluded.
+    """
+    input:
+        unpack(get_old_benchmark_analysis_inputs),
+    output:
+        variants_tsv=ensure(
+            "results/exclusions/{comp_id}/old_only_variants.tsv", non_empty=True
+        ),
+        summary_csv=ensure(
+            "results/exclusions/{comp_id}/old_only_summary.csv", non_empty=True
+        ),
+        regions_csv=ensure(
+            "results/exclusions/{comp_id}/old_only_regions.csv", non_empty=True
+        ),
+    params:
+        comp_type=lambda wc: config["comparisons"][wc.comp_id]["type"],
+        excl_names=lambda wc: [
+            e["name"]
+            for e in get_exclusion_config(
+                config["comparisons"][wc.comp_id]["new_benchmark"]
+            )
+        ],
+    log:
+        "logs/exclusions/{comp_id}/old_benchmark_status.log",
+    message:
+        "Annotating old benchmark status for {wildcards.comp_id}"
+    resources:
+        mem_mb=8192,
+    threads: 2
+    conda:
+        "../envs/bedtools.yaml"
+    script:
+        "../scripts/annotate_old_benchmark_status.py"

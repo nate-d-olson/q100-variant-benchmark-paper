@@ -4,7 +4,6 @@ import os
 import tempfile
 import logging
 import gzip
-from typing import List, Dict, Any
 
 # Setup logging
 logging.basicConfig(
