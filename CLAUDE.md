@@ -22,7 +22,9 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 - **Genomic Context**: Difficult regions (HP, TR, SD, MAP, etc.)—used for variant analysis and metrics computation
 - **Stratification**: Same regions as genomic context, but when used in GIAB comparison analysis or benchmarkset comparisons
 - **Benchmark Regions**: The set of regions where variants are confident—separate from genomic contexts
-- **Bench Type**: Classification for benchmark variants (smvar = small variants, stvar = structural variants)
+- **Bench Type**: Classification for benchmark variants (smvar = small variants <50bp, stvar = structural variants >=50bp)
+- **Exclusions**: Regions removed from dip.bed to produce the final v5.0q benchmark regions. Configured per-benchmark in `config.yaml`. Names must be consistent across all v5.0q benchmarks (e.g., use `gaps` not `gaps_slop`).
+- **dip.bed**: Dipcall assembly regions — the starting point before exclusions are applied
 
 **Key Rules by Layer:**
 1. **Metrics** (`workflow/rules/strat_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
@@ -34,11 +36,25 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
    - Outputs: `results/var_counts/{benchmark}/genomic_context_combined_metrics.csv`
 4. **Comparisons** (`workflow/rules/comparisons.smk`): Truvari comparison between benchmark versions
    - Uses "stratification" terminology (not genomic_context) for GIAB comparison analysis
+5. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
+   - `materialize_exclusion`: Downloads/merges exclusion BED files
+   - `compute_exclusion_metrics`: Per-exclusion BED overlap with dip.bed (uses `compute_bed_metrics.py`)
+   - `compute_exclusion_impact`: Per-exclusion variant counts + BED metrics (Q1)
+   - `compute_exclusion_interactions`: Upset-style exclusion combination analysis (Q2)
+   - `annotate_old_benchmark_status`: Cross-version comparison of old vs v5.0q benchmarks (Q3)
+   - Outputs: `results/exclusions/{benchmark}/exclusion_impact.csv`, `exclusion_interactions.csv`
+   - Cross-version outputs: `results/exclusions/{comp_id}/old_only_*.csv`
 
 **Output File Patterns:**
 - Genomic context files: `results/genomic_context_*/{benchmark}/*.csv`
 - Variant annotations: `results/variant_tables/{benchmark}/*.tsv`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`
+- Cross-version exclusion analysis: `results/exclusions/{comp_id}/*.csv`
+
+**Snakemake Environment:**
+- Activate with: `micromamba activate q100-smk`
+- Dry-run: `snakemake -n <target>`
+- Snakemake version: 9.x (uses `--` before positional targets with flags like `-n`)
 
 ## Common Debugging Patterns
 
