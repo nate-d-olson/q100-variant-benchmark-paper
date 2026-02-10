@@ -152,7 +152,8 @@ bench_var_cnt_df <- variants_df %>%
   ungroup() %>%
   pivot_wider(
     names_from = var_type,
-    values_from = n
+    values_from = n,
+    values_fill = ""
   )
 ```
 
@@ -171,8 +172,6 @@ full_join(bench_var_cnt_df, bench_region_stats_df) %>%
   gt::cols_label(
     ref = "Reference",
     bench_type = "Benchmark Type",
-    # var_type = "Variant Subtype",
-    # n = "Variant Count",
     total_bp = "Benchmark Bases",
     pct_ref_cvg = "% Ref. Cov.",
     pct_q100_cvg = "% Asm. Cov."
@@ -217,6 +216,34 @@ smv_cnt_tbl <- smvar_cnt_df %>%
     Total = "Total Variants"
   )
 
+```
+
+### Small Variant Counts Breakdown
+
+```{r small_variant_breakdown}
+# Calculate breakdown of small variants by size bin
+smvar_breakdown_df <- variants_df %>%
+  filter(bench_type == "smvar") %>%
+  mutate(
+    size_bin = if_else(abs(var_size) < 15, "<15bp", "15-49bp")
+  ) %>%
+  count(ref, bench_version, size_bin) %>%
+  pivot_wider(names_from = size_bin, values_from = n, values_fill = 0) %>%
+  mutate(Total = `<15bp` + `15-49bp`)
+
+# Display as table
+smvar_breakdown_df %>%
+  arrange(ref, bench_version) %>%
+  gt::gt(caption = "Breakdown of small variant counts by size (<15bp and 15-49bp).") %>%
+  gt::fmt_integer(columns = c(`<15bp`, `15-49bp`, Total)) %>%
+  gt::cols_align(
+    columns = c("ref", "bench_version"),
+    align = "right"
+  ) %>%
+  gt::cols_label(
+    ref = "Reference",
+    bench_version = "Benchmark"
+  )
 ```
 
 ### Structural Variant Counts
@@ -460,8 +487,8 @@ bench_version_cols <- c(
     ))
 
 ggsave(
-    filename = here("manuscript", "figs", "diff_variant_counts.png"),
-    plot = diff_var_plt,
+    filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
+    plot = combined_context_plt,
     width = 8,
     height = 6,
     dpi = 300,
@@ -574,7 +601,7 @@ bench_regions_df %>%
 
 ### Relative changes between v5q and v4.2.1/v0.6 by chromosome
 ```{r fig.width = 8, fig.height = 4}
-(coverage_change_plt <- regions_df %>%
+(coverage_change_plt <- benchmark_regions_df %>%
     filter(
         bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
         (var_type == "smvar" & ref == "GRCh38") |
@@ -845,7 +872,7 @@ diff_var_fld_chg <- diff_var_plt_df %>%
 ```
 
 
-```{r}
+```{r eval=FALSE}
 diff_var_fld_chg %>%
   filter(strat_ids %in% c("HP", "MAP", "SD", "TR")) %>%
   mutate(
@@ -895,7 +922,7 @@ diff_var_fld_chg %>%
 ### Benchmark Interval Size Distributions
 
 Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-request s3://platinum-pedigree-data/truthset_v1.2/ . 
-```{r}
+```{r eval = FALSE}
 (interval_size_dist_plt <- regions_df %>%
   filter(
     bench_version %in% c("v5.0q", "v4.2.1", "v0.6", "PP"),
@@ -938,7 +965,7 @@ Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-req
   ))
 ```
 
-```{r}
+```{r eval=FALSE}
 (interval_count_plt <- regions_df %>%
     filter(
         bench_version %in% c("v5.0q", "v4.2.1", "v0.6", "PP"),
@@ -964,13 +991,13 @@ Platinum pedigree truthsets downloaded from aws using `aws s3 sync --no-sign-req
     theme(legend.position = "none"))
 ```
 
-```{r}
+```{r eval=FALSE}
 (interval_plt <- interval_count_plt + 
     interval_size_dist_plt +
     plot_layout(ncol = 1))
 ```
 
-```{r}
+```{r eval=FALSE}
 ggsave(
     here("manuscript/figs/benchmark_intervals.png"),
     interval_plt,
