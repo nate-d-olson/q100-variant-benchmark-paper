@@ -536,7 +536,7 @@ def get_chromosomes(wildcards) -> str:
     if wildcards.ref == "GRCh37":
         return " ".join(chroms)
 
-    ## Adding chr prefix for non-GRCh37 references
+        ## Adding chr prefix for non-GRCh37 references
     return " ".join([f"chr{i}" for i in chroms])
 
 
