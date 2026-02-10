@@ -62,8 +62,9 @@ def compute_base_interactions(
             cmd, shell=True, capture_output=True, text=True, executable="/bin/bash"
         )
         if result.returncode != 0:
-            log.write(f"ERROR computing excluded regions: {result.stderr}\n")
-            return {}
+            error_msg = f"bedtools subtract failed: {result.stderr}"
+            log.write(f"ERROR computing excluded regions: {error_msg}\n")
+            raise RuntimeError(error_msg)
 
         # Run bedtools multiinter on all exclusion BEDs
         beds_str = " ".join(exclusion_beds)
@@ -79,8 +80,9 @@ def compute_base_interactions(
             cmd, shell=True, capture_output=True, text=True, executable="/bin/bash"
         )
         if result.returncode != 0:
-            log.write(f"ERROR in multiinter: {result.stderr}\n")
-            return {}
+            error_msg = f"bedtools multiinter/intersect pipeline failed: {result.stderr}"
+            log.write(f"ERROR in multiinter: {error_msg}\n")
+            raise RuntimeError(error_msg)
 
         # Parse multiinter output
         # Format: chrom start end num_overlaps names_list [per-bed columns]
