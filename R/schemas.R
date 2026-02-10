@@ -35,6 +35,7 @@ get_arrow_schema <- function(dataset_name) {
       gt = arrow::utf8(),
       vkx = arrow::utf8(),
       var_type = arrow::utf8(),
+      variant_length = arrow::int32(),
       len_ref = arrow::int32(),
       len_alt = arrow::int32(),
       var_size = arrow::int32(),
