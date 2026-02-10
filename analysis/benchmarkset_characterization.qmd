@@ -159,9 +159,14 @@ bench_var_cnt_df <- variants_df %>%
 ```{r}
 full_join(bench_var_cnt_df, bench_region_stats_df) %>%
   select(-bench_version) %>%
+  ungroup() %>% 
+  mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38","CHM13v2.0"))) %>% 
+  rename(SNV = SNP) %>%
+  arrange(bench_type, ref) %>%
+  group_by(bench_type) %>%
   gt::gt() %>%
   gt::fmt_integer(
-    columns = c(contains("var"), total_bp)
+    columns = c(SNV,INDEL, INS, DEL, total_bp)
   ) %>%
   gt::sub_missing(
     missing_text = ""
@@ -180,36 +185,27 @@ full_join(bench_var_cnt_df, bench_region_stats_df) %>%
   gt::cols_move(
     columns = c("SNV", "INDEL", "INS", "DEL"),
     after = "ref"
-  ) %>% 
+  ) %>%
   theme_gt_manuscript()
-```
-```{r}
-full_join(bench_var_cnt_df, bench_region_stats_df) %>%
-  select(-bench_version) %>%
-  ungroup() %>%
-  arrange(bench_type, ref) 
 ```
 
 ## Variant Size Distributions
-
-**Note:** This section loads full variant-level data (large files, several minutes to load). These analyses require variant-level granularity and cannot be computed from aggregated metrics.
 
 
 ```{r sv_length_distribution}
 #| message: true
 # Load structural variant data for selected benchmarks
 # This loads full variant tables for size distribution analysis
-message("Loading full variant tables for size distribution analysis...")
-message("This may take several minutes as files are large (~1 GB)...")
 
-sv_len_df <- variants_df %>%
+stvar_len_df <- variants_df %>%
   filter(
     bench_version %in% c("v5.0q", "v0.6"),
     bench_type == "stvar"
   ) %>%
+  mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38","CHM13v2.0"))) %>% 
   select(bench_version, bench_type, ref, chrom, pos, var_size)
 
-(sv_len_dist_plt <- ggplot(
+(stvar_len_dist_plt <- ggplot(
   sv_len_df,
   aes(x = var_size)
 ) +
@@ -258,16 +254,6 @@ sv_len_df <- variants_df %>%
   ))
 ```
 
-```{r save_sv_length_distribution}
-ggsave(
-    filename = here("manuscript", "figs", "sv_length_distribution.png"),
-    plot = sv_len_dist_plt,
-    width = 8,
-    height = 6,
-    dpi = 300
-)
-```
-
 ```{r indel_length_distribution}
 #| message: true
 #| warning: false
@@ -285,6 +271,7 @@ smvar_len_df <- variants_df %>%
     bench_type == "smvar",
     var_type == "INDEL"
   ) %>%
+  mutate(ref = factor(ref, levels = c("GRCh37", "GRCh38","CHM13v2.0"))) %>% 
   select(bench_version, bench_type, ref, chrom, pos, var_size)
 
 (smvar_len_dist_plt <- ggplot(
@@ -312,6 +299,30 @@ smvar_len_df <- variants_df %>%
   ) +
   facet_wrap(~ref, ncol = 1) +
   theme_minimal())
+```
+
+```{r}
+(combined_var_len_dist_plt <- (smvar_len_dist_plt) + 
+  (stvar_len_dist_plt) + 
+  plot_layout(ncol = 2,
+              guides = "collect",
+              widths = c(1,2),
+              ) +
+  plot_annotation(tag_levels = "A") &
+  theme_manuscript() +
+  theme(axis.text.x = element_text(angle = -45, hjust = 0), 
+        plot.margin =  unit(c(5,5,5,5), "pt")))
+
+```
+
+```{r var_length_dist_save}
+ggsave(
+    filename = here("manuscript", "figs", "var_len_dist.png"),
+    plot = combined_var_len_dist_plt,
+    width = 8,
+    height = 4,
+    dpi = 300
+)
 ```
 
 
