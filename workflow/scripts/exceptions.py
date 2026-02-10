@@ -97,7 +97,7 @@ class DataFormatError(PipelineError):
         if missing_columns:
             error_parts.append(f"Missing columns: {', '.join(missing_columns)}")
             error_parts.append(
-                f"Suggestion: Check that input file has correct format and headers"
+                "Suggestion: Check that input file has correct format and headers"
             )
 
         super().__init__("\n  ".join(error_parts))

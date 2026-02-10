@@ -27,7 +27,9 @@ def _find_col(fieldnames: list[str], candidates: set[str]) -> str | None:
     return None
 
 
-def _compute_variant_size(row: dict, ref_col: str, alt_col: str, svlen_col: str | None) -> int:
+def _compute_variant_size(
+    row: dict, ref_col: str, alt_col: str, svlen_col: str | None
+) -> int:
     """Compute variant size in bp."""
     if svlen_col:
         svlen_val = row.get(svlen_col, ".")
@@ -56,7 +58,9 @@ def compute_base_interactions(
         # Compute excluded regions (dip.bed minus benchmark.bed)
         excluded_bed = os.path.join(tmpdir, "excluded.bed")
         cmd = f"bedtools subtract -a {dip_bed} -b {benchmark_bed} > {excluded_bed}"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, executable="/bin/bash")
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, executable="/bin/bash"
+        )
         if result.returncode != 0:
             log.write(f"ERROR computing excluded regions: {result.stderr}\n")
             return {}
@@ -71,7 +75,9 @@ def compute_base_interactions(
             f"| bedtools intersect -a - -b {excluded_bed} "
             f"> {multiinter_out}"
         )
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, executable="/bin/bash")
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, executable="/bin/bash"
+        )
         if result.returncode != 0:
             log.write(f"ERROR in multiinter: {result.stderr}\n")
             return {}
@@ -118,10 +124,21 @@ def compute_variant_interactions(
         alt_col = _find_col(fieldnames, {"STRLEN(ALT)"})
         svlen_col = _find_col(fieldnames, {"INFO/SVLEN", "SVLEN"})
 
-        if not region_col or not ref_col or not alt_col:
-            log.write("ERROR: Missing required columns\n")
-            return {}
+        missing_cols = []
+        if not region_col:
+            missing_cols.append("INFO/REGION_IDS or REGION_IDS")
+        if not ref_col:
+            missing_cols.append("STRLEN(REF)")
+        if not alt_col:
+            missing_cols.append("STRLEN(ALT)")
 
+        if missing_cols:
+            msg = (
+                f"Missing required columns in variant table {variant_table}: "
+                + ", ".join(missing_cols)
+            )
+            log.write(f"ERROR: {msg}\n")
+            raise ValueError(msg)
         for row in reader:
             region_ids_str = row.get(region_col, "")
             if not region_ids_str or region_ids_str == ".":
@@ -140,9 +157,7 @@ def compute_variant_interactions(
                 continue
 
             # Map EXCL_* IDs to canonical names
-            canon_names = sorted([
-                excl_name_mapping.get(eid, eid) for eid in excl_ids
-            ])
+            canon_names = sorted([excl_name_mapping.get(eid, eid) for eid in excl_ids])
             combo_key = "|".join(canon_names)
             combo_counts[combo_key] += 1
 
@@ -163,9 +178,7 @@ def main():
     log_path = str(snakemake.log[0])
 
     # Derive canonical names from bed paths (filename without .bed extension)
-    exclusion_names = [
-        Path(p).stem for p in exclusion_beds
-    ]
+    exclusion_names = [Path(p).stem for p in exclusion_beds]
 
     with open(log_path, "w") as log:
         log.write(f"Computing exclusion interactions for {benchmark}\n")
@@ -189,18 +202,25 @@ def main():
 
         with open(output_csv, "w", newline="") as out_f:
             writer = csv.writer(out_f)
-            writer.writerow([
-                "exclusion_combination", "n_exclusions",
-                "bases_bp", "variant_count",
-            ])
+            writer.writerow(
+                [
+                    "exclusion_combination",
+                    "n_exclusions",
+                    "bases_bp",
+                    "variant_count",
+                ]
+            )
 
             for combo in sorted(all_combos):
                 n_excl = len(combo.split("|"))
-                writer.writerow([
-                    combo, n_excl,
-                    base_combos.get(combo, 0),
-                    var_combos.get(combo, 0),
-                ])
+                writer.writerow(
+                    [
+                        combo,
+                        n_excl,
+                        base_combos.get(combo, 0),
+                        var_combos.get(combo, 0),
+                    ]
+                )
 
         log.write(f"\nOutput: {len(all_combos)} combinations written\n")
 

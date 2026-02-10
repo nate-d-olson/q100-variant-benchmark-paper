@@ -32,7 +32,7 @@ def combine_metrics_and_counts(
     counts: Dict[str, Dict[str, int]] = {}
 
     with open(log_path, "w") as log:
-        log.write(f"Combining metrics and counts\n")
+        log.write("Combining metrics and counts\n")
         log.write(f"Metrics input: {metrics_csv}\n")
         log.write(f"Counts input: {counts_csv}\n")
         log.write(f"Output: {output_csv}\n\n")

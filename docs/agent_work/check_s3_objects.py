@@ -11,7 +11,6 @@ This script:
 """
 
 import argparse
-import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
@@ -36,28 +35,28 @@ def parse_s3_url(url: str) -> Tuple[str, str]:
         Tuple of (bucket_name, object_key)
     """
     # Handle s3:// protocol
-    if url.startswith('s3://'):
+    if url.startswith("s3://"):
         parsed = urlparse(url)
-        return parsed.netloc, parsed.path.lstrip('/')
+        return parsed.netloc, parsed.path.lstrip("/")
 
     # Handle https URLs
     parsed = urlparse(url)
     hostname = parsed.hostname
-    path = parsed.path.lstrip('/')
+    path = parsed.path.lstrip("/")
 
     # Format: bucket.s3.amazonaws.com or bucket.s3-region.amazonaws.com
-    if hostname and '.s3' in hostname and hostname.endswith('.amazonaws.com'):
-        bucket = hostname.split('.s3')[0]
+    if hostname and ".s3" in hostname and hostname.endswith(".amazonaws.com"):
+        bucket = hostname.split(".s3")[0]
         key = path
         return bucket, key
 
     # Format: s3.amazonaws.com/bucket/key or s3-region.amazonaws.com/bucket/key
-    if hostname and hostname.startswith('s3') and hostname.endswith('.amazonaws.com'):
-        parts = path.split('/', 1)
+    if hostname and hostname.startswith("s3") and hostname.endswith(".amazonaws.com"):
+        parts = path.split("/", 1)
         if len(parts) == 2:
             return parts[0], parts[1]
         elif len(parts) == 1:
-            return parts[0], ''
+            return parts[0], ""
 
     raise ValueError(f"Cannot parse S3 URL: {url}")
 
@@ -65,11 +64,12 @@ def parse_s3_url(url: str) -> Tuple[str, str]:
 def is_s3_url(url: str) -> bool:
     """Check if URL is an S3 URL."""
     return (
-        url.startswith('s3://') or
-        '.s3.amazonaws.com' in url or
-        '.s3-' in url and '.amazonaws.com' in url or
-        url.startswith('https://s3.amazonaws.com/') or
-        url.startswith('https://s3-')
+        url.startswith("s3://")
+        or ".s3.amazonaws.com" in url
+        or ".s3-" in url
+        and ".amazonaws.com" in url
+        or url.startswith("https://s3.amazonaws.com/")
+        or url.startswith("https://s3-")
     )
 
 
@@ -77,7 +77,7 @@ def extract_urls_from_dict(data: dict, urls: Set[str]) -> None:
     """Recursively extract URLs from nested dictionary."""
     if isinstance(data, dict):
         for key, value in data.items():
-            if key == 'url' and isinstance(value, str):
+            if key == "url" and isinstance(value, str):
                 urls.add(value)
             elif isinstance(value, (dict, list)):
                 extract_urls_from_dict(value, urls)
@@ -105,7 +105,7 @@ def check_object_exists(s3_client, bucket: str, key: str) -> bool:
         s3_client.head_object(Bucket=bucket, Key=key)
         return True
     except ClientError as e:
-        if e.response['Error']['Code'] == '404':
+        if e.response["Error"]["Code"] == "404":
             return False
         raise
 
@@ -115,9 +115,9 @@ def get_object_info(s3_client, bucket: str, key: str) -> Dict:
     try:
         response = s3_client.head_object(Bucket=bucket, Key=key)
         return {
-            'storage_class': response.get('StorageClass', 'STANDARD'),
-            'restore': response.get('Restore'),
-            'content_length': response.get('ContentLength', 0),
+            "storage_class": response.get("StorageClass", "STANDARD"),
+            "restore": response.get("Restore"),
+            "content_length": response.get("ContentLength", 0),
         }
     except ClientError as e:
         raise Exception(f"Failed to get object info: {e}")
@@ -134,35 +134,39 @@ def get_object_acl(s3_client, bucket: str, key: str) -> Dict:
 
 def is_publicly_readable(acl: Dict) -> bool:
     """Check if object has public-read ACL."""
-    for grant in acl.get('Grants', []):
-        grantee = grant.get('Grantee', {})
-        permission = grant.get('Permission')
+    for grant in acl.get("Grants", []):
+        grantee = grant.get("Grantee", {})
+        permission = grant.get("Permission")
 
         # Check for AllUsers group with READ permission
-        if (grantee.get('Type') == 'Group' and
-            grantee.get('URI') == 'http://acs.amazonaws.com/groups/global/AllUsers' and
-            permission == 'READ'):
+        if (
+            grantee.get("Type") == "Group"
+            and grantee.get("URI") == "http://acs.amazonaws.com/groups/global/AllUsers"
+            and permission == "READ"
+        ):
             return True
 
     return False
 
 
-def set_public_read_acl(s3_client, bucket: str, key: str, dry_run: bool = False) -> None:
+def set_public_read_acl(
+    s3_client, bucket: str, key: str, dry_run: bool = False
+) -> None:
     """Set object ACL to public-read."""
     if dry_run:
-        print(f"  [DRY RUN] Would set ACL to public-read")
+        print("  [DRY RUN] Would set ACL to public-read")
         return
 
     try:
-        s3_client.put_object_acl(Bucket=bucket, Key=key, ACL='public-read')
-        print(f"  ✓ Set ACL to public-read")
+        s3_client.put_object_acl(Bucket=bucket, Key=key, ACL="public-read")
+        print("  ✓ Set ACL to public-read")
     except ClientError as e:
         raise Exception(f"Failed to set ACL: {e}")
 
 
 def needs_restore(storage_class: str, restore_status: str) -> bool:
     """Check if object needs to be restored from Glacier."""
-    glacier_classes = ['GLACIER', 'DEEP_ARCHIVE', 'GLACIER_IR']
+    glacier_classes = ["GLACIER", "DEEP_ARCHIVE", "GLACIER_IR"]
 
     if storage_class not in glacier_classes:
         return False
@@ -177,37 +181,39 @@ def needs_restore(storage_class: str, restore_status: str) -> bool:
     return True
 
 
-def restore_object(s3_client, bucket: str, key: str, storage_class: str, dry_run: bool = False) -> None:
+def restore_object(
+    s3_client, bucket: str, key: str, storage_class: str, dry_run: bool = False
+) -> None:
     """Restore object from Glacier or change storage class."""
     if dry_run:
         print(f"  [DRY RUN] Would restore from {storage_class}")
         return
 
-    glacier_classes = ['GLACIER', 'DEEP_ARCHIVE', 'GLACIER_IR']
+    glacier_classes = ["GLACIER", "DEEP_ARCHIVE", "GLACIER_IR"]
 
     if storage_class in glacier_classes:
         # Initiate restore request
         try:
             restore_config = {
-                'Days': 30,  # Keep restored copy for 30 days
-                'GlacierJobParameters': {
-                    'Tier': 'Expedited' if storage_class != 'DEEP_ARCHIVE' else 'Standard'
-                }
+                "Days": 30,  # Keep restored copy for 30 days
+                "GlacierJobParameters": {
+                    "Tier": (
+                        "Expedited" if storage_class != "DEEP_ARCHIVE" else "Standard"
+                    )
+                },
             }
 
             # Deep Archive doesn't support Expedited
-            if storage_class == 'DEEP_ARCHIVE':
-                restore_config['GlacierJobParameters']['Tier'] = 'Standard'
+            if storage_class == "DEEP_ARCHIVE":
+                restore_config["GlacierJobParameters"]["Tier"] = "Standard"
 
             s3_client.restore_object(
-                Bucket=bucket,
-                Key=key,
-                RestoreRequest=restore_config
+                Bucket=bucket, Key=key, RestoreRequest=restore_config
             )
             print(f"  ✓ Initiated restore from {storage_class}")
         except ClientError as e:
-            if e.response['Error']['Code'] == 'RestoreAlreadyInProgress':
-                print(f"  ℹ Restore already in progress")
+            if e.response["Error"]["Code"] == "RestoreAlreadyInProgress":
+                print("  ℹ Restore already in progress")
             else:
                 raise Exception(f"Failed to restore object: {e}")
     else:
@@ -215,7 +221,9 @@ def restore_object(s3_client, bucket: str, key: str, storage_class: str, dry_run
         print(f"  ℹ Object in {storage_class} - can be downloaded immediately")
 
 
-def check_and_fix_object(s3_client, url: str, dry_run: bool = False, verbose: bool = False) -> Dict:
+def check_and_fix_object(
+    s3_client, url: str, dry_run: bool = False, verbose: bool = False
+) -> Dict:
     """
     Check and fix a single S3 object.
 
@@ -223,18 +231,18 @@ def check_and_fix_object(s3_client, url: str, dry_run: bool = False, verbose: bo
         Dictionary with status information
     """
     result = {
-        'url': url,
-        'exists': False,
-        'public': False,
-        'storage_class': None,
-        'needs_restore': False,
-        'actions_taken': []
+        "url": url,
+        "exists": False,
+        "public": False,
+        "storage_class": None,
+        "needs_restore": False,
+        "actions_taken": [],
     }
 
     try:
         bucket, key = parse_s3_url(url)
     except ValueError as e:
-        result['error'] = str(e)
+        result["error"] = str(e)
         return result
 
     if verbose:
@@ -247,25 +255,25 @@ def check_and_fix_object(s3_client, url: str, dry_run: bool = False, verbose: bo
     # Check if object exists
     try:
         exists = check_object_exists(s3_client, bucket, key)
-        result['exists'] = exists
+        result["exists"] = exists
 
         if not exists:
-            print(f"  ✗ Object does not exist")
-            result['error'] = 'Object not found'
+            print("  ✗ Object does not exist")
+            result["error"] = "Object not found"
             return result
 
         if verbose:
-            print(f"  ✓ Object exists")
+            print("  ✓ Object exists")
 
     except Exception as e:
         print(f"  ✗ Error checking existence: {e}")
-        result['error'] = str(e)
+        result["error"] = str(e)
         return result
 
     # Get object info
     try:
         info = get_object_info(s3_client, bucket, key)
-        result['storage_class'] = info['storage_class']
+        result["storage_class"] = info["storage_class"]
 
         if verbose:
             print(f"  Storage class: {info['storage_class']}")
@@ -273,50 +281,54 @@ def check_and_fix_object(s3_client, url: str, dry_run: bool = False, verbose: bo
 
     except Exception as e:
         print(f"  ✗ Error getting object info: {e}")
-        result['error'] = str(e)
+        result["error"] = str(e)
         return result
 
     # Check ACL
     try:
         acl = get_object_acl(s3_client, bucket, key)
         is_public = is_publicly_readable(acl)
-        result['public'] = is_public
+        result["public"] = is_public
 
         if is_public:
             if verbose:
-                print(f"  ✓ ACL is public-read")
+                print("  ✓ ACL is public-read")
         else:
-            print(f"  ✗ ACL is NOT public-read")
+            print("  ✗ ACL is NOT public-read")
             set_public_read_acl(s3_client, bucket, key, dry_run)
-            result['actions_taken'].append('set_acl')
+            result["actions_taken"].append("set_acl")
 
     except Exception as e:
         print(f"  ⚠ Error checking/setting ACL: {e}")
-        result['acl_error'] = str(e)
+        result["acl_error"] = str(e)
 
     # Check storage class and restore if needed
-    if needs_restore(info['storage_class'], info.get('restore')):
+    if needs_restore(info["storage_class"], info.get("restore")):
         print(f"  ✗ Object in {info['storage_class']} - needs restore")
-        result['needs_restore'] = True
+        result["needs_restore"] = True
         try:
-            restore_object(s3_client, bucket, key, info['storage_class'], dry_run)
-            result['actions_taken'].append('restore')
+            restore_object(s3_client, bucket, key, info["storage_class"], dry_run)
+            result["actions_taken"].append("restore")
         except Exception as e:
             print(f"  ⚠ Error restoring object: {e}")
-            result['restore_error'] = str(e)
-    elif info['storage_class'] in ['GLACIER', 'DEEP_ARCHIVE', 'GLACIER_IR']:
-        if info.get('restore'):
-            print(f"  ℹ Object in {info['storage_class']} but restore is in progress/complete")
+            result["restore_error"] = str(e)
+    elif info["storage_class"] in ["GLACIER", "DEEP_ARCHIVE", "GLACIER_IR"]:
+        if info.get("restore"):
+            print(
+                f"  ℹ Object in {info['storage_class']} but restore is in progress/complete"
+            )
     else:
         if verbose:
-            print(f"  ✓ Storage class {info['storage_class']} allows immediate download")
+            print(
+                f"  ✓ Storage class {info['storage_class']} allows immediate download"
+            )
 
     return result
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Check and fix S3 object permissions and storage tiers',
+        description="Check and fix S3 object permissions and storage tiers",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -331,55 +343,43 @@ Examples:
 
   # Check specific URL
   %(prog)s --url s3://bucket/path/to/object --fix
-        """
+        """,
     )
 
+    parser.add_argument("config", type=Path, nargs="?", help="Path to config.yaml file")
     parser.add_argument(
-        'config',
-        type=Path,
-        nargs='?',
-        help='Path to config.yaml file'
+        "--url", help="Check a specific S3 URL instead of parsing config"
     )
     parser.add_argument(
-        '--url',
-        help='Check a specific S3 URL instead of parsing config'
+        "--fix", action="store_true", help="Fix issues (set ACL and restore objects)"
     )
     parser.add_argument(
-        '--fix',
-        action='store_true',
-        help='Fix issues (set ACL and restore objects)'
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making changes",
     )
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Show what would be done without making changes'
-    )
-    parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Verbose output'
-    )
-    parser.add_argument(
-        '--profile',
-        help='AWS profile to use'
-    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument("--profile", help="AWS profile to use")
 
     args = parser.parse_args()
 
     if not args.url and not args.config:
-        parser.error('Either config file or --url must be provided')
+        parser.error("Either config file or --url must be provided")
 
     # Initialize S3 client
     try:
         session_kwargs = {}
         if args.profile:
-            session_kwargs['profile_name'] = args.profile
+            session_kwargs["profile_name"] = args.profile
 
         session = boto3.Session(**session_kwargs)
-        s3_client = session.client('s3')
+        s3_client = session.client("s3")
     except NoCredentialsError:
         print("Error: AWS credentials not found.", file=sys.stderr)
-        print("Please configure credentials using 'aws configure' or set environment variables.", file=sys.stderr)
+        print(
+            "Please configure credentials using 'aws configure' or set environment variables.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Get URLs to check
@@ -405,24 +405,21 @@ Examples:
     results = []
     for url in urls:
         result = check_and_fix_object(
-            s3_client,
-            url,
-            dry_run=args.dry_run or not args.fix,
-            verbose=args.verbose
+            s3_client, url, dry_run=args.dry_run or not args.fix, verbose=args.verbose
         )
         results.append(result)
 
     # Summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("SUMMARY")
-    print("="*80)
+    print("=" * 80)
 
     total = len(results)
-    exists = sum(1 for r in results if r['exists'])
-    public = sum(1 for r in results if r.get('public'))
-    needs_restore = sum(1 for r in results if r.get('needs_restore'))
-    errors = sum(1 for r in results if 'error' in r)
-    actions = sum(1 for r in results if r.get('actions_taken'))
+    exists = sum(1 for r in results if r["exists"])
+    public = sum(1 for r in results if r.get("public"))
+    needs_restore = sum(1 for r in results if r.get("needs_restore"))
+    errors = sum(1 for r in results if "error" in r)
+    actions = sum(1 for r in results if r.get("actions_taken"))
 
     print(f"Total URLs checked: {total}")
     print(f"Objects exist: {exists}/{total}")
@@ -432,19 +429,26 @@ Examples:
     print(f"Objects with actions taken: {actions}")
 
     # List objects that need attention
-    issues = [r for r in results if not r.get('exists') or not r.get('public') or r.get('needs_restore') or 'error' in r]
+    issues = [
+        r
+        for r in results
+        if not r.get("exists")
+        or not r.get("public")
+        or r.get("needs_restore")
+        or "error" in r
+    ]
 
     if issues:
         print(f"\n{len(issues)} object(s) need attention:")
         for r in issues:
             print(f"  - {r['url']}")
-            if not r.get('exists'):
-                print(f"    Issue: Object does not exist")
-            if r.get('exists') and not r.get('public'):
-                print(f"    Issue: Not publicly readable")
-            if r.get('needs_restore'):
+            if not r.get("exists"):
+                print("    Issue: Object does not exist")
+            if r.get("exists") and not r.get("public"):
+                print("    Issue: Not publicly readable")
+            if r.get("needs_restore"):
                 print(f"    Issue: Needs restore from {r.get('storage_class')}")
-            if 'error' in r:
+            if "error" in r:
                 print(f"    Error: {r['error']}")
 
     # Exit with error code if there are issues and we're not fixing them
@@ -454,5 +458,5 @@ Examples:
     sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

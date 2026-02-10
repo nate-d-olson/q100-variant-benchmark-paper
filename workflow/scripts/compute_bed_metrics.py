@@ -13,8 +13,6 @@ Uses bedtools to calculate:
 """
 
 import subprocess
-import sys
-from pathlib import Path
 from logging_config import setup_logger
 
 logger = setup_logger(__name__)

@@ -32,7 +32,7 @@ def count_variants_by_genomic_context(
     line_num = 0
 
     with open(log_path, "w") as log:
-        log.write(f"Counting variants by genomic context\n")
+        log.write("Counting variants by genomic context\n")
         log.write(f"Input: {variant_table_path}\n")
         log.write(f"Output: {output_path}\n\n")
 
@@ -100,7 +100,7 @@ def count_variants_by_genomic_context(
             log.write(f"ERROR: {str(e)}\n")
             raise
 
-        log.write(f"\nProcessing complete:\n")
+        log.write("\nProcessing complete:\n")
         log.write(f"  Total variants: {total_variants:,}\n")
         log.write(f"  Variants with genomic context: {variants_with_context:,}\n")
         log.write(f"  Unique (context, var_type) combinations: {len(counts)}\n\n")

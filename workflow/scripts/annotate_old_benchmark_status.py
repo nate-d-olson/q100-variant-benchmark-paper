@@ -17,8 +17,7 @@ import os
 import subprocess
 import tempfile
 from collections import Counter
-from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 
 def _run_cmd(cmd: str, log) -> subprocess.CompletedProcess:
@@ -33,9 +32,7 @@ def _run_cmd(cmd: str, log) -> subprocess.CompletedProcess:
 
 def _compute_bed_size(bed_path: str, log) -> int:
     """Compute total bp in a BED file."""
-    result = _run_cmd(
-        f"awk '{{sum+=$3-$2}} END {{print sum+0}}' {bed_path}", log
-    )
+    result = _run_cmd(f"awk '{{sum+=$3-$2}} END {{print sum+0}}' {bed_path}", log)
     return int(result.stdout.strip() or 0)
 
 
@@ -110,11 +107,23 @@ def analyze_regions(
             writer = csv.writer(f)
             writer.writerow(["category", "bases_bp", "pct_of_old_only"])
             total = old_only_size if old_only_size > 0 else 1
-            writer.writerow(["not_in_dipbed", not_in_dip_bp, f"{not_in_dip_bp / total * 100:.2f}"])
-            writer.writerow(["excluded", excluded_bp, f"{excluded_bp / total * 100:.2f}"])
-            writer.writerow(["in_v5_dipbed_not_excluded", not_excluded_bp, f"{not_excluded_bp / total * 100:.2f}"])
+            writer.writerow(
+                ["not_in_dipbed", not_in_dip_bp, f"{not_in_dip_bp / total * 100:.2f}"]
+            )
+            writer.writerow(
+                ["excluded", excluded_bp, f"{excluded_bp / total * 100:.2f}"]
+            )
+            writer.writerow(
+                [
+                    "in_v5_dipbed_not_excluded",
+                    not_excluded_bp,
+                    f"{not_excluded_bp / total * 100:.2f}",
+                ]
+            )
 
-        log.write(f"Region analysis: not_in_dipbed={not_in_dip_bp}, excluded={excluded_bp}, not_excluded={not_excluded_bp}\n")
+        log.write(
+            f"Region analysis: not_in_dipbed={not_in_dip_bp}, excluded={excluded_bp}, not_excluded={not_excluded_bp}\n"
+        )
 
 
 def analyze_variants(
@@ -139,7 +148,7 @@ def analyze_variants(
         _run_cmd(
             f"bcftools view -T {old_bed} {old_vcf} "
             f"| bcftools view -T ^{new_benchmark_bed} "
-            f"| bcftools view --exclude 'GT=\"0/0\" || GT=\"./.\"' "
+            f'| bcftools view --exclude \'GT="0/0" || GT="./."\' '
             f"> {old_only_vcf}",
             log,
         )
@@ -149,7 +158,10 @@ def analyze_variants(
         positions_bed = os.path.join(tmpdir, "positions.bed")
 
         open_func = gzip.open if old_only_vcf.endswith(".gz") else open
-        with open(old_only_vcf, "r") as vcf_f, open(positions_bed, "w") as bed_f:
+        with (
+            open_func(old_only_vcf, "r") as vcf_f,
+            open_func(positions_bed, "w") as bed_f,
+        ):
             for line in vcf_f:
                 if line.startswith("#"):
                     continue
@@ -176,8 +188,12 @@ def analyze_variants(
                     elif field.startswith("END="):
                         try:
                             end = int(field.split("=", 1)[1])
-                        except ValueError:
-                            pass
+                        except ValueError as exc:
+                            # Fallback to default `end` if END is malformed, but log for visibility
+                            log.write(
+                                f"WARNING: invalid END value in INFO field '{field}' "
+                                f"at {chrom}:{pos}: {exc}\n"
+                            )
 
                 var_size = _compute_variant_size(ref, alt, svlen)
 
@@ -206,16 +222,18 @@ def analyze_variants(
                 bed_start = pos - 1  # VCF is 1-based, BED is 0-based
                 bed_end = max(pos, end)
 
-                variants.append({
-                    "chrom": chrom,
-                    "pos": pos,
-                    "end": end,
-                    "ref": ref,
-                    "alt": alt,
-                    "var_type": var_type,
-                    "bed_start": bed_start,
-                    "bed_end": bed_end,
-                })
+                variants.append(
+                    {
+                        "chrom": chrom,
+                        "pos": pos,
+                        "end": end,
+                        "ref": ref,
+                        "alt": alt,
+                        "var_type": var_type,
+                        "bed_start": bed_start,
+                        "bed_end": bed_end,
+                    }
+                )
                 bed_f.write(f"{chrom}\t{bed_start}\t{bed_end}\n")
 
         log.write(f"Extracted {len(variants)} size-filtered old-only variants\n")
@@ -223,7 +241,9 @@ def analyze_variants(
         if not variants:
             # Write empty outputs
             with open(output_tsv, "w") as f:
-                f.write("chrom\tpos\tend\tref\talt\tvar_type\tin_dip_bed\texclusion_ids\tstatus\n")
+                f.write(
+                    "chrom\tpos\tend\tref\talt\tvar_type\tin_dip_bed\texclusion_ids\tstatus\n"
+                )
             with open(output_summary, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["status", "variant_count", "pct_of_total"])
@@ -262,7 +282,9 @@ def analyze_variants(
         status_counts: Counter = Counter()
 
         with open(output_tsv, "w") as f:
-            f.write("chrom\tpos\tend\tref\talt\tvar_type\tin_dip_bed\texclusion_ids\tstatus\n")
+            f.write(
+                "chrom\tpos\tend\tref\talt\tvar_type\tin_dip_bed\texclusion_ids\tstatus\n"
+            )
             for v in variants:
                 in_dip = v.get("in_dip_bed", False)
                 excl_ids = v.get("exclusion_ids", [])

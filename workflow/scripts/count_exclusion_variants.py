@@ -12,7 +12,7 @@ Merges with per-exclusion BED metrics to produce a combined impact table.
 import csv
 from collections import Counter
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict
 
 
 def _find_col(fieldnames: list[str], candidates: set[str]) -> str | None:
@@ -24,7 +24,9 @@ def _find_col(fieldnames: list[str], candidates: set[str]) -> str | None:
     return None
 
 
-def _compute_variant_size(row: dict, ref_col: str, alt_col: str, svlen_col: str | None) -> int:
+def _compute_variant_size(
+    row: dict, ref_col: str, alt_col: str, svlen_col: str | None
+) -> int:
     """Compute variant size in bp.
 
     For SVs with SVLEN, use abs(SVLEN).
@@ -42,7 +44,9 @@ def _compute_variant_size(row: dict, ref_col: str, alt_col: str, svlen_col: str 
     return max(ref_len, alt_len) - 1
 
 
-def _classify_sv_type(row: dict, svtype_col: str | None, ref_col: str, alt_col: str) -> str:
+def _classify_sv_type(
+    row: dict, svtype_col: str | None, ref_col: str, alt_col: str
+) -> str:
     """Classify SV as insertion or deletion."""
     if svtype_col:
         svtype = row.get(svtype_col, ".")
@@ -102,9 +106,7 @@ def count_exclusion_variants(
             svtype_col = _find_col(fieldnames, {"INFO/SVTYPE", "SVTYPE"})
 
             if not region_col or not type_col or not ref_col or not alt_col:
-                raise ValueError(
-                    f"Missing required columns. Found: {fieldnames}"
-                )
+                raise ValueError(f"Missing required columns. Found: {fieldnames}")
 
             log.write(f"Using columns: REGION_IDS={region_col}, TYPE={type_col}\n")
             log.write(f"SVLEN={svlen_col}, SVTYPE={svtype_col}\n\n")
@@ -173,17 +175,33 @@ def count_exclusion_variants(
         with open(output_csv, "w", newline="") as out_f:
             writer = csv.writer(out_f)
             if is_smvar:
-                writer.writerow([
-                    "exclusion", "excl_id", "exclusion_bp", "dip_intersect_bp",
-                    "pct_of_exclusion", "pct_of_dip",
-                    "total_variants", "snp_count", "indel_count",
-                ])
+                writer.writerow(
+                    [
+                        "exclusion",
+                        "excl_id",
+                        "exclusion_bp",
+                        "dip_intersect_bp",
+                        "pct_of_exclusion",
+                        "pct_of_dip",
+                        "total_variants",
+                        "snp_count",
+                        "indel_count",
+                    ]
+                )
             else:
-                writer.writerow([
-                    "exclusion", "excl_id", "exclusion_bp", "dip_intersect_bp",
-                    "pct_of_exclusion", "pct_of_dip",
-                    "total_variants", "sv_ins_count", "sv_del_count",
-                ])
+                writer.writerow(
+                    [
+                        "exclusion",
+                        "excl_id",
+                        "exclusion_bp",
+                        "dip_intersect_bp",
+                        "pct_of_exclusion",
+                        "pct_of_dip",
+                        "total_variants",
+                        "sv_ins_count",
+                        "sv_del_count",
+                    ]
+                )
 
             for excl_id, canon_name in sorted(
                 excl_name_mapping.items(), key=lambda x: x[1]
@@ -191,23 +209,33 @@ def count_exclusion_variants(
                 metrics = bed_metrics.get(canon_name, {})
                 c = counts.get(excl_id, Counter())
                 if is_smvar:
-                    writer.writerow([
-                        canon_name, excl_id,
-                        metrics.get("exclusion_bp", 0),
-                        metrics.get("dip_intersect_bp", 0),
-                        metrics.get("pct_of_exclusion", 0),
-                        metrics.get("pct_of_dip", 0),
-                        c["total"], c["snp"], c["indel"],
-                    ])
+                    writer.writerow(
+                        [
+                            canon_name,
+                            excl_id,
+                            metrics.get("exclusion_bp", 0),
+                            metrics.get("dip_intersect_bp", 0),
+                            metrics.get("pct_of_exclusion", 0),
+                            metrics.get("pct_of_dip", 0),
+                            c["total"],
+                            c["snp"],
+                            c["indel"],
+                        ]
+                    )
                 else:
-                    writer.writerow([
-                        canon_name, excl_id,
-                        metrics.get("exclusion_bp", 0),
-                        metrics.get("dip_intersect_bp", 0),
-                        metrics.get("pct_of_exclusion", 0),
-                        metrics.get("pct_of_dip", 0),
-                        c["total"], c["sv_ins"], c["sv_del"],
-                    ])
+                    writer.writerow(
+                        [
+                            canon_name,
+                            excl_id,
+                            metrics.get("exclusion_bp", 0),
+                            metrics.get("dip_intersect_bp", 0),
+                            metrics.get("pct_of_exclusion", 0),
+                            metrics.get("pct_of_dip", 0),
+                            c["total"],
+                            c["sv_ins"],
+                            c["sv_del"],
+                        ]
+                    )
 
         log.write(f"Output written to {output_csv}\n")
 

@@ -41,7 +41,7 @@ def main(snakemake):
             f.write("BED Validation Report\n")
             f.write("=" * 60 + "\n")
             f.write(f"File: {input_bed}\n")
-            f.write(f"Status: PASS\n")
+            f.write("Status: PASS\n")
             f.write("\n")
             f.write("Statistics:\n")
             for key, value in stats.items():
@@ -65,7 +65,7 @@ def main(snakemake):
             f.write("BED Validation Report\n")
             f.write("=" * 60 + "\n")
             f.write(f"File: {input_bed}\n")
-            f.write(f"Status: FAIL\n")
+            f.write("Status: FAIL\n")
             f.write("\n")
             f.write(f"Error:\n{e}\n")
 

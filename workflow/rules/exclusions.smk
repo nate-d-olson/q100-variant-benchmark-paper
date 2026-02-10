@@ -44,6 +44,7 @@ rule materialize_exclusion:
         "Materializing exclusion {wildcards.exclusion} for {wildcards.benchmark}"
     resources:
         mem_mb=2048,
+    threads: 1
     conda:
         "../envs/bedtools.yaml"
     shell:
@@ -82,6 +83,7 @@ rule compute_dip_size:
         "Computing dip.bed size for {wildcards.benchmark}"
     resources:
         mem_mb=2048,
+    threads: 1
     conda:
         "../envs/bedtools.yaml"
     shell:
@@ -113,8 +115,9 @@ rule compute_exclusion_metrics:
         "Computing metrics for {wildcards.exclusion} in {wildcards.benchmark}"
     resources:
         mem_mb=4096,
+    threads: 1
     conda:
-        "../envs/python.yaml"
+        "../envs/bedtools.yaml"
     script:
         "../scripts/compute_bed_metrics.py"
 
@@ -143,8 +146,9 @@ rule compute_exclusion_impact:
         "Computing exclusion impact for {wildcards.benchmark}"
     resources:
         mem_mb=4096,
+    threads: 1
     conda:
-        "../envs/python.yaml"
+        "../envs/bedtools.yaml"
     script:
         "../scripts/count_exclusion_variants.py"
 
@@ -174,8 +178,9 @@ rule compute_exclusion_interactions:
         "Computing exclusion interactions for {wildcards.benchmark}"
     resources:
         mem_mb=4096,
+    threads: 1
     conda:
-        "../envs/python.yaml"
+        "../envs/bedtoolsyaml"
     script:
         "../scripts/compute_exclusion_interactions.py"
 
@@ -191,9 +196,15 @@ rule annotate_old_benchmark_status:
     input:
         unpack(get_old_benchmark_analysis_inputs),
     output:
-        variants_tsv="results/exclusions/{comp_id}/old_only_variants.tsv",
-        summary_csv="results/exclusions/{comp_id}/old_only_summary.csv",
-        regions_csv="results/exclusions/{comp_id}/old_only_regions.csv",
+        variants_tsv=ensure(
+            "results/exclusions/{comp_id}/old_only_variants.tsv", non_empty=True
+        ),
+        summary_csv=ensure(
+            "results/exclusions/{comp_id}/old_only_summary.csv", non_empty=True
+        ),
+        regions_csv=ensure(
+            "results/exclusions/{comp_id}/old_only_regions.csv", non_empty=True
+        ),
     params:
         comp_type=lambda wc: config["comparisons"][wc.comp_id]["type"],
         excl_names=lambda wc: [
@@ -208,7 +219,8 @@ rule annotate_old_benchmark_status:
         "Annotating old benchmark status for {wildcards.comp_id}"
     resources:
         mem_mb=8192,
+    threads: 2
     conda:
-        "../envs/python.yaml"
+        "../envs/bedtools.yaml"
     script:
         "../scripts/annotate_old_benchmark_status.py"
