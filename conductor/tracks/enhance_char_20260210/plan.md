@@ -24,4 +24,4 @@ This phase implements the analytical logic and visualizations in the Quarto note
 - [x] **Task: Fix Difficult Region Metrics** [29c3b1d]
     - [x] Sub-task: Debug and fix the logic for "difficult regions included" vs "excluded".
     - [x] Sub-task: Verify against known ground truth or manual spot check (documented in notebook).
-- [ ] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)** [checkpoint: ea78e5a]
