@@ -36,6 +36,7 @@ The `R/data_loading.R` module provides standardized functions for loading pipeli
 - `load_variant_table()` - Load full variant data (use sparingly, files are large)
 - `load_diff_coverage()` - Load base-level coverage data
 - `load_benchmark_regions()` - Load benchmark region BED files
+- `load_platinum_pedigree_regions()` - Download and load Platinum Pedigree benchmark region BED files from public S3
 - `parse_benchmark_id()` - Parse benchmark metadata from file path
 
 All functions handle automatic file discovery, metadata parsing, column validation, and optional filtering.

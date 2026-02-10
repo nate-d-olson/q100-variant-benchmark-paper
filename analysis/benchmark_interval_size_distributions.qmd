@@ -1,0 +1,165 @@
+---
+title: "Benchmark Interval Size Distributions"
+date: '`r Sys.Date()`'
+author: "ND Olson"
+format:
+  html:
+    theme: flatly
+    page-layout: full
+    toc: true
+    self-contained: true
+editor: source
+code-fold: true
+execute:
+  warning: false
+---
+
+```{r setup}
+#| include: false
+library(tidyverse)
+library(here)
+library(patchwork)
+library(gt)
+
+source(here("R/data_loading.R"))
+source(here("R/plot_themes.R"))
+```
+
+## Data Loading
+
+This notebook compares benchmark interval size distributions across benchmark sets.
+Platinum Pedigree regions are loaded using `load_platinum_pedigree_regions()`, which
+downloads from public S3 if files are missing locally.
+Data integrity checks are enforced in `R/data_loading.R` during data read and cache generation.
+
+```{r load-data}
+bench_regions_df <- load_benchmark_regions()
+pp_regions_df <- load_platinum_pedigree_regions()
+
+interval_regions_df <- dplyr::bind_rows(bench_regions_df, pp_regions_df) %>%
+  dplyr::filter(
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6", "PP"),
+    (bench_type == "smvar" & ref == "GRCh38") |
+      (bench_type == "stvar" & ref %in% c("GRCh37", "GRCh38")),
+    chrom %in% paste0("chr", 1:22)
+  ) %>%
+  dplyr::mutate(
+    bench_version = factor(
+      as.character(bench_version),
+      levels = c("v4.2.1", "v0.6", "v5.0q", "PP")
+    ),
+    bench_type = factor(
+      as.character(bench_type),
+      levels = c("smvar", "stvar")
+    )
+  )
+```
+
+## Interval Size Density
+
+```{r interval-size-density}
+bench_type_labels <- c(
+  smvar = "Small Variants",
+  stvar = "Structural Variants"
+)
+
+interval_size_dist_plt <- interval_regions_df %>%
+  ggplot(aes(x = interval_size, fill = bench_version)) +
+  geom_density(
+    alpha = 0.45,
+    adjust = 0.20,
+    outline.type = "upper",
+    trim = TRUE
+  ) +
+  scale_x_log10(labels = scales::comma) +
+  annotation_logticks(sides = "b") +
+  scale_benchmark_version(aesthetic = "fill", name = "Benchmark Version") +
+  facet_wrap(
+    ~bench_type,
+    ncol = 1,
+    scales = "free_y",
+    labeller = as_labeller(bench_type_labels)
+  ) +
+  labs(
+    x = "Benchmark Interval Size (bp)",
+    y = "Density"
+  ) +
+  theme_manuscript()
+
+interval_size_dist_plt
+```
+
+## Interval Counts
+
+```{r interval-counts-plot}
+interval_count_plt <- interval_regions_df %>%
+  ggplot(aes(x = bench_version, fill = bench_version)) +
+  geom_bar(
+    color = "grey20",
+    alpha = 0.60,
+    linewidth = 0.35
+  ) +
+  facet_wrap(
+    ~bench_type,
+    ncol = 2,
+    scales = "free",
+    labeller = as_labeller(bench_type_labels)
+  ) +
+  scale_benchmark_version(aesthetic = "fill", 
+                          name = "Benchmark Version", 
+                          guide = "none") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    x = "Benchmark Version",
+    y = "Number of Intervals"
+  ) +
+  theme_manuscript() +
+  theme(legend.position = "none")
+
+interval_count_plt
+```
+
+## Combined Figure
+
+```{r combined-interval-figure}
+interval_plt <- interval_count_plt / interval_size_dist_plt +
+  patchwork::plot_layout(heights = c(1, 1.4))
+
+interval_plt
+```
+
+```{r save-figure}
+ggsave(
+  here("manuscript/figs/benchmark_intervals.png"),
+  interval_plt,
+  width = 8,
+  height = 7,
+  dpi = 300
+)
+```
+
+## Interval Summary Table
+
+```{r interval-counts-table}
+interval_counts_tbl <- interval_regions_df %>%
+  dplyr::count(bench_type, ref, bench_version, name = "n_intervals") %>%
+  dplyr::mutate(
+    bench_type = dplyr::recode(
+      bench_type,
+      smvar = "Small Variants",
+      stvar = "Structural Variants"
+    )
+  ) %>%
+  dplyr::arrange(bench_type, bench_version, ref)
+
+interval_counts_tbl %>%
+  gt::gt(caption = "Number of intervals in benchmark regions") %>%
+  gt::fmt_integer(columns = n_intervals) %>%
+  gt::cols_label(
+    bench_type = "Variant Type",
+    ref = "Reference",
+    bench_version = "Benchmark",
+    n_intervals = "Number of Intervals"
+  ) %>%
+  theme_gt_manuscript()
+```
