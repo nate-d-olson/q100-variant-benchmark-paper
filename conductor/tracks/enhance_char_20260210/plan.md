@@ -10,7 +10,7 @@ This phase ensures the underlying data structures support the required analysis.
 - [x] **Task: Refactor Data Loading for Exclusions** [57ecf79]
     - [x] Sub-task: Write test for loading exclusion variant counts.
     - [x] Sub-task: Update `R/data_loading.R` to load `results/exclusions/{benchmark}/exclusion_impact.csv` with variant counts.
-- [ ] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)** [checkpoint: dacccf6]
 
 ## Phase 2: Notebook Refinement (Characterization)
 This phase implements the analytical logic and visualizations in the Quarto notebook.
