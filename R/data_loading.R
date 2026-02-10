@@ -807,9 +807,6 @@ read_variant_table <- function(table_path) {
 
   ## Reducing number of columns
   var_df %>%
-    dplyr::mutate(
-      variant_length = abs(var_size)
-    ) %>%
     dplyr::select(
       bench_version,
       ref,
@@ -821,7 +818,6 @@ read_variant_table <- function(table_path) {
       vkx,
       var_type,
       var_size,
-      variant_length,
       len_ref,
       len_alt,
       region_ids,
