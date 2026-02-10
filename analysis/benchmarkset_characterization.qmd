@@ -177,7 +177,17 @@ full_join(bench_var_cnt_df, bench_region_stats_df) %>%
     pct_ref_cvg = "% Ref. Cov.",
     pct_q100_cvg = "% Asm. Cov."
   ) %>%
+  gt::cols_move(
+    columns = c("SNV", "INDEL", "INS", "DEL"),
+    after = "ref"
+  ) %>% 
   theme_gt_manuscript()
+```
+```{r}
+full_join(bench_var_cnt_df, bench_region_stats_df) %>%
+  select(-bench_version) %>%
+  ungroup() %>%
+  arrange(bench_type, ref) 
 ```
 
 ## Variant Size Distributions
