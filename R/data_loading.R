@@ -296,7 +296,7 @@ load_exclusion_metrics <- function(results_dir = NULL) {
   exclusion_files <- fs::dir_ls(
     results_dir,
     recurse = TRUE,
-    glob = "**/exclusions_intersection_table.csv",
+    glob = "**/exclusion_impact.csv",
     fail = FALSE
   )
 
@@ -319,18 +319,33 @@ load_exclusion_metrics <- function(results_dir = NULL) {
       meta <- parse_benchmark_id(benchmark_id)
 
       # Read file
-      file %>%
+      raw_df <- file %>%
         vroom::vroom(
           col_types = vroom::cols(
-            exclusions = "c",
+            exclusion = "c",
+            excl_id = "c",
             exclusion_bp = "d",
-            intersect_bp = "d",
+            dip_intersect_bp = "d",
             pct_of_exclusion = "d",
             pct_of_dip = "d",
-            .default = "c"
+            total_variants = "i",
+            .default = "i"
           ),
           show_col_types = FALSE
-        ) %>%
+        )
+
+      # Handle renaming based on presence
+      if ("snp_count" %in% names(raw_df)) {
+        raw_df <- raw_df %>% dplyr::rename(snv_count = snp_count)
+      } else if ("sv_ins_count" %in% names(raw_df)) {
+        raw_df <- raw_df %>% dplyr::rename(ins_count = sv_ins_count)
+      }
+
+      if ("sv_del_count" %in% names(raw_df)) {
+        raw_df <- raw_df %>% dplyr::rename(del_count = sv_del_count)
+      }
+
+      raw_df %>%
         tibble::add_column(
           bench_version = meta$bench_version,
           ref = meta$ref,
