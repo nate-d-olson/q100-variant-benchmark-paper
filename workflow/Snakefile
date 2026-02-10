@@ -57,6 +57,15 @@ include: "rules/ref_processing.smk"
 include: "rules/genomic_context_metrics.smk"
 include: "rules/stratify_bench.smk"
 include: "rules/vcf_processing.smk"
+# Optional rule-all outputs (currently disabled):
+# - results/stats/{comp_id}_variants.csv
+# - results/stats/{comp_id}_regions.csv
+# - results/stratified_bench/{comp_id}/summary_by_variant.tsv (type=stvar)
+# - results/stratified_bench/{comp_id}/summary_by_region.tsv (type=stvar)
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_within.tsv
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_complement.tsv
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_within.tsv
+# - results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_complement.tsv
 include: "rules/var_counts.smk"
 include: "rules/var_tables.smk"
 
@@ -93,31 +102,3 @@ rule all:
             benchmark=BENCHMARK,
             strat=STRAT,
         ),
-        # expand(
-        #     "results/stats/{comp_id}_variants.csv",
-        #     comp_id=config.get("comparisons", {}).keys(),
-        # ),
-        # expand(
-        #     "results/stats/{comp_id}_regions.csv",
-        #     comp_id=config.get("comparisons", {}).keys(),
-        # ),
-        # expand(
-        #     "results/stratified_bench/{comp_id}/summary_by_variant.tsv",
-        #     comp_id=[
-        #         c
-        #         for c, conf in config.get("comparisons", {}).items()
-        #         if conf.get("type") == "stvar"
-        #     ],
-        # ),
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_within.tsv",
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_regions_complement.tsv",
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_within.tsv",
-        # "results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_complement.tsv",
-        # expand(
-        #     "results/stratified_bench/{comp_id}/summary_by_region.tsv",
-        #     comp_id=[
-        #         c
-        #         for c, conf in config.get("comparisons", {}).items()
-        #         if conf.get("type") == "stvar"
-        #     ],
-        # ),

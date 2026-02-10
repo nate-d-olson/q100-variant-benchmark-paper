@@ -180,7 +180,7 @@ rule compute_exclusion_interactions:
         mem_mb=4096,
     threads: 1
     conda:
-        "../envs/bedtoolsyaml"
+        "../envs/bedtools.yaml"
     script:
         "../scripts/compute_exclusion_interactions.py"
 
