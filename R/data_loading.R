@@ -2,10 +2,16 @@
 source(here::here("R/schemas.R"))
 source(here::here("R/cache.R"))
 
+# Ensure magrittr pipe works when sourcing this file in a clean R session
+if (!exists("%>%", mode = "function")) {
+  `%>%` <- magrittr::`%>%`
+}
+
 #' Parse Benchmark Identifier from File Path
 #'
 #' Extracts benchmark metadata (version, reference, variant type) from a file path
-#' or benchmark ID string using the standard naming pattern: v{version}_{ref}_{bechmark type}
+#' or benchmark ID string using the standard naming pattern:
+#' `{benchmark_version}_{ref}_{bench_type}`.
 #'
 #' @param file_path Character string containing file path or benchmark ID
 #'
@@ -22,28 +28,39 @@ source(here::here("R/cache.R"))
 #'
 #' @export
 parse_benchmark_id <- function(file_path) {
-  # Extract benchmark ID pattern: v[number]q?_[alphanumeric]_[smvar|stvar]
-  pattern <- "(.*)_(.*)_(smvar|stvar)"
+  if (!is.character(file_path) || length(file_path) != 1L || is.na(file_path)) {
+    stop(
+      "file_path must be a single non-missing character string.",
+      call. = FALSE
+    )
+  }
 
-  matches <- stringr::str_extract(file_path, pattern)
+  # Extract all benchmark-like tokens and use the last one (works for full paths)
+  benchmark_tokens <- stringr::str_extract_all(
+    file_path,
+    "[A-Za-z0-9.-]+_[A-Za-z0-9.-]+_(smvar|stvar)"
+  )[[1]]
 
-  if (is.na(matches)) {
+  if (length(benchmark_tokens) == 0) {
     stop(
       glue::glue(
         "Could not parse benchmark ID from: {file_path}\n",
-        "Expected pattern: v[version]_[reference]_[smvar|stvar]"
+        "Expected pattern: [benchmark_version]_[reference]_[smvar|stvar]"
       ),
       call. = FALSE
     )
   }
 
-  # Extract components
-  components <- stringr::str_match(matches, pattern)[1, ]
+  benchmark_id <- benchmark_tokens[length(benchmark_tokens)]
+  components <- stringr::str_match(
+    benchmark_id,
+    "^([A-Za-z0-9.-]+)_([A-Za-z0-9.-]+)_(smvar|stvar)$"
+  )[1, ]
 
   list(
-    bench_version = components[2],
-    ref = components[3],
-    bench_type = components[4]
+    bench_version = components[2L],
+    ref = components[3L],
+    bench_type = components[4L]
   )
 }
 
@@ -118,6 +135,7 @@ bench_version <- c("v0.6", "v4.2.1", "v5.0q")
 bench_type <- c("smvar", "stvar")
 chromosomes <- stringr::str_c("chr", c(1:22, "X", "Y"))
 context_names <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+var_types <- c("SNV", "INDEL", "DEL", "INS")
 
 std_ <- function(x, levels) {
   factor(x, levels = levels, labels = levels, ordered = TRUE)
@@ -133,6 +151,176 @@ std_chrom <- function(x, chromx = chromosomes) {
     stringr::str_c("chr", x)
   ) %>%
     std_(levels = chromx)
+}
+std_var_type <- function(x) std_(x, levels = var_types)
+
+.write_cache_safely <- function(
+  data,
+  dataset_name,
+  source_files,
+  cache_params = list()
+) {
+  tryCatch(
+    write_cache(data, dataset_name, source_files, cache_params),
+    error = function(e) {
+      warning(
+        glue::glue("Failed to write cache for {dataset_name}: {e$message}"),
+        call. = FALSE
+      )
+    }
+  )
+}
+
+.verify_region_dataframe <- function(
+  regions_df,
+  bench_version_levels,
+  ref_levels,
+  bench_type_levels,
+  source_label = "region BED files"
+) {
+  required_cols <- c(
+    "bench_version",
+    "ref",
+    "bench_type",
+    "chrom",
+    "start",
+    "end",
+    "interval_size"
+  )
+
+  missing_cols <- setdiff(required_cols, names(regions_df))
+  if (length(missing_cols) > 0) {
+    stop(
+      glue::glue(
+        "Missing required columns while loading {source_label}: ",
+        "{paste(missing_cols, collapse = ', ')}"
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (nrow(regions_df) == 0) {
+    stop(glue::glue("No regions were loaded from {source_label}."), call. = FALSE)
+  }
+
+  if (
+    anyNA(regions_df$bench_version) ||
+      anyNA(regions_df$ref) ||
+      anyNA(regions_df$bench_type)
+  ) {
+    stop(
+      glue::glue(
+        "Metadata parsing failed for at least one entry in {source_label}. ",
+        "Expected bench_version in [{paste(bench_version_levels, collapse = ', ')}], ",
+        "ref in [{paste(ref_levels, collapse = ', ')}], and ",
+        "bench_type in [{paste(bench_type_levels, collapse = ', ')}]."
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (anyNA(regions_df$chrom) || any(!stringr::str_detect(regions_df$chrom, "^chr"))) {
+    stop(
+      glue::glue(
+        "Chromosome normalization failed for {source_label}. ",
+        "All chromosome values must start with 'chr'."
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (anyNA(regions_df$start) || any(regions_df$start < 0)) {
+    stop(
+      glue::glue(
+        "Invalid start coordinates detected in {source_label}. ",
+        "Start positions must be non-negative."
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (anyNA(regions_df$end) || any(regions_df$end <= regions_df$start)) {
+    stop(
+      glue::glue(
+        "Invalid end coordinates detected in {source_label}. ",
+        "End must be greater than start for all intervals."
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (anyNA(regions_df$interval_size) || any(regions_df$interval_size <= 0)) {
+    stop(
+      glue::glue(
+        "Invalid interval sizes detected in {source_label}. ",
+        "All interval sizes must be > 0."
+      ),
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
+}
+
+.read_region_bed_files <- function(
+  region_files,
+  bench_version_levels,
+  ref_levels,
+  bench_type_levels = c("smvar", "stvar")
+) {
+  if (length(region_files) == 0) {
+    stop("No region files provided.", call. = FALSE)
+  }
+
+  if (is.null(names(region_files)) || any(names(region_files) == "")) {
+    stop("Region files must be a named character vector.", call. = FALSE)
+  }
+
+  regions_df <- region_files %>%
+    purrr::map_dfr(
+      ~ vroom::vroom(
+        .x,
+        col_names = c("chrom", "start", "end"),
+        col_types = "cii",
+        show_col_types = FALSE
+      ),
+      .id = "benchmark_id"
+    ) %>%
+    dplyr::mutate(
+      bench_meta = purrr::map(benchmark_id, parse_benchmark_id),
+      bench_version = purrr::map_chr(bench_meta, "bench_version"),
+      ref = purrr::map_chr(bench_meta, "ref"),
+      bench_type = purrr::map_chr(bench_meta, "bench_type")
+    ) %>%
+    dplyr::mutate(
+      chrom = dplyr::if_else(
+        stringr::str_detect(chrom, "^chr"),
+        chrom,
+        stringr::str_c("chr", chrom)
+      ),
+      interval_size = end - start,
+      bench_version = factor(bench_version, levels = bench_version_levels),
+      ref = factor(ref, levels = ref_levels),
+      bench_type = factor(bench_type, levels = bench_type_levels)
+    ) %>%
+    dplyr::select(
+      bench_version,
+      ref,
+      bench_type,
+      chrom,
+      start,
+      end,
+      interval_size
+      )
+
+  .verify_region_dataframe(
+    regions_df = regions_df,
+    bench_version_levels = bench_version_levels,
+    ref_levels = ref_levels,
+    bench_type_levels = bench_type_levels
+  )
+
+  regions_df
 }
 
 #' Load Genomic Context Metrics
@@ -173,7 +361,10 @@ std_chrom <- function(x, chromx = chromosomes) {
 #' }
 #'
 #' @export
-load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
+load_genomic_context_metrics <- function(
+  results_dir = NULL,
+  benchmark_filter = NULL
+) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -443,19 +634,38 @@ load_reference_sizes <- function(results_dir = NULL) {
 #'
 #' @examples
 #' \dontrun{
-#' size <- get_hg002q100_size()
+#' size <- load_hg002q100_size()
 #' print(size)
 #' }
 #'
 load_hg002q100_size <- function(
-  asm_verison = "v1.1",
+  asm_version = "v1.1",
+  asm_verison = asm_version,
   fai_url = "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai",
   fai_md5 = "c84f852b1cd4a00b12e6439ae7a2dd87"
 ) {
+  # Preserve backward compatibility for misspelled argument name.
+  if (!missing(asm_verison)) {
+    asm_version <- asm_verison
+  }
+
+  if (
+    !is.character(asm_version) ||
+      length(asm_version) != 1L ||
+      is.na(asm_version)
+  ) {
+    stop(
+      "asm_version must be a single non-missing character string.",
+      call. = FALSE
+    )
+  }
+
   fai_path <- tempfile()
   download.file(url = fai_url, destfile = fai_path, quiet = TRUE)
-  if (identical(tools::md5sum(fai_path), fai_md5)) {
-    stop("Downloaded hg002q100v1.1 fai file has incorrect md5sum")
+  if (!identical(unname(tools::md5sum(fai_path)), fai_md5)) {
+    stop(glue::glue(
+      "Downloaded hg002q100 {asm_version} fai file has incorrect md5sum"
+    ))
   }
 
   fai_df <- readr::read_tsv(
@@ -463,8 +673,8 @@ load_hg002q100_size <- function(
     col_names = c("chrom", "length", "offset", "line_bases", "line_width"),
     col_types = "cicii"
   ) |>
-    dplyr::mutate(chrom = str_remove(chrom, "_.ATERNAL")) |>
-    filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |>
+    dplyr::mutate(chrom = stringr::str_remove(chrom, "_.ATERNAL")) |>
+    dplyr::filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |>
     dplyr::select(chrom, length)
   file.remove(fai_path)
 
@@ -522,7 +732,11 @@ load_hg002q100_size <- function(
 #' @param force_refresh Logical; if TRUE, ignore existing cache and reload
 #'
 #' @export
-load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL) {
+load_variant_table <- function(
+  benchmark_id,
+  results_dir = NULL,
+  filters = NULL
+) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -555,7 +769,7 @@ load_variant_table <- function(benchmark_id, results_dir = NULL, filters = NULL)
   )
 
   # Read variant table
-  variants_df <- read_variant_table(variant_file, benchmark_id)
+  variants_df <- read_variant_table(variant_file)
 
   # Apply filters if provided
   if (!is.null(filters)) {
@@ -831,7 +1045,11 @@ read_variant_table <- function(table_path) {
 #' This is a large operation and should be used with caution.
 #' Consider using smaller input data with pre-aggregated metrics for most analyses.
 #'
-load_all_variant_tables <- function(results_dir = NULL, use_cache = TRUE, force_refresh = FALSE) {
+load_all_variant_tables <- function(
+  results_dir = NULL,
+  use_cache = TRUE,
+  force_refresh = FALSE
+) {
   if (is.null(results_dir)) {
     results_dir <- here::here("results")
   }
@@ -982,7 +1200,10 @@ load_genomic_context_coverage <- function(
 
   # Try cache first
   source_files <- as.character(coverage_files)
-  cache_params <- list(benchmark_id = benchmark_id, context_filter = context_filter)
+  cache_params <- list(
+    benchmark_id = benchmark_id,
+    context_filter = context_filter
+  )
 
   if (use_cache && !force_refresh) {
     cached <- read_cache("diff_coverage", source_files, cache_params)
@@ -1000,7 +1221,14 @@ load_genomic_context_coverage <- function(
 
       file %>%
         vroom::vroom(
-          col_names = c("chrom", "start", "end", "n_overlap", "bases_cov", "ivl_len"),
+          col_names = c(
+            "chrom",
+            "start",
+            "end",
+            "n_overlap",
+            "bases_cov",
+            "ivl_len"
+          ),
           col_types = "ciiiii",
           show_col_types = FALSE
         ) %>%
@@ -1071,7 +1299,11 @@ load_genomic_context_coverage <- function(
 #' @param force_refresh Logical; if TRUE, ignore existing cache and reload
 #'
 #' @export
-load_benchmark_regions <- function(resources_dir = NULL, use_cache = TRUE, force_refresh = FALSE) {
+load_benchmark_regions <- function(
+  resources_dir = NULL,
+  use_cache = TRUE,
+  force_refresh = FALSE
+) {
   if (is.null(resources_dir)) {
     resources_dir <- here::here("resources/benchmarksets")
   }
@@ -1086,25 +1318,13 @@ load_benchmark_regions <- function(resources_dir = NULL, use_cache = TRUE, force
   }
 
   # Find all benchmark BED files
-  bench_files <- fs::dir_ls(
+  bench_paths <- fs::dir_ls(
     resources_dir,
     glob = "*_benchmark.bed",
     fail = FALSE
-  ) %>%
-    {
-      set_names(., stringr::str_extract(., "(?<=/)[^/]+(?=_benchmark.bed$)"))
-    }
+  )
 
-  # pp_region_list <- list(
-  #   "PP_GRCh38_smvar" = here::here(
-  #     "data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz"
-  #   ),
-  #   "PP_GRCh38_stvar" = here::here(
-  #     "data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz"
-  #   )
-  # )
-
-  if (length(bench_files) == 0) {
+  if (length(bench_paths) == 0) {
     stop(
       glue::glue(
         "No benchmark BED files found in {resources_dir}"
@@ -1113,139 +1333,185 @@ load_benchmark_regions <- function(resources_dir = NULL, use_cache = TRUE, force
     )
   }
 
-  # for (path in pp_region_list) {
-  #   if (!fs::file_exists(path)) {
-  #     stop(
-  #       glue::glue(
-  #         "Platinum pedigree benchmark BED file not found at: {path}"
-  #       ),
-  #       call. = FALSE
-  #     )
-  #   }
-  # }
-
-  # Include platinum pedigree regions
-  # bench_files <- c(bench_files, pp_region_list)
+  bench_ids <- stringr::str_remove(
+    fs::path_file(bench_paths),
+    "_benchmark\\.bed$"
+  )
+  bench_files <- stats::setNames(bench_paths, bench_ids)
 
   # Try cache first
   source_files <- as.character(bench_files)
   cache_params <- list(resources_dir = resources_dir)
 
   if (use_cache && !force_refresh) {
-    cached <- read_cache("benchmark_regions", source_files, cache_params)
+    cached <- read_cache(
+      "benchmark_regions",
+      source_files,
+      cache_params,
+      validate = TRUE
+    )
     if (!is.null(cached)) {
       return(cached)
     }
   }
 
-  # Read all benchmark region files
-  bench_regions_df <- bench_files %>%
-    purrr::map_dfr(
-      ~ vroom::vroom(
-        .x,
-        col_names = c("chrom", "start", "end"),
-        col_types = "cii",
-        show_col_types = FALSE
-      ),
-      .id = "benchmark_id"
-    ) %>%
-    # Extract benchmark identifier from filename
-    dplyr::mutate(
-      bench_meta = purrr::map(benchmark_id, parse_benchmark_id),
-      bench_version = purrr::map_chr(bench_meta, "bench_version"),
-      bench_version = std_bench_versions(bench_version),
-      ref = purrr::map_chr(bench_meta, "ref"),
-      ref = std_references(ref),
-      bench_type = purrr::map_chr(bench_meta, "bench_type"),
-      bench_type = std_bench_types(bench_type)
-    ) %>%
-    # Standardize chromosome names and calculate interval size
-    dplyr::mutate(
-      chrom = dplyr::if_else(
-        stringr::str_detect(chrom, "^chr"),
-        chrom,
-        stringr::str_c("chr", chrom)
-      ),
-      interval_size = end - start,
-      # Factor variables with standard levels
-      bench_version = factor(
-        bench_version,
-        levels = c("v0.6", "v4.2.1", "v5.0q")
-      ),
-      ref = factor(
-        ref,
-        levels = c("GRCh37", "GRCh38", "CHM13v2.0")
-      ),
-      bench_type = factor(
-        bench_type,
-        levels = c("smvar", "stvar")
-      )
-    ) %>%
-    dplyr::select(
-      bench_version,
-      ref,
-      bench_type,
-      chrom,
-      start,
-      end,
-      interval_size
-    )
+  bench_regions_df <- .read_region_bed_files(
+    region_files = bench_files,
+    bench_version_levels = bench_version,
+    ref_levels = refs,
+    bench_type_levels = bench_type
+  )
 
   # Write to cache
   if (use_cache) {
-    tryCatch(
-      write_cache(bench_regions_df, "benchmark_regions", source_files, cache_params),
-      error = function(e) {
-        warning(
-          glue::glue("Failed to write cache for benchmark_regions: {e$message}"),
-          call. = FALSE
-        )
-      }
+    .write_cache_safely(
+      data = bench_regions_df,
+      dataset_name = "benchmark_regions",
+      source_files = source_files,
+      cache_params = cache_params
     )
   }
 
   return(bench_regions_df)
 }
 
-## I
-# regions_df <- c(
-#     bench_region_list,
-#     pg_region_list
-# ) %>%
-#     map_dfr(
-#         read_tsv,
-#         col_names = c("chrom", "start", "end"),
-#         col_types = "cii",
-#         .id = "benchmarkset"
-#     ) %>%
-#     mutate(
-#         interval_size = end - start,
-#         chrom = if_else(str_detect(chrom, "chr"), chrom, str_c("chr", chrom))
-#     ) %>%
-#     separate(
-#         benchmarkset,
-#         into = c("bench_version", "ref", "var_type"),
-#         sep = "_"
-#     )
+#' Load Platinum Pedigree Region Files
+#'
+#' Downloads Platinum Pedigree v1.2 benchmark BED files from public S3 and
+#' loads them into a standardized tibble.
+#'
+#' @param download_dir Path where the Platinum Pedigree files should be stored.
+#'   Default: `here::here("resources/platinum-pedigree-data/truthset_v1.2")`
+#' @param s3_uri Public S3 URI to sync files from.
+#'   Default: `"s3://platinum-pedigree-data/truthset_v1.2/"`
+#' @param use_cache Logical; if TRUE (default), use Parquet caching
+#' @param force_refresh Logical; if TRUE, ignore existing cache and reload
+#' @param sync_s3 Logical; if TRUE (default), run `aws s3 sync --no-sign-request`
+#'   when files are missing locally (or when `force_refresh = TRUE`)
+#'
+#' @return Tibble with columns:
+#'   - bench_version: Benchmark version (`PP`)
+#'   - ref: Reference genome (`GRCh38`)
+#'   - bench_type: Variant type classification (`smvar`, `stvar`)
+#'   - chrom: Chromosome name with "chr" prefix
+#'   - start: Start position (0-based)
+#'   - end: End position (1-based)
+#'   - interval_size: Size of region in bases (end - start)
+#'
+#' @examples
+#' \dontrun{
+#' pp_regions <- load_platinum_pedigree_regions()
+#' pp_regions %>% dplyr::count(bench_type)
+#' }
+#'
+#' @export
+load_platinum_pedigree_regions <- function(
+  download_dir = NULL,
+  s3_uri = "s3://platinum-pedigree-data/truthset_v1.2/",
+  use_cache = TRUE,
+  force_refresh = FALSE,
+  sync_s3 = TRUE
+) {
+  if (is.null(download_dir)) {
+    download_dir <- here::here("resources/platinum-pedigree-data/truthset_v1.2")
+  }
 
-# # Validate regions_df structure and no FIXME values
-# assert_that(
-#     is_tibble(regions_df),
-#     has_name(
-#         regions_df,
-#         c(
-#             "chrom",
-#             "start",
-#             "end",
-#             "interval_size",
-#             "bench_version",
-#             "var_type",
-#             "ref"
-#         )
-#     ),
-#     nrow(regions_df) > 0,
-#     all(regions_df$interval_size > 0)
-# )
+  fs::dir_create(download_dir, recurse = TRUE)
+
+  pp_region_list <- c(
+    PP_GRCh38_smvar = fs::path(download_dir, "NA12878_hq_v1.2.smallvar.bed.gz"),
+    PP_GRCh38_stvar = fs::path(download_dir, "NA12878_hq_v1.2.svs.bed.gz")
+  )
+
+  source_files <- as.character(pp_region_list)
+  cache_params <- list(download_dir = download_dir, s3_uri = s3_uri)
+
+  if (use_cache && !force_refresh) {
+    cached <- read_cache(
+      "platinum_pedigree_regions",
+      source_files,
+      cache_params,
+      validate = TRUE
+    )
+    if (!is.null(cached)) {
+      return(cached)
+    }
+  }
+
+  missing_files <- pp_region_list[!fs::file_exists(pp_region_list)]
+  should_sync <- length(missing_files) > 0 || (force_refresh && sync_s3)
+
+  if (should_sync) {
+    if (!sync_s3) {
+      stop(
+        glue::glue(
+          "Missing Platinum Pedigree BED files in {download_dir}: ",
+          "{paste(names(missing_files), collapse = ', ')}. ",
+          "Set sync_s3 = TRUE to download from S3."
+        ),
+        call. = FALSE
+      )
+    }
+
+    aws_bin <- Sys.which("aws")
+    if (identical(aws_bin, "")) {
+      stop(
+        glue::glue(
+          "AWS CLI not found in PATH. Install AWS CLI or place files in {download_dir}."
+        ),
+        call. = FALSE
+      )
+    }
+
+    sync_args <- c("s3", "sync", "--no-sign-request", s3_uri, download_dir)
+    sync_output <- system2(
+      aws_bin,
+      args = sync_args,
+      stdout = TRUE,
+      stderr = TRUE
+    )
+    sync_status <- attr(sync_output, "status")
+
+    if (!is.null(sync_status) && sync_status != 0) {
+      stop(
+        glue::glue(
+          "Failed to sync Platinum Pedigree files from S3 (exit {sync_status}).\n",
+          "{paste(sync_output, collapse = '\n')}"
+        ),
+        call. = FALSE
+      )
+    }
+  }
+
+  missing_files <- pp_region_list[!fs::file_exists(pp_region_list)]
+  if (length(missing_files) > 0) {
+    stop(
+      glue::glue(
+        "Missing Platinum Pedigree BED files in {download_dir}: ",
+        "{paste(names(missing_files), collapse = ', ')}"
+      ),
+      call. = FALSE
+    )
+  }
+
+  pp_regions_df <- .read_region_bed_files(
+    region_files = pp_region_list,
+    bench_version_levels = c("PP"),
+    ref_levels = c("GRCh38"),
+    bench_type_levels = bench_type
+  )
+
+  if (use_cache) {
+    .write_cache_safely(
+      data = pp_regions_df,
+      dataset_name = "platinum_pedigree_regions",
+      source_files = source_files,
+      cache_params = cache_params
+    )
+  }
+
+  return(pp_regions_df)
+}
 
 #' Backward Compatibility Aliases
 #'
@@ -1257,6 +1523,12 @@ load_benchmark_regions <- function(resources_dir = NULL, use_cache = TRUE, force
 
 #' @rdname stratification-aliases
 #' @export
-load_stratification_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
-  load_genomic_context_metrics(results_dir = results_dir, benchmark_filter = benchmark_filter)
+load_stratification_metrics <- function(
+  results_dir = NULL,
+  benchmark_filter = NULL
+) {
+  load_genomic_context_metrics(
+    results_dir = results_dir,
+    benchmark_filter = benchmark_filter
+  )
 }

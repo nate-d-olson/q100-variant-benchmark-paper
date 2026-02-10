@@ -58,6 +58,15 @@ get_arrow_schema <- function(dataset_name) {
       start = arrow::int64(),
       end = arrow::int64(),
       interval_size = arrow::int64()
+    ),
+    platinum_pedigree_regions = arrow::schema(
+      bench_version = arrow::utf8(),
+      ref = arrow::utf8(),
+      bench_type = arrow::utf8(),
+      chrom = arrow::utf8(),
+      start = arrow::int64(),
+      end = arrow::int64(),
+      interval_size = arrow::int64()
     )
   )
 
@@ -104,6 +113,12 @@ get_factor_levels <- function(dataset_name) {
       ref = REF_LEVELS,
       bench_type = VAR_TYPE_LEVELS,
       chrom = CHROM_LEVELS
+    ),
+    platinum_pedigree_regions = list(
+      bench_version = c("PP"),
+      ref = c("GRCh38"),
+      bench_type = VAR_TYPE_LEVELS,
+      chrom = CHROM_LEVELS
     )
   )
 
@@ -143,6 +158,10 @@ get_validation_rules <- function(dataset_name) {
       bases_cov = function(x) all(x >= 0, na.rm = TRUE)
     ),
     benchmark_regions = list(
+      interval_size = function(x) all(x > 0, na.rm = TRUE),
+      start = function(x) all(x >= 0, na.rm = TRUE)
+    ),
+    platinum_pedigree_regions = list(
       interval_size = function(x) all(x > 0, na.rm = TRUE),
       start = function(x) all(x >= 0, na.rm = TRUE)
     )

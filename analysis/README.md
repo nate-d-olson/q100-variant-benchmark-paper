@@ -4,7 +4,7 @@ This directory contains Quarto notebooks for analyzing the GIAB v5q benchmark se
 
 ## Notebooks
 
-### benchmarkset-characterization.qmd
+### benchmarkset_characterization.qmd
 
 Comprehensive characterization of the v5q benchmark set variants and regions, including comparisons to historical benchmark sets.
 
@@ -14,8 +14,6 @@ Comprehensive characterization of the v5q benchmark set variants and regions, in
 |------|--------|-------------|
 | `results/variant_tables/{benchmark}/variants.tsv` | Snakemake pipeline | Annotated variant tables for each benchmark set |
 | `resources/benchmarksets/{benchmark}_benchmark.bed` | Snakemake pipeline | Benchmark region BED files |
-| `data/platinum-pedigree-data/NA12878_hq_v1.2.smallvar.bed.gz` | External download | Platinum Pedigree small variant regions |
-| `data/platinum-pedigree-data/NA12878_hq_v1.2.svs.bed.gz` | External download | Platinum Pedigree SV regions |
 | `results/context_coverage/all_context_coverage.tsv` | Snakemake pipeline | Context coverage summary |
 | `data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/*/exclusion_intersection_summary.csv` | DeFrABB run | Exclusion intersection summaries |
 | `config/config.yaml` | Repository | Pipeline configuration with genome sizes |
@@ -27,7 +25,6 @@ Comprehensive characterization of the v5q benchmark set variants and regions, in
 | `manuscript/figs/sv_length_distribution.png` | SV length distribution histogram |
 | `manuscript/figs/diff_variant_counts.png` | Variant counts in difficult genomic contexts |
 | `manuscript/figs/benchmark_region_size_change.png` | Coverage change between benchmark versions |
-| `manuscript/figs/benchmark_intervals.png` | Benchmark interval size distributions |
 
 **Key Analyses:**
 
@@ -36,8 +33,33 @@ Comprehensive characterization of the v5q benchmark set variants and regions, in
 - Variants in difficult genomic contexts (tandem repeats, homopolymers, segmental duplications, low mappability)
 - Benchmark region coverage comparisons
 - Inclusion of difficult regions in benchmark
-- Interval size distributions
 - Exclusion region analysis
+
+---
+
+### benchmark_interval_size_distributions.qmd
+
+Benchmark interval size distribution analysis, combining benchmark BED regions with Platinum Pedigree regions.
+
+**Input Files:**
+
+| File | Source | Description |
+|------|--------|-------------|
+| `resources/benchmarksets/{benchmark}_benchmark.bed` | Snakemake pipeline | Benchmark region BED files |
+| `resources/platinum-pedigree-data/truthset_v1.2/NA12878_hq_v1.2.smallvar.bed.gz` | Public S3 via `load_platinum_pedigree_regions()` | Platinum Pedigree small variant regions |
+| `resources/platinum-pedigree-data/truthset_v1.2/NA12878_hq_v1.2.svs.bed.gz` | Public S3 via `load_platinum_pedigree_regions()` | Platinum Pedigree SV regions |
+
+**Output Files:**
+
+| File | Description |
+|------|-------------|
+| `manuscript/figs/benchmark_intervals.png` | Benchmark interval size distributions |
+
+**Key Analyses:**
+
+- Interval size density distributions across benchmark sets
+- Interval count comparisons by benchmark version
+- Combined benchmark + Platinum Pedigree interval summary table
 
 ---
 
@@ -84,7 +106,10 @@ snakemake --cores 4 --sdm conda
 
 ```bash
 # Render a single notebook
-quarto render analysis/benchmarkset-characterization.qmd
+quarto render analysis/benchmarkset_characterization.qmd
+
+# Render interval size distribution notebook
+quarto render analysis/benchmark_interval_size_distributions.qmd
 
 # Render all analysis notebooks
 quarto render analysis/
@@ -159,11 +184,9 @@ resources/
 
 Some notebooks require data downloaded separately:
 
-- **Platinum Pedigree**: Download from AWS S3
-  ```bash
-  aws s3 sync --no-sign-request s3://platinum-pedigree-data/truthset_v1.2/ data/platinum-pedigree-data/
-  ```
-
+- **Platinum Pedigree**: loaded via `load_platinum_pedigree_regions()`, which
+  downloads from public S3 into `resources/platinum-pedigree-data/truthset_v1.2/`
+  when required files are missing.
 - **External Evaluations**: Curation files from evaluators in `data/external-evaluations/`
 
 ## Output Figures
