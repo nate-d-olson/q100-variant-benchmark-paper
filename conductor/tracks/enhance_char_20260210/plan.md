@@ -21,7 +21,7 @@ This phase implements the analytical logic and visualizations in the Quarto note
 - [x] **Task: Incorporate Exclusion Variant Counts** [38eedad]
     - [x] Sub-task: Update `benchmarkset_characterization.qmd` to join exclusion regions with variant counts.
     - [x] Sub-task: Generate summary table of variants removed by each exclusion.
-- [ ] **Task: Fix Difficult Region Metrics**
-    - [ ] Sub-task: Debug and fix the logic for "difficult regions included" vs "excluded".
-    - [ ] Sub-task: Verify against known ground truth or manual spot check (documented in notebook).
+- [x] **Task: Fix Difficult Region Metrics** [29c3b1d]
+    - [x] Sub-task: Debug and fix the logic for "difficult regions included" vs "excluded".
+    - [x] Sub-task: Verify against known ground truth or manual spot check (documented in notebook).
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)**
