@@ -11,13 +11,13 @@ Original locations remain unchanged - these are just convenient aliases.
 
 rule organize_exclusion_table:
     """
-    Create user-friendly symlink to exclusion intersection table.
+    Create user-friendly symlink to exclusion impact table.
 
     Provides easy access to exclusion analysis results directly in the
     benchmark directory rather than nested in results/exclusions/.
     """
     input:
-        "results/exclusions/{benchmark}/exclusions_intersection_table.csv",
+        "results/exclusions/{benchmark}/exclusion_impact.csv",
     output:
         "results/benchmarksets/{benchmark}/exclusions.csv",
     log:

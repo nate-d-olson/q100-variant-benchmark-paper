@@ -1,3 +1,5 @@
+# AI Disclosure: This file was modified with assistance from Claude (Anthropic)
+# to add exclusion analysis helper functions.
 """
 Common helper functions for the Q100 variant benchmark pipeline
 """
@@ -406,6 +408,92 @@ def get_exclusion_file_checksum(benchmark: str, exclusion_name: str, file_idx: i
             f"in benchmark {benchmark} (only {len(files)} files)"
         )
     return files[file_idx]["sha256"]
+
+
+def get_exclusion_name_mapping(benchmark: str) -> Dict[str, str]:
+    """Map EXCL_* IDs (as in REGION_IDS) back to canonical exclusion names.
+
+    Returns:
+        Dict mapping e.g. "EXCL_FLANKS" -> "flanks"
+    """
+    exclusions = get_exclusion_config(benchmark)
+    return {
+        f"EXCL_{_format_exclusion_name(excl['name'])}": excl["name"]
+        for excl in exclusions
+    }
+
+
+def get_exclusion_bed_paths(benchmark: str) -> List[str]:
+    """Get list of materialized exclusion BED file paths for a benchmark."""
+    exclusions = get_exclusion_config(benchmark)
+    return [
+        f"results/exclusions/{benchmark}/{excl['name']}.bed"
+        for excl in exclusions
+    ]
+
+
+def get_exclusion_impact_inputs(wildcards):
+    """Get inputs for the compute_exclusion_impact rule."""
+    benchmark = wildcards.benchmark
+    excl_names = [
+        e["name"] for e in get_exclusion_config(benchmark)
+    ]
+    return {
+        "variant_table": f"results/variant_tables/{benchmark}/variants.tsv",
+        "exclusion_tsvs": expand(
+            "results/exclusions/{benchmark}/coverage/{exclusion}.tsv",
+            benchmark=benchmark,
+            exclusion=excl_names,
+        ),
+    }
+
+
+def get_exclusion_interaction_inputs(wildcards):
+    """Get inputs for the compute_exclusion_interactions rule."""
+    benchmark = wildcards.benchmark
+    return {
+        "dip_bed": f"resources/benchmarksets/{benchmark}_dip.bed",
+        "benchmark_bed": f"resources/benchmarksets/{benchmark}_benchmark.bed",
+        "exclusion_beds": get_exclusion_bed_paths(benchmark),
+        "variant_table": f"results/variant_tables/{benchmark}/variants.tsv",
+    }
+
+
+def get_old_benchmark_analysis_inputs(wildcards):
+    """Get inputs for the annotate_old_benchmark_status rule."""
+    comp = config["comparisons"][wildcards.comp_id]
+    new_bmk = comp["new_benchmark"]
+    old_bmk = comp["old_benchmark"]
+    return {
+        "old_vcf": f"resources/benchmarksets/{old_bmk}_benchmark.vcf.gz",
+        "old_vcfidx": f"resources/benchmarksets/{old_bmk}_benchmark.vcf.gz.tbi",
+        "old_bed": f"resources/benchmarksets/{old_bmk}_benchmark.bed",
+        "new_dip_bed": f"resources/benchmarksets/{new_bmk}_dip.bed",
+        "new_benchmark_bed": f"resources/benchmarksets/{new_bmk}_benchmark.bed",
+        "exclusion_beds": get_exclusion_bed_paths(new_bmk),
+    }
+
+
+def get_exclusion_impact_targets(wildcards) -> List[str]:
+    """Get all exclusion impact table targets for rule all."""
+    targets = []
+    for benchmark, conf in config["benchmarksets"].items():
+        if conf.get("exclusions"):
+            targets.append(
+                f"results/exclusions/{benchmark}/exclusion_impact.csv"
+            )
+    return targets
+
+
+def get_exclusion_interaction_targets(wildcards) -> List[str]:
+    """Get all exclusion interaction table targets for rule all."""
+    targets = []
+    for benchmark, conf in config["benchmarksets"].items():
+        if conf.get("exclusions"):
+            targets.append(
+                f"results/exclusions/{benchmark}/exclusion_interactions.csv"
+            )
+    return targets
 
 
 def get_reference_checksum_info(ref_name: str) -> Tuple[str, str]:
