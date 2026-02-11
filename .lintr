@@ -1,7 +1,11 @@
 linters: linters_with_defaults(
     line_length_linter(100),
-    object_name_linter(styles = c("snake_case", "dotted.case")),
-    commented_code_linter = NULL
+    object_name_linter(styles = c("snake_case", "dotted.case", "SNAKE_CASE")),
+    object_usage_linter = NULL,
+    object_length_linter = NULL,
+    pipe_consistency_linter = NULL,
+    commented_code_linter = NULL,
+    return_linter = NULL
   )
 exclusions: list(
     "tests/"

@@ -761,7 +761,8 @@ load_reference_sizes <- function(results_dir = NULL) {
 ## Get hg002q100v1.1 size
 #' Get HG002 Q100 assembly size
 #'
-#' Retrieve the genome size associated with the HG002 Q100 maternal assembly used by the q100 variant benchmark.
+#' Retrieve the genome size associated with the HG002 Q100 maternal
+#' assembly used by the q100 variant benchmark.
 #'
 #' @details
 #' Returns a single numeric value representing the total bp for the mat assembly.
@@ -778,7 +779,10 @@ load_reference_sizes <- function(results_dir = NULL) {
 load_hg002q100_size <- function(
   asm_version = "v1.1",
   asm_verison = asm_version,
-  fai_url = "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai",
+  fai_url = paste0(
+    "https://s3-us-west-2.amazonaws.com/human-pangenomics/",
+    "T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"
+  ),
   fai_md5 = "c84f852b1cd4a00b12e6439ae7a2dd87"
 ) {
   # Preserve backward compatibility for misspelled argument name.
@@ -809,9 +813,9 @@ load_hg002q100_size <- function(
     fai_path,
     col_names = c("chrom", "length", "offset", "line_bases", "line_width"),
     col_types = "cicii"
-  ) |>
-    dplyr::mutate(chrom = stringr::str_remove(chrom, "_.ATERNAL")) |>
-    dplyr::filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |>
+  ) %>%
+    dplyr::mutate(chrom = stringr::str_remove(chrom, "_.ATERNAL")) %>%
+    dplyr::filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) %>%
     dplyr::select(chrom, length)
   file.remove(fai_path)
 
@@ -1419,7 +1423,8 @@ load_genomic_context_coverage <- function(
 #' Loads all benchmark region BED files from the resources directory and combines them
 #' into a single tibble with standardized column names and factored variables.
 #'
-#' @param resources_dir Path to resources directory. Default: `here::here("resources/benchmarksets")`
+#' @param resources_dir Path to resources directory.
+#'   Default: `here::here("resources/benchmarksets")`
 #'
 #' @return Tibble with columns:
 #'   - bench_version: Benchmark version (factored)
