@@ -739,7 +739,7 @@ load_reference_sizes <- function(results_dir = NULL) {
         tibble::add_column(ref = ref_name, .before = 1) %>%
         dplyr::mutate(
           ref = std_references(ref),
-          chrom = .normalize_chrom(chrom),
+          chrom = std_chrom(chrom),
           # Calculate assembled bases
           asm_bp = length - ns
         )
