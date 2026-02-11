@@ -27,13 +27,13 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 - **dip.bed**: Dipcall assembly regions — the starting point before exclusions are applied
 
 **Key Rules by Layer:**
-1. **Metrics** (`workflow/rules/strat_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
-   - Outputs: `results/genomic_context_metrics/{benchmark}/genomic_context_coverage_table.csv`
+1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
+   - Outputs: `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
 2. **Variant Tables** (`workflow/rules/var_tables.smk`): Annotate VCFs with genomic context IDs and generate TSV
    - Key rule: `annotate_vcf_genomic_contexts` → adds INFO/CONTEXT_IDS to VCF
    - Outputs: `results/variant_tables/{benchmark}/variants.tsv`
 3. **Variant Counts** (`workflow/rules/var_counts.smk`): Count variants per genomic context
-   - Outputs: `results/var_counts/{benchmark}/genomic_context_combined_metrics.csv`
+   - Outputs: `results/genomic_context/{benchmark}/combined_metrics.csv`
 4. **Comparisons** (`workflow/rules/comparisons.smk`): Truvari comparison between benchmark versions
    - Uses "stratification" terminology (not genomic_context) for GIAB comparison analysis
 5. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
@@ -46,7 +46,15 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
    - Cross-version outputs: `results/exclusions/{comp_id}/old_only_*.csv`
 
 **Output File Patterns:**
-- Genomic context files: `results/genomic_context_*/{benchmark}/*.csv`
+- Genomic context files: `results/genomic_context/{benchmark}/`
+  - `coverage/` - BED files (both symlinked .bed.gz and bedtools coverage _cov.bed)
+  - `metrics/` - Individual genomic context metric TSV files
+  - `var_counts/` - Variant count files
+    - `variants_by_genomic_context.csv` - Per-context, per-variant-type counts
+    - `genomic_context_summary.csv` - Aggregated counts per context
+  - `genomic_context_coverage_table.csv` - Aggregated coverage metrics
+  - `combined_metrics.csv` - Coverage metrics + variant counts (final output)
+  - `sizes/` - Temporary size calculation files (auto-deleted by Snakemake)
 - Variant annotations: `results/variant_tables/{benchmark}/*.tsv`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`
 - Cross-version exclusion analysis: `results/exclusions/{comp_id}/*.csv`
@@ -167,6 +175,31 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 - Column 9: %INFO/CONTEXT_IDS — Genomic contexts (extracted during bcftools query)
 - Column 10: %INFO/REGION_IDS — Benchmark + exclusions (extracted during bcftools query)
 
+## Variant Type Classification
+
+The pipeline uses a dual classification approach implemented in `workflow/scripts/classify_variant_types.py`:
+
+**For structural variants (>50bp):**
+- Uses INFO/SVTYPE field when available (DEL, INS, DUP, INV, BND, CNV, etc.)
+- Size determined from INFO/SVLEN or REF/ALT length difference
+
+**For small variants (≤50bp or missing SVTYPE):**
+- REF_len == ALT_len == 1: SNP
+- REF_len == ALT_len > 1: MNP (multi-nucleotide polymorphism)
+- REF_len < ALT_len: INS (insertion)
+- REF_len > ALT_len: DEL (deletion)
+- Other cases: COMPLEX
+
+**Output columns:**
+- `snp_count`, `mnp_count`, `del_count`, `ins_count`, `complex_count`
+- `other_count` — Includes structural variant types (DUP, INV, BND, CNV) from SVTYPE
+
+**Pipeline flow:**
+1. `generate_var_table` — Extract INFO fields including SVTYPE/SVLEN
+2. `classify_variant_types` — Reclassify based on size and available fields
+3. `count_vars_by_context` — Count variants by type and genomic context
+4. `summarize_var_counts` — Aggregate into final counts
+
 ## Benchmark ID Format
 
 Pattern: `{bench_version}_{ref}_{bench_type}`
@@ -178,7 +211,7 @@ Examples:
 
 File paths encode this pattern:
 ```
-results/genomic_context_metrics/v5.0q_GRCh38_smvar/
+results/genomic_context/v5.0q_GRCh38_smvar/
 results/variant_tables/v5.0q_GRCh38_smvar/variants.tsv
 results/exclusions/v5.0q_GRCh38_smvar/  # only if exclusions configured
 ```

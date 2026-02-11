@@ -378,8 +378,8 @@ Generate list of stratification metrics table files for all benchmarks.
 ```python
 files = get_strat_metrics_inputs(wildcards)
 # Returns: [
-#     "results/genomic_context_metrics/v5.0q_GRCh38/genomic_context_coverage_table.csv",
-#     "results/genomic_context_metrics/v5.0q_GRCh37/genomic_context_coverage_table.csv",
+#     "results/genomic_context/v5.0q_GRCh38/genomic_context_coverage_table.csv",
+#     "results/genomic_context/v5.0q_GRCh37/genomic_context_coverage_table.csv",
 #     ...
 # ]
 ```
@@ -404,8 +404,8 @@ Generate list of variant count table files for all benchmarks.
 ```python
 files = get_var_counts_inputs(wildcards)
 # Returns: [
-#     "results/var_counts/v5.0q_GRCh38/genomic_context_combined_metrics.csv",
-#     "results/var_counts/v5.0q_GRCh37/genomic_context_combined_metrics.csv",
+#     "results/genomic_context/v5.0q_GRCh38/combined_metrics.csv",
+#     "results/genomic_context/v5.0q_GRCh37/combined_metrics.csv",
 #     ...
 # ]
 ```
