@@ -50,7 +50,7 @@ These files contain aggregated metrics and should be your default choice for ana
 
 ### 1. Stratification Combined Metrics
 
-**Path:** `results/var_counts/{benchmark}/genomic_context_combined_metrics.csv`
+**Path:** `results/genomic_context/{benchmark}/combined_metrics.csv`
 
 **Purpose:** Primary analysis file with per-genomic context metrics and variant counts. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
 
@@ -69,20 +69,31 @@ These files contain aggregated metrics and should be your default choice for ana
 | pct_of_context | decimal | Percentage of genomic context in benchmark | 0-100% |
 | pct_of_bench | decimal | Percentage of benchmark in genomic context | 0-100% |
 | total_variants | integer | Total variant count in overlap | Count |
-| snv_count | integer | SNV count | Count |
-| indel_count | integer | INDEL count | Count |
-| del_count | integer | Deletion count (structural variants) | Count |
-| ins_count | integer | Insertion count (structural variants) | Count |
+| snp_count | integer | Single nucleotide polymorphism count | Count |
+| mnp_count | integer | Multi-nucleotide polymorphism count | Count |
+| del_count | integer | Deletion count (all sizes) | Count |
+| ins_count | integer | Insertion count (all sizes) | Count |
 | complex_count | integer | Complex variant count | Count |
-| other_count | integer | Other/unclassified variant count | Count |
+| other_count | integer | Other variant types (DUP, INV, BND, CNV from SVTYPE) | Count |
 | variant_density_per_mb | decimal | Variants per megabase | variants/Mb |
+
+**Variant Classification Logic:**
+
+The pipeline uses a dual classification approach:
+- **Small variants (≤50bp or missing SVTYPE)**: Classified by REF/ALT length comparison
+  - SNP: REF_len == ALT_len == 1
+  - MNP: REF_len == ALT_len > 1
+  - INS: ALT_len > REF_len
+  - DEL: REF_len > ALT_len
+  - COMPLEX: Other cases
+- **Structural variants (>50bp with SVTYPE)**: Uses INFO/SVTYPE field directly (DEL, INS, DUP, INV, BND, CNV)
 
 **Example Data:**
 ```
-context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,total_variants,snv_count,indel_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
-HP,83977437,80057238,95.331843,2.922429,745376,180354,554178,0,0,0,10844,9310.54
-MAP,248876839,113370415,45.552819,4.138501,851471,724227,86411,0,0,0,40833,7510.52
-SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,0,0,0,25627,6232.91
+context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,total_variants,snp_count,mnp_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
+HP,83977437,80057238,95.331843,2.922429,745376,180354,554178,8234,1654,156,400,9310.54
+MAP,248876839,113370415,45.552819,4.138501,851471,724227,86411,35678,4312,421,422,7510.52
+SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,23456,1456,98,617,6232.91
 ```
 
 **Usage Notes:**
@@ -274,11 +285,13 @@ These files contain variant-level or base-level data. Load them only when you ne
 | alt | string | Alternate allele |
 | gt | string | Genotype (typically "." for benchmark) |
 | vkx | string | Variant class |
-| var_type | string | Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER) |
+| var_type | string | Variant type (SNP, MNP, DEL, INS, COMPLEX, or SV types) |
 | len_ref | integer | Reference allele length |
 | len_alt | integer | Alternate allele length |
 | var_size | integer | Size of variant (len_alt - len_ref) |
 | region_ids | string | Region classification codes |
+| svtype | string | Structural variant type (if >50bp, may be empty) |
+| svlen | integer | Structural variant length (if >50bp, may be empty) |
 | (additional fields) | varies | Source-specific annotations |
 
 **Data Quality Notes:**
@@ -406,11 +419,15 @@ coverage %>%
 
 ```
 results/
-├── var_counts/
+├── genomic_context/
 │   ├── v5.0q_GRCh38_smvar/
-│   │   ├── genomic_context_combined_metrics.csv    ✓ Primary (load first)
-│   │   ├── genomic context_summary.csv             (intermediate)
-│   │   └── variants_by_genomic context.csv         (intermediate)
+│   │   ├── combined_metrics.csv                    ✓ Primary (load first)
+│   │   ├── genomic_context_coverage_table.csv      (intermediate)
+│   │   ├── coverage/                               (BED files)
+│   │   ├── metrics/                                (individual TSV files)
+│   │   └── var_counts/
+│   │       ├── genomic_context_summary.csv         (intermediate)
+│   │       └── variants_by_genomic_context.csv     (intermediate)
 │   ├── v5.0q_GRCh38_stvar/
 │   ├── v5.0q_GRCh37_smvar/
 │   ├── v5.0q_GRCh37_stvar/
@@ -605,10 +622,10 @@ clear_cache()                       # Remove all cached data
 
 ## Troubleshooting
 
-### "No genomic_context_combined_metrics.csv files found"
-- Check that `results/var_counts/` directory exists
+### "No combined_metrics.csv files found"
+- Check that `results/genomic_context/` directory exists
 - Verify pipeline completed successfully
-- Run `find results/ -name "*genomic context_combined_metrics*"`
+- Run `find results/ -name "*combined_metrics*"`
 
 ### Slow loading of variant tables
 - First load is slow (~1 GB files), but subsequent loads use Parquet cache and are much faster
