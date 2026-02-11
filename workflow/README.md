@@ -137,7 +137,7 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 ### Variant Analysis
 | Script | Description |
 |--------|-------------|
-| `count_variants_by_type.py` | Count variants by type (SNP, INDEL, SV) from VCF |
+| `count_variants_by_type.py` | Count variants by type (SNV, INDEL, SV) from VCF |
 | `count_variants_by_strat.py` | Count variants per stratification region |
 | `stratify_comparison.py` | Compare variants across stratifications |
 

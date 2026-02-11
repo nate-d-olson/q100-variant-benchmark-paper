@@ -7,7 +7,7 @@ assign_size_bin <- function(var_size) {
   case_when(
     abs_size < 15 ~ "<15bp",
     abs_size >= 15 & abs_size < 50 ~ "15-49bp",
-    TRUE ~ ">=50bp"
+    .default = ">=50bp"
   )
 }
 

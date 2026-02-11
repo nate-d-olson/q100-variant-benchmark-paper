@@ -78,7 +78,7 @@ The Q100 variant benchmark pipeline is a Snakemake-based workflow for analyzing 
 │                     Metrics Phase                               │
 │  ┌────────────────────┐  ┌─────────────────────────────────┐   │
 │  │ Coverage Metrics   │  │ Variant Counts                  │   │
-│  │ - Per stratification│  │ - By type (SNP, INDEL, SV)     │   │
+│  │ - Per stratification│  │ - By type (SNV, INDEL, SV)     │   │
 │  │ - Overlap stats    │  │ - By stratification             │   │
 │  └────────────────────┘  └─────────────────────────────────┘   │
 └────────────────────────────┬────────────────────────────────────┘
@@ -97,7 +97,7 @@ The Q100 variant benchmark pipeline is a Snakemake-based workflow for analyzing 
 ### Input Sources
 
 1. **Benchmark VCF Files**
-   - GIAB v5q variants (SNPs, INDELs, SVs)
+   - GIAB v5q variants (SNVs, INDELs, SVs)
    - Historical benchmarks (v4.2.1, v0.6 SV)
    - Coordinates for GRCh37, GRCh38, CHM13v2.0
 
@@ -232,7 +232,7 @@ The pipeline generates two tiers of outputs optimized for different use cases:
        "v5.0q_GRCh38_smvar",
        filters = list(
            chromosomes = c("chr1", "chr2"),
-           variant_types = c("SNP"),
+           variant_types = c("SNV"),
            in_benchmark_only = TRUE
        )
    )
@@ -450,7 +450,7 @@ Three functions support caching via `use_cache` and `force_refresh` parameters:
 | Function | Dataset | Source Files |
 |----------|---------|--------------|
 | `load_variant_table()` | `variant_table` | `variants.tsv` |
-| `load_diff_coverage()` | `diff_coverage` | `*_cov.bed` files |
+| `load_genomic_context_coverage()` | `diff_coverage` | `*_cov.bed` files |
 | `load_benchmark_regions()` | `benchmark_regions` | `*_benchmark.bed` files |
 
 Functions NOT cached (small datasets, load directly from pipeline output):
@@ -530,7 +530,7 @@ The pipeline now includes comprehensive error handling:
 4. **Parquet Caching and Schema Registry**
    - `R/schemas.R` - Arrow schema definitions, factor levels, validation rules
    - `R/cache.R` - Parquet caching with zstd compression and pipeline metadata
-   - Cache integration in `load_variant_table()`, `load_diff_coverage()`, `load_benchmark_regions()`
+   - Cache integration in `load_variant_table()`, `load_genomic_context_coverage()`, `load_benchmark_regions()`
    - 45 tests in `tests/test_cache.R` covering schemas, cache round-trips, invalidation, metadata
 
 5. **Code Quality Tooling**

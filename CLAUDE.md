@@ -88,10 +88,10 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 ### Data Dictionary
 
-For a detailed description of the data objects returned by the loading functions, see:
-[`docs/data_dictionary.md`](docs/data_dictionary.md)
+For a detailed description of the data objects returned by the loading functions and pipeline metric definitions, see:
+[`docs/data-dictionary.md`](docs/data-dictionary.md)
 
-> **Maintenance Note:** The data dictionary document must be updated whenever changes are made to `R/data_loading.R` or `R/schemas.R` that affect the structure of the returned data objects.
+> **Maintenance Note:** The data dictionary document must be updated whenever changes are made to `R/data_loading.R`, `R/schemas.R`, or pipeline output formats.
 
 ### File Organization
 

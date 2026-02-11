@@ -47,9 +47,9 @@ scale_benchmark_version(aesthetic = "fill", name = "Benchmark")
 scale_reference_genome(aesthetic = "color", name = "Reference")
 scale_reference_genome(aesthetic = "fill")
 
-# For variant types
-scale_variant_type(aesthetic = "color", name = "Variant Type")
-scale_variant_type(aesthetic = "fill")
+# For benchmark set types
+scale_bench_type(aesthetic = "color", name = "Benchmark Type")
+scale_bench_type(aesthetic = "fill")
 
 # For genomic contexts
 scale_genomic_context(aesthetic = "color", name = "Genomic Context")
@@ -84,8 +84,8 @@ palettes$context_name
 # TR       = "#FF7F00" (orange)
 # TR10kb   = "#A65628" (brown)
 
-# Variant types
-palettes$var_type
+# Benchmark set types
+palettes$bench_type
 # smvar    = "#1B9E77" (teal)
 # stvar    = "#D95F02" (orange)
 ```
@@ -123,7 +123,7 @@ ggsave("figure.pdf", width = 7, height = 4, dpi = 300)
 metrics %>%
   # Data preparation
   filter(ref == "GRCh38") %>%
-  group_by(bench_version, var_type, context_name) %>%
+  group_by(bench_version, bench_type, context_name) %>%
   summarise(total_variants = sum(total_variants), .groups = "drop") %>%
 
   # Visualization
@@ -133,7 +133,7 @@ metrics %>%
     fill = bench_version
   )) +
   geom_col(position = "dodge") +
-  facet_wrap(~var_type, scales = "free_y") +
+  facet_wrap(~bench_type, scales = "free_y") +
 
   # Theming
   scale_benchmark_version(aesthetic = "fill") +
@@ -184,7 +184,7 @@ data %>%
 
 ```r
 metrics %>%
-  filter(ref == "GRCh38", var_type == "smvar") %>%
+  filter(ref == "GRCh38", bench_type == "smvar") %>%
   select(bench_version, context_name, total_variants, snv_count, indel_count) %>%
   arrange(bench_version, context_name) %>%
 
@@ -230,13 +230,13 @@ get_context_labels(c("HP", "TR", "SD"))
 # Returns named character vector with specified contexts
 ```
 
-### Get Variant Type Labels
+### Get Benchmark Type Labels
 
 ```r
-get_variant_type_labels()
+get_bench_type_labels()
 # Returns: smvar = "Small Variants", stvar = "Structural Variants"
 
-get_variant_type_labels(c("smvar"))
+get_bench_type_labels(c("smvar"))
 # Returns: smvar = "Small Variants"
 ```
 

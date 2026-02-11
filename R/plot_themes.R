@@ -10,7 +10,7 @@
 #'
 #' **Benchmark Versions:** Distinct colors for v0.6, v4.2.1, v5.0q
 #' **Reference Genomes:** Colors for GRCh37, GRCh38, CHM13v2.0
-#' **Variant Types:** Colors for smvar (small variants) and stvar (structural variants)
+#' **Benchmark Types:** Colors for smvar (small variants) and stvar (structural variants)
 #' **Genomic Contexts:** Distinct colors for each difficult region type
 #'
 #' ## Theme Requirements (Cell Genomics)
@@ -54,8 +54,8 @@ get_color_palettes <- function() {
       "CHM13v2.0" = "#4DAF4A" # Green
     ),
 
-    # Variant types - simple contrast
-    var_type = c(
+    # Benchmark types - simple contrast
+    bench_type = c(
       "smvar" = "#1B9E77", # Teal (small variants)
       "stvar" = "#D95F02" # Orange (structural variants)
     ),
@@ -247,10 +247,10 @@ scale_reference_genome <- function(
   )
 }
 
-#' Scale for Variant Types
+#' Scale for Benchmark Set Types
 #'
 #' @param aesthetic The ggplot aesthetic to apply (color, fill, etc.)
-#' @param name Display name for the scale (default: "Variant Type")
+#' @param name Display name for the scale (default: "Benchmark Type")
 #' @param guide Guide type ("legend" or "none")
 #'
 #' @return A ggplot2 scale object
@@ -258,9 +258,9 @@ scale_reference_genome <- function(
 #' @keywords internal
 #'
 #' @export
-scale_variant_type <- function(
+scale_bench_type <- function(
   aesthetic = "color",
-  name = "Variant Type",
+  name = "Benchmark Type",
   guide = "legend"
 ) {
   palettes <- get_color_palettes()
@@ -268,7 +268,7 @@ scale_variant_type <- function(
   switch(aesthetic,
     color = scale_color_manual(
       name = name,
-      values = palettes$var_type,
+      values = palettes$bench_type,
       labels = c(
         "smvar" = "Small Variants",
         "stvar" = "Structural Variants"
@@ -277,7 +277,7 @@ scale_variant_type <- function(
     ),
     fill = scale_fill_manual(
       name = name,
-      values = palettes$var_type,
+      values = palettes$bench_type,
       labels = c(
         "smvar" = "Small Variants",
         "stvar" = "Structural Variants"

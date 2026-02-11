@@ -11,9 +11,9 @@ graph TD
     end
 
     subgraph Metadata["🟣 Metadata & Encoding"]
-        BENCHID["Benchmark Identifier<br/>v{version}_{ref}_{var_type}<br/>e.g., v5.0q_GRCh38_smvar"]
+        BENCHID["Benchmark Identifier<br/>v{version}_{ref}_{bench_type}<br/>e.g., v5.0q_GRCh38_smvar"]
         STRATS["Stratification Names<br/>HP, MAP, SD, SD10kb<br/>TR, TR10kb"]
-        COLS["Shared Column Names<br/>bench_version, ref, var_type<br/>strat_name, chrom"]
+        COLS["Shared Column Names<br/>bench_version, ref, bench_type<br/>strat_name, chrom"]
     end
 
     subgraph InputResources["📋 Input Resources"]
@@ -27,9 +27,9 @@ graph TD
     STRAT -->|links via: bench_id| VARIANTS
 
     %% Metadata relationships
-    BENCHID -->|encodes: bench_version,<br/>ref, var_type| STRAT
-    BENCHID -->|encodes: bench_version,<br/>ref, var_type| COVERAGE
-    BENCHID -->|encodes: bench_version,<br/>ref, var_type| EXCL
+    BENCHID -->|encodes: bench_version,<br/>ref, bench_type| STRAT
+    BENCHID -->|encodes: bench_version,<br/>ref, bench_type| COVERAGE
+    BENCHID -->|encodes: bench_version,<br/>ref, bench_type| EXCL
 
     STRATS -->|values in:<br/>strat_name column| STRAT
     STRATS -->|values in:<br/>strat_name column| COVERAGE
