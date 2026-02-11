@@ -200,9 +200,7 @@ rule generate_var_table:
         region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
         region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
-        tsv=protected(
-            ensure("results/variant_tables/{benchmark}/variants.tsv", non_empty=True)
-        ),
+        tsv=temp("results/variant_tables/{benchmark}/variants_raw.tsv"),
     params:
         strat_ids=lambda w: get_strat_ids(w),
         region_ids=lambda w: get_region_ids(w),
@@ -235,3 +233,19 @@ rule generate_var_table:
         echo "Completed at $(date)" >> {log}
         echo "Output lines: $(wc -l < {output.tsv})" >> {log}
         """
+
+
+rule classify_variant_types:
+    """Reclassify variant types based on REF/ALT lengths for proper INS/DEL classification."""
+    input:
+        tsv="results/variant_tables/{benchmark}/variants_raw.tsv",
+    output:
+        tsv=protected(
+            ensure("results/variant_tables/{benchmark}/variants.tsv", non_empty=True)
+        ),
+    log:
+        "logs/classify_variant_types/{benchmark}.log",
+    conda:
+        "../envs/python.yaml"
+    script:
+        "../scripts/classify_variant_types.py"
