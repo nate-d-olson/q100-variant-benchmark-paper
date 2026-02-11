@@ -14,7 +14,7 @@ This document describes the data objects returned by the functions in `R/data_lo
 | :--- | :--- | :--- |
 | `bench_version` | Factor | Benchmark version (`v0.6`, `v4.2.1`, `v5.0q`) |
 | `ref` | Factor | Reference genome (`GRCh37`, `GRCh38`, `CHM13v2.0`) |
-| `bench_type` | Factor | Benchmark variant type (`smvar`, `stvar`) |
+| `bench_type` | Factor | Benchmark set type (`smvar`, `stvar`) |
 | `context_name` | Factor | Genomic context identifier (e.g., `HP`, `TR`, `SD`) |
 | `context_bp` | Numeric | Total size of the genomic context in bases |
 | `intersect_bp` | Numeric | Number of bases where the genomic context overlaps the benchmark regions |
@@ -39,7 +39,7 @@ This document describes the data objects returned by the functions in `R/data_lo
 | :--- | :--- | :--- |
 | `bench_version` | Character | Benchmark version (e.g., `v5.0q`) |
 | `ref` | Character | Reference genome |
-| `bench_type` | Factor | Benchmark variant type |
+| `bench_type` | Factor | Benchmark set type |
 | `exclusions` | Character | Name of the exclusion region |
 | `exclusion_bp` | Numeric | Total size of the exclusion region |
 | `intersect_bp` | Numeric | Overlap with benchmark (Note: variable name in code may be `dip_intersect_bp`) |
@@ -73,13 +73,13 @@ This document describes the data objects returned by the functions in `R/data_lo
 | :--- | :--- | :--- |
 | `bench_version` | Character | Benchmark version |
 | `ref` | Character | Reference genome |
-| `bench_type` | Character | Benchmark variant type |
+| `bench_type` | Character | Benchmark set type |
 | `chrom` | Character | Chromosome |
 | `pos` | Integer | 1-based start position |
 | `end` | Integer | End position |
 | `gt` | Character | Genotype |
 | `vkx` | Character | Variant class |
-| `var_type` | Character | Variant type (SNP, INDEL, etc.) |
+| `var_type` | Character | Variant type (SNV, INDEL, etc.) |
 | `len_ref` | Integer | Length of reference allele |
 | `len_alt` | Integer | Length of alternate allele |
 | `var_size` | Integer | Size of the variant |
@@ -115,7 +115,7 @@ This document describes the data objects returned by the functions in `R/data_lo
 | :--- | :--- | :--- |
 | `bench_version` | Factor | Benchmark version |
 | `ref` | Factor | Reference genome |
-| `bench_type` | Factor | Benchmark variant type |
+| `bench_type` | Factor | Benchmark set type |
 | `chrom` | Factor | Chromosome |
 | `start` | Integer | Start position (0-based) |
 | `end` | Integer | End position |

@@ -28,7 +28,7 @@ Comprehensive characterization of the v5q benchmark set variants and regions, in
 
 **Key Analyses:**
 
-- Variant counts by type (SNP, INDEL, INS, DEL) across benchmark versions
+- Variant counts by type (SNV, INDEL, INS, DEL) across benchmark versions
 - Size distributions for indels and structural variants
 - Variants in difficult genomic contexts (tandem repeats, homopolymers, segmental duplications, low mappability)
 - Benchmark region coverage comparisons
@@ -93,6 +93,20 @@ Analysis of external evaluations from variant calling pipelines compared against
 
 ## Running the Notebooks
 
+### Shared Notebook Setup
+
+Analysis notebooks now use `analysis/_notebook_setup.R` to reduce repeated setup code.
+Use this helper in notebook setup chunks to consistently load packages and shared
+R modules:
+
+```r
+source(here::here("analysis/_notebook_setup.R"))
+analysis_setup(load_plot_themes = TRUE, load_gt = TRUE)
+```
+
+The data-loading layer also includes `load_primary_analysis_data()` to load
+validated core data frames in one call.
+
 ### Prerequisites
 
 Ensure the Snakemake pipeline has been run to generate input files:
@@ -144,6 +158,8 @@ Large datasets (variant tables, coverage files, benchmark regions) are cached as
 
 - Automatically populated on first load via `R/data_loading.R` functions
 - Invalidated when source files change (based on modification times)
+- Validated during data loading before cache generation, with schema checks
+  re-applied at cache write time for defense in depth
 - Excluded from git (see `.gitignore`)
 
 Cache management:

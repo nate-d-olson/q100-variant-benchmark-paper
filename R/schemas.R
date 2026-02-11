@@ -7,9 +7,10 @@
 # ---- Factor level constants ------------------------------------------------
 BENCH_VERSION_LEVELS <- c("v0.6", "v4.2.1", "v5.0q")
 REF_LEVELS <- c("GRCh37", "GRCh38", "CHM13v2.0")
-VAR_TYPE_LEVELS <- c("smvar", "stvar")
+BENCH_TYPE_LEVELS <- c("smvar", "stvar")
 CONTEXT_NAME_LEVELS <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
 CHROM_LEVELS <- paste0("chr", c(1:22, "X", "Y"))
+AUTOSOME_CHROM_LEVELS <- paste0("chr", 1:22)
 
 
 #' Get Arrow Schema for a Dataset
@@ -111,13 +112,13 @@ get_factor_levels <- function(dataset_name) {
     benchmark_regions = list(
       bench_version = BENCH_VERSION_LEVELS,
       ref = REF_LEVELS,
-      bench_type = VAR_TYPE_LEVELS,
+      bench_type = BENCH_TYPE_LEVELS,
       chrom = CHROM_LEVELS
     ),
     platinum_pedigree_regions = list(
       bench_version = c("PP"),
       ref = c("GRCh38"),
-      bench_type = VAR_TYPE_LEVELS,
+      bench_type = BENCH_TYPE_LEVELS,
       chrom = CHROM_LEVELS
     )
   )

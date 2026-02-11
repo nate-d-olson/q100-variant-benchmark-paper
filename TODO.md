@@ -1,6 +1,8 @@
 # Project To Dos
 
 - Update variant cache schema
+- Fix VAR_TYPE_LEVELS: SNV, INDEL, INS, DEL
+
 ## Analysis Notebooks
 
 - update input and outputs for notebooks are consistent with code

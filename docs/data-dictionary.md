@@ -148,7 +148,7 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Units:** Integer count
 
-**Calculation:** Sum of all snp_count + indel_count + del_count + ins_count + complex_count + other_count
+**Calculation:** Sum of all snv_count + indel_count + del_count + ins_count + complex_count + other_count
 
 **Interpretation:**
 - Represents the total number of variants within this genomic context-benchmark overlap
@@ -162,22 +162,22 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 ---
 
-#### snp_count
-**Definition:** Number of single nucleotide polymorphisms (SNPs)
+#### snv_count
+**Definition:** Number of single nucleotide variants (SNVs)
 
-**Definition of SNP:**
+**Definition of SNV:**
 - Single base substitution
 - Reference length = 1 bp, Alternate length = 1 bp
 - Example: A → G
 
 **Interpretation:**
-- SNPs are most common variant type
+- SNVs are most common variant type
 - Generally easiest to genotype accurately
 - Usually comprise 30-50% of total variants in benchmarks
 
 **Context:**
-- Small variants: 180,000-700,000 SNPs per benchmark-genomic context
-- Structural variants: 0 SNPs (structural variants are ≥50bp)
+- Small variants: 180,000-700,000 SNVs per benchmark-genomic context
+- Structural variants: 0 SNVs (structural variants are ≥50bp)
 
 ---
 
@@ -196,7 +196,7 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Interpretation:**
 - Second most common variant type
-- Harder to genotype than SNPs due to alignment complexity
+- Harder to genotype than SNVs due to alignment complexity
 - Particularly common in homopolymer and tandem repeat regions
 - Usually comprise 40-65% of small variants
 
@@ -255,7 +255,7 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Definition of Complex Variant:**
 - Both reference and alternate are >1 bp in length
-- Cannot be classified as simple SNP or INDEL
+- Cannot be classified as simple SNV or INDEL
 - Example: ACGT → TT (deletion + substitution)
 
 **Interpretation:**
@@ -351,7 +351,7 @@ variant_density = 9,310 v/Mb (very high)
 - Partial coverage indicates intentional focus on solvable cases
 
 **Variant Characteristics:**
-- High SNP proportion (85% SNPs, 15% INDELs)
+- High SNV proportion (85% SNVs, 15% INDELs)
 - Medium density: ~7,000-8,000 variants/Mb
 - Many variants result from alignment errors
 
@@ -392,7 +392,7 @@ total_variants = 851,471
 - Most conservative genomic context (heavily avoiding)
 
 **Variant Characteristics:**
-- High proportion SNPs (80-85%)
+- High proportion SNVs (80-85%)
 - Medium density: ~6,000-6,500 variants/Mb
 - Difficult to validate due to ambiguous mapping
 
@@ -455,7 +455,7 @@ pct_of_bench = 2.96% (3% of benchmark)
 - Moderate coverage reflecting difficulty
 
 **Variant Characteristics:**
-- Mixed SNPs and INDELs
+- Mixed SNVs and INDELs
 - Medium density: ~5,000-7,000 variants/Mb
 - Many variants are repeat-size variations
 
@@ -587,7 +587,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 
 ## Variant Classifications
 
-### SNP (Single Nucleotide Polymorphism)
+### SNV (Single Nucleotide Variant)
 
 **Definition:** Single base substitution
 
@@ -609,7 +609,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 **Stratification Pattern:**
 - Higher density in difficult regions
 - Particularly common in low-complexity regions (MAP)
-- Genome average: 3-5 SNPs per 10,000 bases
+- Genome average: 3-5 SNVs per 10,000 bases
 
 ---
 
@@ -635,7 +635,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 
 **Prevalence:** 40-65% of variants in small variant benchmarks
 
-**Callability:** Harder than SNPs due to alignment complexity, easier than complex variants
+**Callability:** Harder than SNVs due to alignment complexity, easier than complex variants
 
 **Stratification Pattern:**
 - Heavily concentrated in homopolymer regions (HP)
@@ -714,7 +714,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 
 **Characteristics:**
 - Both reference and alternate >1 bp
-- Cannot be decomposed to simple SNP + INDEL
+- Cannot be decomposed to simple SNV + INDEL
 
 **Examples:**
 - ACGT → TT (deletion + substitution)
@@ -732,7 +732,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 - VCF representation choices
 
 **Handling Strategies:**
-- Some tools decompose to SNP + INDEL
+- Some tools decompose to SNV + INDEL
 - Others treat as single variant
 - Benchmark representation varies
 
@@ -783,7 +783,7 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 - Total variants: ~4.9M
 - Average density: 6,500 variants/Mb
 - Benchmark coverage: 3.0 Gb (94% of assembled genome)
-- Composition: ~35% SNPs, ~60% INDELs, ~5% complex
+- Composition: ~35% SNVs, ~60% INDELs, ~5% complex
 
 **Structural Variants (stvar):**
 - Total variants: ~14,000

@@ -9,14 +9,22 @@ The pipeline generates outputs organized into two tiers:
 - **Primary Analysis Files** (5-10 KB per file): Pre-aggregated metrics optimized for fast loading and common analyses
 - **Detailed Data Files** (MB-GB per file): Full variant-level or base-level data for in-depth investigations
 
-All files are organized by benchmark identifier using the pattern: `{bench_version}_{ref}_{var_type}`
+All files are organized by benchmark identifier using the pattern: `{bench_version}_{ref}_{bench_type}`
+
+### Data Loading, Validation, and Cache Behavior
+
+Use `R/data_loading.R` functions as the primary interface for analysis notebooks.
+These loaders now run integrity checks during load time before cache generation
+for cache-enabled datasets (variant tables, genomic context coverage, benchmark
+regions, and Platinum Pedigree regions). Cache writes also enforce schema
+validation, so invalid inputs fail before stale cache artifacts are created.
 
 ### Benchmark Identifier Components
 
 - `bench_version`: Benchmark version (e.g., `v5.0q`, `v4.2.1`, `v0.6`)
 - `ref`: Reference genome (e.g., `GRCh38`, `GRCh37`, `CHM13v2.0`)
-- `var_type`: Variant type classification
-  - `smvar`: Small variants (SNPs, small indels <50bp)
+- `bench_type`: Benchmark set type classification
+  - `smvar`: Small variants (SNVs, small indels <50bp)
   - `stvar`: Structural variants (≥50bp)
 
 Example: `v5.0q_GRCh38_smvar` = v5.0q benchmark, GRCh38 reference, small variants
@@ -54,14 +62,14 @@ These files contain aggregated metrics and should be your default choice for ana
 |--------|------|-------------|-------------|
 | bench_version | string | Benchmark version | e.g., "v5.0q" |
 | ref | string | Reference genome | GRCh37, GRCh38, CHM13v2.0 |
-| var_type | string | Variant classification | smvar or stvar |
+| bench_type | string | Benchmark set type classification | smvar or stvar |
 | context_name | string | Stratification region name | HP, MAP, SD, SD10kb, TR, TR10kb |
 | context_bp | integer | Total bases in genomic context | Bases |
 | intersect_bp | integer | Bases overlapping with benchmark | Bases |
 | pct_of_context | decimal | Percentage of genomic context in benchmark | 0-100% |
 | pct_of_bench | decimal | Percentage of benchmark in genomic context | 0-100% |
 | total_variants | integer | Total variant count in overlap | Count |
-| snp_count | integer | SNP count | Count |
+| snv_count | integer | SNV count | Count |
 | indel_count | integer | INDEL count | Count |
 | del_count | integer | Deletion count (structural variants) | Count |
 | ins_count | integer | Insertion count (structural variants) | Count |
@@ -71,7 +79,7 @@ These files contain aggregated metrics and should be your default choice for ana
 
 **Example Data:**
 ```
-context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,total_variants,snp_count,indel_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
+context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,total_variants,snv_count,indel_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
 HP,83977437,80057238,95.331843,2.922429,745376,180354,554178,0,0,0,10844,9310.54
 MAP,248876839,113370415,45.552819,4.138501,851471,724227,86411,0,0,0,40833,7510.52
 SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,0,0,0,25627,6232.91
@@ -122,7 +130,7 @@ metrics %>%
 |--------|------|-------------|
 | bench_version | string | Benchmark version |
 | ref | string | Reference genome |
-| var_type | string | Variant type classification |
+| bench_type | string | Benchmark set type classification |
 | exclusions | string | Exclusion category name |
 | exclusion_bp | integer | Total bases in exclusion region (bases) |
 | intersect_bp | integer | Bases overlapping with benchmark (bases) |
@@ -266,7 +274,7 @@ These files contain variant-level or base-level data. Load them only when you ne
 | alt | string | Alternate allele |
 | gt | string | Genotype (typically "." for benchmark) |
 | vkx | string | Variant class |
-| var_type | string | Variant type (SNP, INDEL, DEL, INS, COMPLEX, OTHER) |
+| var_type | string | Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER) |
 | len_ref | integer | Reference allele length |
 | len_alt | integer | Alternate allele length |
 | var_size | integer | Size of variant (len_alt - len_ref) |
@@ -295,7 +303,7 @@ variants <- load_variant_table(
   "v5.0q_GRCh38_smvar",
   filters = list(
     chromosomes = c("chr1", "chr2"),  # Limit to ~8% of data
-    variant_types = c("SNP"),
+    variant_types = c("SNV"),
     in_benchmark_only = TRUE
   )
 )
@@ -469,7 +477,7 @@ metrics_normalized <- metrics %>%
 
 # 3. Create visualizations
 metrics_normalized %>%
-  ggplot(aes(x = context_name, y = variant_density_per_mb, fill = var_type)) +
+  ggplot(aes(x = context_name, y = variant_density_per_mb, fill = bench_type)) +
   geom_col(position = "dodge") +
   facet_wrap(~ref) +
   theme_minimal()
@@ -482,14 +490,14 @@ source("R/data_loading.R")
 
 # 1. Start with metrics to understand distribution
 metrics <- load_genomic_context_metrics()
-filter(metrics, var_type == "smvar", ref == "GRCh38")
+filter(metrics, bench_type == "smvar", ref == "GRCh38")
 
 # 2. If you need details, load variant table with filters
 variants <- load_variant_table(
   "v5.0q_GRCh38_smvar",
   filters = list(
     chromosomes = c("chr1"),  # Limit scope
-    variant_types = c("SNP", "INDEL")
+    variant_types = c("SNV", "INDEL")
   )
 )
 

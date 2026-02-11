@@ -14,94 +14,54 @@ execute:
   warning: false
 ---
 
-```{r setup}
-#| include=FALSE,
-#| echo=TRUE
-library(tidyverse)
-library(sessioninfo)
-library(here)
-library(assertthat)
-library(patchwork)
-library(gt)
+TODO - add upset plot
 
-# Load shared data loading functions
-source(here("R/data_loading.R"))
+```{r setup}
+#| include: false
+source(here::here("analysis/_notebook_setup.R"))
+analysis_setup(
+  load_plot_themes = TRUE,
+  load_gt = TRUE
+)
 ```
 
 ## Data Loading
 
-### Exclusion Intersection Table
-
-Generated with Snakemake pipeline - has 
 ```{r}
-exclusion_intersect_tbl <- list.files(
-  path = here("results/exclusions"),
-  pattern = "exclusions_intersection_table.csv",
-  recursive = TRUE,
-  full.names = TRUE
-) %>%
-  {
-    set_names(., str_extract(., "(?<=exclusions/).*(?=/)"))
-  } %>%
-  map_dfr(read_csv, show_col_types = FALSE, .id = "benchmarkset") %>%
-  separate(
-    col = benchmarkset,
-    into = c("bench_version", "ref", "bench_type"),
-    sep = "_"
-  )
+exclusion_intersect_tbl <- load_exclusion_metrics() %>%
+  dplyr::filter(bench_version == "v5.0q")
 
+if (nrow(exclusion_intersect_tbl) == 0) {
+  stop("No v5.0q exclusion metrics found in results/exclusions.")
+}
 ```
 
-Notes on exclusion intersection table:
+## Notes on Metrics
 
-- pct of exclusion is the percentage of the exclusion bed that overlaped with the dip.bed file. 100% mean the entire exclusion region was removed, 0% means none of the exclusion region was removed. Values over 100% indicate potential error in the code or interpretation of results is not correct.
-- pct of initial is the percentage of the dip.bed that overlapped with the exclusion bed. All values within expected range (all greater than 0%) and most less than 1%. TODO - check for consistency with tables from defrabb output.
-
+- `pct_of_exclusion` is the percent of each exclusion BED that overlaps the benchmark.
+- `pct_of_dip` is the percent of diploid benchmark space represented by each exclusion overlap.
 
 ## Bases Removed by Exclusion
 
 ```{r}
 exclusion_interset_gt_tbl <- exclusion_intersect_tbl %>%
-  select(ref, exclusions, bench_type, intersect_bp, pct_of_dip) %>%
-  pivot_wider(
+  dplyr::select(ref, exclusions, bench_type, intersect_bp, pct_of_dip) %>%
+  tidyr::pivot_wider(
     names_from = ref,
     values_from = c(intersect_bp, pct_of_dip)
   ) %>%
-  arrange(-intersect_bp_CHM13v2.0)
+  dplyr::arrange(-intersect_bp_CHM13v2.0)
 
 make_exclusion_tbl <- function(exclusion_tbl, table_title) {
   gt::gt(exclusion_tbl) %>%
-    gt::fmt_integer(
-      columns = contains("intersect_bp")
-    ) %>%
-    gt::fmt_number(
-      columns = contains("pct_of_dip"),
-      decimals = 2
-    ) %>%
-    gt::tab_spanner(
-      label = "GRCh37",
-      columns = contains("GRCh37")
-    ) %>%
-    gt::tab_spanner(
-      label = "GRCh38",
-      columns = contains("GRCh38")
-    ) %>%
-    gt::tab_spanner(
-      label = "CHM13v2.0",
-      columns = contains("CHM13v2.0")
-    ) %>%
-    # gt::cols_label(
-    #   dip_overlap_bp_GRCh37 = "bp",
-    #   dip_excluded_pct_GRCh37 = "%",
-    #   dip_overlap_bp_GRCh38 = "bp",
-    #   dip_excluded_pct_GRCh38 = "%",
-    #   dip_overlap_bp_CHM13v2.0 = "bp",
-    #   dip_excluded_pct_CHM13v2.0 = "%"
-    # ) %>%
-    gt::tab_header(
-      title = table_title
-    ) %>%
-    gt::cols_align(columns = c(exclusions, bench_type), align = "right")
+    gt::fmt_integer(columns = contains("intersect_bp")) %>%
+    gt::fmt_number(columns = contains("pct_of_dip"), decimals = 2) %>%
+    gt::tab_spanner(label = "GRCh37", columns = contains("GRCh37")) %>%
+    gt::tab_spanner(label = "GRCh38", columns = contains("GRCh38")) %>%
+    gt::tab_spanner(label = "CHM13v2.0", columns = contains("CHM13v2.0")) %>%
+    gt::tab_header(title = table_title) %>%
+    gt::cols_align(columns = c("exclusions", "bench_type"), align = "right") %>%
+    theme_gt_manuscript()
 }
 ```
 
@@ -109,90 +69,3 @@ make_exclusion_tbl <- function(exclusion_tbl, table_title) {
 exclusion_interset_gt_tbl %>%
   make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
 ```
-
-
-## Scratch
-```{r eval = FALSE}
-## Old Code
-exclusion_intersect_df <- exclusion_intersect_files %>%
-  map_dfr(read_csv, show_col_types = FALSE, .id = "benchmarkset") %>%
-  separate(
-    col = benchmarkset,
-    into = c("ref", "assembly", "bench_type", "varcall"),
-    extra = "drop",
-    sep = "_"
-  ) %>%
-  select(-assembly, -varcall) %>%
-  rename(
-    dip_overlap_bp = bp,
-    dip_excluded_pct = pct_of_initial
-  ) %>%
-  mutate(
-    start_end = case_when(
-      str_detect(genomic_region, "start") ~ "start",
-      str_detect(genomic_region, "end") ~ "end",
-      TRUE ~ ""
-    ),
-    genomic_region = str_remove(genomic_region, "_(slop|sorted).*bed$"),
-    exclusion = case_when(
-      genomic_region == "HG002Q100-errors" ~ genomic_region,
-      genomic_region == "initial" ~ "diploid-regions",
-      str_detect(genomic_region, "HG002Q100-") ~ str_extract(
-        genomic_region,
-        "(?<=HG002Q100-).*"
-      ),
-      str_detect(genomic_region, "_dipcall-z2k_") ~ str_extract(
-        genomic_region,
-        "(?<=_dipcall-z2k_).*"
-      ),
-      TRUE ~ genomic_region
-    )
-  )
-```
-
-
-
-```{r}
-
-```
-
-```{r}
-combined_exclusion_tbl <- exclusion_intersect_df %>%
-  mutate(exclusion = trimws(paste(exclusion, start_end), "both")) %>%
-  select(ref, exclusion, bench_type, dip_overlap_bp, dip_excluded_pct) %>%
-  filter(!(exclusion %in% c("benchmark_regions", "diploid-regions"))) %>%
-  pivot_wider(
-    names_from = ref,
-    values_from = c(dip_overlap_bp, dip_excluded_pct)
-  ) %>%
-  arrange(-dip_overlap_bp_CHM13v2.0) %>%
-  mutate(
-    bench_type = case_when(
-      exclusion == "total_excluded" ~ bench_type,
-      exclusion == "svs-and-simple-repeats" ~ bench_type,
-      exclusion == "self-discrep" ~ bench_type,
-      TRUE ~ "both"
-    )
-  ) %>%
-  distinct()
-```
-
-
-```{r}
-combined_exclusion_tbl %>%
-  make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
-```
-
-
-## Issues and TODOs
-
-- __TODO__ Bases removed due to each exclusion (upset plot?)
-- __TODO__ Variants removed due to each exclusion (upset plot?)
-- __TODO__ Variants and bases not in v5 but in previous versions - were they in dip.bed or removed by exclusions?
-
-
-
-1. How many bases in each exclusion bed file overlap the dip.bed file? What percentage of the dip.bed file was removed by each exclusion?
-2. How many variants in the benchmark VCF fall within the removed regions for each exclusion?
-3. What is the interaction between the different exclusions? For the bases removed from dip.bed to define the final benchmarkset regions what exclusions were applied to each base?
-, how many variants in the benchmark VCF fall within those regions? What percentage of the total variants does this represent?

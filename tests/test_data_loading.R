@@ -12,7 +12,7 @@ test_that("parse_benchmark_id extracts all components", {
 
   expect_equal(result$bench_version, "v5.0q")
   expect_equal(result$ref, "GRCh38")
-  expect_equal(result$var_type, "smvar")
+  expect_equal(result$bench_type, "smvar")
 })
 
 test_that("parse_benchmark_id works with benchmark ID alone", {
@@ -20,7 +20,7 @@ test_that("parse_benchmark_id works with benchmark ID alone", {
 
   expect_equal(result$bench_version, "v5.0q")
   expect_equal(result$ref, "GRCh38")
-  expect_equal(result$var_type, "smvar")
+  expect_equal(result$bench_type, "smvar")
 })
 
 test_that("parse_benchmark_id handles different versions", {
@@ -53,9 +53,9 @@ test_that("load_stratification_metrics returns correct structure", {
 
   # Check required columns exist
   required_cols <- c(
-    "bench_version", "ref", "var_type", "strat_name",
+    "bench_version", "ref", "bench_type", "strat_name",
     "strat_bp", "intersect_bp", "pct_of_strat", "pct_of_bench",
-    "total_variants", "snp_count", "indel_count",
+    "total_variants", "snv_count", "indel_count",
     "variant_density_per_mb"
   )
   expect_true(all(required_cols %in% names(metrics)))
@@ -80,16 +80,16 @@ test_that("load_stratification_metrics respects benchmark filter", {
 
   # Should have exactly 6 rows (one per stratification)
   expect_equal(nrow(metrics_filtered), 6)
-  expect_equal(unique(metrics_filtered$bench_version), "v5.0q")
-  expect_equal(unique(metrics_filtered$ref), "GRCh38")
-  expect_equal(unique(metrics_filtered$var_type), "smvar")
+  expect_equal(as.character(unique(metrics_filtered$bench_version)), "v5.0q")
+  expect_equal(as.character(unique(metrics_filtered$ref)), "GRCh38")
+  expect_equal(as.character(unique(metrics_filtered$bench_type)), "smvar")
 })
 
 test_that("load_stratification_metrics variant counts are non-negative", {
   metrics <- load_stratification_metrics()
 
   expect_true(all(metrics$total_variants >= 0))
-  expect_true(all(metrics$snp_count >= 0))
+  expect_true(all(metrics$snv_count >= 0))
   expect_true(all(metrics$indel_count >= 0))
 })
 
@@ -101,7 +101,7 @@ test_that("load_exclusion_metrics returns correct structure or empty", {
     expect_s3_class(exclusions, "tbl_df")
 
     required_cols <- c(
-      "bench_version", "ref", "var_type", "exclusions",
+      "bench_version", "ref", "bench_type", "exclusions",
       "exclusion_bp", "intersect_bp", "pct_of_exclusion", "pct_of_dip"
     )
     expect_true(all(required_cols %in% names(exclusions)))
@@ -223,7 +223,7 @@ test_that("load_diff_coverage errors on invalid benchmark", {
 test_that("stratification metrics and coverage have matching benchmarks", {
   metrics <- load_stratification_metrics()
   unique_benchmarks_metrics <- metrics %>%
-    dplyr::distinct(bench_version, ref, var_type) %>%
+    dplyr::distinct(bench_version, ref, bench_type) %>%
     nrow()
 
   # Test with first benchmark
@@ -235,7 +235,7 @@ test_that("stratification metrics and coverage have matching benchmarks", {
     dplyr::filter(
       bench_version == "v5.0q",
       ref == "GRCh38",
-      var_type == "smvar"
+      bench_type == "smvar"
     ) %>%
     dplyr::pull(strat_name) %>%
     unique() %>%

@@ -30,6 +30,7 @@ The Snakemake pipeline processes benchmark set files to:
 The `R/data_loading.R` module provides standardized functions for loading pipeline outputs:
 
 - `load_genomic_context_metrics()` - Load primary analysis data with variant counts per genomic context (recommended)
+- `load_primary_analysis_data()` - Load commonly used validated analysis data frames in one call
 - `load_stratification_metrics()` - Legacy alias for genomic context metrics (for backwards compatibility)
 - `load_exclusion_metrics()` - Load exclusion overlaps (v5.0q only)
 - `load_reference_sizes()` - Load reference genome sizes and N-content
@@ -39,7 +40,9 @@ The `R/data_loading.R` module provides standardized functions for loading pipeli
 - `load_platinum_pedigree_regions()` - Download and load Platinum Pedigree benchmark region BED files from public S3
 - `parse_benchmark_id()` - Parse benchmark metadata from file path
 
-All functions handle automatic file discovery, metadata parsing, column validation, and optional filtering.
+All functions handle automatic file discovery, metadata parsing, and optional filtering.
+Validation is performed during data loading before cache generation for cache-enabled
+loaders, and schema validation is applied again when writing cache artifacts.
 
 ### Output Documentation
 
@@ -170,7 +173,7 @@ project-root/
 
 | Benchmark ID | Reference | Variant Type | Description |
 |--------------|-----------|--------------|-------------|
-| v5.0q_CHM13v2.0_smvar | CHM13v2.0 | Small variants | T2T Q100 benchmark (SNPs + indels <50bp) |
+| v5.0q_CHM13v2.0_smvar | CHM13v2.0 | Small variants | T2T Q100 benchmark (SNVs + indels <50bp) |
 | v5.0q_CHM13v2.0_stvar | CHM13v2.0 | Structural variants | T2T Q100 benchmark (SVs ≥50bp) |
 | v5.0q_GRCh38_smvar | GRCh38 | Small variants | T2T Q100 liftover |
 | v5.0q_GRCh38_stvar | GRCh38 | Structural variants | T2T Q100 liftover |

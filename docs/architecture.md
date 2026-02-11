@@ -78,7 +78,7 @@ The Q100 variant benchmark pipeline is a Snakemake-based workflow for analyzing 
 │                     Metrics Phase                               │
 │  ┌────────────────────┐  ┌─────────────────────────────────┐   │
 │  │ Coverage Metrics   │  │ Variant Counts                  │   │
-│  │ - Per stratification│  │ - By type (SNP, INDEL, SV)     │   │
+│  │ - Per stratification│  │ - By type (SNV, INDEL, SV)     │   │
 │  │ - Overlap stats    │  │ - By stratification             │   │
 │  └────────────────────┘  └─────────────────────────────────┘   │
 └────────────────────────────┬────────────────────────────────────┘
@@ -97,7 +97,7 @@ The Q100 variant benchmark pipeline is a Snakemake-based workflow for analyzing 
 ### Input Sources
 
 1. **Benchmark VCF Files**
-   - GIAB v5q variants (SNPs, INDELs, SVs)
+   - GIAB v5q variants (SNVs, INDELs, SVs)
    - Historical benchmarks (v4.2.1, v0.6 SV)
    - Coordinates for GRCh37, GRCh38, CHM13v2.0
 
@@ -232,7 +232,7 @@ The pipeline generates two tiers of outputs optimized for different use cases:
        "v5.0q_GRCh38_smvar",
        filters = list(
            chromosomes = c("chr1", "chr2"),
-           variant_types = c("SNP"),
+           variant_types = c("SNV"),
            in_benchmark_only = TRUE
        )
    )
