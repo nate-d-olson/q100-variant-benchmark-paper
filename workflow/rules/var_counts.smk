@@ -27,11 +27,11 @@ rule count_variants_by_genomic_context:
         tsv="results/variant_tables/{benchmark}/variants.tsv",
     output:
         csv=ensure(
-            "results/var_counts/{benchmark}/variants_by_genomic_context.csv",
+            "results/genomic_context/{benchmark}/var_counts/variants_by_genomic_context.csv",
             non_empty=True,
         ),
     log:
-        "logs/var_counts/{benchmark}/count_by_genomic_context.log",
+        "logs/genomic_context/{benchmark}/count_by_genomic_context.log",
     message:
         "Counting variants by genomic context for {wildcards.benchmark}"
     resources:
@@ -54,14 +54,14 @@ rule summarize_variant_counts:
     - other_count (if applicable)
     """
     input:
-        csv="results/var_counts/{benchmark}/variants_by_genomic_context.csv",
+        csv="results/genomic_context/{benchmark}/var_counts/variants_by_genomic_context.csv",
     output:
         summary=ensure(
-            "results/var_counts/{benchmark}/genomic_context_summary.csv",
+            "results/genomic_context/{benchmark}/var_counts/genomic_context_summary.csv",
             non_empty=True,
         ),
     log:
-        "logs/var_counts/{benchmark}/summarize.log",
+        "logs/genomic_context/{benchmark}/summarize.log",
     message:
         "Summarizing variant counts for {wildcards.benchmark}"
     resources:
@@ -88,15 +88,15 @@ rule combine_metrics_and_counts:
     This table is ready for cumulative plot generation.
     """
     input:
-        metrics="results/genomic_context_metrics/{benchmark}/genomic_context_coverage_table.csv",
-        counts="results/var_counts/{benchmark}/genomic_context_summary.csv",
+        metrics="results/genomic_context/{benchmark}/genomic_context_coverage_table.csv",
+        counts="results/genomic_context/{benchmark}/var_counts/genomic_context_summary.csv",
     output:
         combined=ensure(
-            "results/var_counts/{benchmark}/genomic_context_combined_metrics.csv",
+            "results/genomic_context/{benchmark}/combined_metrics.csv",
             non_empty=True,
         ),
     log:
-        "logs/var_counts/{benchmark}/combine_metrics.log",
+        "logs/genomic_context/{benchmark}/combine_metrics.log",
     message:
         "Combining metrics and counts for {wildcards.benchmark}"
     resources:

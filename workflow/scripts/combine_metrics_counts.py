@@ -25,8 +25,12 @@ def combine_metrics_and_counts(
 
     Output format:
         context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,
-        total_variants,snp_count,indel_count,del_count,ins_count,
+        total_variants,snp_count,mnp_count,del_count,ins_count,
         complex_count,other_count,variant_density_per_mb
+
+    Note:
+        other_count includes structural variant types like DUP, INV, BND, CNV
+        that are classified using SVTYPE for variants >50bp
     """
     metrics: Dict[str, Dict[str, Any]] = {}
     counts: Dict[str, Dict[str, int]] = {}
@@ -60,7 +64,7 @@ def combine_metrics_and_counts(
                     counts[context_name] = {
                         "total_variants": int(row["total_variants"]),
                         "snp_count": int(row["snp_count"]),
-                        "indel_count": int(row["indel_count"]),
+                        "mnp_count": int(row["mnp_count"]),
                         "del_count": int(row["del_count"]),
                         "ins_count": int(row["ins_count"]),
                         "complex_count": int(row["complex_count"]),
@@ -100,7 +104,7 @@ def combine_metrics_and_counts(
                         "pct_of_bench",
                         "total_variants",
                         "snp_count",
-                        "indel_count",
+                        "mnp_count",
                         "del_count",
                         "ins_count",
                         "complex_count",
@@ -127,7 +131,7 @@ def combine_metrics_and_counts(
                         {
                             "total_variants": 0,
                             "snp_count": 0,
-                            "indel_count": 0,
+                            "mnp_count": 0,
                             "del_count": 0,
                             "ins_count": 0,
                             "complex_count": 0,
@@ -151,7 +155,7 @@ def combine_metrics_and_counts(
                             f"{m['pct_of_bench']:.6f}",
                             c["total_variants"],
                             c["snp_count"],
-                            c["indel_count"],
+                            c["mnp_count"],
                             c["del_count"],
                             c["ins_count"],
                             c["complex_count"],

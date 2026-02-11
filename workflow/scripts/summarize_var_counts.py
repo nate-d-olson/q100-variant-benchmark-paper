@@ -52,7 +52,7 @@ def summarize_variant_counts(input_csv: Path, output_csv: Path, log_path: Path) 
                         "context_name",
                         "total_variants",
                         "snp_count",
-                        "indel_count",
+                        "mnp_count",
                         "del_count",
                         "ins_count",
                         "complex_count",
@@ -66,24 +66,33 @@ def summarize_variant_counts(input_csv: Path, output_csv: Path, log_path: Path) 
                     # Calculate totals
                     total = sum(var_counts.values())
                     snp = var_counts.get("SNP", 0)
-                    indel = var_counts.get("INDEL", 0)
+                    mnp = var_counts.get("MNP", 0)
                     dels = var_counts.get("DEL", 0)
                     ins = var_counts.get("INS", 0)
                     complex_var = var_counts.get("COMPLEX", 0)
 
-                    # "Other" is everything not SNP/INDEL/DEL/INS/COMPLEX
-                    known_types = {"SNP", "INDEL", "DEL", "INS", "COMPLEX"}
-                    other = sum(
-                        count
+                    # "Other" is everything not SNP/MNP/DEL/INS/COMPLEX
+                    # This includes structural variant types like DUP, INV, BND, CNV
+                    known_types = {"SNP", "MNP", "DEL", "INS", "COMPLEX"}
+                    other_types = {
+                        vtype: count
                         for vtype, count in var_counts.items()
                         if vtype not in known_types
-                    )
+                    }
+                    other = sum(other_types.values())
 
                     writer.writerow(
-                        [context_name, total, snp, indel, dels, ins, complex_var, other]
+                        [context_name, total, snp, mnp, dels, ins, complex_var, other]
                     )
 
-                    log.write(f"{context_name}: {total:,} total variants\n")
+                    # Log with detail on "other" types
+                    log_line = f"{context_name}: {total:,} total variants"
+                    if other > 0:
+                        other_detail = ", ".join(
+                            f"{vtype}={count:,}" for vtype, count in sorted(other_types.items())
+                        )
+                        log_line += f" (other: {other_detail})"
+                    log.write(log_line + "\n")
 
             log.write(f"\nSummary written to {output_csv}\n")
 
