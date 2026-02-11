@@ -1,8 +1,134 @@
 # Data Dictionary
 
-Detailed definitions and interpretations of all metrics, genomic contexts, exclusions, and variant classifications in the q100-variant-benchmark pipeline.
+This document is the single reference for all data structures in the Q100 variant benchmark project. It covers:
 
-## Metrics Definitions
+1. **R Loading Function Schemas** — column types and descriptions for data frames returned by `R/data_loading.R`
+2. **Pipeline Metric Definitions** — detailed interpretations of metrics, genomic contexts, exclusions, and variant classifications
+
+> **Maintenance Note:** Update this document whenever changes are made to `R/data_loading.R`, `R/schemas.R`, or pipeline output formats.
+
+---
+
+## R Loading Function Schemas
+
+The functions in `R/data_loading.R` load and standardize pipeline outputs. This section documents the data frames they return. The pipeline output files (CSVs, TSVs, BEDs) are documented in [Pipeline Outputs Reference](pipeline-outputs.md).
+
+### Genomic Context Metrics
+
+**Function:** `load_genomic_context_metrics()`
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `bench_version` | Factor | Benchmark version (`v0.6`, `v4.2.1`, `v5.0q`) |
+| `ref` | Factor | Reference genome (`GRCh37`, `GRCh38`, `CHM13v2.0`) |
+| `bench_type` | Factor | Benchmark set type (`smvar`, `stvar`) |
+| `context_name` | Factor | Genomic context identifier (e.g., `HP`, `TR`, `SD`) |
+| `context_bp` | Numeric | Total size of the genomic context in bases |
+| `intersect_bp` | Numeric | Number of bases where the genomic context overlaps the benchmark regions |
+| `pct_of_context` | Numeric | Percentage of the genomic context covered by the benchmark |
+| `pct_of_bench` | Numeric | Percentage of the benchmark covered by this genomic context |
+| `total_variants` | Integer | Total number of variants in this context |
+| `snv_count` | Integer | Count of Single Nucleotide Variants |
+| `indel_count` | Integer | Count of Insertions/Deletions |
+| `del_count` | Integer | Count of Deletions (Structural Variants) |
+| `ins_count` | Integer | Count of Insertions (Structural Variants) |
+| `complex_count` | Integer | Count of Complex variants |
+| `other_count` | Integer | Count of Other variant types |
+| `variant_density_per_mb` | Numeric | Number of variants per Megabase |
+
+### Exclusion Metrics
+
+**Function:** `load_exclusion_metrics()`
+
+Available for v5.0q benchmarks only.
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `bench_version` | Factor | Benchmark version (e.g., `v5.0q`) |
+| `ref` | Factor | Reference genome |
+| `bench_type` | Factor | Benchmark set type |
+| `exclusions` | Character | Name of the exclusion region |
+| `exclusion_bp` | Numeric | Total size of the exclusion region |
+| `intersect_bp` | Numeric | Overlap with benchmark |
+| `pct_of_exclusion` | Numeric | Percentage of exclusion region overlapping benchmark |
+| `pct_of_dip` | Numeric | Percentage of diploid genome overlapping benchmark |
+| `total_variants` | Integer | Total variants in this exclusion |
+
+### Reference Genome Sizes
+
+**Function:** `load_reference_sizes()`
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `ref` | Factor | Reference genome name |
+| `chrom` | Factor | Chromosome name (standardized with "chr" prefix) |
+| `length` | Integer | Total length of the chromosome |
+| `ns` | Integer | Number of 'N' bases (gaps) |
+| `asm_bp` | Integer | Assembled bases (`length` - `ns`) |
+
+### Variant Table
+
+**Function:** `load_variant_table()` or `load_all_variant_tables()`
+
+Large datasets. Columns may vary slightly between benchmark versions.
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `bench_version` | Factor | Benchmark version |
+| `ref` | Factor | Reference genome |
+| `bench_type` | Factor | Benchmark set type |
+| `chrom` | Factor | Chromosome |
+| `pos` | Integer | 1-based start position |
+| `end` | Integer | End position |
+| `gt` | Character | Genotype |
+| `vkx` | Character | Variant class |
+| `var_type` | Character | Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER) |
+| `len_ref` | Integer | Length of reference allele |
+| `len_alt` | Integer | Length of alternate allele |
+| `var_size` | Integer | Size of the variant |
+| `region_ids` | Character | Comma-separated IDs of regions overlapping the variant |
+| `context_ids` | Character | Comma-separated IDs of genomic contexts overlapping the variant |
+
+### Genomic Context Coverage
+
+**Function:** `load_genomic_context_coverage()`
+
+Base-level coverage metrics for difficult genomic contexts.
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `context_name` | Factor | Genomic context identifier |
+| `chrom` | Factor | Chromosome |
+| `start` | Integer | Start position (0-based) |
+| `end` | Integer | End position |
+| `n_overlap` | Integer | Number of overlapping intervals |
+| `bases_cov` | Integer | Number of bases covered |
+| `ivl_len` | Integer | Length of the interval |
+| `frac_cov` | Numeric | Fraction of interval covered (`bases_cov` / `ivl_len`) |
+
+### Benchmark Regions
+
+**Function:** `load_benchmark_regions()`
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `bench_version` | Factor | Benchmark version |
+| `ref` | Factor | Reference genome |
+| `bench_type` | Factor | Benchmark set type |
+| `chrom` | Factor | Chromosome |
+| `start` | Integer | Start position (0-based) |
+| `end` | Integer | End position |
+| `interval_size` | Integer | Size of the interval (`end` - `start`) |
+
+### HG002 Q100 Assembly Size
+
+**Function:** `load_hg002q100_size()`
+
+Returns a single numeric value representing the total base pairs of the HG002 Q100 maternal assembly (v1.1).
+
+---
+
+## Pipeline Metric Definitions
 
 ### Core Overlap Metrics
 
