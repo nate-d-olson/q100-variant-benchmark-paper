@@ -22,7 +22,7 @@ if (!exists("%>%", mode = "function")) {
 #'
 #' @examples
 #' \dontrun{
-#' parse_benchmark_id("results/var_counts/v5.0q_GRCh38_smvar/genomic_context_combined_metrics.csv")
+#' parse_benchmark_id("results/genomic_context/v5.0q_GRCh38_smvar/combined_metrics.csv")
 #' # Returns list(bench_version = "v5.0q", ref = "GRCh38", bench_type = "smvar")
 #' }
 #'
@@ -485,9 +485,9 @@ std_var_type <- function(x) std_(x, levels = VARIANT_CLASS_LEVELS)
 #'   - pct_of_bench: Percentage of benchmark overlapping genomic context
 #'   - total_variants: Total variant count
 #'   - snv_count: Single Nucleotide Variant count (SNV)
-#'   - indel_count: INDEL count
-#'   - del_count: Deletion count (structural variants only)
-#'   - ins_count: Insertion count (structural variants only)
+#'   - mnp_count: Multi-Nucleotide Polymorphism count (MNP)
+#'   - del_count: Deletion count
+#'   - ins_count: Insertion count
 #'   - complex_count: Complex variant count
 #'   - other_count: Other variant count
 #'   - variant_density_per_mb: Variants per megabase
@@ -512,17 +512,26 @@ load_genomic_context_metrics <- function(
   results_dir <- .default_results_dir(results_dir)
 
   # Find all genomic context metrics files
-  metrics_files <- fs::dir_ls(
-    results_dir,
-    recurse = TRUE,
-    glob = "**/genomic_context_combined_metrics.csv",
-    fail = FALSE
+  # Try new location first, then fall back to legacy paths
+  metrics_files <- c(
+    fs::dir_ls(
+      results_dir,
+      recurse = TRUE,
+      glob = "**/genomic_context/*/combined_metrics.csv",
+      fail = FALSE
+    ),
+    fs::dir_ls(
+      results_dir,
+      recurse = TRUE,
+      glob = "**/var_counts/*/genomic_context_combined_metrics.csv",
+      fail = FALSE
+    )
   )
 
   if (length(metrics_files) == 0) {
     stop(
       glue::glue(
-        "No genomic_context_combined_metrics.csv files found in {results_dir}"
+        "No combined_metrics.csv or genomic_context_combined_metrics.csv files found in {results_dir}"
       ),
       call. = FALSE
     )
@@ -542,7 +551,7 @@ load_genomic_context_metrics <- function(
             pct_of_bench = "d",
             total_variants = "i",
             snp_count = "i",
-            indel_count = "i",
+            mnp_count = "i",
             del_count = "i",
             ins_count = "i",
             complex_count = "i",
@@ -1055,12 +1064,12 @@ tidy_smvar <- function(var_df) {
         ## When REF is different from the first base of ALT
         var_type == "OTHER" &
           ((len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1)) ~ "INDEL",
+            (len_ref == 1 & len_alt > 1)) ~ "INDEL",
         ## Assigning variant types for overlapping (atomic) variants
         var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNV",
         var_type == "OVERLAP" &
           ((len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1)) ~ "INDEL",
+            (len_ref == 1 & len_alt > 1)) ~ "INDEL",
         var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
         .default = var_type
       )
@@ -1295,14 +1304,13 @@ load_genomic_context_coverage <- function(
   meta <- parse_benchmark_id(benchmark_id)
 
   coverage_id <- glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}")
-  coverage_dir_candidates <- fs::path(
-    results_dir,
-    c(
-      "diff_region_coverage",
-      "genomic-context_coverage",
-      "genomic_context_coverage"
-    ),
-    coverage_id
+  coverage_dir_candidates <- c(
+    # New structure: results/genomic_context/{benchmark}/coverage/
+    fs::path(results_dir, "genomic_context", coverage_id, "coverage"),
+    # Legacy structures
+    fs::path(results_dir, "diff_region_coverage", coverage_id),
+    fs::path(results_dir, "genomic-context_coverage", coverage_id),
+    fs::path(results_dir, "genomic_context_coverage", coverage_id)
   )
   coverage_dir <- coverage_dir_candidates[fs::dir_exists(coverage_dir_candidates)]
 
@@ -1762,11 +1770,20 @@ load_variant_counts_by_context <- function(
 ) {
   results_dir <- .default_results_dir(results_dir)
 
-  count_files <- fs::dir_ls(
-    results_dir,
-    recurse = TRUE,
-    glob = "**/variants_by_genomic_context.csv",
-    fail = FALSE
+  # Search for variant count files in both new and legacy locations
+  count_files <- c(
+    fs::dir_ls(
+      results_dir,
+      recurse = TRUE,
+      glob = "**/genomic_context/*/var_counts/variants_by_genomic_context.csv",
+      fail = FALSE
+    ),
+    fs::dir_ls(
+      results_dir,
+      recurse = TRUE,
+      glob = "**/var_counts/*/variants_by_genomic_context.csv",
+      fail = FALSE
+    )
   )
 
   if (length(count_files) == 0) {
@@ -1810,4 +1827,3 @@ load_variant_counts_by_context <- function(
 
   return(counts_df)
 }
-
