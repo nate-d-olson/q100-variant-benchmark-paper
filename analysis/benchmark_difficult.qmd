@@ -132,6 +132,7 @@ diff_top_intervals %>%
   mutate(n_interval = cumsum(bases_covered)) %>%
   ggplot() +
   geom_path(aes(x = n_interval, y = frac_cov, color = bench_version)) +
+  scale_benchmark_version(aesthetic = "color") +
   facet_grid(bench_type ~ context)
 ```
 
@@ -161,6 +162,7 @@ diff_cov_df %>%
     stat = "identity",
     position = "dodge"
   ) +
+  scale_benchmark_version(aesthetic = "fill") +
   facet_wrap(~bench_type, nrow = 1)
 
 ```
@@ -323,7 +325,7 @@ genomic_context_var_fld_chg %>%
     fill = "Variant Size Bin",
     shape = "Variant Class"
   ) +
-  theme_minimal() +
+  theme_manuscript() +
   theme(
     legend.position = "bottom",
     legend.box = "vertical"
