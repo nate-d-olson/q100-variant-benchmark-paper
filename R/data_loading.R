@@ -1054,13 +1054,13 @@ tidy_smvar <- function(var_df) {
       var_type = case_when(
         ## When REF is different from the first base of ALT
         var_type == "OTHER" &
-          (len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1) ~ "INDEL",
-        ## Assigning variant types for overlapping (atmoic) variants
+          ((len_ref > 1 & len_alt == 1) |
+          (len_ref == 1 & len_alt > 1)) ~ "INDEL",
+        ## Assigning variant types for overlapping (atomic) variants
         var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNV",
         var_type == "OVERLAP" &
-          (len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1) ~ "INDEL",
+          ((len_ref > 1 & len_alt == 1) |
+          (len_ref == 1 & len_alt > 1)) ~ "INDEL",
         var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
         .default = var_type
       )
