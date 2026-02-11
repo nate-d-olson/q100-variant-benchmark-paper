@@ -288,24 +288,6 @@ scale_bench_type <- function(
   )
 }
 
-#' Backward-compatible alias for benchmark type scale
-#'
-#' @inheritParams scale_bench_type
-#' @return A ggplot2 scale object
-#' @keywords internal
-#' @export
-scale_variant_type <- function(
-  aesthetic = "color",
-  name = "Benchmark Type",
-  guide = "legend"
-) {
-  scale_bench_type(
-    aesthetic = aesthetic,
-    name = name,
-    guide = guide
-  )
-}
-
 #' Scale for Genomic Contexts
 #'
 #' @param aesthetic The ggplot aesthetic to apply (color, fill, etc.)

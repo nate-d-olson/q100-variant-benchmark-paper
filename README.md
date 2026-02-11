@@ -31,11 +31,10 @@ The `R/data_loading.R` module provides standardized functions for loading pipeli
 
 - `load_genomic_context_metrics()` - Load primary analysis data with variant counts per genomic context (recommended)
 - `load_primary_analysis_data()` - Load commonly used validated analysis data frames in one call
-- `load_stratification_metrics()` - Legacy alias for genomic context metrics (for backwards compatibility)
 - `load_exclusion_metrics()` - Load exclusion overlaps (v5.0q only)
 - `load_reference_sizes()` - Load reference genome sizes and N-content
 - `load_variant_table()` - Load full variant data (use sparingly, files are large)
-- `load_diff_coverage()` - Load base-level coverage data
+- `load_genomic_context_coverage()` - Load base-level coverage data
 - `load_benchmark_regions()` - Load benchmark region BED files
 - `load_platinum_pedigree_regions()` - Download and load Platinum Pedigree benchmark region BED files from public S3
 - `parse_benchmark_id()` - Parse benchmark metadata from file path

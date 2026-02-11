@@ -820,7 +820,7 @@ load_hg002q100_size <- function(
 #'
 #' Loads full variant-level data from variants.tsv files. These are large
 #' files (~GB per benchmark) and should be used only when variant-level
-#' detail is required. Consider using `load_stratification_metrics()` for
+#' detail is required. Consider using `load_genomic_context_metrics()` for
 #' aggregated summaries instead.
 #'
 #' @param benchmark_id Single benchmark identifier (e.g., "v5.0q_GRCh38_smvar")
@@ -1272,7 +1272,7 @@ load_all_variant_tables <- function(
 #' coverage <- load_genomic_context_coverage("v5.0q_GRCh38_smvar")
 #'
 #' # Load specific genomic contexts
-#' coverage <- load_diff_coverage(
+#' coverage <- load_genomic_context_coverage(
 #'   "v5.0q_GRCh38_smvar",
 #'   context_filter = c("HP", "TR")
 #' )
@@ -1732,55 +1732,3 @@ load_primary_analysis_data <- function(
   analysis_data
 }
 
-#' Backward Compatibility Aliases
-#'
-#' These functions maintain backward compatibility with code using old terminology
-#' ("stratification" instead of "genomic context").
-#'
-#' @keywords internal
-#' @name stratification-aliases
-
-#' @rdname stratification-aliases
-#' @export
-load_stratification_metrics <- function(
-  results_dir = NULL,
-  benchmark_filter = NULL
-) {
-  metrics_df <- load_genomic_context_metrics(
-    results_dir = results_dir,
-    benchmark_filter = benchmark_filter
-  )
-
-  metrics_df %>%
-    dplyr::mutate(
-      strat_name = as.character(context_name),
-      strat_bp = context_bp,
-      pct_of_strat = pct_of_context
-    )
-}
-
-#' @rdname stratification-aliases
-#' @export
-load_diff_coverage <- function(
-  benchmark_id,
-  results_dir = NULL,
-  strat_filter = NULL,
-  context_filter = strat_filter,
-  use_cache = TRUE,
-  force_refresh = FALSE
-) {
-  coverage_df <- load_genomic_context_coverage(
-    benchmark_id = benchmark_id,
-    results_dir = results_dir,
-    context_filter = context_filter,
-    use_cache = use_cache,
-    force_refresh = force_refresh
-  )
-
-  coverage_df %>%
-    dplyr::mutate(
-      context_name = as.character(context_name),
-      strat_name = as.character(context_name)
-    ) %>%
-    dplyr::relocate(strat_name, .before = chrom)
-}

@@ -45,16 +45,16 @@ test_that("parse_benchmark_id raises error for invalid format", {
   )
 })
 
-test_that("load_stratification_metrics returns correct structure", {
-  metrics <- load_stratification_metrics()
+test_that("load_genomic_context_metrics returns correct structure", {
+  metrics <- load_genomic_context_metrics()
 
   # Check that it's a tibble
   expect_s3_class(metrics, "tbl_df")
 
   # Check required columns exist
   required_cols <- c(
-    "bench_version", "ref", "bench_type", "strat_name",
-    "strat_bp", "intersect_bp", "pct_of_strat", "pct_of_bench",
+    "bench_version", "ref", "bench_type", "context_name",
+    "context_bp", "intersect_bp", "pct_of_context", "pct_of_bench",
     "total_variants", "snv_count", "indel_count",
     "variant_density_per_mb"
   )
@@ -64,29 +64,29 @@ test_that("load_stratification_metrics returns correct structure", {
   expect_gt(nrow(metrics), 40)
 })
 
-test_that("load_stratification_metrics has expected stratifications", {
-  metrics <- load_stratification_metrics()
+test_that("load_genomic_context_metrics has expected contexts", {
+  metrics <- load_genomic_context_metrics()
 
-  expected_strats <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
-  actual_strats <- unique(metrics$strat_name)
+  expected_contexts <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+  actual_contexts <- unique(as.character(metrics$context_name))
 
-  expect_true(all(expected_strats %in% actual_strats))
+  expect_true(all(expected_contexts %in% actual_contexts))
 })
 
-test_that("load_stratification_metrics respects benchmark filter", {
-  metrics_filtered <- load_stratification_metrics(
+test_that("load_genomic_context_metrics respects benchmark filter", {
+  metrics_filtered <- load_genomic_context_metrics(
     benchmark_filter = c("v5.0q_GRCh38_smvar")
   )
 
-  # Should have exactly 6 rows (one per stratification)
+  # Should have exactly 6 rows (one per context)
   expect_equal(nrow(metrics_filtered), 6)
   expect_equal(as.character(unique(metrics_filtered$bench_version)), "v5.0q")
   expect_equal(as.character(unique(metrics_filtered$ref)), "GRCh38")
   expect_equal(as.character(unique(metrics_filtered$bench_type)), "smvar")
 })
 
-test_that("load_stratification_metrics variant counts are non-negative", {
-  metrics <- load_stratification_metrics()
+test_that("load_genomic_context_metrics variant counts are non-negative", {
+  metrics <- load_genomic_context_metrics()
 
   expect_true(all(metrics$total_variants >= 0))
   expect_true(all(metrics$snv_count >= 0))
@@ -117,7 +117,7 @@ test_that("load_exclusion_metrics only returns v5.0q data", {
   if (nrow(exclusions) > 0) {
     # All exclusion data should be v5.0q
     expect_true(all(stringr::str_detect(
-      exclusions$bench_version,
+      as.character(exclusions$bench_version),
       "^v5\\.0q"
     )))
   }
@@ -156,7 +156,7 @@ test_that("load_reference_sizes has expected references", {
   ref_sizes <- load_reference_sizes()
 
   expected_refs <- c("GRCh37", "GRCh38", "CHM13v2.0")
-  actual_refs <- unique(ref_sizes$ref)
+  actual_refs <- unique(as.character(ref_sizes$ref))
 
   expect_true(all(expected_refs %in% actual_refs))
 })
@@ -175,73 +175,77 @@ test_that("load_variant_table errors on missing file", {
   )
 })
 
-test_that("load_diff_coverage returns correct structure", {
+test_that("load_genomic_context_coverage returns correct structure", {
   # Use a known benchmark
-  coverage <- load_diff_coverage("v5.0q_GRCh38_smvar")
+  coverage <- load_genomic_context_coverage("v5.0q_GRCh38_smvar")
 
   expect_s3_class(coverage, "tbl_df")
 
   required_cols <- c(
-    "strat_name", "chrom", "start", "end",
+    "context_name", "chrom", "start", "end",
     "n_overlap", "bases_cov", "ivl_len", "frac_cov"
   )
   expect_true(all(required_cols %in% names(coverage)))
 })
 
-test_that("load_diff_coverage has expected stratifications", {
-  coverage <- load_diff_coverage("v5.0q_GRCh38_smvar")
+test_that("load_genomic_context_coverage has expected contexts", {
+  coverage <- load_genomic_context_coverage("v5.0q_GRCh38_smvar")
 
-  expected_strats <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
-  actual_strats <- unique(coverage$strat_name)
+  expected_contexts <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+  actual_contexts <- unique(as.character(coverage$context_name))
 
-  expect_true(all(expected_strats %in% actual_strats))
+  expect_true(all(expected_contexts %in% actual_contexts))
 })
 
-test_that("load_diff_coverage respects stratification filter", {
-  coverage_filtered <- load_diff_coverage(
+test_that("load_genomic_context_coverage respects context filter", {
+  coverage_filtered <- load_genomic_context_coverage(
     "v5.0q_GRCh38_smvar",
-    strat_filter = c("HP", "TR")
+    context_filter = c("HP", "TR")
   )
 
-  expect_true(all(unique(coverage_filtered$strat_name) %in% c("HP", "TR")))
+  expect_true(all(as.character(unique(coverage_filtered$context_name)) %in% c("HP", "TR")))
 })
 
-test_that("load_diff_coverage fraction covered is between 0 and 1", {
-  coverage <- load_diff_coverage("v5.0q_GRCh38_smvar")
+test_that("load_genomic_context_coverage fraction covered is between 0 and 1", {
+  coverage <- load_genomic_context_coverage("v5.0q_GRCh38_smvar")
 
   expect_true(all(coverage$frac_cov >= 0))
   expect_true(all(coverage$frac_cov <= 1))
 })
 
-test_that("load_diff_coverage errors on invalid benchmark", {
+test_that("load_genomic_context_coverage errors on invalid benchmark", {
   expect_error(
-    load_diff_coverage("v5.0q_nonexistent_genome_smvar"),
+    load_genomic_context_coverage("v5.0q_nonexistent_genome_smvar"),
     "Coverage directory not found"
   )
 })
 
-test_that("stratification metrics and coverage have matching benchmarks", {
-  metrics <- load_stratification_metrics()
+test_that("genomic context metrics and coverage have matching contexts", {
+  metrics <- load_genomic_context_metrics()
   unique_benchmarks_metrics <- metrics %>%
     dplyr::distinct(bench_version, ref, bench_type) %>%
     nrow()
 
   # Test with first benchmark
   benchmark_id <- "v5.0q_GRCh38_smvar"
-  coverage <- load_diff_coverage(benchmark_id)
+  coverage <- load_genomic_context_coverage(benchmark_id)
 
-  # They should have the same stratifications
-  metrics_strats <- metrics %>%
+  # They should have the same contexts
+  metrics_contexts <- metrics %>%
     dplyr::filter(
       bench_version == "v5.0q",
       ref == "GRCh38",
       bench_type == "smvar"
     ) %>%
-    dplyr::pull(strat_name) %>%
+    dplyr::pull(context_name) %>%
+    as.character() %>%
     unique() %>%
     sort()
 
-  coverage_strats <- unique(coverage$strat_name) %>% sort()
+  coverage_contexts <- coverage$context_name %>%
+    as.character() %>%
+    unique() %>%
+    sort()
 
-  expect_equal(metrics_strats, coverage_strats)
+  expect_equal(metrics_contexts, coverage_contexts)
 })
