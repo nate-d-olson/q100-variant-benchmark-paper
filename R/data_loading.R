@@ -155,7 +155,7 @@ std_var_type <- function(x) std_(x, levels = VARIANT_CLASS_LEVELS)
   x <- as.character(x)
   dplyr::case_when(
     x == "SNP" ~ "SNV",
-    TRUE ~ x
+    .default = x
   )
 }
 
@@ -1062,7 +1062,7 @@ tidy_smvar <- function(var_df) {
           (len_ref > 1 & len_alt == 1) |
           (len_ref == 1 & len_alt > 1) ~ "INDEL",
         var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
-        TRUE ~ var_type
+        .default = var_type
       )
     ) %>%
     mutate(var_type = .normalize_variant_class_values(var_type))
@@ -1089,7 +1089,7 @@ tidy_stvar <- function(var_df) {
         SVTYPE == "INS" ~ SVLEN,
         SVTYPE == "DEL" & SVLEN < 0 ~ SVLEN,
         SVTYPE == "DEL" & SVLEN > 0 ~ -SVLEN,
-        TRUE ~ 0
+        .default = 0
       )
     )
 

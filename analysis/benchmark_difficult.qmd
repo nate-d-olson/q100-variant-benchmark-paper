@@ -260,7 +260,7 @@ genomic_context_var_fld_chg <- variants_df %>%
       abs(var_size) < 50 ~ "15-49bp",
       abs(var_size) < 1001 ~ "50 - 1,000bp",
       abs(var_size) < 10001 ~ "1,001 - 10,000bp",
-      TRUE ~ ">10kb"
+      .default = ">10kb"
     )
   ) %>%
   count(bench_version, ref, bench_type, var_type, var_size_bin, context_ids) %>%
@@ -277,7 +277,7 @@ genomic_context_var_fld_chg <- variants_df %>%
     fold_chg = case_when(
       !is.na(v0.6) ~ v5.0q / v0.6,
       !is.na(v4.2.1) ~ v5.0q / v4.2.1,
-      TRUE ~ NA
+      .default = NA
     )
   )
 ```
