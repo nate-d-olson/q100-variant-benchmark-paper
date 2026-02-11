@@ -1,0 +1,601 @@
+---
+title: "Genomic Context Coverage and Variant Density Analysis"
+date: '`r Sys.Date()`'
+author: "ND Olson"
+format:
+  html:
+    theme: flatly
+    page-layout: full
+    toc: true
+    self-contained: true
+editor: source
+code-fold: true
+execute:
+  warning: false
+---
+
+```{r setup}
+#| include: false
+source(here::here("analysis/_notebook_setup.R"))
+analysis_setup(
+  load_plot_themes = TRUE,
+  load_sessioninfo = TRUE,
+  load_gt = TRUE
+)
+```
+
+## Overview
+
+This notebook analyzes the overlap between genomic context regions (difficult
+regions: homopolymers, tandem repeats, segmental duplications, low mappability)
+and the GIAB benchmark sets. It addresses:
+
+1. How much of each genomic context is covered by the benchmark?
+2. How much of the benchmark falls within each genomic context?
+3. How do variant counts and densities differ across genomic contexts?
+4. How do these patterns compare across benchmark versions, references, and variant types?
+
+The primary data source is `genomic_context_combined_metrics.csv` produced by
+the `var_counts.smk` pipeline, which combines BED overlap metrics with
+per-context variant counts.
+
+## Data Loading
+
+```{r load_data}
+# Load aggregated genomic context metrics (coverage + variant counts)
+genomic_context_metrics_df <- load_genomic_context_metrics()
+
+# Load per-context variant counts by type for detailed breakdowns
+var_counts_by_context_df <- load_variant_counts_by_context()
+
+# Load reference sizes for normalization
+ref_sizes_df <- load_reference_sizes()
+total_ref_asm_bp <- ref_sizes_df %>%
+  group_by(ref) %>%
+  summarise(total_asm_bp = sum(asm_bp), .groups = "drop")
+```
+
+```{r}
+#| echo: false
+glimpse(genomic_context_metrics_df)
+```
+
+## Genomic Context Coverage Summary
+
+This table summarizes the overlap between each genomic context region and the
+benchmark regions. `pct_of_context` indicates the fraction of the difficult
+region covered by the benchmark, while `pct_of_bench` indicates how much of
+the benchmark lies within that difficult region.
+
+```{r coverage_summary_table}
+genomic_context_metrics_df %>%
+  filter(bench_version == "v5.0q") %>%
+  mutate(
+    ref = std_references(ref),
+    context_label = get_context_labels()[as.character(context_name)]
+  ) %>%
+  select(
+    context_label, ref, bench_type,
+    context_bp, intersect_bp,
+    pct_of_context, pct_of_bench
+  ) %>%
+  arrange(context_label, ref, bench_type) %>%
+  group_by(context_label) %>%
+  gt::gt() %>%
+  gt::fmt_number(
+    columns = c(context_bp, intersect_bp),
+    use_seps = TRUE,
+    decimals = 0
+  ) %>%
+  gt::fmt_percent(
+    columns = c(pct_of_context, pct_of_bench),
+    scale_values = FALSE,
+    decimals = 1
+  ) %>%
+  gt::cols_label(
+    context_label = "Genomic Context",
+    ref = "Reference",
+    bench_type = "Bench Type",
+    context_bp = "Context Size (bp)",
+    intersect_bp = "Overlap (bp)",
+    pct_of_context = "% Context Covered",
+    pct_of_bench = "% Bench in Context"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+## Benchmark Coverage of Genomic Contexts
+
+### Percent of genomic context covered by benchmark
+
+Shows how completely the benchmark regions cover each type of difficult region.
+Higher values indicate more comprehensive benchmarking of that region type.
+
+```{r pct_context_covered_plot, fig.width = 8, fig.height = 5}
+(pct_context_plt <- genomic_context_metrics_df %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  ) %>% 
+   # filter(context_name != "TR10kb") %>%
+  ggplot(aes(
+    x = context_name,
+    y = pct_of_context,
+    fill = bench_version
+  )) +
+  geom_col(aes(alpha = bench_type), 
+           position = "dodge", color = "grey30", linewidth = 0.2) +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1),
+    # limits = c(0, 1),
+    # expand = expansion(mult = c(0, 0.02))
+  ) +
+  scale_benchmark_version(aesthetic = "fill") +
+  scale_genomic_context(aesthetic = "color", guide = "none") +
+  facet_grid(. ~ ref) +
+  labs(
+    x = "Genomic Context",
+    y = "% of Context Covered by Benchmark",
+    fill = "Benchmark Version"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "bottom"
+  ))
+```
+
+### Percent of benchmark within each genomic context
+
+Shows the fraction of the total benchmark that falls within each difficult
+region type. This indicates how much of the benchmark is devoted to each
+category of difficulty.
+
+```{r pct_bench_in_context_plot, fig.width = 8, fig.height = 5}
+(pct_bench_plt <- genomic_context_metrics_df %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  ) %>%
+  ggplot(aes(
+    x = context_name,
+    y = pct_of_bench,
+    fill = bench_version
+  )) +
+  geom_col(position = "dodge", color = "grey30", linewidth = 0.2) +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1),
+    expand = expansion(mult = c(0, 0.02))
+  ) +
+  scale_benchmark_version(aesthetic = "fill") +
+  facet_grid(bench_type_label ~ ref) +
+  labs(
+    x = "Genomic Context",
+    y = "% of Benchmark in Context",
+    fill = "Benchmark Version"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "bottom"
+  ))
+```
+
+```{r save_coverage_combined, fig.width = 8, fig.height = 8}
+(coverage_combined_plt <- pct_context_plt / pct_bench_plt +
+  plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = "A") &
+  theme(legend.position = "bottom"))
+
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_coverage.png"),
+  plot = coverage_combined_plt,
+  width = 8,
+  height = 8,
+  dpi = 300
+)
+```
+
+## Coverage Change Across Benchmark Versions
+
+Comparison of how the coverage of difficult regions has changed between
+benchmark versions. Focuses on v5.0q versus legacy benchmarks.
+
+```{r coverage_change_plot, fig.width = 8, fig.height = 5}
+coverage_change_df <- genomic_context_metrics_df %>%
+  filter(bench_version %in% c("v5.0q", "v4.2.1", "v0.6")) %>%
+  select(bench_version, ref, bench_type, context_name, pct_of_context) %>%
+  pivot_wider(
+    names_from = bench_version,
+    values_from = pct_of_context
+  ) %>%
+  mutate(
+    change_vs_legacy = case_when(
+      !is.na(v4.2.1) ~ v5.0q - v4.2.1,
+      !is.na(v0.6) ~ v5.0q - v0.6,
+      .default = NA_real_
+    ),
+    legacy_version = case_when(
+      !is.na(v4.2.1) ~ "v4.2.1",
+      !is.na(v0.6) ~ "v0.6",
+      .default = NA_character_
+    )
+  ) %>%
+  filter(!is.na(change_vs_legacy))
+
+(coverage_change_plt <- coverage_change_df %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  ) %>%
+  ggplot(aes(
+    x = context_name,
+    y = change_vs_legacy,
+    fill = context_name
+  )) +
+  geom_col(color = "grey30", linewidth = 0.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1)
+  ) +
+  scale_genomic_context(aesthetic = "fill") +
+  facet_wrap(bench_type_label ~ ref) +
+  labs(
+    x = "Genomic Context",
+    y = "Change in Context Coverage (v5.0q - legacy)",
+    fill = "Genomic Context"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "bottom"
+  ))
+
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_coverage_change.png"),
+  plot = coverage_change_plt,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+## Variant Counts by Genomic Context
+
+### Total variant counts per context
+
+```{r variant_count_table}
+genomic_context_metrics_df %>%
+  filter(bench_version == "v5.0q") %>%
+  mutate(
+    ref = std_references(ref),
+    context_label = get_context_labels()[as.character(context_name)]
+  ) %>%
+  select(
+    context_label, ref, bench_type,
+    total_variants, snv_count, indel_count,
+    del_count, ins_count, complex_count
+  ) %>%
+  arrange(context_label, ref, bench_type) %>%
+  group_by(context_label) %>%
+  gt::gt() %>%
+  gt::fmt_integer(
+    columns = c(
+      total_variants, snv_count, indel_count,
+      del_count, ins_count, complex_count
+    )
+  ) %>%
+  gt::sub_missing(missing_text = "0") %>%
+  gt::cols_label(
+    context_label = "Genomic Context",
+    ref = "Reference",
+    bench_type = "Bench Type",
+    total_variants = "Total",
+    snv_count = "SNV",
+    indel_count = "INDEL",
+    del_count = "DEL",
+    ins_count = "INS",
+    complex_count = "Complex"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+### Variant counts by type and context across benchmark versions
+
+```{r variant_counts_by_type_plot, fig.width = 8, fig.height = 6}
+(var_count_plt <- var_counts_by_context_df %>%
+  filter(var_type %in% c("SNV", "INDEL", "DEL", "INS")) %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  ) %>%
+  ggplot(aes(
+    x = context_name,
+    y = count,
+    fill = bench_version
+  )) +
+  geom_col(position = "dodge", color = "grey30", linewidth = 0.2) +
+  scale_y_continuous(labels = scales::label_comma()) +
+  scale_benchmark_version(aesthetic = "fill") +
+  facet_grid(var_type ~ ref, scales = "free_y") +
+  labs(
+    x = "Genomic Context",
+    y = "Variant Count",
+    fill = "Benchmark Version"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "bottom"
+  ))
+```
+
+
+```{r}
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_variant_counts_by_type.png"),
+  plot = var_count_plt,
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+```
+
+### Variant count fold change: v5.0q vs legacy benchmarks
+
+```{r variant_fold_change, fig.width = 8, fig.height = 5}
+fold_change_df <- var_counts_by_context_df %>%
+  filter(
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
+    var_type %in% c("SNV", "INDEL", "DEL", "INS")
+  ) %>%
+  select(bench_version, ref, bench_type, context_name, var_type, count) %>%
+  pivot_wider(names_from = bench_version, values_from = count) %>%
+  mutate(
+    fold_change = case_when(
+      !is.na(v4.2.1) & v4.2.1 > 0 ~ v5.0q / v4.2.1,
+      !is.na(v0.6) & v0.6 > 0 ~ v5.0q / v0.6,
+      .default = NA_real_
+    )
+  ) %>%
+  filter(!is.na(fold_change))
+
+(fold_change_plt <- fold_change_df %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  ) %>%
+    filter(context_name %in% c("Homopolymer", "TR100bp", "SegDup", "LowMappability")) %>%
+  ggplot(aes(
+    x = context_name,
+    y = fold_change,
+    color = var_type,
+    shape = bench_type_label
+  )) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
+  geom_point(
+    size = 3,
+    position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.5)
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_shape_manual(values = c(16, 17)) +
+  facet_wrap(~ref) +
+  labs(
+    x = "Genomic Context",
+    y = "Fold Change (v5.0q / legacy)",
+    color = "Variant Type",
+    shape = "Bench Type"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "bottom",
+    legend.box = "vertical"
+  ))
+
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_fold_change.png"),
+  plot = fold_change_plt,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+## Variant Density Analysis
+
+Variant density (variants per Mb of benchmark-covered genomic context) provides
+a normalized view of variant enrichment in each difficult region type.
+
+```{r variant_density_plot, fig.width = 8, fig.height = 5}
+(density_plt <- genomic_context_metrics_df %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  ) %>%
+  ggplot(aes(
+    x = context_name,
+    y = variant_density_per_mb,
+    fill = bench_version
+  )) +
+  geom_col(position = "dodge", color = "grey30", linewidth = 0.2) +
+  scale_y_continuous(labels = scales::label_comma()) +
+  scale_benchmark_version(aesthetic = "fill") +
+  facet_grid(bench_type_label ~ ref, scales = "free_y") +
+  labs(
+    x = "Genomic Context",
+    y = "Variant Density (variants / Mb)",
+    fill = "Benchmark Version"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "bottom"
+  ))
+
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_variant_density.png"),
+  plot = density_plt,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+### Density relative to genome-wide average
+
+```{r relative_density_plot, fig.width = 8, fig.height = 5}
+# Calculate genome-wide density for each benchmark
+genome_wide_density <- genomic_context_metrics_df %>%
+  group_by(bench_version, ref, bench_type) %>%
+  summarise(
+    total_vars = sum(total_variants, na.rm = TRUE),
+    total_intersect_bp = sum(intersect_bp, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    genome_density = total_vars / (total_intersect_bp / 1e6)
+  )
+
+relative_density_df <- genomic_context_metrics_df %>%
+  left_join(
+    genome_wide_density %>%
+      select(bench_version, ref, bench_type, genome_density),
+    by = c("bench_version", "ref", "bench_type")
+  ) %>%
+  mutate(
+    relative_density = variant_density_per_mb / genome_density
+  )
+
+(relative_density_plt <- relative_density_df %>%
+  filter(bench_version == "v5.0q") %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  ) %>%
+  ggplot(aes(
+    x = context_name,
+    y = relative_density,
+    fill = context_name
+  )) +
+  geom_col(color = "grey30", linewidth = 0.2) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_genomic_context(aesthetic = "fill") +
+  facet_grid(bench_type_label ~ ref) +
+  labs(
+    x = "Genomic Context",
+    y = "Relative Variant Density\n(context / genome-wide average)",
+    fill = "Genomic Context"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "bottom"
+  ))
+
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_relative_density.png"),
+  plot = relative_density_plt,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+## Coverage vs Variant Density
+
+Scatter plot relating the size of each genomic context's overlap with the
+benchmark to the variant density observed. Helps identify contexts that are
+both large and variant-rich.
+
+```{r coverage_vs_density_scatter, fig.width = 8, fig.height = 5}
+(scatter_plt <- genomic_context_metrics_df %>%
+  filter(bench_version == "v5.0q") %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)],
+    intersect_mb = intersect_bp / 1e6
+  ) %>%
+  ggplot(aes(
+    x = intersect_mb,
+    y = variant_density_per_mb,
+    color = context_name,
+    shape = bench_type_label
+  )) +
+  geom_point(size = 3) +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_genomic_context(aesthetic = "color") +
+  scale_shape_manual(values = c(16, 17)) +
+  facet_wrap(~ref) +
+  labs(
+    x = "Benchmark-Covered Context Size (Mb)",
+    y = "Variant Density (variants / Mb)",
+    color = "Genomic Context",
+    shape = "Bench Type"
+  ) +
+  theme_manuscript() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical"
+  ))
+
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_coverage_vs_density.png"),
+  plot = scatter_plt,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+## Comprehensive Metrics Table
+
+Full table of all v5.0q genomic context metrics for reference.
+
+```{r full_metrics_table}
+genomic_context_metrics_df %>%
+  filter(bench_version == "v5.0q") %>%
+  mutate(
+    ref = std_references(ref),
+    context_label = get_context_labels()[as.character(context_name)],
+    intersect_mb = round(intersect_bp / 1e6, 1),
+    context_mb = round(context_bp / 1e6, 1)
+  ) %>%
+  select(
+    context_label, ref, bench_type,
+    context_mb, intersect_mb,
+    pct_of_context, pct_of_bench,
+    total_variants, variant_density_per_mb
+  ) %>%
+  arrange(context_label, ref, bench_type) %>%
+  group_by(context_label) %>%
+  gt::gt() %>%
+  gt::fmt_percent(
+    columns = c(pct_of_context, pct_of_bench),
+    scale_values = TRUE,
+    decimals = 1
+  ) %>%
+  gt::fmt_integer(columns = total_variants) %>%
+  gt::fmt_number(columns = variant_density_per_mb, decimals = 1) %>%
+  gt::cols_label(
+    context_label = "Genomic Context",
+    ref = "Reference",
+    bench_type = "Bench Type",
+    context_mb = "Context (Mb)",
+    intersect_mb = "Overlap (Mb)",
+    pct_of_context = "% Ctx Covered",
+    pct_of_bench = "% Bench in Ctx",
+    total_variants = "Total Variants",
+    variant_density_per_mb = "Density (var/Mb)"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+## Session Info
+
+```{r}
+#| echo: false
+sessioninfo::session_info()
+```

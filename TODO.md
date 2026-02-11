@@ -1,3 +1,5 @@
+Improve and simplify vcf processing using functions from the truvari api to replace code in python scripts when appropriate.
+
 # Project To Dos
 
 - Update variant cache schema

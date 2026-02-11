@@ -28,12 +28,12 @@ The functions in `R/data_loading.R` load and standardize pipeline outputs. This 
 | `pct_of_context` | Numeric | Percentage of the genomic context covered by the benchmark |
 | `pct_of_bench` | Numeric | Percentage of the benchmark covered by this genomic context |
 | `total_variants` | Integer | Total number of variants in this context |
-| `snv_count` | Integer | Count of Single Nucleotide Variants |
-| `indel_count` | Integer | Count of Insertions/Deletions |
-| `del_count` | Integer | Count of Deletions (Structural Variants) |
-| `ins_count` | Integer | Count of Insertions (Structural Variants) |
+| `snp_count` | Integer | Count of Single Nucleotide Polymorphisms (REF/ALT length == 1) |
+| `mnp_count` | Integer | Count of Multi-Nucleotide Polymorphisms (REF/ALT length > 1, equal) |
+| `del_count` | Integer | Count of Deletions (REF > ALT, all sizes) |
+| `ins_count` | Integer | Count of Insertions (ALT > REF, all sizes) |
 | `complex_count` | Integer | Count of Complex variants |
-| `other_count` | Integer | Count of Other variant types |
+| `other_count` | Integer | Count of other variant types (DUP, INV, BND, CNV from SVTYPE) |
 | `variant_density_per_mb` | Numeric | Number of variants per Megabase |
 
 ### Exclusion Metrics
@@ -274,7 +274,11 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Units:** Integer count
 
-**Calculation:** Sum of all snv_count + indel_count + del_count + ins_count + complex_count + other_count
+**Calculation:** Sum of all snp_count + mnp_count + del_count + ins_count + complex_count + other_count
+
+**Variant Classification Logic:**
+- **Small variants (≤50bp or missing SVTYPE)**: Classified by REF/ALT length comparison
+- **Structural variants (>50bp with SVTYPE)**: Uses INFO/SVTYPE field from VCF
 
 **Interpretation:**
 - Represents the total number of variants within this genomic context-benchmark overlap
@@ -288,85 +292,95 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 ---
 
-#### snv_count
-**Definition:** Number of single nucleotide variants (SNVs)
+#### snp_count
+**Definition:** Number of single nucleotide polymorphisms (SNPs)
 
-**Definition of SNV:**
+**Definition of SNP:**
 - Single base substitution
 - Reference length = 1 bp, Alternate length = 1 bp
 - Example: A → G
 
+**Classification:**
+- Classified when REF_len == ALT_len == 1
+- Applied to all benchmarks (small variants and structural variants)
+
 **Interpretation:**
-- SNVs are most common variant type
+- SNPs are most common variant type
 - Generally easiest to genotype accurately
 - Usually comprise 30-50% of total variants in benchmarks
 
 **Context:**
-- Small variants: 180,000-700,000 SNVs per benchmark-genomic context
-- Structural variants: 0 SNVs (structural variants are ≥50bp)
+- Small variants: 180,000-700,000 SNPs per benchmark-genomic context
+- Structural variants: fewer SNPs (focus is on larger variants ≥50bp)
 
 ---
 
-#### indel_count
-**Definition:** Number of insertions and deletions combined
+#### mnp_count
+**Definition:** Number of multi-nucleotide polymorphisms (MNPs)
 
-**Definition of INDEL:**
-- Change in reference and alternate allele length
-- Typically involves 1-49bp changes
-- Examples: A → AT (insertion), ATG → A (deletion)
+**Definition of MNP:**
+- Multiple adjacent base substitutions
+- Reference length = Alternate length > 1 bp
+- Example: ATG → GCA (3bp substitution)
 
-**Calculation:**
-- Includes variants with `(len_ref > 1 AND len_alt == 1)` OR `(len_ref == 1 AND len_alt > 1)`
-- Small variants: specifically 1-49 bp
-- Structural variants: specifically ≥50 bp
+**Classification:**
+- Classified when REF_len == ALT_len > 1
+- Applied to all benchmarks
 
 **Interpretation:**
-- Second most common variant type
-- Harder to genotype than SNVs due to alignment complexity
-- Particularly common in homopolymer and tandem repeat regions
-- Usually comprise 40-65% of small variants
+- Less common than SNPs but more common than complex variants
+- Occur when multiple adjacent bases are substituted simultaneously
+- Often arise from localized mutation processes or sequencing artifacts
 
 **Context:**
-- Small variants: 50,000-600,000 INDELs per benchmark
-- Density in difficult regions: much higher than non-difficult regions
+- Typically 1-10% of total small variants
+- Can be challenging to distinguish from nearby SNPs in noisy data
 
 ---
 
 #### del_count
-**Definition:** Number of deletion variants (structural variants only)
+**Definition:** Number of deletion variants (all sizes)
 
 **Definition of Deletion:**
 - Removal of bases from reference
 - Reference length > Alternate length
-- Size: ≥50 bp for structural variants
-- Example: 1000bp deletion: position 1000-2000 → single base
+- Applies to small deletions (<50bp) and structural deletions (≥50bp)
+- Examples: ATG → A (2bp deletion), 1000bp deletion
+
+**Classification:**
+- **Small variants (≤50bp)**: Classified when REF_len > ALT_len
+- **Structural variants (>50bp with SVTYPE=DEL)**: Uses SVTYPE field from VCF
 
 **Interpretation:**
-- Only non-zero for structural variant benchmarks (stvar)
-- Represents loss-of-sequence variants
+- Represents loss-of-sequence variants of any size
+- Includes both small indels and large structural deletions
 - Important for detecting copy number losses
-- Usually 10-50% of structural variants
+- Distribution varies by genomic context and benchmark type
 
 **Context:**
-- Structural variants: 0-10,000 deletions per benchmark
-- Often fewer than insertions
-- Harder to sequence due to missing coverage
+- Small variant benchmarks: includes deletions 1-49bp
+- Structural variant benchmarks: focuses on deletions ≥50bp
+- Harder to sequence due to missing coverage for large deletions
 
 ---
 
 #### ins_count
-**Definition:** Number of insertion variants (structural variants only)
+**Definition:** Number of insertion variants (all sizes)
 
 **Definition of Insertion:**
 - Addition of bases in alternate vs. reference
 - Alternate length > Reference length
-- Size: ≥50 bp for structural variants
-- Example: insertion of 1000bp sequence
+- Applies to small insertions (<50bp) and structural insertions (≥50bp)
+- Examples: A → ATG (2bp insertion), 1000bp insertion
+
+**Classification:**
+- **Small variants (≤50bp)**: Classified when ALT_len > REF_len
+- **Structural variants (>50bp with SVTYPE=INS)**: Uses SVTYPE field from VCF
 
 **Interpretation:**
-- Only non-zero for structural variant benchmarks
-- Represents extra sequences not in reference
-- Important for detecting copy number gains
+- Represents gain-of-sequence variants of any size
+- Includes both small indels and large structural insertions
+- Important for detecting copy number gains and novel sequences
 - Usually 10-50% of structural variants
 - May be harder to sequence than deletions
 
@@ -398,11 +412,15 @@ If variant_density_per_mb = 9310 for HP in small variants:
 ---
 
 #### other_count
-**Definition:** Number of unclassified or other variant types
+**Definition:** Number of other variant types, including structural variant types from SVTYPE
 
-**When This Occurs:**
-- Variants that don't fit standard categories
-- May result from data quality issues or overlapping calls
+**Included Variant Types:**
+- **Structural variant types (from SVTYPE field)**: DUP (duplications), INV (inversions), BND (breakends), CNV (copy number variants)
+- **Unclassified variants**: Variants that don't fit standard categories
+
+**Classification:**
+- For variants >50bp with SVTYPE annotation, includes non-DEL/INS structural variant types
+- May also include variants with data quality issues or unusual patterns
 - Includes variants of unknown significance
 
 **Interpretation:**
