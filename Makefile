@@ -35,7 +35,7 @@ lint:
 	@echo "==> Linting Snakemake workflow..."
 	snakemake --lint
 	@echo "==> Linting R scripts and Quarto files..."
-	Rscript -e "files <- list.files('.', pattern = '.R', full.names = TRUE); paths <- c('R'); files <- c(files, unlist(lapply(paths[dir.exists(paths)], function(p) list.files(p, pattern = '(R|r|qmd)$$', recursive = TRUE, full.names = TRUE)))); lints <- do.call(c, lapply(files, lintr::lint)); if (length(lints) > 0) { print(lints); quit(status = 1) }"
+	Rscript -e "files <- list.files('.', pattern = '\\\\.R$$', full.names = TRUE); paths <- c('R'); files <- c(files, unlist(lapply(paths[dir.exists(paths)], function(p) list.files(p, pattern = '\\\\.(R|r|qmd)$$', recursive = TRUE, full.names = TRUE)))); lints <- do.call(c, lapply(files, lintr::lint)); if (length(lints) > 0) { print(lints); quit(status = 1) }"
 	@echo "==> Linting Markdown files..."
 	markdownlint $(MD_FILES)
 
