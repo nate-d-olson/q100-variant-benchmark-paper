@@ -77,6 +77,7 @@ run:
 clean:
 	@echo "==> Cleaning logs and temporary files..."
 	rm -rf logs/
-	rm -rf .snakemake/
+	rm -rf results/
+	rm -rf resources/
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@echo "==> Clean complete"

@@ -89,7 +89,7 @@ genomic_context_metrics_df %>%
   ) %>%
   gt::fmt_percent(
     columns = c(pct_of_context, pct_of_bench),
-    scale_values = TRUE,
+    scale_values = FALSE,
     decimals = 1
   ) %>%
   gt::cols_label(
@@ -116,21 +116,23 @@ Higher values indicate more comprehensive benchmarking of that region type.
   mutate(
     ref = std_references(ref),
     bench_type_label = get_bench_type_labels()[as.character(bench_type)]
-  ) %>%
+  ) %>% 
+   # filter(context_name != "TR10kb") %>%
   ggplot(aes(
     x = context_name,
     y = pct_of_context,
     fill = bench_version
   )) +
-  geom_col(position = "dodge", color = "grey30", linewidth = 0.2) +
+  geom_col(aes(alpha = bench_type), 
+           position = "dodge", color = "grey30", linewidth = 0.2) +
   scale_y_continuous(
-    labels = scales::percent_format(scale = 100),
-    limits = c(0, 1),
-    expand = expansion(mult = c(0, 0.02))
+    labels = scales::percent_format(scale = 1),
+    # limits = c(0, 1),
+    # expand = expansion(mult = c(0, 0.02))
   ) +
   scale_benchmark_version(aesthetic = "fill") +
   scale_genomic_context(aesthetic = "color", guide = "none") +
-  facet_grid(bench_type_label ~ ref) +
+  facet_grid(. ~ ref) +
   labs(
     x = "Genomic Context",
     y = "% of Context Covered by Benchmark",
@@ -162,7 +164,7 @@ category of difficulty.
   )) +
   geom_col(position = "dodge", color = "grey30", linewidth = 0.2) +
   scale_y_continuous(
-    labels = scales::percent_format(scale = 100),
+    labels = scales::percent_format(scale = 1),
     expand = expansion(mult = c(0, 0.02))
   ) +
   scale_benchmark_version(aesthetic = "fill") +
@@ -234,10 +236,10 @@ coverage_change_df <- genomic_context_metrics_df %>%
   geom_col(color = "grey30", linewidth = 0.2) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
   scale_y_continuous(
-    labels = scales::percent_format(scale = 100)
+    labels = scales::percent_format(scale = 1)
   ) +
   scale_genomic_context(aesthetic = "fill") +
-  facet_grid(bench_type_label ~ ref) +
+  facet_wrap(bench_type_label ~ ref) +
   labs(
     x = "Genomic Context",
     y = "Change in Context Coverage (v5.0q - legacy)",
@@ -326,7 +328,10 @@ genomic_context_metrics_df %>%
     axis.text.x = element_text(angle = -45, hjust = 0),
     legend.position = "bottom"
   ))
+```
 
+
+```{r}
 ggsave(
   filename = here::here("manuscript", "figs", "genomic_context_variant_counts_by_type.png"),
   plot = var_count_plt,
@@ -360,6 +365,7 @@ fold_change_df <- var_counts_by_context_df %>%
     ref = std_references(ref),
     bench_type_label = get_bench_type_labels()[as.character(bench_type)]
   ) %>%
+    filter(context_name %in% c("Homopolymer", "TR100bp", "SegDup", "LowMappability")) %>%
   ggplot(aes(
     x = context_name,
     y = fold_change,
