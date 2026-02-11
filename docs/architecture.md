@@ -450,7 +450,7 @@ Three functions support caching via `use_cache` and `force_refresh` parameters:
 | Function | Dataset | Source Files |
 |----------|---------|--------------|
 | `load_variant_table()` | `variant_table` | `variants.tsv` |
-| `load_diff_coverage()` | `diff_coverage` | `*_cov.bed` files |
+| `load_genomic_context_coverage()` | `diff_coverage` | `*_cov.bed` files |
 | `load_benchmark_regions()` | `benchmark_regions` | `*_benchmark.bed` files |
 
 Functions NOT cached (small datasets, load directly from pipeline output):
@@ -530,7 +530,7 @@ The pipeline now includes comprehensive error handling:
 4. **Parquet Caching and Schema Registry**
    - `R/schemas.R` - Arrow schema definitions, factor levels, validation rules
    - `R/cache.R` - Parquet caching with zstd compression and pipeline metadata
-   - Cache integration in `load_variant_table()`, `load_diff_coverage()`, `load_benchmark_regions()`
+   - Cache integration in `load_variant_table()`, `load_genomic_context_coverage()`, `load_benchmark_regions()`
    - 45 tests in `tests/test_cache.R` covering schemas, cache round-trips, invalidation, metadata
 
 5. **Code Quality Tooling**

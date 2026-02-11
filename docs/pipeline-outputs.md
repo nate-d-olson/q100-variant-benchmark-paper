@@ -368,17 +368,17 @@ HP          chr1   25000     25500     2          450        500      0.9
 - One file per genomic context per benchmark (6 strat × 8 benchmarks = 48 files)
 - Files are generated from `bedtools coverage -a genomic context.bed -b benchmark.bed`
 - Start positions are 0-based (BED format); add 1 for 1-based coordinates if needed
-- Use `load_diff_coverage()` to load and parse
+- Use `load_genomic_context_coverage()` to load and parse
 
 **Example Usage:**
 ```r
 source("R/data_loading.R")
 
 # Load coverage for all genomic contexts
-coverage <- load_diff_coverage("v5.0q_GRCh38_smvar")
+coverage <- load_genomic_context_coverage("v5.0q_GRCh38_smvar")
 
 # Load only specific genomic contexts
-hp_tr_coverage <- load_diff_coverage(
+hp_tr_coverage <- load_genomic_context_coverage(
   "v5.0q_GRCh38_smvar",
   context_filter = c("HP", "TR")
 )
@@ -517,7 +517,7 @@ variants %>%
 source("R/data_loading.R")
 
 # Load coverage data
-coverage <- load_diff_coverage(
+coverage <- load_genomic_context_coverage(
   "v5.0q_GRCh38_smvar",
   context_filter = c("HP", "TR")
 )
@@ -544,7 +544,7 @@ All output files can be loaded using functions in `R/data_loading.R`:
 | `load_exclusion_metrics()` | Load exclusion overlaps | Tibble | v5.0q only, warns if empty |
 | `load_reference_sizes()` | Load reference genomes | Tibble | 88-94 rows (24-31 chroms × refs) |
 | `load_variant_table()` | Load full variant data | Tibble | Millions of rows, SLOW |
-| `load_diff_coverage()` | Load base-level coverage | Tibble | Millions of rows |
+| `load_genomic_context_coverage()` | Load base-level coverage | Tibble | Millions of rows |
 
 All functions handle:
 - Automatic file discovery in standard directory structure
@@ -555,7 +555,7 @@ All functions handle:
 
 ### Parquet Caching
 
-The three large-dataset functions (`load_variant_table()`, `load_diff_coverage()`, `load_benchmark_regions()`) use Parquet-based caching for faster reloads. Caching is controlled by two parameters:
+The three large-dataset functions (`load_variant_table()`, `load_genomic_context_coverage()`, `load_benchmark_regions()`) use Parquet-based caching for faster reloads. Caching is controlled by two parameters:
 
 - `use_cache = TRUE` (default): Enable caching; reads from cache on hit, writes to cache after loading
 - `force_refresh = FALSE` (default): Set to `TRUE` to bypass cache and reload from source files
