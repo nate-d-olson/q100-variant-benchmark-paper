@@ -14,8 +14,6 @@ execute:
   warning: false
 ---
 
-TODO - add upset plot
-
 ```{r setup}
 #| include: false
 source(here::here("analysis/_notebook_setup.R"))
