@@ -45,7 +45,7 @@ def get_var_table_inputs(wildcards) -> List[str]:
         List of file paths for variant table outputs
     """
     return [
-        f"results/variant_tables/{benchmark}/variants.tsv"
+        f"results/variant_tables/{benchmark}/variants.parquet"
         for benchmark in config["benchmarksets"]
     ]
 
@@ -433,7 +433,7 @@ def get_exclusion_impact_inputs(wildcards):
     benchmark = wildcards.benchmark
     excl_names = [e["name"] for e in get_exclusion_config(benchmark)]
     return {
-        "variant_table": f"results/variant_tables/{benchmark}/variants.tsv",
+        "variant_table": f"results/variant_tables/{benchmark}/variants.parquet",
         "exclusion_tsvs": expand(
             "results/exclusions/{benchmark}/coverage/{exclusion}.tsv",
             benchmark=benchmark,
@@ -449,7 +449,7 @@ def get_exclusion_interaction_inputs(wildcards):
         "dip_bed": f"resources/benchmarksets/{benchmark}_dip.bed",
         "benchmark_bed": f"resources/benchmarksets/{benchmark}_benchmark.bed",
         "exclusion_beds": get_exclusion_bed_paths(benchmark),
-        "variant_table": f"results/variant_tables/{benchmark}/variants.tsv",
+        "variant_table": f"results/variant_tables/{benchmark}/variants.parquet",
     }
 
 

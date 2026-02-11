@@ -148,7 +148,7 @@ rule compute_exclusion_impact:
         mem_mb=4096,
     threads: 1
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/truvari.yaml"
     script:
         "../scripts/count_exclusion_variants.py"
 
@@ -180,7 +180,7 @@ rule compute_exclusion_interactions:
         mem_mb=4096,
     threads: 1
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/truvari.yaml"
     script:
         "../scripts/compute_exclusion_interactions.py"
 

@@ -1,6 +1,7 @@
 """
 Unit tests for workflow/scripts/stratify_comparison.py
 """
+
 import pytest
 import tempfile
 import gzip
@@ -36,7 +37,7 @@ chr1\t100\t.\tA\tT\t.\tPASS\t.
 chr1\t200\t.\tG\tC\t.\tPASS\t.
 chr1\t300\t.\tT\tA\t.\tPASS\t.
 """
-        with gzip.open(vcf_path, 'wb') as f:
+        with gzip.open(vcf_path, "wb") as f:
             f.write(vcf_content)
 
         # Import function would go here

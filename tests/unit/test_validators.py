@@ -177,11 +177,10 @@ class TestVCFValidation:
         vcf_gz = tmp_path / "sample.vcf.gz"
 
         content = (
-            "##fileformat=VCFv4.2\n"
-            "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+            "##fileformat=VCFv4.2\n" "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
         )
 
-        with gzip.open(vcf_gz, 'wt') as f:
+        with gzip.open(vcf_gz, "wt") as f:
             f.write(content)
 
         stats = validate_vcf_header(vcf_gz)
@@ -199,7 +198,7 @@ class TestTSVValidation:
         stats = validate_tsv_columns(
             tsv_file,
             required_columns=["col1", "col2"],
-            optional_columns=["col3", "col4"]
+            optional_columns=["col3", "col4"],
         )
 
         assert stats["total_columns"] == 3
@@ -212,10 +211,7 @@ class TestTSVValidation:
         tsv_file.write_text("col1\tcol2\n")
 
         with pytest.raises(DataFormatError) as exc_info:
-            validate_tsv_columns(
-                tsv_file,
-                required_columns=["col1", "col2", "col3"]
-            )
+            validate_tsv_columns(tsv_file, required_columns=["col1", "col2", "col3"])
 
         assert "missing required columns" in str(exc_info.value)
         assert "col3" in str(exc_info.value)
@@ -236,11 +232,7 @@ class TestTSVValidation:
 def sample_bed_file(tmp_path):
     """Create a sample BED file for testing."""
     bed_file = tmp_path / "test.bed"
-    bed_file.write_text(
-        "chr1\t100\t200\n"
-        "chr1\t300\t400\n"
-        "chr2\t100\t250\n"
-    )
+    bed_file.write_text("chr1\t100\t200\n" "chr1\t300\t400\n" "chr2\t100\t250\n")
     return bed_file
 
 
@@ -250,7 +242,7 @@ def sample_vcf_file(tmp_path):
     vcf_file = tmp_path / "test.vcf"
     vcf_file.write_text(
         "##fileformat=VCFv4.2\n"
-        "##INFO=<ID=TYPE,Number=A,Type=String,Description=\"Type\">\n"
+        '##INFO=<ID=TYPE,Number=A,Type=String,Description="Type">\n'
         "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
         "chr1\t100\t.\tA\tG\t60\tPASS\tTYPE=snp\n"
     )

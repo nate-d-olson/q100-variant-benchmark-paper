@@ -63,9 +63,9 @@ rule organize_variant_table:
     benchmark directory rather than nested in results/variant_tables/.
     """
     input:
-        "results/variant_tables/{benchmark}/variants.tsv",
+        "results/variant_tables/{benchmark}/variants.parquet",
     output:
-        "results/benchmarksets/{benchmark}/variants.tsv",
+        "results/benchmarksets/{benchmark}/variants.parquet",
     log:
         "logs/output_organization/{benchmark}/variants_symlink.log",
     shell:
@@ -89,7 +89,7 @@ rule organize_benchmark_outputs:
     input:
         exclusions="results/benchmarksets/{benchmark}/exclusions.csv",
         stratifications="results/benchmarksets/{benchmark}/stratifications.csv",
-        variants="results/benchmarksets/{benchmark}/variants.tsv",
+        variants="results/benchmarksets/{benchmark}/variants.parquet",
     output:
         touch("results/benchmarksets/{benchmark}/.organized"),
     log:

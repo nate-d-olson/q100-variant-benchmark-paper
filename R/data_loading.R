@@ -511,49 +511,45 @@ load_genomic_context_metrics <- function(
 ) {
   results_dir <- .default_results_dir(results_dir)
 
-  # Find all genomic context metrics files
-  metrics_files <- fs::dir_ls(
-    results_dir,
+  # Find all variant count Parquet files
+  count_files <- fs::dir_ls(
+    fs::path(results_dir, "var_counts"),
     recurse = TRUE,
-    glob = "**/genomic_context_combined_metrics.csv",
+    glob = "**/variants_by_genomic_context.parquet",
     fail = FALSE
   )
 
-  if (length(metrics_files) == 0) {
+  if (length(count_files) == 0) {
     stop(
       glue::glue(
-        "No genomic_context_combined_metrics.csv files found in {results_dir}"
+        "No variants_by_genomic_context.parquet files found in {results_dir}/var_counts"
       ),
       call. = FALSE
     )
   }
 
-  # Read all files and add benchmark metadata
-  metrics_df <- metrics_files %>%
+  # Read all Parquet files and add benchmark metadata
+  metrics_df <- count_files %>%
     purrr::map_dfr(function(file) {
-      # Read file with explicit column types
-      raw_df <- file %>%
-        vroom::vroom(
-          col_types = vroom::cols(
-            context_name = "c",
-            context_bp = "d",
-            intersect_bp = "d",
-            pct_of_context = "d",
-            pct_of_bench = "d",
-            total_variants = "i",
-            snp_count = "i",
-            indel_count = "i",
-            del_count = "i",
-            ins_count = "i",
-            complex_count = "i",
-            other_count = "i",
-            variant_density_per_mb = "d",
-            .default = "c"
-          ),
-          show_col_types = FALSE
+      raw_df <- arrow::read_parquet(file)
+      # Columns: context_name, var_type, szbin, count
+
+      # Normalize var_type to lowercase _count names before pivoting
+      wide_df <- raw_df %>%
+        dplyr::group_by(context_name, var_type) %>%
+        dplyr::summarise(count = sum(count), .groups = "drop") %>%
+        dplyr::mutate(var_type = paste0(tolower(var_type), "_count")) %>%
+        tidyr::pivot_wider(
+          names_from = var_type,
+          values_from = count,
+          values_fill = 0L
         )
 
-      .add_benchmark_metadata(raw_df, .benchmark_id_from_file(file))
+      # Compute total_variants from all *_count columns
+      count_cols <- grep("_count$", names(wide_df), value = TRUE)
+      wide_df$total_variants <- rowSums(wide_df[count_cols])
+
+      .add_benchmark_metadata(wide_df, .benchmark_id_from_file(file))
     })
 
   # Apply benchmark filter if provided
@@ -573,10 +569,7 @@ load_genomic_context_metrics <- function(
     }
   }
 
-  # Rename snp_count to snv_count (SNV = Single Nucleotide Variant)
-  # and factor categorical variables with standard levels
   metrics_df <- metrics_df %>%
-    dplyr::rename(snv_count = snp_count) %>%
     dplyr::mutate(
       bench_version = std_bench_versions(bench_version),
       ref = std_references(ref),
@@ -818,8 +811,8 @@ load_hg002q100_size <- function(
 
 #' Load Full Variant Table For a Single Benchmarkset
 #'
-#' Loads full variant-level data from variants.tsv files. These are large
-#' files (~GB per benchmark) and should be used only when variant-level
+#' Loads full variant-level data from variants.parquet files. These are large
+#' files per benchmark and should be used only when variant-level
 #' detail is required. Consider using `load_genomic_context_metrics()` for
 #' aggregated summaries instead.
 #'
@@ -876,7 +869,7 @@ load_variant_table <- function(
     results_dir,
     "variant_tables",
     glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}"),
-    "variants.tsv"
+    "variants.parquet"
   )
 
   if (!fs::file_exists(variant_file)) {
@@ -889,23 +882,13 @@ load_variant_table <- function(
     )
   }
 
-  message(
-    glue::glue(
-      "Loading variant table for {benchmark_id}.\n",
-      "This may take several minutes as the file is large (~GB)."
-    )
-  )
+  message(glue::glue("Loading variant table for {benchmark_id}"))
 
-  # Read variant table
+  # Read Parquet variant table (already filtered, classified, and metadata-enriched)
   variants_df <- read_variant_table(variant_file)
 
   # Apply filters if provided
   if (!is.null(filters)) {
-    if (!is.null(filters$in_benchmark_only) && filters$in_benchmark_only) {
-      variants_df <- variants_df %>%
-        dplyr::filter(stringr::str_detect(region_ids, "^BMKREGIONS"))
-    }
-
     if (!is.null(filters$variant_types)) {
       variant_types <- .normalize_variant_type_filter(filters$variant_types)
       variants_df <- variants_df %>%
@@ -920,256 +903,18 @@ load_variant_table <- function(
   return(variants_df)
 }
 
-get_bench_var_cols <- function(benchmarkset) {
-  ## Common column names and types
-  cnames <- c(
-    "chrom",
-    "pos",
-    "end",
-    "gt",
-    "vkx",
-    "var_type",
-    "len_ref",
-    "len_alt",
-    "context_ids",
-    "region_ids"
-  )
-  ctypes <- "ciiccciicc"
 
-  if (str_detect(benchmarkset, "v0.6")) {
-    cnames <- c(
-      cnames,
-      "END",
-      "SVTYPE",
-      "SVLEN",
-      "ClusterIDs",
-      "NumClusterSVs",
-      "ExactMatchIDs",
-      "NumExactMatchSVs",
-      "ClusterMaxShiftDist",
-      "ClusterMaxSizeDiff",
-      "ClusterMaxEditDist",
-      "PBcalls",
-      "Illcalls",
-      "TenXcalls",
-      "CGcalls",
-      "PBexactcalls",
-      "Illexactcalls",
-      "TenXexactcalls",
-      "CGexactcalls",
-      "HG2count",
-      "HG3count",
-      "HG4count",
-      "NumTechs",
-      "NumTechsExact",
-      "DistBack",
-      "DistForward",
-      "DistMin",
-      "DistMinlt1000",
-      "MultiTech",
-      "MultiTechExact",
-      "sizecat",
-      "DistPASSHG2gt49Minlt1000",
-      "DistPASSMinlt1000",
-      "MendelianError",
-      "HG003_GT",
-      "HG004_GT",
-      "BREAKSIMLENGTH",
-      "REFWIDENED",
-      "REPTYPE",
-      "TRall",
-      "TRgt100",
-      "TRgt10k",
-      "segdup"
-    )
-    ctypes <- paste0(ctypes, "ccicicccccccccccccccccccccccccccccc")
-    return(list(col_names = cnames, col_types = ctypes))
-  } else if (str_detect(benchmarkset, "v4.2.1")) {
-    cnames <- c(
-      cnames,
-      "DPSum",
-      "platforms",
-      "platformnames",
-      "platformbias",
-      "datasets",
-      "datasetnames",
-      "datasetsmissingcall",
-      "callsets",
-      "callsetnames",
-      "varType",
-      "filt",
-      "callable",
-      "difficultregion",
-      "arbitrated",
-      "callsetwiththisuniqgenopassing",
-      "callsetwithotheruniqgenopassing"
-    )
-    ctypes <- paste0(ctypes, "icccccccccccccicccccc")
-    return(list(col_names = cnames, col_types = ctypes))
-  } else if (str_detect(benchmarkset, "v5.0q")) {
-    cnames <- c(
-      cnames,
-      "TRF",
-      "TRFdiff",
-      "TRFrepeat",
-      "TRFovl",
-      "TRFstart",
-      "TRFend",
-      "TRFperiod",
-      "TRFcopies",
-      "TRFscore",
-      "TRFentropy",
-      "TRFsim"
-    )
-    ctypes <- paste0(ctypes, "cicdiiiinnn")
-    if (str_detect(benchmarkset, "stvar")) {
-      cnames <- c(
-        cnames,
-        "SVTYPE",
-        "SVLEN",
-        "RM_score",
-        "RM_repeat",
-        "RM_clsfam",
-        "LCR",
-        "REMAP"
-      )
-      ctypes <- paste0(ctypes, "cincccc")
-    }
-    return(list(col_names = cnames, col_types = ctypes))
-  } else {
-    stop(paste("Unknown benchmark set :", benchmarkset))
-  }
-
-  return(list(col_names = cnames, col_types = ctypes))
-}
-
-tidy_smvar <- function(var_df) {
-  ## excluding variants less than 50bp
-  lt_50bp <- var_df$len_ref < 50 & var_df$len_alt < 50
-  var_df <- var_df[lt_50bp, ]
-
-  ## changing var_type for OTHER and OVERLAP
-  var_df <- var_df %>%
-    mutate(
-      var_type = case_when(
-        ## When REF is different from the first base of ALT
-        var_type == "OTHER" &
-          ((len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1)) ~ "INDEL",
-        ## Assigning variant types for overlapping (atomic) variants
-        var_type == "OVERLAP" & len_ref == 1 & len_alt == 1 ~ "SNV",
-        var_type == "OVERLAP" &
-          ((len_ref > 1 & len_alt == 1) |
-          (len_ref == 1 & len_alt > 1)) ~ "INDEL",
-        var_type == "OVERLAP" & len_ref > 1 & len_alt > 1 ~ "COMPLEX",
-        .default = var_type
-      )
-    ) %>%
-    mutate(var_type = .normalize_variant_class_values(var_type))
-
-  ## Annotating Variant Length
-  var_df$var_size <- var_df$len_alt - var_df$len_ref
-
-  return(var_df)
-}
-
-tidy_stvar <- function(var_df) {
-  ## excluding variants less than 50bp
-  gt_50bp <- var_df$len_ref > 49 | var_df$len_alt > 49
-  var_df <- var_df[gt_50bp, ]
-
-  ## changing var_type for OTHER and OVERLAP
-  var_df$var_type <- var_df$SVTYPE
-  var_df$var_type <- .normalize_variant_class_values(var_df$var_type)
-
-  ## Annotating Variant Length
-  var_df <- var_df %>%
-    dplyr::mutate(
-      var_size = case_when(
-        SVTYPE == "INS" ~ SVLEN,
-        SVTYPE == "DEL" & SVLEN < 0 ~ SVLEN,
-        SVTYPE == "DEL" & SVLEN > 0 ~ -SVLEN,
-        .default = 0
-      )
-    )
-
-  return(var_df)
-}
-
-
-#' Read Variant Table
+#' Read Variant Table from Parquet
+#'
+#' Reads a Parquet variant table generated by generate_variant_parquet.py.
+#' The Parquet file already contains correct variant type classification,
+#' size filtering, and benchmark metadata columns.
 read_variant_table <- function(table_path) {
-  ## Extracting benchmark set id from file path and metadata from benchmark_id
-  benchmark_id <- str_extract(
-    table_path,
-    "(?<=variant_tables/).*(?=/variants.tsv)"
-  )
-  meta <- parse_benchmark_id(benchmark_id)
+  var_df <- arrow::read_parquet(table_path) %>%
+    dplyr::mutate(chrom = std_chrom(chrom)) %>%
+    .normalize_variant_table()
 
-  ## Getting column info based on benchmarkset
-  col_info <- get_bench_var_cols(benchmark_id)
-
-  ## reading variant table with vroom and selecting relevant columns
-  var_df <- vroom::vroom(
-    table_path,
-    delim = "\t",
-    na = ".",
-    skip = 1,
-    col_names = col_info$col_names,
-    col_types = col_info$col_types,
-    progress = TRUE
-  ) %>%
-    dplyr::mutate(
-      chrom = std_chrom(chrom)
-    )
-
-  ## remove variants outside benchmark regions
-  in_bmk <- grepl(x = var_df$region_ids, pattern = "^BMKREGIONS")
-  var_df <- var_df[in_bmk, ]
-
-  ## Cleaning up variant tables
-  if (meta$bench_type == "smvar") {
-    print("Tidying small variant table")
-    var_df <- tidy_smvar(var_df)
-  } else if (meta$bench_type == "stvar") {
-    print("Tidying SV table")
-    var_df <- tidy_stvar(var_df)
-  } else {
-    print("Dirty Table!! Fix code")
-  }
-
-  var_df <- .normalize_variant_table(var_df)
-
-  ## Adding benchmark metadata columns
-  if (!is.null(benchmark_id)) {
-    var_df <- var_df %>%
-      tibble::add_column(
-        bench_version = meta$bench_version,
-        ref = meta$ref,
-        bench_type = meta$bench_type,
-        .before = 1
-      )
-    var_df
-  }
-
-  ## Reducing number of columns
-  var_df %>%
-    dplyr::select(
-      bench_version,
-      ref,
-      bench_type,
-      chrom,
-      pos,
-      end,
-      gt,
-      vkx,
-      var_type,
-      var_size,
-      len_ref,
-      len_alt,
-      region_ids,
-      context_ids
-    )
+  return(var_df)
 }
 
 #' Load All Variant Tables
@@ -1185,11 +930,11 @@ load_all_variant_tables <- function(
 ) {
   results_dir <- .default_results_dir(results_dir)
 
-  # Find all variant tables
+  # Find all variant tables (Parquet format)
   variant_files <- fs::dir_ls(
     fs::path(results_dir, "variant_tables"),
     recurse = TRUE,
-    glob = "**/variants.tsv",
+    glob = "**/variants.parquet",
     fail = FALSE
   )
 
@@ -1212,14 +957,10 @@ load_all_variant_tables <- function(
     }
   }
 
-  require(furrr)
-  ## Loading and combining large variant tables
-  future::plan(future::multisession, workers = parallel::detectCores() - 1)
-
-  variants_df <- furrr::future_map_dfr(
+  # Read and combine all Parquet variant tables
+  variants_df <- purrr::map_dfr(
     variant_files,
-    read_variant_table,
-    .progress = TRUE
+    read_variant_table
   ) %>%
     .normalize_variant_table() %>%
     dplyr::mutate(

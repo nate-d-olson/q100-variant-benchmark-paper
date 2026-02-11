@@ -1,6 +1,7 @@
 """
 Unit tests for workflow/rules/common.smk helper functions.
 """
+
 import pytest
 import sys
 from pathlib import Path

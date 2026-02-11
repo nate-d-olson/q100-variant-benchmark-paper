@@ -18,7 +18,9 @@
       "Bash(snakefmt:*)",
       "WebSearch",
       "Bash(Rscript:*)",
-      "Bash(micromamba activate:*)"
+      "Bash(micromamba activate:*)",
+      "WebFetch(domain:truvari.readthedocs.io)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   },
   "sandbox": {

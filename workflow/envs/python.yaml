@@ -4,4 +4,6 @@ channels:
 channel_priority: strict
 dependencies:
   - python=3.11
+  - pandas
+  - pyarrow
   - tabix

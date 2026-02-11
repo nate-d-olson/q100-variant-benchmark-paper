@@ -40,9 +40,7 @@ class TestValidationError:
     def test_validation_error_with_file(self):
         """Test validation error with file path."""
         err = ValidationError(
-            "Invalid format",
-            file_path=Path("/path/to/file.txt"),
-            line_number=42
+            "Invalid format", file_path=Path("/path/to/file.txt"), line_number=42
         )
         assert "Invalid format" in str(err)
         assert "/path/to/file.txt" in str(err)
@@ -51,9 +49,7 @@ class TestValidationError:
     def test_validation_error_with_expected_actual(self):
         """Test validation error with expected vs actual."""
         err = ValidationError(
-            "Value mismatch",
-            expected="3 columns",
-            actual="2 columns"
+            "Value mismatch", expected="3 columns", actual="2 columns"
         )
         assert "Value mismatch" in str(err)
         assert "Expected: 3 columns" in str(err)
@@ -66,7 +62,7 @@ class TestValidationError:
             file_path=Path("test.bed"),
             line_number=10,
             expected="start < end",
-            actual="start >= end"
+            actual="start >= end",
         )
         error_str = str(err)
         assert "Coordinate error" in error_str
@@ -87,9 +83,7 @@ class TestDataFormatError:
     def test_format_error_with_file_type(self):
         """Test format error with file and format type."""
         err = DataFormatError(
-            "Missing columns",
-            file_path=Path("data.tsv"),
-            format_type="TSV"
+            "Missing columns", file_path=Path("data.tsv"), format_type="TSV"
         )
         assert "Missing columns" in str(err)
         assert "data.tsv" in str(err)
@@ -102,7 +96,7 @@ class TestDataFormatError:
             file_path=Path("test.vcf"),
             format_type="VCF",
             required_columns=["CHROM", "POS", "REF"],
-            missing_columns=["REF"]
+            missing_columns=["REF"],
         )
         error_str = str(err)
         assert "Column validation failed" in error_str
@@ -121,10 +115,7 @@ class TestProcessingError:
 
     def test_processing_error_with_operation(self):
         """Test processing error with operation."""
-        err = ProcessingError(
-            "Failed to parse data",
-            operation="variant counting"
-        )
+        err = ProcessingError("Failed to parse data", operation="variant counting")
         assert "Failed to parse data" in str(err)
         assert "Operation: variant counting" in str(err)
 
@@ -134,7 +125,7 @@ class TestProcessingError:
             "Processing error",
             operation="annotation expansion",
             file_path=Path("input.tsv"),
-            context={"row": 150, "column": "STRAT_IDS"}
+            context={"row": 150, "column": "STRAT_IDS"},
         )
         error_str = str(err)
         assert "Processing error" in error_str
@@ -156,8 +147,7 @@ class TestConfigurationError:
     def test_config_error_with_parameter(self):
         """Test configuration error with parameter."""
         err = ConfigurationError(
-            "Missing required parameter",
-            parameter="benchmark.ref"
+            "Missing required parameter", parameter="benchmark.ref"
         )
         assert "Missing required parameter" in str(err)
         assert "Parameter: benchmark.ref" in str(err)
@@ -165,9 +155,7 @@ class TestConfigurationError:
     def test_config_error_with_expected_type(self):
         """Test configuration error with expected type."""
         err = ConfigurationError(
-            "Type mismatch",
-            parameter="cores",
-            expected_type="integer"
+            "Type mismatch", parameter="cores", expected_type="integer"
         )
         assert "Type mismatch" in str(err)
         assert "Parameter: cores" in str(err)
@@ -179,7 +167,7 @@ class TestConfigurationError:
             "Invalid value",
             parameter="reference",
             expected_type="GRCh37, GRCh38, or CHM13",
-            suggestion="Check config/config.yaml for valid reference names"
+            suggestion="Check config/config.yaml for valid reference names",
         )
         error_str = str(err)
         assert "Invalid value" in error_str
