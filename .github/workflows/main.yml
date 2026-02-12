@@ -49,9 +49,8 @@ jobs:
       - name: Linting
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: .test
           snakefile: workflow/Snakefile
-          args: "--configfile .test/config_complex/config.yaml --lint"
+          args: "--lint"
 
   snk-testing:
     runs-on: ubuntu-latest
@@ -59,11 +58,9 @@ jobs:
       - name: run workflow
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: .test
           snakefile: workflow/Snakefile
           args: >-
             --conda-cleanup-pkgs cache
             --software-deployment-method conda
             --show-failed-logs
             --dry-run
-          show-disk-usage-on-error: true
