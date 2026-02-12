@@ -545,7 +545,30 @@ load_genomic_context_metrics <- function(
           values_fill = 0L
         )
 
+      # Warn if unexpected variant types found (e.g., DUP/INV/UNK that
+      # were not reclassified as INS/DEL upstream)
+      expected_types <- c("snv_count", "indel_count", "del_count", "ins_count")
+      unexpected <- setdiff(
+        grep("_count$", names(wide_df), value = TRUE),
+        expected_types
+      )
+      if (length(unexpected) > 0) {
+        benchmark_id <- .benchmark_id_from_file(file)
+        unexpected_totals <- colSums(wide_df[unexpected], na.rm = TRUE)
+        warning(
+          glue::glue(
+            "Unexpected variant types in {benchmark_id}: ",
+            "{paste(names(unexpected_totals), unexpected_totals, sep = '=', collapse = ', ')}. ",
+            "These may be DUP/INV/UNK variants not reclassified as INS/DEL."
+          ),
+          call. = FALSE
+        )
+      }
+
       # Compute total_variants from all *_count columns
+      # NOTE: Variants overlapping multiple genomic contexts are counted
+      # once per context. Do not sum total_variants across contexts for a
+      # benchmark-wide unique count.
       count_cols <- grep("_count$", names(wide_df), value = TRUE)
       wide_df$total_variants <- rowSums(wide_df[count_cols])
 

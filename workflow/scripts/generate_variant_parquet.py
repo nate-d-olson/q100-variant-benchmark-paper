@@ -52,13 +52,42 @@ def classify_smvar(svtype_series: pd.Series) -> pd.Series:
     return svtype_series.map(lambda x: "SNV" if x == 0 else "INDEL")
 
 
-def classify_stvar(svtype_series: pd.Series) -> pd.Series:
+def classify_stvar(
+    svtype_series: pd.Series, ref_len_series: pd.Series, alt_len_series: pd.Series
+) -> pd.Series:
     """Classify structural variant types.
 
-    DEL (1) -> DEL, INS (2) -> INS, others mapped by enum value.
+    DEL (1) -> DEL, INS (2) -> INS.
+    DUP (3), INV (4), UNK (6) are reclassified as INS or DEL based on
+    whether ALT is longer (INS) or REF is longer (DEL).
     """
-    svtype_map = {0: "SNV", 1: "DEL", 2: "INS", 3: "DUP", 4: "INV", 5: "NON", 6: "UNK"}
-    return svtype_series.map(lambda x: svtype_map.get(x, "UNK"))
+    # Start with direct mapping for DEL and INS
+    result = svtype_series.map({0: "SNV", 1: "DEL", 2: "INS", 5: "NON"})
+
+    # Reclassify DUP, INV, UNK based on allele lengths
+    needs_reclassify = svtype_series.isin([3, 4, 6])
+    if needs_reclassify.any():
+        n_reclassified = needs_reclassify.sum()
+        logging.info(
+            "Reclassifying %d variants (DUP=%d, INV=%d, UNK=%d) as INS/DEL by allele size",
+            n_reclassified,
+            (svtype_series[needs_reclassify] == 3).sum(),
+            (svtype_series[needs_reclassify] == 4).sum(),
+            (svtype_series[needs_reclassify] == 6).sum(),
+        )
+        result[needs_reclassify] = pd.Series(
+            [
+                "INS" if alt > ref else "DEL"
+                for alt, ref in zip(
+                    alt_len_series[needs_reclassify], ref_len_series[needs_reclassify]
+                )
+            ],
+            index=result[needs_reclassify].index,
+        )
+
+    # Fill any remaining NaN (shouldn't happen, but defensive)
+    result = result.fillna("DEL")
+    return result
 
 
 def generate_variant_parquet(
@@ -122,14 +151,8 @@ def generate_variant_parquet(
         df = df[abs_svlen >= 50].copy()
     logging.info("Size filtering: %d -> %d variants", before, len(df))
 
-    # Classify variant types
-    logging.info("Classifying variant types...")
-    if bench_type == "smvar":
-        df["var_type"] = classify_smvar(df["svtype"])
-    else:
-        df["var_type"] = classify_stvar(df["svtype"])
-
-    # Compute ref_len and alt_len from allele strings, then drop raw alleles
+    # Compute ref_len and alt_len from allele strings before classification
+    # (stvar classification needs allele lengths to reclassify DUP/INV/UNK)
     # Note: Truvari's "ref" column is the REF allele, not the reference genome
     if "ref" in df.columns and "alt" in df.columns:
         df["ref_len"] = df["ref"].str.len().astype("Int32")
@@ -137,6 +160,13 @@ def generate_variant_parquet(
         df.drop(columns=["ref", "alt"], inplace=True)
     else:
         logging.warning("No ref/alt allele columns — ref_len/alt_len will be missing")
+
+    # Classify variant types
+    logging.info("Classifying variant types...")
+    if bench_type == "smvar":
+        df["var_type"] = classify_smvar(df["svtype"])
+    else:
+        df["var_type"] = classify_stvar(df["svtype"], df["ref_len"], df["alt_len"])
 
     # Rename Truvari columns to project conventions
     rename_map = {
@@ -162,7 +192,7 @@ def generate_variant_parquet(
     # Clean up context_ids and region_ids: replace '.' with None
     for col in ["context_ids", "region_ids"]:
         if col in df.columns:
-            df[col] = df[col].replace({".", ""}, pd.NA).astype("string")
+            df[col] = df[col].replace({".": pd.NA, "": pd.NA}).astype("string")
 
     # Add benchmark metadata columns
     meta = parse_benchmark_id(benchmark_id)

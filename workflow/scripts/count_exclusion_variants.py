@@ -11,7 +11,6 @@ Merges with per-exclusion BED metrics to produce a combined impact table.
 import csv
 import logging
 from collections import Counter
-from pathlib import Path
 from typing import Dict
 
 import pandas as pd
@@ -55,7 +54,8 @@ def count_exclusion_variants(
     logging.info("Loaded %d variants", len(df))
 
     # Filter to variants with region_ids
-    df = df[df["region_ids"].notna() & (df["region_ids"] != "")].copy()
+    # Empty strings are already converted to NA in generate_variant_parquet.py
+    df = df[df["region_ids"].notna()].copy()
 
     # Explode region_ids and filter to EXCL_* only
     df["region_ids"] = df["region_ids"].str.split(",")

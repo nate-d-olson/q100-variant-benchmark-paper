@@ -74,7 +74,7 @@ def compute_base_interactions(
                 parts = line.strip().split("\t")
                 if len(parts) < 5:
                     continue
-                chrom, start, end = parts[0], int(parts[1]), int(parts[2])
+                _chrom, start, end = parts[0], int(parts[1]), int(parts[2])
                 bp = end - start
                 # Column 4 is num_overlaps, column 5 is comma-separated names
                 names = sorted(parts[4].split(","))
@@ -103,7 +103,8 @@ def compute_variant_interactions(
     log.write(f"Loaded {len(df)} variants from Parquet\n")
 
     # Filter to variants with region_ids
-    df = df[df["region_ids"].notna() & (df["region_ids"] != "")].copy()
+    # Empty strings are already converted to NA in generate_variant_parquet.py
+    df = df[df["region_ids"].notna()].copy()
 
     for region_ids_str in df["region_ids"]:
         region_ids = [r.strip() for r in region_ids_str.split(",")]

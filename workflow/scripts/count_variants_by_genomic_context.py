@@ -10,7 +10,6 @@ and produces two count views in a single output Parquet:
 """
 
 import logging
-from pathlib import Path
 
 import pandas as pd
 import pyarrow as pa
@@ -42,7 +41,8 @@ def count_variants_by_genomic_context(
     logging.info("Loaded %d variants", len(df))
 
     # Filter to variants with genomic context annotations
-    df = df[df["context_ids"].notna() & (df["context_ids"] != "")].copy()
+    # Empty strings are already converted to NA in generate_variant_parquet.py
+    df = df[df["context_ids"].notna()].copy()
     logging.info("%d variants have genomic context annotations", len(df))
 
     # Explode comma-separated context_ids into separate rows
