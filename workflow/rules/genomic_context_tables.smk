@@ -4,9 +4,9 @@ rule genomic_context_coverage:
         strat_bed="resources/stratifications/{ref}_{genomic_context}.bed.gz",
         bench_bed="resources/benchmarksets/{bench_version}_{ref}_{bench_type}_benchmark.bed",
     output:
-        cov_bed="results/genomic-context_coverage/{bench_version}_{ref}_{bench_type}/{genomic_context}_cov.bed",
+        cov_bed="results/genomic_context/{bench_version}_{ref}_{bench_type}/coverage/{genomic_context}_cov.bed",
     log:
-        "logs/genomic_context_coverage/{bench_version}_{ref}_{bench_type}/{ref}_{genomic_context}.log",
+        "logs/genomic_context/{bench_version}_{ref}_{bench_type}/{genomic_context}_coverage.log",
     conda:
         "../envs/bedtools.yaml"
     shell:

@@ -31,20 +31,26 @@ dry-run:
 	snakemake -n --quiet
 
 # Lint workflow
-lint:
+lint-smk:
 	@echo "==> Linting Snakemake workflow..."
 	snakemake --lint
+lint-r:
 	@echo "==> Linting R scripts and Quarto files..."
-	Rscript -e "files <- list.files('.', pattern = '.R', full.names = TRUE); paths <- c('R'); files <- c(files, unlist(lapply(paths[dir.exists(paths)], function(p) list.files(p, pattern = '(R|r|qmd)$$', recursive = TRUE, full.names = TRUE)))); lints <- do.call(c, lapply(files, lintr::lint)); if (length(lints) > 0) { print(lints); quit(status = 1) }"
+	Rscript -e "files <- list.files('.', pattern = '\\\\.R$$', full.names = TRUE); paths <- c('R'); files <- c(files, unlist(lapply(paths[dir.exists(paths)], function(p) list.files(p, pattern = '\\\\.(R|r|qmd)$$', recursive = TRUE, full.names = TRUE)))); lints <- do.call(c, lapply(files, lintr::lint)); if (length(lints) > 0) { print(lints); quit(status = 1) }"
 	@echo "==> Linting Markdown files..."
 	markdownlint $(MD_FILES)
+
+lint: lint-snk line-r lint-md
 
 # Format Snakemake files
 format:
 	@echo "==> Formatting Snakemake files..."
 	snakefmt workflow/
 	@echo "==> Formatting R scripts..."
-	Rscript -e 'paths <- c("R","scripts"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }'
+	Rscript -e 'paths <- c("R","scripts","tests", "analysis"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }'
+	@echo "==> Fixing Markdown lint issues..."
+	markdownlint -f $(MD_FILES)
+
 
 format-check:
 	@echo "==> Checking Snakefile formatting..."
@@ -78,5 +84,8 @@ clean:
 	@echo "==> Cleaning logs and temporary files..."
 	rm -rf logs/
 	rm -rf .snakemake/
+	rm -rf results/
+	rm -rf resources/
+	rm -rf analysis/cache
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@echo "==> Clean complete"

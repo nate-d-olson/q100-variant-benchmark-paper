@@ -78,13 +78,13 @@ rule all:
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],
         ),
         expand(
-            "results/genomic-context_coverage/{benchmark}/{context}_cov.bed",
+            "results/genomic_context/{benchmark}/coverage/{context}_cov.bed",
             benchmark=BENCHMARK,
             context=STRAT,
         ),
         ## Benchmarkset variant counts by type and difficult region stratifications
         expand(
-            "results/var_counts/{benchmark}/genomic_context_combined_metrics.csv",
+            "results/genomic_context/{benchmark}/combined_metrics.csv",
             benchmark=BENCHMARK,
         ),
         ## Per-exclusion impact: BED metrics + variant counts
@@ -95,10 +95,4 @@ rule all:
         expand(
             "results/exclusions/{comp_id}/old_only_summary.csv",
             comp_id=config.get("comparisons", {}).keys(),
-        ),
-        ## Benchmark regions overlap with difficult region stratifications
-        expand(
-            "results/genomic_context_metrics/{benchmark}/sizes/{strat}_size.txt",
-            benchmark=BENCHMARK,
-            strat=STRAT,
         ),

@@ -26,13 +26,13 @@ rule materialize_genomic_context:
         bed=lambda w: f"resources/stratifications/{config['benchmarksets'][w.benchmark]['ref']}_{w.genomic_context}.bed.gz",
     output:
         bed=ensure(
-            "results/genomic_context_metrics/{benchmark}/genomic_contexts/{genomic_context}.bed.gz",
+            "results/genomic_context/{benchmark}/coverage/{genomic_context}.bed.gz",
             non_empty=True,
         ),
     params:
         benchmark_ref=lambda w: config["benchmarksets"][w.benchmark]["ref"],
     log:
-        "logs/genomic_context_metrics/{benchmark}/{genomic_context}_materialize.log",
+        "logs/genomic_context/{benchmark}/{genomic_context}_materialize.log",
     message:
         "Materializing genomic context {wildcards.genomic_context} for {wildcards.benchmark}"
     resources:
@@ -59,13 +59,14 @@ rule compute_genomic_context_size:
     Compute total size of a genomic context region (after merging overlaps).
 
     This is used as the denominator for pct_of_context calculation.
+    Size files are marked as temporary since they're only needed during metrics computation.
     """
     input:
-        bed="results/genomic_context_metrics/{benchmark}/genomic_contexts/{genomic_context}.bed.gz",
+        bed="results/genomic_context/{benchmark}/coverage/{genomic_context}.bed.gz",
     output:
-        size="results/genomic_context_metrics/{benchmark}/sizes/{genomic_context}_size.txt",
+        size=temp("results/genomic_context/{benchmark}/sizes/{genomic_context}_size.txt"),
     log:
-        "logs/genomic_context_metrics/{benchmark}/{genomic_context}_size.log",
+        "logs/genomic_context/{benchmark}/{genomic_context}_size.log",
     message:
         "Computing size for {wildcards.genomic_context} in {wildcards.benchmark}"
     resources:
@@ -95,12 +96,12 @@ rule compute_genomic_context_metrics:
     Uses benchmark.bed file for all benchmark sets.
     """
     input:
-        strat_bed="results/genomic_context_metrics/{benchmark}/genomic_contexts/{genomic_context}.bed.gz",
+        strat_bed="results/genomic_context/{benchmark}/coverage/{genomic_context}.bed.gz",
         bench_bed="resources/benchmarksets/{benchmark}_benchmark.bed",
     output:
-        tsv="results/genomic_context_metrics/{benchmark}/metrics/{genomic_context}.tsv",
+        tsv="results/genomic_context/{benchmark}/metrics/{genomic_context}.tsv",
     log:
-        "logs/compute_genomic_context_metrics/{benchmark}/{genomic_context}_metrics.log",
+        "logs/genomic_context/{benchmark}/{genomic_context}_metrics.log",
     message:
         "Computing metrics for {wildcards.genomic_context} in {wildcards.benchmark}"
     resources:
@@ -124,19 +125,19 @@ rule aggregate_genomic_context_metrics:
     """
     input:
         lambda wc: expand(
-            "results/genomic_context_metrics/{benchmark}/metrics/{genomic_context}.tsv",
+            "results/genomic_context/{benchmark}/metrics/{genomic_context}.tsv",
             benchmark=wc.benchmark,
             genomic_context=get_genomic_context_ids(wc),
         ),
     output:
         csv=protected(
             ensure(
-                "results/genomic_context_metrics/{benchmark}/genomic_context_coverage_table.csv",
+                "results/genomic_context/{benchmark}/genomic_context_coverage_table.csv",
                 non_empty=True,
             )
         ),
     log:
-        "logs/genomic_context_metrics/{benchmark}/aggregate.log",
+        "logs/genomic_context/{benchmark}/aggregate.log",
     message:
         "Aggregating genomic context metrics for {wildcards.benchmark}"
     resources:

@@ -22,7 +22,7 @@ if (!exists("%>%", mode = "function")) {
 #'
 #' @examples
 #' \dontrun{
-#' parse_benchmark_id("results/var_counts/v5.0q_GRCh38_smvar/genomic_context_combined_metrics.csv")
+#' parse_benchmark_id("results/genomic_context/v5.0q_GRCh38_smvar/combined_metrics.csv")
 #' # Returns list(bench_version = "v5.0q", ref = "GRCh38", bench_type = "smvar")
 #' }
 #'
@@ -485,9 +485,9 @@ std_var_type <- function(x) std_(x, levels = VARIANT_CLASS_LEVELS)
 #'   - pct_of_bench: Percentage of benchmark overlapping genomic context
 #'   - total_variants: Total variant count
 #'   - snv_count: Single Nucleotide Variant count (SNV)
-#'   - indel_count: INDEL count
-#'   - del_count: Deletion count (structural variants only)
-#'   - ins_count: Insertion count (structural variants only)
+#'   - mnp_count: Multi-Nucleotide Polymorphism count (MNP)
+#'   - del_count: Deletion count
+#'   - ins_count: Insertion count
 #'   - complex_count: Complex variant count
 #'   - other_count: Other variant count
 #'   - variant_density_per_mb: Variants per megabase
@@ -768,7 +768,8 @@ load_reference_sizes <- function(results_dir = NULL) {
 ## Get hg002q100v1.1 size
 #' Get HG002 Q100 assembly size
 #'
-#' Retrieve the genome size associated with the HG002 Q100 maternal assembly used by the q100 variant benchmark.
+#' Retrieve the genome size associated with the HG002 Q100 maternal
+#' assembly used by the q100 variant benchmark.
 #'
 #' @details
 #' Returns a single numeric value representing the total bp for the mat assembly.
@@ -785,7 +786,10 @@ load_reference_sizes <- function(results_dir = NULL) {
 load_hg002q100_size <- function(
   asm_version = "v1.1",
   asm_verison = asm_version,
-  fai_url = "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai",
+  fai_url = paste0(
+    "https://s3-us-west-2.amazonaws.com/human-pangenomics/",
+    "T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz.fai"
+  ),
   fai_md5 = "c84f852b1cd4a00b12e6439ae7a2dd87"
 ) {
   # Preserve backward compatibility for misspelled argument name.
@@ -816,9 +820,9 @@ load_hg002q100_size <- function(
     fai_path,
     col_names = c("chrom", "length", "offset", "line_bases", "line_width"),
     col_types = "cicii"
-  ) |>
-    dplyr::mutate(chrom = stringr::str_remove(chrom, "_.ATERNAL")) |>
-    dplyr::filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) |>
+  ) %>%
+    dplyr::mutate(chrom = stringr::str_remove(chrom, "_.ATERNAL")) %>%
+    dplyr::filter(chrom %in% paste0("chr", c(1:22, "X", "Y"))) %>%
     dplyr::select(chrom, length)
   file.remove(fai_path)
 
@@ -1059,14 +1063,13 @@ load_genomic_context_coverage <- function(
   meta <- parse_benchmark_id(benchmark_id)
 
   coverage_id <- glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}")
-  coverage_dir_candidates <- fs::path(
-    results_dir,
-    c(
-      "diff_region_coverage",
-      "genomic-context_coverage",
-      "genomic_context_coverage"
-    ),
-    coverage_id
+  coverage_dir_candidates <- c(
+    # New structure: results/genomic_context/{benchmark}/coverage/
+    fs::path(results_dir, "genomic_context", coverage_id, "coverage"),
+    # Legacy structures
+    fs::path(results_dir, "diff_region_coverage", coverage_id),
+    fs::path(results_dir, "genomic-context_coverage", coverage_id),
+    fs::path(results_dir, "genomic_context_coverage", coverage_id)
   )
   coverage_dir <- coverage_dir_candidates[fs::dir_exists(coverage_dir_candidates)]
 
@@ -1175,7 +1178,8 @@ load_genomic_context_coverage <- function(
 #' Loads all benchmark region BED files from the resources directory and combines them
 #' into a single tibble with standardized column names and factored variables.
 #'
-#' @param resources_dir Path to resources directory. Default: `here::here("resources/benchmarksets")`
+#' @param resources_dir Path to resources directory.
+#'   Default: `here::here("resources/benchmarksets")`
 #'
 #' @return Tibble with columns:
 #'   - bench_version: Benchmark version (factored)
@@ -1496,3 +1500,90 @@ load_primary_analysis_data <- function(
   analysis_data
 }
 
+#' Load Variant Counts by Genomic Context
+#'
+#' Loads per-genomic-context variant counts broken down by variant type.
+#' These are finer-grained than the summary in `load_genomic_context_metrics()`,
+#' providing one row per (context_name, var_type) combination.
+#'
+#' @param results_dir Path to results directory. Default: `here::here("results")`
+#' @param benchmark_filter Optional character vector of benchmark IDs to filter results
+#'
+#' @return Tibble with columns:
+#'   - bench_version: Benchmark version (factored)
+#'   - ref: Reference genome (factored)
+#'   - bench_type: Benchmark set type (factored: smvar, stvar)
+#'   - context_name: Genomic context region name (factored)
+#'   - var_type: Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER)
+#'   - count: Number of variants
+#'
+#' @examples
+#' \dontrun{
+#' var_counts <- load_variant_counts_by_context()
+#' var_counts %>% filter(context_name == "TR", var_type == "SNV")
+#' }
+#'
+#' @export
+load_variant_counts_by_context <- function(
+  results_dir = NULL,
+  benchmark_filter = NULL
+) {
+  results_dir <- .default_results_dir(results_dir)
+
+  # Search for variant count files in both new and legacy locations
+  count_files <- c(
+    fs::dir_ls(
+      results_dir,
+      recurse = TRUE,
+      glob = "**/genomic_context/*/var_counts/variants_by_genomic_context.csv",
+      fail = FALSE
+    ),
+    fs::dir_ls(
+      results_dir,
+      recurse = TRUE,
+      glob = "**/var_counts/*/variants_by_genomic_context.csv",
+      fail = FALSE
+    )
+  )
+
+  if (length(count_files) == 0) {
+    stop(
+      glue::glue(
+        "No variants_by_genomic_context.csv files found in {results_dir}"
+      ),
+      call. = FALSE
+    )
+  }
+
+  counts_df <- count_files %>%
+    purrr::map_dfr(function(file) {
+      raw_df <- file %>%
+        vroom::vroom(
+          col_types = vroom::cols(
+            context_name = "c",
+            var_type = "c",
+            count = "i"
+          ),
+          show_col_types = FALSE
+        )
+      .add_benchmark_metadata(raw_df, .benchmark_id_from_file(file))
+    })
+
+  if (!is.null(benchmark_filter)) {
+    counts_df <- counts_df %>%
+      dplyr::filter(
+        paste(bench_version, ref, bench_type, sep = "_") %in% benchmark_filter
+      )
+  }
+
+  counts_df <- counts_df %>%
+    dplyr::mutate(
+      bench_version = std_bench_versions(bench_version),
+      ref = std_references(ref),
+      bench_type = std_bench_types(bench_type),
+      context_name = std_context_name(context_name),
+      var_type = .normalize_variant_class_values(var_type)
+    )
+
+  return(counts_df)
+}
