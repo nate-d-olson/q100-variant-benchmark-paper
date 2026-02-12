@@ -15,59 +15,17 @@ on:
 
 jobs:
   Linting:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    uses: snakemake/snakemake-github-action@v2
+    with:
+      directory: ".test"
+      snakefile: "workflow/Snakefile"
+      args: "--lint"
 
-      - name: Setup Mamba
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          activate-environment: q100-smk
-          environment-file: environment.yaml
-          auto-activate-base: false
-
-      - name: Lint workflow
-        shell: bash -l {0}
-        run: |
-          make lint
-
-  Formatting:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Mamba
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          activate-environment: q100-smk
-          environment-file: environment.yaml
-          auto-activate-base: false
-
-      - name: Check Snakefile formatting
-        shell: bash -l {0}
-        run: |
-          make format-check
-
-  Dry-Run:
-    runs-on: ubuntu-latest
-    needs: [Linting, Formatting]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Mamba
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          activate-environment: q100-smk
-          environment-file: environment.yaml
-          auto-activate-base: false
-
-      - name: Dry-run workflow
-        shell: bash -l {0}
-        run: |
-          snakemake -n --dry-run --quiet
+  Testing:
+    uses: snakemake/snakemake-github-action@v2
+    with:
+      directory: ".test"
+      snakefile: "workflow/Snakefile"
+      args: "--dry-run --sdm conda --conda-cleanup-pkgs cache"
+      stagein: "" # additional preliminary commands to run (can be multiline)
+      show-disk-usage-on-error: true

@@ -47,10 +47,6 @@ lint: lint-smk lint-r
 format:
 	@echo "==> Formatting Snakemake files..."
 	snakefmt workflow/
-	@echo "==> Formatting R scripts..."
-	Rscript -e 'paths <- c("R","scripts","tests", "analysis"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }'
-	@echo "==> Fixing Markdown lint issues..."
-	markdownlint -f $(MD_FILES)
 
 
 format-check:
