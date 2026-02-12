@@ -1,6 +1,7 @@
 """
 Pytest configuration and shared fixtures for Q100 variant benchmark tests.
 """
+
 import pytest
 from pathlib import Path
 

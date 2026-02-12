@@ -30,15 +30,22 @@ AUTOSOME_CHROM_LEVELS <- paste0("chr", 1:22)
 get_arrow_schema <- function(dataset_name) {
   schemas <- list(
     variant_table = arrow::schema(
+      bench_version = arrow::utf8(),
+      ref = arrow::utf8(),
+      bench_type = arrow::utf8(),
       chrom = arrow::utf8(),
       pos = arrow::int64(),
       end = arrow::int64(),
       gt = arrow::utf8(),
-      vkx = arrow::utf8(),
       var_type = arrow::utf8(),
-      len_ref = arrow::int32(),
-      len_alt = arrow::int32(),
-      var_size = arrow::int32(),
+      var_size = arrow::int64(),
+      szbin = arrow::utf8(),
+      ref_len = arrow::int32(),
+      alt_len = arrow::int32(),
+      qual = arrow::float64(),
+      filter = arrow::utf8(),
+      is_pass = arrow::boolean(),
+      context_ids = arrow::utf8(),
       region_ids = arrow::utf8()
     ),
     diff_coverage = arrow::schema(
@@ -104,6 +111,9 @@ get_arrow_schema <- function(dataset_name) {
 get_factor_levels <- function(dataset_name) {
   factor_defs <- list(
     variant_table = list(
+      bench_version = BENCH_VERSION_LEVELS,
+      ref = REF_LEVELS,
+      bench_type = BENCH_TYPE_LEVELS,
       chrom = CHROM_LEVELS
     ),
     diff_coverage = list(
@@ -151,7 +161,8 @@ get_validation_rules <- function(dataset_name) {
   rules <- list(
     variant_table = list(
       pos = function(x) all(x >= 0, na.rm = TRUE),
-      end = function(x) all(x >= 0, na.rm = TRUE)
+      end = function(x) all(x >= 0, na.rm = TRUE),
+      var_size = function(x) all(!is.na(x))
     ),
     diff_coverage = list(
       frac_cov = function(x) all(x >= 0 & x <= 1, na.rm = TRUE),

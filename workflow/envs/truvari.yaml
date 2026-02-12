@@ -4,10 +4,10 @@ channels:
 dependencies:
   - python=3.11
   - pandas
+  - pyarrow
   - bcftools=1.22
   - mafft
   - bedtools=2.31.1
-  - pandas
   - pip
   - pip:
     - Truvari==5.4.0

@@ -1,9 +1,9 @@
 """
-Rules for generating variant tables via bcftools annotate and query.
+Rules for generating variant tables via bcftools annotate and Truvari.
 
-This module replaces the old rtg-tools vcfstats, context counts, and coverage
-calculations with a unified bcftools-based approach that generates comprehensive
-TSV tables with variant-level annotations.
+This module annotates VCFs with genomic context and region BED overlaps via
+bcftools, then generates comprehensive Parquet variant tables using Truvari's
+vcf_to_df() with correct variant type classification and size filtering.
 """
 
 # Note: Stratification BEDs are downloaded using storage.http()
@@ -170,82 +170,38 @@ rule annotate_vcf_regions:
         """
 
 
-rule extract_info_fields:
-    """Extract INFO field names from VCF header."""
-    input:
-        vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
-    output:
-        fields=temp("results/extract_info_fields/{benchmark}/info_fields.txt"),
-    params:
-        exclude=["CONTEXT_IDS", "REGION_IDS"],
-    log:
-        "logs/extract_info_fields/{benchmark}.log",
-    conda:
-        "../envs/python.yaml"
-    shell:
-        """
-        python workflow/scripts/extract_info_fields.py \
-            --vcf {input.vcf} \
-            --exclude {params.exclude} \
-            --output {output.fields} 2> {log}
-        """
+rule generate_variant_parquet:
+    """
+    Generate variant Parquet table from annotated VCF using Truvari.
 
+    Reads fully annotated VCF (with CONTEXT_IDS, REGION_IDS) and produces
+    a Parquet table with:
+    - Correct variant type classification (SNV/INDEL for smvar, INS/DEL for stvar)
+    - Size filtering (smvar <50bp, stvar >=50bp)
+    - Truvari size bins (SZBINS)
+    - All INFO fields included automatically
 
-rule generate_var_table:
-    """Generate variant table with all annotations."""
+    Replaces: extract_info_fields + generate_var_table rules.
+    """
     input:
         vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
         vcfidx="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz.tbi",
-        fields="results/extract_info_fields/{benchmark}/info_fields.txt",
-        region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
-        region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
     output:
-        tsv=temp("results/variant_tables/{benchmark}/variants_raw.tsv"),
-    params:
-        strat_ids=lambda w: get_strat_ids(w),
-        region_ids=lambda w: get_region_ids(w),
-    log:
-        "logs/generate_var_table/{benchmark}.log",
-    conda:
-        "../envs/bcftools.yaml"
-    shell:
-        """
-        echo "Generating variant table for {wildcards.benchmark}" > {log}
-
-        # Build base format string
-        BASE_FMT="%CHROM\\t%POS\\t%END\\t[%GT]\\t%VKX\\t%TYPE\\t%STRLEN(REF)\\t%STRLEN(ALT)\\t%INFO/CONTEXT_IDS\\t%INFO/REGION_IDS"
-
-        # Add dynamic INFO fields
-        DYN_FIELDS=$(cat {input.fields} | sed 's@^@%INFO/@' | paste -sd'\\t' -)
-
-        if [ -n "$DYN_FIELDS" ]; then
-            FULL_FMT="$BASE_FMT\\t$DYN_FIELDS\\n"
-        else
-            FULL_FMT="$BASE_FMT\\n"
-        fi
-
-        # Generate table and expand annotations
-        bcftools query -HH -f "$FULL_FMT" \
-            --exclude 'GT="0/0" | GT="./."' \
-            --regions-file {input.region_bed} \
-            -o {output.tsv} {input.vcf} 1>> {log} 2>&1
-
-        echo "Completed at $(date)" >> {log}
-        echo "Output lines: $(wc -l < {output.tsv})" >> {log}
-        """
-
-
-rule classify_variant_types:
-    """Reclassify variant types based on REF/ALT lengths for proper INS/DEL classification."""
-    input:
-        tsv="results/variant_tables/{benchmark}/variants_raw.tsv",
-    output:
-        tsv=protected(
-            ensure("results/variant_tables/{benchmark}/variants.tsv", non_empty=True)
+        parquet=protected(
+            ensure(
+                "results/variant_tables/{benchmark}/variants.parquet",
+                non_empty=True,
+            )
         ),
+    params:
+        bench_type=lambda w: "stvar" if "stvar" in w.benchmark else "smvar",
     log:
-        "logs/classify_variant_types/{benchmark}.log",
+        "logs/generate_variant_parquet/{benchmark}.log",
+    message:
+        "Generating variant Parquet for {wildcards.benchmark}"
+    resources:
+        mem_mb=16384,
     conda:
-        "../envs/python.yaml"
+        "../envs/truvari.yaml"
     script:
-        "../scripts/classify_variant_types.py"
+        "../scripts/generate_variant_parquet.py"

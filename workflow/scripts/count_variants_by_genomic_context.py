@@ -1,127 +1,85 @@
 #!/usr/bin/env python3
+# AI Disclosure: This script was developed with assistance from Claude (Anthropic).
 """
-Count variants by genomic context from variant table.
+Count variants by genomic context from Parquet variant table.
 
-Reads variant table TSV and counts variants in each genomic context.
-Handles comma-separated CONTEXT_IDS field where variants can overlap multiple regions.
+Reads the Parquet variant table (already size-filtered and type-classified)
+and produces two count views in a single output Parquet:
+1. Counts by (context_name, var_type) — for total/per-type counts
+2. Counts by (context_name, var_type, szbin) — for size distribution analysis
 """
 
-import csv
-from pathlib import Path
-from typing import Counter, Dict
+import logging
+
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 
 def count_variants_by_genomic_context(
-    variant_table_path: Path, output_path: Path, log_path: Path
+    parquet_path: str, output_path: str, log_path: str
 ) -> None:
-    """
-    Count variants by genomic context region and variant type.
+    """Count variants by genomic context and variant type from Parquet.
 
     Args:
-        variant_table_path: Path to variants.tsv file
-        output_path: Path to output CSV file
+        parquet_path: Path to variants.parquet
+        output_path: Path to output Parquet file
         log_path: Path to log file
-
-    Output format:
-        context_name,var_type,count
     """
-    # Counters: {(context_name, var_type): count}
-    counts: Dict[tuple[str, str], int] = Counter()
-    total_variants = 0
-    variants_with_context = 0
-    line_num = 0
+    logging.basicConfig(
+        filename=log_path,
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
 
-    with open(log_path, "w") as log:
-        log.write("Counting variants by genomic context\n")
-        log.write(f"Input: {variant_table_path}\n")
-        log.write(f"Output: {output_path}\n\n")
+    logging.info("Counting variants by genomic context")
+    logging.info("Input: %s", parquet_path)
+    logging.info("Output: %s", output_path)
 
-        try:
-            with open(variant_table_path, "r") as f:
-                reader = csv.DictReader(f, delimiter="\t")
-                fieldnames = reader.fieldnames or []
+    # Read only needed columns from Parquet
+    df = pd.read_parquet(parquet_path, columns=["context_ids", "var_type", "szbin"])
+    logging.info("Loaded %d variants", len(df))
 
-                log.write(f"Found columns: {fieldnames}\n\n")
+    # Filter to variants with genomic context annotations
+    # Empty strings are already converted to NA in generate_variant_parquet.py
+    df = df[df["context_ids"].notna()].copy()
+    logging.info("%d variants have genomic context annotations", len(df))
 
-                # Helper to find column by normalized name
-                def find_col(candidates):
-                    for f in fieldnames:
-                        # Handle bcftools [n] prefix (e.g., "[1]CHROM")
-                        norm = f.split("]", 1)[1] if "]" in f else f
-                        if norm in candidates:
-                            return f
-                    return None
+    # Explode comma-separated context_ids into separate rows
+    df["context_ids"] = df["context_ids"].str.split(",")
+    df_exploded = df.explode("context_ids")
+    df_exploded["context_ids"] = df_exploded["context_ids"].str.strip()
+    # Remove empty strings from split
+    df_exploded = df_exploded[df_exploded["context_ids"] != ""]
+    logging.info("Exploded to %d (context, variant) pairs", len(df_exploded))
 
-                # Resolve columns
-                chrom_col = find_col({"#CHROM", "CHROM"})
-                type_col = find_col({"TYPE"})
-                context_col = find_col({"INFO/CONTEXT_IDS", "CONTEXT_IDS"})
+    # Count by (context_name, var_type, szbin)
+    counts = (
+        df_exploded.groupby(["context_ids", "var_type", "szbin"], observed=True)
+        .size()
+        .reset_index(name="count")
+        .rename(columns={"context_ids": "context_name"})
+        .sort_values(["context_name", "var_type", "szbin"])
+    )
 
-                # Verify required columns exist
-                missing = []
-                if not chrom_col:
-                    missing.append("CHROM")
-                if not type_col:
-                    missing.append("TYPE")
-                if not context_col:
-                    missing.append("CONTEXT_IDS")
+    logging.info("Result: %d rows", len(counts))
+    logging.info("Contexts: %s", sorted(counts["context_name"].unique()))
+    logging.info("Variant types: %s", sorted(counts["var_type"].unique()))
 
-                if missing:
-                    raise ValueError(f"Missing required columns: {missing}")
-
-                log.write(
-                    f"Using columns: TYPE='{type_col}', CONTEXT_IDS='{context_col}'\n\n"
-                )
-
-                for row in reader:
-                    line_num += 1
-                    total_variants += 1
-
-                    var_type = row.get(type_col, "UNKNOWN")
-                    context_ids = row.get(context_col, "")
-
-                    # Handle missing or empty CONTEXT_IDS
-                    if not context_ids or context_ids == "." or context_ids == "":
-                        # Variant not in any genomic context
-                        continue
-
-                    variants_with_context += 1
-
-                    # Split comma-separated genomic context IDs
-                    for context_name in context_ids.split(","):
-                        context_name = context_name.strip()
-                        if context_name:
-                            counts[(context_name, var_type)] += 1
-
-                    if line_num % 100000 == 0:
-                        log.write(f"Processed {line_num:,} variants...\n")
-
-        except Exception as e:
-            log.write(f"ERROR: {str(e)}\n")
-            raise
-
-        log.write("\nProcessing complete:\n")
-        log.write(f"  Total variants: {total_variants:,}\n")
-        log.write(f"  Variants with genomic context: {variants_with_context:,}\n")
-        log.write(f"  Unique (context, var_type) combinations: {len(counts)}\n\n")
-
-        # Write output CSV
-        with open(output_path, "w", newline="") as out_f:
-            writer = csv.writer(out_f)
-            writer.writerow(["context_name", "var_type", "count"])
-
-            # Sort by genomic context name, then variant type
-            for (context_name, var_type), count in sorted(counts.items()):
-                writer.writerow([context_name, var_type, count])
-
-        log.write(f"Output written to {output_path}\n")
-        log.write(f"Output lines: {len(counts) + 1} (including header)\n")
+    # Write Parquet
+    table = pa.Table.from_pandas(counts, preserve_index=False)
+    pq.write_table(
+        table,
+        output_path,
+        compression="zstd",
+        compression_level=3,
+    )
+    logging.info("Wrote %d rows to %s", len(counts), output_path)
 
 
 if __name__ == "__main__":
-    # Snakemake provides these variables
-    variant_table = Path(snakemake.input.tsv)
-    output_csv = Path(snakemake.output.csv)
-    log_file = Path(snakemake.log[0])
-
-    count_variants_by_genomic_context(variant_table, output_csv, log_file)
+    count_variants_by_genomic_context(
+        parquet_path=snakemake.input.parquet,
+        output_path=snakemake.output.parquet,
+        log_path=snakemake.log[0],
+    )
