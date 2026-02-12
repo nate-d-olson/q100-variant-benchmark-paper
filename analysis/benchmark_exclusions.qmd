@@ -30,8 +30,7 @@ library(glue)
 ## Data Loading
 
 ```{r}
-exclusion_intersect_tbl <- load_exclusion_metrics() %>%
-  dplyr::filter(bench_version == "v5.0q")
+exclusion_intersect_tbl <- load_exclusion_metrics()
 
 if (nrow(exclusion_intersect_tbl) == 0) {
   stop("No v5.0q exclusion metrics found in results/exclusions.")
@@ -46,31 +45,36 @@ if (nrow(exclusion_intersect_tbl) == 0) {
 ## Bases Removed by Exclusion
 
 ```{r}
-exclusion_interset_gt_tbl <- exclusion_intersect_tbl %>%
+make_exclusion_tbl <- function(exclusion_tbl) {
+  gt::gt(exclusion_tbl) %>%
+    gt::fmt_integer(columns = contains("intersect_bp")) %>%
+    gt::fmt_number(columns = contains("pct_of_dip"), decimals = 3) %>%
+    gt::cols_merge(columns = contains("GRCh37"), pattern = "{1} ({2})") %>%
+    gt::cols_merge(columns = contains("GRCh38"), pattern = "{1} ({2})") %>%
+    gt::cols_merge(columns = contains("CHM13"), pattern = "{1} ({2})") %>%
+    gt::cols_move_to_end(columns = contains("CHM13")) %>%
+    gt::cols_align(columns = c("exclusions", "bench_type"), align = "right") %>%
+    theme_gt_manuscript()
+}
+
+exclusion_intersect_tbl %>%
   dplyr::select(ref, exclusions, bench_type, intersect_bp, pct_of_dip) %>%
+  group_by(exclusions) %>%
   tidyr::pivot_wider(
     names_from = ref,
     values_from = c(intersect_bp, pct_of_dip)
   ) %>%
-  dplyr::arrange(-intersect_bp_CHM13v2.0)
-
-make_exclusion_tbl <- function(exclusion_tbl, table_title) {
-  gt::gt(exclusion_tbl) %>%
-    gt::fmt_integer(columns = contains("intersect_bp")) %>%
-    gt::fmt_number(columns = contains("pct_of_dip"), decimals = 2) %>%
-    gt::tab_spanner(label = "GRCh37", columns = contains("GRCh37")) %>%
-    gt::tab_spanner(label = "GRCh38", columns = contains("GRCh38")) %>%
-    gt::tab_spanner(label = "CHM13v2.0", columns = contains("CHM13v2.0")) %>%
-    gt::tab_header(title = table_title) %>%
-    gt::cols_align(columns = c("exclusions", "bench_type"), align = "right") %>%
-    theme_gt_manuscript()
-}
+  group_by(exclusions) %>%
+  mutate(bench_type = case_when(n() == 1 ~ unique(bench_type),
+    .default = "Both"
+  ), .after = 1) %>%
+  ungroup() %>%
+  distinct() %>%
+  arrange(desc(bench_type), desc(intersect_bp_GRCh38)) %>%
+  make_exclusion_tbl() %>%
+  gt::cols_label_with(columns = starts_with("intersect_bp"), fn = ~ str_remove(., "intersect_bp_"))
 ```
 
-```{r}
-exclusion_interset_gt_tbl %>%
-  make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
-```
 
 ## Exclusion Interactions
 
@@ -79,12 +83,13 @@ The following sections analyze how exclusions overlap with each other, showing w
 ```{r}
 # Load exclusion interaction data
 exclusion_interaction_tbl <- load_exclusion_interactions() %>%
-  dplyr::filter(bench_version == "v5.0q")
+  dplyr::filter(ref == "GRCh38") 
 
 if (nrow(exclusion_interaction_tbl) == 0) {
   stop("No v5.0q exclusion interaction data found in results/exclusions.")
 }
 ```
+
 
 ### Filtering Strategy
 
@@ -92,6 +97,9 @@ For upset plots, we filter exclusion combinations to focus on the most impactful
 
 - **Bases**: Include combinations representing ≥1% of total excluded bases OR with ≥2 exclusions
 - **Variants**: Include combinations representing ≥1% of total excluded variants OR with ≥2 exclusions
+```{r}
+exclusion_interaction_tbl
+```
 
 ```{r}
 # Compute filtering thresholds for each ref/bench_type combination
@@ -103,26 +111,26 @@ interaction_filtered_tbl <- exclusion_interaction_tbl %>%
     pct_bases = 100 * bases_bp / total_bases,
     pct_variants = 100 * variant_count / total_variants,
     # Include if: (1% or more of total) OR (multi-exclusion combo)
-    include_bases = pct_bases >= 1 | n_exclusions >= 2,
-    include_variants = pct_variants >= 1 | n_exclusions >= 2
+    include_bases = pct_bases >= 1,
+    include_variants = pct_variants >= 1
   ) %>%
   dplyr::ungroup()
 ```
 
 ### Single-Exclusion Summary
 
+
 The following table shows single exclusions that fall below the visualization threshold (<1% of total bases AND <1% of total variants). These exclusions have minimal impact on the benchmark and are not shown in the upset plots to keep the visualizations focused on the most impactful exclusion patterns.
 
 ```{r}
 # Extract single-exclusion data not included in upset plots
 single_exclusion_summary <- interaction_filtered_tbl %>%
-  dplyr::filter(n_exclusions == 1, !include_bases & !include_variants) %>%
+  dplyr::filter(n_exclusions == 1) %>%
   dplyr::select(ref, bench_type, exclusion_combination, bases_bp, variant_count) %>%
   tidyr::pivot_wider(
     names_from = ref,
     values_from = c(bases_bp, variant_count)
-  ) %>%
-  dplyr::arrange(-bases_bp_CHM13v2.0)
+  ) 
 
 if (nrow(single_exclusion_summary) > 0) {
   single_exclusion_summary %>%
