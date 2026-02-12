@@ -25,6 +25,7 @@ This document compares different cache formats for the enhanced caching library 
 ### 1. RDS (Current Proposal)
 
 **Pros:**
+
 - ✅ Native R format, no dependencies
 - ✅ Preserves all R object attributes (factors, classes)
 - ✅ Fast read/write for small-medium datasets
@@ -32,17 +33,20 @@ This document compares different cache formats for the enhanced caching library 
 - ✅ Simple implementation
 
 **Cons:**
+
 - ❌ Must load entire object into memory
 - ❌ No column subsetting or lazy loading
 - ❌ Not interoperable with other languages
 - ❌ Slower than specialized formats for large data
 
 **Performance Benchmarks (estimated):**
+
 - Small datasets (<10 MB): 0.1-0.3 seconds
 - Medium datasets (10-100 MB): 0.5-2 seconds
 - Large datasets (>100 MB): 2-10 seconds
 
 **Best For:**
+
 - Small-medium aggregated metrics
 - Preserving complex R objects with attributes
 - Simple caching without additional dependencies
@@ -52,6 +56,7 @@ This document compares different cache formats for the enhanced caching library 
 ### 2. Arrow/Parquet (Recommended)
 
 **Pros:**
+
 - ✅ **Columnar format** - excellent for data frames
 - ✅ **Fast read/write** - optimized for analytics
 - ✅ **Excellent compression** - often 80-90% size reduction
@@ -62,11 +67,13 @@ This document compares different cache formats for the enhanced caching library 
 - ✅ **Zero-copy reads** - memory-mapped files
 
 **Cons:**
+
 - ⚠️ Additional dependency (arrow package)
 - ⚠️ Limited support for non-tabular R objects
 - ⚠️ Factor levels may need special handling
 
 **Performance Benchmarks (measured on genomic data):**
+
 ```
 Dataset Size: 100 MB CSV
 - RDS (xz):      2.5s read,  3.2s write,  35 MB file
@@ -75,6 +82,7 @@ Dataset Size: 100 MB CSV
 ```
 
 **Implementation Example:**
+
 ```r
 # Write cache
 arrow::write_parquet(
@@ -100,6 +108,7 @@ arrow::read_parquet(
 ```
 
 **Best For:**
+
 - All data frame caching (primary use case)
 - Large variant tables (enables column subsetting)
 - Exploratory analysis with selective loading
@@ -110,6 +119,7 @@ arrow::read_parquet(
 ### 3. SQLite
 
 **Pros:**
+
 - ✅ **SQL queries** - filter/aggregate without loading all data
 - ✅ **Very low memory** - queries stream results
 - ✅ **Single file** - easy to manage
@@ -118,6 +128,7 @@ arrow::read_parquet(
 - ✅ **Indexes** - fast lookups on specific columns
 
 **Cons:**
+
 - ❌ Slower than Arrow for full table reads
 - ❌ Less efficient compression
 - ❌ Requires schema definition
@@ -125,6 +136,7 @@ arrow::read_parquet(
 - ❌ Not optimized for analytical workloads
 
 **Performance Benchmarks:**
+
 ```
 Dataset: 1M rows, 15 columns
 - Full table read:  3.5s (slower than Arrow)
@@ -133,6 +145,7 @@ Dataset: 1M rows, 15 columns
 ```
 
 **Implementation Example:**
+
 ```r
 # Write cache
 con <- DBI::dbConnect(RSQLite::SQLite(), cache_file)
@@ -152,6 +165,7 @@ DBI::dbDisconnect(con)
 ```
 
 **Best For:**
+
 - Complex filtering during exploratory analysis
 - Aggregations computed in database
 - When memory is extremely limited
@@ -162,6 +176,7 @@ DBI::dbDisconnect(con)
 ### 4. DuckDB (Strong Alternative)
 
 **Pros:**
+
 - ✅ **Analytical SQL** - optimized for data analysis
 - ✅ **Very fast queries** - columnar storage internally
 - ✅ **Low memory** - efficient query execution
@@ -171,11 +186,13 @@ DBI::dbDisconnect(con)
 - ✅ **No server** - embedded database
 
 **Cons:**
+
 - ⚠️ Additional dependency (duckdb package)
 - ⚠️ Less mature than SQLite
 - ⚠️ Larger file size than Parquet
 
 **Performance Benchmarks:**
+
 ```
 Dataset: 1M rows, 15 columns
 - Full table read:  1.2s (faster than SQLite, close to Arrow)
@@ -185,6 +202,7 @@ Dataset: 1M rows, 15 columns
 ```
 
 **Implementation Example:**
+
 ```r
 # Write cache
 con <- DBI::dbConnect(duckdb::duckdb(), cache_file)
@@ -217,6 +235,7 @@ DBI::dbDisconnect(con, shutdown = TRUE)
 ```
 
 **Best For:**
+
 - Analytical queries during exploratory analysis
 - Computing statistics without loading full data
 - When you need SQL power with Arrow-like speed
@@ -227,6 +246,7 @@ DBI::dbDisconnect(con, shutdown = TRUE)
 ### 5. FST (Specialized Option)
 
 **Pros:**
+
 - ✅ **Fastest I/O** - specifically designed for data frames
 - ✅ **Column selection** - can load subset of columns
 - ✅ **Good compression** - competitive with Parquet
@@ -234,12 +254,14 @@ DBI::dbDisconnect(con, shutdown = TRUE)
 - ✅ **Multi-threaded** - parallelized read/write
 
 **Cons:**
+
 - ❌ R-specific format
 - ❌ Not interoperable with other tools
 - ❌ No query capabilities
 - ❌ Less compression than Parquet
 
 **Performance Benchmarks:**
+
 ```
 Dataset: 100 MB CSV
 - FST:        0.3s read,  0.5s write,  28 MB file
@@ -248,6 +270,7 @@ Dataset: 100 MB CSV
 ```
 
 **Best For:**
+
 - When read/write speed is critical
 - R-only workflows
 - Large data frames with column subsetting needs
@@ -263,12 +286,14 @@ Dataset: 100 MB CSV
 **Recommendation:** **RDS** or **Parquet**
 
 **Rationale:**
+
 - Data fits easily in memory
 - No need for complex queries
 - RDS preserves factors/attributes perfectly
 - Parquet offers better compression and speed
 
 **Performance Impact:**
+
 - RDS: 0.1s load time (acceptable)
 - Parquet: 0.05s load time (marginal improvement)
 
@@ -283,12 +308,14 @@ Dataset: 100 MB CSV
 **Recommendation:** **Arrow/Parquet**
 
 **Rationale:**
+
 - Faster reads than RDS (2-4x)
 - Better compression (smaller cache size)
 - Column selection reduces memory usage
 - Still loads full data when needed
 
 **Performance Impact:**
+
 - RDS: 1-2s load time
 - Parquet: 0.3-0.6s load time (significant improvement)
 
@@ -303,12 +330,14 @@ Dataset: 100 MB CSV
 **Recommendation:** **Parquet + DuckDB**
 
 **Rationale:**
+
 - Cannot load full table into memory efficiently
 - Need column subsetting (e.g., only chrom, pos, var_type)
 - Need filtering (e.g., specific chromosomes)
 - Exploratory queries without full data load
 
 **Performance Impact:**
+
 - RDS: 5-15s load time, full memory usage
 - Parquet (full): 2-4s load time, full memory usage
 - Parquet (columns): 0.5-1s load time, partial memory
@@ -317,6 +346,7 @@ Dataset: 100 MB CSV
 **Winner:** Parquet with optional DuckDB for queries
 
 **Example Workflow:**
+
 ```r
 # Cache as Parquet
 arrow::write_parquet(variants, cache_file)
@@ -485,6 +515,7 @@ Use different formats based on data characteristics:
 | FST | 530 MB | Similar to Parquet |
 
 **For Memory-Constrained Analysis:**
+
 - Use Parquet with column selection
 - Use DuckDB for aggregations
 - Avoid RDS for large datasets
@@ -498,6 +529,7 @@ Use different formats based on data characteristics:
 **Format:** RDS
 
 **Rationale:**
+
 - Simplest implementation
 - No new dependencies
 - Sufficient for small-medium data
@@ -512,6 +544,7 @@ Use different formats based on data characteristics:
 **Format:** Arrow/Parquet (primary) + optional DuckDB
 
 **Configuration:**
+
 ```r
 # Small data (<10 MB): RDS
 load_genomic_context_metrics(..., cache_format = "rds")
@@ -602,23 +635,27 @@ query_cached_variants <- function(benchmark_id, query = NULL) {
 ## Migration Path
 
 ### Phase 1: Validate RDS Caching (Week 1-2)
+
 - Implement with RDS as proposed
 - Validate performance improvements
 - Ensure stability
 
 ### Phase 2: Add Parquet Support (Week 3)
+
 - Add arrow dependency to environment.yaml
 - Implement Parquet format option
 - Test with medium-sized datasets
 - Document performance gains
 
 ### Phase 3: Add DuckDB Queries (Week 4)
+
 - Add duckdb dependency (optional)
 - Implement query_cached_variants()
 - Create examples for exploratory analysis
 - Document memory savings
 
 ### Phase 4: Optimize (Week 5+)
+
 - Profile cache performance
 - Tune compression settings
 - Implement auto-format selection
@@ -631,17 +668,20 @@ query_cached_variants <- function(benchmark_id, query = NULL) {
 ### Required Dependencies
 
 **Base Implementation (RDS):**
+
 ```yaml
 # No new dependencies
 ```
 
 **Enhanced Implementation (Parquet):**
+
 ```yaml
 dependencies:
   - r-arrow>=10.0.0
 ```
 
 **Advanced Implementation (Parquet + DuckDB):**
+
 ```yaml
 dependencies:
   - r-arrow>=10.0.0
@@ -649,6 +689,7 @@ dependencies:
 ```
 
 **Alternative (FST):**
+
 ```yaml
 dependencies:
   - r-fst>=0.9.8  # If choosing FST instead of Arrow
@@ -661,6 +702,7 @@ dependencies:
 ### Primary Format: Arrow/Parquet
 
 **Why Parquet?**
+
 1. **Best overall performance** for data frames (2-4x faster than RDS)
 2. **Excellent compression** (40-60% smaller files)
 3. **Column subsetting** enables memory-efficient exploratory analysis
@@ -671,6 +713,7 @@ dependencies:
 ### Optional Enhancement: DuckDB
 
 **Add DuckDB for:**
+
 1. **Exploratory queries** on large cached data
 2. **Memory-efficient aggregations**
 3. **Direct Parquet querying** without import
@@ -679,16 +722,19 @@ dependencies:
 ### Implementation Strategy
 
 **Start with RDS (Proposal 1 as written):**
+
 - Validate caching concept
 - Zero new dependencies
 - Quick implementation
 
 **Upgrade to Parquet (Phase 2):**
+
 - Add arrow package
 - Implement format option
 - Maintain RDS backward compatibility
 
 **Add DuckDB queries (Phase 3, optional):**
+
 - New helper function for querying
 - Examples in documentation
 - Memory-efficient exploratory analysis

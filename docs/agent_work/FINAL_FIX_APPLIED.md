@@ -19,6 +19,7 @@ output:
 ```
 
 **Why this failed:**
+
 - Snakemake evaluates the sha256 lambda during DAG construction
 - This happens for ALL benchmarks in config, not just matching wildcards
 - v421_grch38_smvar doesn't have `dip_bed` → KeyError

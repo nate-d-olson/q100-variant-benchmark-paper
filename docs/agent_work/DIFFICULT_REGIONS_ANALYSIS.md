@@ -10,6 +10,7 @@ The pipeline provides two complementary analyses for difficult regions:
 2. **Variant Counts by Stratification** - Counts benchmark variants within each difficult region
 
 These analyses enable:
+
 - Understanding benchmark representativeness across difficult genomic contexts
 - Generating cumulative plots showing progressive coverage and variant inclusion
 - Comparing benchmarks on difficult region characteristics
@@ -21,6 +22,7 @@ These analyses enable:
 **Location:** `results/strat_metrics/{benchmark}/stratification_coverage_table.csv`
 
 **Columns:**
+
 - `strat_name`: Stratification region name (TR, HP, SD, MAP, etc.)
 - `strat_bp`: Total bases in the stratification region (after merging overlaps)
 - `intersect_bp`: Bases overlapping between stratification and benchmark regions
@@ -28,6 +30,7 @@ These analyses enable:
 - `pct_of_dip`: Percentage of benchmark regions covered by stratification
 
 **Example:**
+
 ```csv
 strat_name,strat_bp,intersect_bp,pct_of_strat,pct_of_dip
 TR,245691234,123456789,50.25,4.12
@@ -40,11 +43,13 @@ SD,134567890,67890123,50.45,2.27
 **Location:** `results/var_counts/{benchmark}/variants_by_stratification.csv`
 
 **Columns:**
+
 - `strat_name`: Stratification region name
 - `var_type`: Variant type (SNP, INDEL, DEL, INS, COMPLEX)
 - `count`: Number of variants
 
 **Example:**
+
 ```csv
 strat_name,var_type,count
 TR,SNP,45678
@@ -58,6 +63,7 @@ HP,INDEL,6789
 **Location:** `results/var_counts/{benchmark}/stratification_summary.csv`
 
 **Columns:**
+
 - `strat_name`: Stratification region name
 - `total_variants`: Total variant count across all types
 - `snp_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `other_count`: Type-specific counts
@@ -67,6 +73,7 @@ HP,INDEL,6789
 **Location:** `results/var_counts/{benchmark}/stratification_combined_metrics.csv`
 
 **Columns:**
+
 - All columns from stratification coverage table
 - All columns from summary table
 - `variant_density_per_mb`: Variants per megabase of benchmark-covered stratification
@@ -83,6 +90,7 @@ snakemake --cores 8
 ```
 
 This will generate:
+
 - Variant tables (existing)
 - Exclusion tables (existing)
 - **Stratification coverage metrics (NEW)**
@@ -117,6 +125,7 @@ Rscript scripts/plot_difficult_region_cumulative.R
 ```
 
 **Outputs:**
+
 - `results/plots/{benchmark}/difficult_regions_cumulative.png` - Combined plot
 - `results/plots/{benchmark}/difficult_regions_summary.csv` - Summary table
 
@@ -186,11 +195,13 @@ combined_metrics %>%
 ### Stratification Coverage Interpretation
 
 **`pct_of_strat`** (% of stratification in benchmark):
+
 - High value (>50%): Benchmark well-represents this difficult region
 - Low value (<20%): Benchmark may under-represent this difficult region
 - Use this to assess **representativeness**
 
 **`pct_of_dip`** (% of benchmark in stratification):
+
 - High value (>10%): Large portion of benchmark is in this difficult region
 - Low value (<1%): Small portion of benchmark is in this difficult region
 - Use this to assess **difficulty** of benchmark
@@ -198,6 +209,7 @@ combined_metrics %>%
 ### Variant Density Interpretation
 
 **`variant_density_per_mb`**:
+
 - Calculated as: `total_variants / (intersect_bp / 1,000,000)`
 - Higher density → More variants per unit of benchmark-covered difficult region
 - Useful for comparing variant richness across stratifications
@@ -215,6 +227,7 @@ variant_density_per_mb: 369.8
 ```
 
 **Interpretation:**
+
 - 50% of all tandem repeat regions are covered by the benchmark (good representativeness)
 - 4% of the benchmark consists of tandem repeats (moderate difficulty)
 - 370 variants per Mb in TR regions (high variant density)
@@ -305,6 +318,7 @@ diff_inclusion_plt
 **Error:** `FileNotFoundError: results/strat_metrics/{benchmark}/stratification_coverage_table.csv`
 
 **Solution:**
+
 ```bash
 # Ensure stratifications are downloaded
 snakemake --cores 1 resources/stratifications/GRCh38_TR.bed.gz
@@ -318,10 +332,12 @@ snakemake --cores 8 results/strat_metrics/v5q_grch38_smvar/stratification_covera
 **Symptom:** `total_variants = 0` for all stratifications
 
 **Causes:**
+
 1. Variant table missing STRAT_IDS annotations
 2. Variants filtered out (not in benchmark regions)
 
 **Solution:**
+
 ```bash
 # Verify variant table has annotations
 zcat results/variant_tables/v5q_grch38_smvar/variants.tsv.gz | head -1 | grep STRAT_IDS
@@ -335,6 +351,7 @@ snakemake --cores 8 --forcerun generate_var_table results/variant_tables/v5q_grc
 **Error:** `Reference mismatch: benchmark uses GRCh38, stratification uses GRCh37`
 
 **Solution:**
+
 - Ensure config.yaml correctly specifies `ref:` for each benchmark
 - Stratifications are automatically matched to benchmark reference
 
@@ -382,5 +399,5 @@ New: Variant Counts
 
 ## Further Reading
 
-- GIAB Genome Stratifications: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/
+- GIAB Genome Stratifications: <https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/>
 - Benchmark methodology: See manuscript files in `manuscript/`

@@ -25,6 +25,7 @@ This addendum extends the original implementation plan to incorporate Arrow/Parq
 **File:** `environment.yaml`
 
 **Changes:**
+
 ```yaml
 # Add to dependencies:
   - r-digest>=0.6.33        # For cache key generation (required)
@@ -32,6 +33,7 @@ This addendum extends the original implementation plan to incorporate Arrow/Parq
 ```
 
 **Test:**
+
 ```r
 library(digest)
 digest::digest("test")  # Should return hash
@@ -356,6 +358,7 @@ load_genomic_context_metrics <- function(results_dir = NULL,
 ## New Phase 5: Optional DuckDB Query Support (Days 15-17)
 
 ### Objective
+
 Add optional SQL query capability for large cached datasets without full loading.
 
 ### Task 5.1: Add DuckDB Helper Function
@@ -516,6 +519,7 @@ variant_summary <- query_cached_data(
            GROUP BY var_type"
 )
 ```
+
 ```
 
 ---
@@ -696,26 +700,31 @@ if (exists("metrics_pq")) {
 ## Summary of Changes
 
 **Core Enhancement:**
+
 - Multi-format cache support (RDS + Parquet)
 - Automatic format selection based on data size
 - Graceful fallback when arrow not available
 
 **Performance Benefits:**
+
 - 2-4x faster read/write with Parquet
 - 40-60% better compression
 - Column selection for memory efficiency (future enhancement)
 
 **Optional Advanced Feature:**
+
 - DuckDB query support for large cached data
 - SQL-based exploratory analysis
 - Minimal memory usage for queries
 
 **Dependencies:**
+
 - `digest` (required, already minimal)
 - `arrow` (optional, recommended for better performance)
 - `duckdb` (optional, for advanced queries)
 
 **Backward Compatibility:**
+
 - 100% compatible with original RDS-only design
 - Works without arrow/duckdb packages
 - Existing code requires no changes

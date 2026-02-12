@@ -15,6 +15,7 @@ Snakemake evaluates lambda functions during DAG construction/parsing to understa
 ## Complete Solution (3 Parts)
 
 ### 1. Filter Input Helper Functions
+
 **File:** [workflow/rules/common.smk:158-189](/Users/nolson/active/q100-papers/q100-variant-benchmark/workflow/rules/common.smk#L158-L189)
 
 ```python
@@ -29,6 +30,7 @@ def get_strat_metrics_inputs(wildcards):
 **Purpose:** Prevents requesting stratification metrics for benchmarks without dip_bed.
 
 ### 2. Defensive Lambda Functions
+
 **File:** [workflow/rules/downloads.smk:115-118](/Users/nolson/active/q100-papers/q100-variant-benchmark/workflow/rules/downloads.smk#L115-L118)
 
 ```python
@@ -45,6 +47,7 @@ params:
 **Purpose:** Prevents KeyError when Snakemake evaluates lambdas during DAG construction.
 
 ### 3. Wildcard Constraint
+
 **File:** [workflow/rules/downloads.smk:119-120](/Users/nolson/active/q100-papers/q100-variant-benchmark/workflow/rules/downloads.smk#L119-L120)
 
 ```python
@@ -67,6 +70,7 @@ Without part 2, the error occurs during Snakemake parsing before parts 1 and 3 c
 ## Affected Benchmarks
 
 **Processed (with dip_bed):**
+
 - v5q_chm13_smvar ✅
 - v5q_chm13_stvar ✅
 - v5q_grch37_smvar ✅
@@ -75,6 +79,7 @@ Without part 2, the error occurs during Snakemake parsing before parts 1 and 3 c
 - v5q_grch38_stvar ✅
 
 **Skipped (no dip_bed):**
+
 - v421_grch38_smvar ⏭️
 - v06_grch37_stvar ⏭️
 

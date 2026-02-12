@@ -18,6 +18,7 @@ Wildcards: benchmark=v421_grch38_smvar
 2. The `download_benchmark_dip_bed` rule had no wildcard constraints, so Snakemake considered it a match for ANY benchmark pattern, causing lambda evaluation errors
 
 **Dependency chain:**
+
 ```
 var_counts (combine_metrics_and_counts)
     ↓ depends on
@@ -29,6 +30,7 @@ download_benchmark_dip_bed (for ANY benchmark, causing KeyError)
 ```
 
 **Configuration reality:**
+
 - ✅ v5q benchmarks have `dip_bed` configured in config.yaml
 - ❌ v421 and v06 benchmarks do NOT have `dip_bed` configured
 
@@ -131,6 +133,7 @@ Without defensive lambdas, Snakemake throws KeyError during parsing even before 
 ### Benchmarks Processed (After Fix)
 
 **Stratification metrics & variant counts:**
+
 - ✅ v5q_chm13_smvar
 - ✅ v5q_chm13_stvar
 - ✅ v5q_grch37_smvar
@@ -139,10 +142,12 @@ Without defensive lambdas, Snakemake throws KeyError during parsing even before 
 - ✅ v5q_grch38_stvar
 
 **Excluded from stratification analysis:**
+
 - ❌ v421_grch38_smvar (no dip_bed)
 - ❌ v06_grch37_stvar (no dip_bed)
 
 **Still processed for other outputs:**
+
 - ✅ ALL benchmarks still get variant tables generated (unchanged)
 - ✅ ALL benchmarks with exclusions still get exclusion metrics (unchanged)
 
@@ -183,6 +188,7 @@ rule some_conditional_rule:
 ## Verification
 
 The fix ensures:
+
 1. ✅ No KeyError for benchmarks without dip_bed
 2. ✅ v5q benchmarks still get full stratification analysis
 3. ✅ Older benchmarks still get variant tables and other analyses

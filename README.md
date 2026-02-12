@@ -21,12 +21,13 @@ The Snakemake pipeline processes benchmark set files to:
 - Comprehensive variant tables with per-variant annotations (`results/variant_tables/`)
 - Exclusion intersection tables (`results/exclusions/`)
 - **Benchmark Comparisons** (`results/stats/`):
-    - `*_variants.csv`: Stratified counts of shared and unique variants
-    - `*_regions.csv`: Stratified counts of shared and unique callable bases
+  - `*_variants.csv`: Stratified counts of shared and unique variants
+  - `*_regions.csv`: Stratified counts of shared and unique callable bases
 
 ## Analysis Resources
 
 ### Data Loading Functions
+
 The `R/data_loading.R` module provides standardized functions for loading pipeline outputs:
 
 - `load_genomic_context_metrics()` - Load primary analysis data with variant counts per genomic context (recommended)
@@ -199,6 +200,7 @@ The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
 Recent enhancements have significantly improved pipeline reliability, maintainability, and usability. See [`IMPROVEMENT_SUGGESTIONS.md`](IMPROVEMENT_SUGGESTIONS.md) and [`IMPLEMENTATION_SUMMARY.md`](IMPLEMENTATION_SUMMARY.md) for complete details.
 
 ### Comprehensive Documentation
+
 - **[Architecture Documentation](docs/architecture.md)** - System design with visual diagrams
 - **[API Reference](docs/api-reference.md)** - Complete documentation of 15+ helper functions
 - **[Troubleshooting Guide](docs/troubleshooting.md)** - Solutions for common issues

@@ -7,13 +7,15 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
  Background
 
  Current Issues:
- - Scattered data loading: benchmarkset_characterization.qmd loads data throughout the notebook rather than in a dedicated section
- - Complex loading code: Custom parallel reading with furrr, complex tidy functions, heavy transformations during load
- - No shared infrastructure: Each notebook implements its own loading logic with duplicate path parsing
- - Missing documentation: No comprehensive catalog of pipeline outputs or column schemas
- - Large file usage: Some analyses load full variant tables when smaller aggregated files would suffice
+
+- Scattered data loading: benchmarkset_characterization.qmd loads data throughout the notebook rather than in a dedicated section
+- Complex loading code: Custom parallel reading with furrr, complex tidy functions, heavy transformations during load
+- No shared infrastructure: Each notebook implements its own loading logic with duplicate path parsing
+- Missing documentation: No comprehensive catalog of pipeline outputs or column schemas
+- Large file usage: Some analyses load full variant tables when smaller aggregated files would suffice
 
  Key Pipeline Outputs Identified:
+
  1. results/var_counts/{benchmark}/stratification_combined_metrics.csv - Primary analysis file (small, ~5-10 KB)
  2. results/exclusions/{benchmark}/exclusions_intersection_table.csv - Exclusion overlaps (v5.0q only)
  3. results/variant_tables/{benchmark}/variants.tsv - Full variant data (large, ~GB)
@@ -30,25 +32,29 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
  File: docs/diagrams/output-relationships.mmd
 
  Structure:
- - Show primary analysis files (small, essential) in green boxes
- - Show detailed data files (large, optional) in beige boxes
- - Show metadata patterns (path encoding, shared columns) in purple boxes
- - Use solid arrows for direct data relationships via shared columns
- - Use dashed arrows for metadata encoded in file paths
+
+- Show primary analysis files (small, essential) in green boxes
+- Show detailed data files (large, optional) in beige boxes
+- Show metadata patterns (path encoding, shared columns) in purple boxes
+- Use solid arrows for direct data relationships via shared columns
+- Use dashed arrows for metadata encoded in file paths
 
  Key relationships to visualize:
- - stratification_combined_metrics.csv links to diff_region_coverage/*.bed via strat_name column
- - All files link via benchmark identifier pattern in paths
- - strat_name values: HP, MAP, SD, SD10kb, TR, TR10kb
- - Exclusion files only exist for v5.0q benchmarks
+
+- stratification_combined_metrics.csv links to diff_region_coverage/*.bed via strat_name column
+- All files link via benchmark identifier pattern in paths
+- strat_name values: HP, MAP, SD, SD10kb, TR, TR10kb
+- Exclusion files only exist for v5.0q benchmarks
 
  Groupings:
- - Primary Analysis Files (stratification_combined_metrics, exclusions_intersection_table, ref_genome_sizes)
- - Detailed Data Files (variant_tables, diff_region_coverage)
- - Shared Metadata (path patterns, stratification names)
+
+- Primary Analysis Files (stratification_combined_metrics, exclusions_intersection_table, ref_genome_sizes)
+- Detailed Data Files (variant_tables, diff_region_coverage)
+- Shared Metadata (path patterns, stratification names)
 
  ---
- 2. Create Shared Data Loading Functions
+
+ 1. Create Shared Data Loading Functions
 
  File: R/data_loading.R (new file)
 
@@ -56,20 +62,20 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
 
  2.1 parse_benchmark_id(file_path)
 
- - Purpose: Extract benchmark metadata from file path
- - Input: File path string or benchmark ID
- - Returns: Named list with bench_version, ref, var_type
- - Pattern: Extract v[0-9.]+q?_[A-Za-z0-9.]+_(smvar|stvar)
- - Error handling: Stop with informative message if pattern not found
+- Purpose: Extract benchmark metadata from file path
+- Input: File path string or benchmark ID
+- Returns: Named list with bench_version, ref, var_type
+- Pattern: Extract v[0-9.]+q?_[A-Za-z0-9.]+_(smvar|stvar)
+- Error handling: Stop with informative message if pattern not found
 
  2.2 load_stratification_metrics(results_dir, benchmark_filter)
 
- - Purpose: Load primary analysis file with metrics + variant counts
- - Input:
-   - results_dir - Path to results directory (default: here::here("results"))
-   - benchmark_filter - Optional vector of benchmark IDs to filter
- - Returns: Tibble with columns: bench_version, ref, var_type, strat_name, strat_bp, intersect_bp, pct_of_strat, pct_of_bench, total_variants, variant counts by type, variant_density_per_mb
- - Process:
+- Purpose: Load primary analysis file with metrics + variant counts
+- Input:
+  - results_dir - Path to results directory (default: here::here("results"))
+  - benchmark_filter - Optional vector of benchmark IDs to filter
+- Returns: Tibble with columns: bench_version, ref, var_type, strat_name, strat_bp, intersect_bp, pct_of_strat, pct_of_bench, total_variants, variant counts by type, variant_density_per_mb
+- Process:
    a. Find all stratification_combined_metrics.csv files
    b. Read with read_csv() using col_types "cddddiiiiiiid"
    c. Parse benchmark ID from directory name
@@ -78,57 +84,63 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
 
  2.3 load_exclusion_metrics(results_dir)
 
- - Purpose: Load exclusion intersection tables (v5.0q only)
- - Returns: Tibble with bench_version, ref, var_type, exclusions, exclusion_bp, intersect_bp, pct_of_exclusion, pct_of_dip
- - Note: Warn if no files found (expected for non-v5.0q)
+- Purpose: Load exclusion intersection tables (v5.0q only)
+- Returns: Tibble with bench_version, ref, var_type, exclusions, exclusion_bp, intersect_bp, pct_of_exclusion, pct_of_dip
+- Note: Warn if no files found (expected for non-v5.0q)
 
  2.4 load_reference_sizes(results_dir)
 
- - Purpose: Load reference genome sizes
- - Returns: Tibble with ref, chrom, asm_bp
- - Process:
+- Purpose: Load reference genome sizes
+- Returns: Tibble with ref, chrom, asm_bp
+- Process:
    a. Read all *_size.tsv files
    b. Calculate asm_bp = length - N
    c. Standardize chromosome names (add "chr" prefix)
 
  2.5 load_variant_table(benchmark_id, results_dir, filters)
 
- - Purpose: Load full variant table (use sparingly - large file)
- - Input:
-   - benchmark_id - Single benchmark identifier
-   - filters - List with variant_types, chromosomes, in_benchmark_only
- - Returns: Tibble with variant-level data
- - Warning: Display message about large file size
+- Purpose: Load full variant table (use sparingly - large file)
+- Input:
+  - benchmark_id - Single benchmark identifier
+  - filters - List with variant_types, chromosomes, in_benchmark_only
+- Returns: Tibble with variant-level data
+- Warning: Display message about large file size
 
  2.6 load_diff_coverage(benchmark_id, results_dir, strat_filter)
 
- - Purpose: Load base-level difficult region coverage
- - Input:
-   - benchmark_id - Single benchmark identifier
-   - strat_filter - Optional vector of stratification names (HP, TR, etc.)
- - Returns: Tibble with strat_name, chrom, start, end, n_overlap, bases_cov, ivl_len, frac_cov
+- Purpose: Load base-level difficult region coverage
+- Input:
+  - benchmark_id - Single benchmark identifier
+  - strat_filter - Optional vector of stratification names (HP, TR, etc.)
+- Returns: Tibble with strat_name, chrom, start, end, n_overlap, bases_cov, ivl_len, frac_cov
 
  Documentation standards:
- - Use roxygen2-style comments with @param, @return, @examples
- - Include error handling with informative messages
- - Add validation checks (file existence, expected columns)
+
+- Use roxygen2-style comments with @param, @return, @examples
+- Include error handling with informative messages
+- Add validation checks (file existence, expected columns)
 
  ---
- 3. Refactor Analysis Notebooks
+
+ 1. Refactor Analysis Notebooks
 
  3.1 benchmarkset_characterization.qmd
 
  Changes:
+
  1. Add dedicated "Data Loading" section after setup chunk (around line 270)
  2. Load primary data:
- ## Data Loading
 
- # Primary metrics (small files)
+## Data Loading
+
+# Primary metrics (small files)
+
  strat_metrics_df <- load_stratification_metrics()
  ref_sizes_df <- load_reference_sizes()
  exclusion_df <- load_exclusion_metrics()
 
- # Benchmark regions
+# Benchmark regions
+
  bench_region_files <- list.files(
      path = here("resources/benchmarksets"),
      pattern = "_benchmark.bed",
@@ -149,39 +161,54 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
      ) %>%
      select(-bench_meta, -benchmark)
  3. Add data frame documentation:
- ### Key Data Frames for Analysis
 
- # 1. strat_metrics_df: Per-stratification metrics with variant counts
- #    Use for: variant count comparisons, density calculations
- #    Key columns: bench_version, ref, var_type, strat_name, variant counts
+### Key Data Frames for Analysis
 
- # 2. regions_df: Benchmark region intervals
- #    Use for: coverage calculations, interval size distributions
- #    Key columns: bench_version, ref, var_type, chrom, start, end, interval_size
+# 1. strat_metrics_df: Per-stratification metrics with variant counts
 
- # 3. ref_sizes_df: Reference genome sizes
- #    Use for: percentage calculations, normalization
- #    Key columns: ref, chrom, asm_bp
+# Use for: variant count comparisons, density calculations
 
- # 4. exclusion_df: Exclusion overlaps (v5.0q only)
- #    Use for: understanding what was excluded
- #    Key columns: bench_version, ref, var_type, exclusions, intersect_bp
- 4. Remove/simplify:
-   - Remove tidy_smvar() and tidy_stvar() functions (lines 135-263)
-   - Remove complex parallel reading setup (line 267: plan(multisession, workers = 12))
-   - Remove read_bench_file() function
-   - Simplify or remove variant table loading (lines 269-298) - add comment that full variant tables should only be loaded when variant-level detail is required
- 5. Update analysis sections to use strat_metrics_df instead of bench_vars_tbls where possible
+# Key columns: bench_version, ref, var_type, strat_name, variant counts
+
+# 2. regions_df: Benchmark region intervals
+
+# Use for: coverage calculations, interval size distributions
+
+# Key columns: bench_version, ref, var_type, chrom, start, end, interval_size
+
+# 3. ref_sizes_df: Reference genome sizes
+
+# Use for: percentage calculations, normalization
+
+# Key columns: ref, chrom, asm_bp
+
+# 4. exclusion_df: Exclusion overlaps (v5.0q only)
+
+# Use for: understanding what was excluded
+
+# Key columns: bench_version, ref, var_type, exclusions, intersect_bp
+
+ 1. Remove/simplify:
+
+- Remove tidy_smvar() and tidy_stvar() functions (lines 135-263)
+- Remove complex parallel reading setup (line 267: plan(multisession, workers = 12))
+- Remove read_bench_file() function
+- Simplify or remove variant table loading (lines 269-298) - add comment that full variant tables should only be loaded when variant-level detail is required
+
+ 1. Update analysis sections to use strat_metrics_df instead of bench_vars_tbls where possible
 
  Lines to modify: 135-298 (loading section), analysis sections that reference bench_vars_tbls
 
  3.2 benchmark_difficult.qmd
 
  Changes:
- 1. Update data loading section (lines 27-76):
- ## Data Loading
 
- # Load difficult region coverage using shared function
+ 1. Update data loading section (lines 27-76):
+
+## Data Loading
+
+# Load difficult region coverage using shared function
+
  diff_cov_df <- c(
      "v5.0q_GRCh38_smvar",
      "v5.0q_GRCh37_stvar",
@@ -200,7 +227,8 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
          .id = "benchmark"
      )
 
- # Calculate totals
+# Calculate totals
+
  diff_cov_total_df <- diff_cov_df %>%
      group_by(bench_version, ref, var_type, strat_name) %>%
      summarise(
@@ -215,34 +243,42 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
  3.3 external_evaluation.qmd
 
  Changes:
- 1. Add section header before data loading (line 25):
- ## Data Loading
 
- ### External Evaluation Data
- 2. No other changes - This notebook is already clean and loads external data (not pipeline outputs)
+ 1. Add section header before data loading (line 25):
+
+## Data Loading
+
+### External Evaluation Data
+
+ 1. No other changes - This notebook is already clean and loads external data (not pipeline outputs)
 
  Lines to modify: 25 (add header only)
 
  ---
- 4. Create Pipeline Output Documentation
+
+ 1. Create Pipeline Output Documentation
 
  4.1 Create docs/pipeline-outputs.md
 
  Structure:
+
  1. Overview - Purpose of this document, output directory structure tree
  2. File Catalog - Complete list of output types with:
-   - File path pattern with wildcards
-   - Purpose and use case
-   - File size estimate (small/large)
-   - Column schema (table format)
-   - Example data snippet
-   - Dependencies (what inputs required)
-   - Related outputs
- 3. Column Relationships - How files link together via shared columns
- 4. Metadata Encoding - How benchmark information is encoded in paths
- 5. Usage Examples - Code snippets showing how to load each output type
+
+- File path pattern with wildcards
+- Purpose and use case
+- File size estimate (small/large)
+- Column schema (table format)
+- Example data snippet
+- Dependencies (what inputs required)
+- Related outputs
+
+ 1. Column Relationships - How files link together via shared columns
+ 2. Metadata Encoding - How benchmark information is encoded in paths
+ 3. Usage Examples - Code snippets showing how to load each output type
 
  Primary output types to document:
+
  1. stratification_combined_metrics.csv - Detailed column table with 13 columns
  2. exclusions_intersection_table.csv - Column table with 5 columns
  3. variants.tsv - Column table with 10+ columns (large file warning)
@@ -250,7 +286,8 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
  5. ref_genome_sizes/*_size.tsv - Simple 4-column format
 
  Format for each output:
- ### Output Name
+
+### Output Name
 
  **Path:** `results/category/{benchmark}/filename.ext`
 
@@ -266,11 +303,13 @@ Analysis Notebook Refactoring & Pipeline Documentation Plan
  | col2 | integer | Description |
 
  **Usage Notes:**
- - Important caveats
- - Performance considerations
- - When to use vs. alternative files
+
+- Important caveats
+- Performance considerations
+- When to use vs. alternative files
 
  **Example:**
+
  ```r
  # Load and use this file
  data <- load_function("benchmark_id")

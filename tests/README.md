@@ -72,6 +72,7 @@ pytest tests/unit/test_common_helpers.py::TestExclusionHelpers::test_get_exclusi
 ### Unit Tests
 
 Unit tests should:
+
 - Test individual functions in isolation
 - Use mocks for external dependencies
 - Be fast (<1s per test)
@@ -90,6 +91,7 @@ def test_get_exclusion_file_path():
 ### Integration Tests
 
 Integration tests should:
+
 - Test complete workflows end-to-end
 - Use real (but minimal) test data
 - Verify expected outputs are created
@@ -98,6 +100,7 @@ Integration tests should:
 ## Test Data
 
 Test fixtures are stored in `tests/fixtures/`. Keep test data:
+
 - Small (prefer <1KB files when possible)
 - Representative (cover edge cases)
 - Well-documented (add comments explaining what each file tests)
@@ -105,6 +108,7 @@ Test fixtures are stored in `tests/fixtures/`. Keep test data:
 ## Continuous Integration
 
 Tests run automatically on:
+
 - Pull requests to main branch
 - Pushes to main branch
 
@@ -113,6 +117,7 @@ See `.github/workflows/tests.yml` for CI configuration.
 ## Coverage Goals
 
 Target >80% code coverage for:
+
 - `workflow/scripts/*.py` - Python analysis scripts
 - `workflow/rules/common.smk` - Helper functions
 

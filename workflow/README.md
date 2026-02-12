@@ -110,6 +110,7 @@ Rules for exclusion region analysis:
 The pipeline includes 14 Python scripts in `workflow/scripts/`:
 
 ### Core Infrastructure
+
 | Script | Description |
 |--------|-------------|
 | `logging_config.py` | Centralized logging configuration with structured output |
@@ -117,17 +118,20 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 | `validators.py` | VCF/BED/TSV format validation utilities |
 
 ### Data Validation
+
 | Script | Description |
 |--------|-------------|
 | `validate_vcf.py` | Validate VCF file format and structure |
 | `validate_bed.py` | Validate BED file format and coordinates |
 
 ### BED File Processing
+
 | Script | Description |
 |--------|-------------|
 | `combine_beds_with_id.py` | Combine multiple BED files with unique identifiers |
 
 ### VCF Annotation & Querying
+
 | Script | Description |
 |--------|-------------|
 | `extract_info_fields.py` | Extract INFO field names from VCF header |
@@ -135,6 +139,7 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 | `expand_annotations.py` | Expand annotation ID lists to binary flag columns |
 
 ### Variant Analysis
+
 | Script | Description |
 |--------|-------------|
 | `count_variants_by_type.py` | Count variants by type (SNV, INDEL, SV) from VCF |
@@ -142,6 +147,7 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 | `stratify_comparison.py` | Compare variants across stratifications |
 
 ### Metrics Aggregation
+
 | Script | Description |
 |--------|-------------|
 | `summarize_var_counts.py` | Aggregate variant count summaries |

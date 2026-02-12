@@ -30,7 +30,6 @@ editor:
 \linenumbers
 ```
 
-
 {{< include manuscript/introduction.qmd >}}
 
 {{< include manuscript/methods.qmd >}}

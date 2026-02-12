@@ -32,6 +32,7 @@ ggplot(data, aes(x = context_name, y = variant_count, fill = bench_version)) +
 ### Color Scales
 
 All color scales follow the same pattern and are designed to be:
+
 - **Colorblind-friendly** (deuteranopia, protanopia, tritanopia compatible)
 - **Print-ready** (work in black & white)
 - **Publication-quality** (meet journal standards)
@@ -274,6 +275,7 @@ ggsave(
 5. **Consistent:** Same colors used across all figures and tables
 
 ### Benchmark Versions
+
 - **v0.6** (#1B9E77): Teal - oldest version
 - **v4.2.1** (#D95F02): Orange - intermediate version
 - **v5.0q** (#7570B3): Purple - newest version
@@ -281,6 +283,7 @@ ggsave(
 *Progression suggests upgrade path from old (teal) → new (purple)*
 
 ### Reference Genomes
+
 - **GRCh37** (#E41A1C): Red - older human reference
 - **GRCh38** (#377EB8): Blue - current human reference
 - **CHM13v2.0** (#4DAF4A): Green - telomere-to-telomere assembly
@@ -288,6 +291,7 @@ ggsave(
 *Colors chosen for maximum contrast and colorblind compatibility*
 
 ### Genomic Contexts
+
 - **HP** (#E41A1C): Red - Homopolymers
 - **MAP** (#377EB8): Blue - Low Mappability regions
 - **SD** (#4DAF4A): Green - Segmental Duplications
@@ -300,6 +304,7 @@ ggsave(
 ## Cell Genomics Requirements Compliance
 
 ### Figure Specifications
+
 ✓ Width: 85-180 mm (supported by theme spacing)
 ✓ Font: Sans-serif (Roboto/Arial), 9-10pt body, 8pt labels
 ✓ Resolution: 300 dpi (use `dpi = 300` in ggsave)
@@ -307,6 +312,7 @@ ggsave(
 ✓ Format: PDF/EPS (vector), PNG (raster high-res)
 
 ### Table Specifications
+
 ✓ Font: Sans-serif, 9pt body, 10pt headers
 ✓ Borders: Clear top/bottom borders, column headers distinct
 ✓ Color: Minimal, professional appearance
@@ -347,20 +353,24 @@ plot <- ggplot(...) +
 ## Troubleshooting
 
 ### Legends appear in wrong position
+
 - Check `legend.position` in `theme_manuscript()`
 - Use `+ guides(color = "none")` to hide unwanted legends
 
 ### Font sizes look wrong
+
 - Verify figure width/height matches publication specifications
 - Export with `dpi = 300`
 - Check font rendering in PDF viewer (may appear different than on screen)
 
 ### Colors don't match expectations
+
 - Verify color blindness mode in graphic software
 - Export to PDF and check in Adobe Reader (more accurate colors)
 - Compare with Cell Genomics figure examples
 
 ### Table formatting issues
+
 - Ensure data is a data frame or tibble
 - Check gt::opt_table_font() compatibility
 - Use gt::tab_options() to override specific settings if needed

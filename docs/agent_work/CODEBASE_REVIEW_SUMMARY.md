@@ -23,6 +23,7 @@ This document summarizes the codebase review, improvement suggestions, and new f
 ### Overall Assessment: **EXCELLENT**
 
 The codebase demonstrates:
+
 - Modern bioinformatics best practices
 - Clean separation of concerns
 - Comprehensive validation and logging
@@ -52,18 +53,22 @@ See detailed suggestions below organized by priority.
 **Problem:** No systematic way to quantify benchmark region coverage across difficult genomic regions.
 
 **Solution:** Created `workflow/rules/strat_metrics.smk` with rules:
+
 - `materialize_stratification` - Prepare stratification BED files
 - `compute_stratification_size` - Calculate total stratification size
 - `compute_stratification_metrics` - Compute overlap with benchmark regions
 - `aggregate_stratification_metrics` - Generate summary CSV
 
 **Files Created:**
+
 - `workflow/rules/strat_metrics.smk` (203 lines)
 
 **Outputs:**
+
 - `results/strat_metrics/{benchmark}/stratification_coverage_table.csv`
 
 **Columns:**
+
 - `strat_name` - Stratification region name (TR, HP, SD, MAP, etc.)
 - `strat_bp` - Total stratification size (merged)
 - `intersect_bp` - Overlap with benchmark regions
@@ -77,22 +82,26 @@ See detailed suggestions below organized by priority.
 **Problem:** No automated way to count variants within difficult regions from variant tables.
 
 **Solution:** Created `workflow/rules/var_counts.smk` with rules:
+
 - `count_variants_by_stratification` - Parse STRAT_IDS field and count variants
 - `summarize_variant_counts` - Aggregate counts by stratification
 - `combine_metrics_and_counts` - Merge coverage metrics with variant counts
 
 **Files Created:**
+
 - `workflow/rules/var_counts.smk` (80 lines)
 - `workflow/scripts/count_variants_by_strat.py` (90 lines)
 - `workflow/scripts/summarize_var_counts.py` (95 lines)
 - `workflow/scripts/combine_metrics_counts.py` (150 lines)
 
 **Outputs:**
+
 - `results/var_counts/{benchmark}/variants_by_stratification.csv`
 - `results/var_counts/{benchmark}/stratification_summary.csv`
 - `results/var_counts/{benchmark}/stratification_combined_metrics.csv` ← **PRIMARY OUTPUT**
 
 **Combined Metrics Columns:**
+
 - All stratification coverage metrics (from #1)
 - `total_variants`, `snp_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `other_count`
 - `variant_density_per_mb` - Variants per Mb of benchmark-covered stratification
@@ -104,12 +113,14 @@ See detailed suggestions below organized by priority.
 **Problem:** Missing helper functions for stratification metrics integration.
 
 **Solution:** Updated `workflow/rules/common.smk`:
+
 - Fixed `get_strat_ids()` to correctly retrieve stratification names from benchmark reference
 - Added `get_stratification_ids()` alias for consistency
 - Added `get_strat_metrics_inputs()` for aggregating stratification metrics outputs
 - Added `get_var_counts_inputs()` for aggregating variant count outputs
 
 **Files Modified:**
+
 - `workflow/rules/common.smk` (+35 lines)
 
 ---
@@ -119,14 +130,17 @@ See detailed suggestions below organized by priority.
 **Problem:** New modules not integrated into pipeline.
 
 **Solution:** Updated `workflow/Snakefile`:
+
 - Added `include: "rules/strat_metrics.smk"`
 - Added `include: "rules/var_counts.smk"`
 - Updated `rule all` to include new outputs
 
 **Files Modified:**
+
 - `workflow/Snakefile` (+4 lines)
 
 **New Default Outputs:**
+
 - All stratification coverage tables
 - All variant count combined metrics tables
 
@@ -137,20 +151,24 @@ See detailed suggestions below organized by priority.
 **Problem:** Need visualization for cumulative coverage and variant counts.
 
 **Solution:** Created R script for automated plot generation:
+
 - Cumulative benchmark coverage by difficult regions
 - Cumulative variant counts by difficult regions
 - Variant density comparison across regions
 - Combined multi-panel plot
 
 **Files Created:**
+
 - `scripts/plot_difficult_region_cumulative.R` (200+ lines)
 
 **Usage:**
+
 ```bash
 Rscript scripts/plot_difficult_region_cumulative.R v5q_grch38_smvar
 ```
 
 **Outputs:**
+
 - `results/plots/{benchmark}/difficult_regions_cumulative.png`
 - `results/plots/{benchmark}/difficult_regions_summary.csv`
 
@@ -161,6 +179,7 @@ Rscript scripts/plot_difficult_region_cumulative.R v5q_grch38_smvar
 **Problem:** New functionality needs user documentation.
 
 **Solution:** Created detailed guide covering:
+
 - Pipeline outputs and interpretation
 - Running the pipeline
 - Generating cumulative plots
@@ -169,6 +188,7 @@ Rscript scripts/plot_difficult_region_cumulative.R v5q_grch38_smvar
 - Integration with existing analyses
 
 **Files Created:**
+
 - `docs/DIFFICULT_REGIONS_ANALYSIS.md` (500+ lines)
 
 ---
@@ -180,10 +200,12 @@ Rscript scripts/plot_difficult_region_cumulative.R v5q_grch38_smvar
 **Files:** `analysis/benchmarkset-characterization.qmd`
 
 **Actions:**
+
 - Line 19-29: Add column descriptions table for variant tables
 - Line 762-896: Replace broken difficult region code with new metrics-based analysis
 
 **Example Update:**
+
 ```r
 # Load stratification metrics
 strat_metrics_files <- list.files(
@@ -211,6 +233,7 @@ ggplot(strat_metrics_df, aes(x = strat_name, y = pct_of_dip, fill = bench_versio
 **Current:** Schema referenced in Snakefile but not fully utilized.
 
 **Recommendation:**
+
 - Expand `config/schema/config.schema.yaml`
 - Add validation for:
   - Required fields (url, sha256/md5)
@@ -224,16 +247,19 @@ ggplot(strat_metrics_df, aes(x = strat_name, y = pct_of_dip, fill = bench_versio
 **Files:** `analysis/benchmarkset-characterization.qmd`
 
 **Current Approach:**
+
 - Loads entire TSV files into memory
 - 12 parallel workers (line 294)
 - Can be memory-intensive for large variant tables
 
 **Recommended Approach:**
+
 - Convert TSV → Parquet in Snakemake
 - Use `arrow::read_parquet()` for columnar access
 - Lazy evaluation with dplyr
 
 **Example Snakemake Rule:**
+
 ```python
 rule convert_to_parquet:
     input:
@@ -255,11 +281,13 @@ rule convert_to_parquet:
 **Current:** All plotting functions embedded in Quarto document.
 
 **Recommendation:** Extract to `scripts/R/`:
+
 - `data_loading.R` - Consolidate read_bench_file(), get_bench_var_cols()
 - `plotting.R` - ggplot themes, plot generation functions
 - `utils.R` - Factor handling, chromosome standardization
 
 **Benefits:**
+
 - Reduces Quarto document length
 - Improves code reusability
 - Easier testing and maintenance
@@ -273,6 +301,7 @@ rule convert_to_parquet:
 **Current:** Only `workflow/rules/exclusions.smk` has resource specs.
 
 **Recommendation:** Add to all rules:
+
 ```python
 threads: 4
 resources:
@@ -281,6 +310,7 @@ resources:
 ```
 
 **Benefits:**
+
 - Prevents OOM errors on cluster execution
 - Better job scheduling
 - Clearer resource requirements
@@ -294,6 +324,7 @@ resources:
 **Current:** Scripts are well-written but lack comprehensive docstrings.
 
 **Recommendation:** Add module and function docstrings:
+
 ```python
 """
 combine_beds_with_id.py
@@ -330,6 +361,7 @@ def merge_intervals(beds: List[BedFile]) -> List[Interval]:
 **Files:** `analysis/benchmarkset-characterization.qmd`
 
 **Recommendation:**
+
 ```r
 # Wrap file downloads in tryCatch
 tryCatch({
@@ -348,6 +380,7 @@ tryCatch({
 **Current:** Chromosome factor levels defined multiple times (lines 281-284, etc.)
 
 **Recommendation:**
+
 ```r
 # In scripts/R/utils.R
 standardize_chroms <- function(df, chrom_col = "chrom") {
@@ -369,6 +402,7 @@ var_tbl <- var_tbl %>% standardize_chroms()
 **Current:** 245 lines mixing annotation and table generation.
 
 **Recommendation:** Split into:
+
 - `annotation.smk` - Rules 13-180 (VCF annotation)
 - `var_tables.smk` - Rules 183-245 (TSV generation)
 
@@ -377,20 +411,24 @@ var_tbl <- var_tbl %>% standardize_chroms()
 ## New Files Created
 
 ### Snakemake Rules
+
 1. `workflow/rules/strat_metrics.smk` (203 lines)
 2. `workflow/rules/var_counts.smk` (80 lines)
 
 ### Python Scripts
-3. `workflow/scripts/count_variants_by_strat.py` (90 lines)
-4. `workflow/scripts/summarize_var_counts.py` (95 lines)
-5. `workflow/scripts/combine_metrics_counts.py` (150 lines)
+
+1. `workflow/scripts/count_variants_by_strat.py` (90 lines)
+2. `workflow/scripts/summarize_var_counts.py` (95 lines)
+3. `workflow/scripts/combine_metrics_counts.py` (150 lines)
 
 ### R Scripts
-6. `scripts/plot_difficult_region_cumulative.R` (200+ lines)
+
+1. `scripts/plot_difficult_region_cumulative.R` (200+ lines)
 
 ### Documentation
-7. `docs/DIFFICULT_REGIONS_ANALYSIS.md` (500+ lines)
-8. `CODEBASE_REVIEW_SUMMARY.md` (this file)
+
+1. `docs/DIFFICULT_REGIONS_ANALYSIS.md` (500+ lines)
+2. `CODEBASE_REVIEW_SUMMARY.md` (this file)
 
 **Total New Code:** ~1,400 lines
 
@@ -472,6 +510,7 @@ strat_metrics %>%
 ### 1. Unit Tests (Optional but Recommended)
 
 Create `tests/test_scripts.py`:
+
 ```python
 import pytest
 from pathlib import Path
@@ -535,6 +574,7 @@ test_that("All stratifications have coverage metrics", {
 ### Current Pipeline Performance
 
 **Estimated Runtime:**
+
 - Downloads: ~10 min (first run only, cached thereafter)
 - VCF processing: ~5 min per benchmark
 - Variant table generation: ~10 min per benchmark
@@ -553,7 +593,7 @@ test_that("All stratifications have coverage metrics", {
 
 ## Key Metrics for Difficult Regions
 
-### What You Can Now Calculate:
+### What You Can Now Calculate
 
 1. **Coverage Metrics:**
    - Total bp in each difficult region covered by benchmark
@@ -570,7 +610,7 @@ test_that("All stratifications have coverage metrics", {
    - Version-to-version improvements in difficult region representation
    - Reference genome differences in difficult region characteristics
 
-### Example Use Cases:
+### Example Use Cases
 
 1. **Manuscript Figure:** "Cumulative coverage of difficult regions in v5.0q benchmarks"
 2. **Supplementary Table:** "Variant counts by genomic context stratification"
@@ -584,11 +624,13 @@ test_that("All stratifications have coverage metrics", {
 ### Immediate Actions (You Should Do)
 
 1. ✅ **Run the pipeline** to generate new outputs:
+
    ```bash
    snakemake --cores 8
    ```
 
 2. **Generate cumulative plots** for all benchmarks:
+
    ```bash
    for b in v5q_grch38_smvar v5q_grch38_stvar; do
      Rscript scripts/plot_difficult_region_cumulative.R $b
@@ -600,6 +642,7 @@ test_that("All stratifications have coverage metrics", {
    - Add column descriptions (line 19-29)
 
 4. **Review and commit changes:**
+
    ```bash
    git status
    git add workflow/rules/strat_metrics.smk
@@ -639,6 +682,7 @@ The codebase is now equipped to answer key research questions about difficult re
 ---
 
 **Files Summary:**
+
 - **New files:** 8 (rules, scripts, docs)
 - **Modified files:** 2 (Snakefile, common.smk)
 - **Lines added:** ~1,440 lines of code and documentation

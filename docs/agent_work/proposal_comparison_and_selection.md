@@ -88,6 +88,7 @@ This proposal provides the best balance of immediate impact, minimal disruption,
 ### 6. Alignment with Current Phase
 
 The project is currently in **manuscript finalization phase** where:
+
 - Figures are being iteratively refined
 - Notebooks are being re-run frequently
 - External collaborators need to review results
@@ -108,6 +109,7 @@ The project is currently in **manuscript finalization phase** where:
 ### Proposal 1: Enhanced Caching Library
 
 **Strengths:**
+
 1. ✅ **Zero breaking changes** - Existing notebooks work unchanged
 2. ✅ **Immediate performance gains** - 80-95% faster re-runs
 3. ✅ **Minimal implementation** - ~200 lines of code
@@ -116,24 +118,28 @@ The project is currently in **manuscript finalization phase** where:
 6. ✅ **Low maintenance burden** - Small code surface area
 
 **Weaknesses:**
+
 1. ⚠️ **No explicit versioning** - Cache keys are opaque hashes
 2. ⚠️ **Disk space usage** - Cache can grow without management
 3. ⚠️ **Stale cache risk** - Users might not refresh after pipeline updates
 4. ⚠️ **Machine-specific** - Cache doesn't travel with repository
 
 **Mitigations:**
+
 - Auto-invalidation based on file modification times
 - Cache management utilities (`clear_analysis_cache()`, `cache_stats()`)
 - Optional `force_refresh` parameter
 - Cache directory in `.gitignore`
 
 **Best Use Cases:**
+
 - Iterative figure refinement
 - Frequent notebook re-runs during development
 - Local analysis workflows
 - Quick experimentation
 
 **Risk Assessment:** LOW
+
 - Small code changes, easy to remove if issues arise
 - No dependencies on external tools
 - Can coexist with other proposals
@@ -143,6 +149,7 @@ The project is currently in **manuscript finalization phase** where:
 ### Proposal 2: Standardized Data Access Layer
 
 **Strengths:**
+
 1. ✅ **Data quality assurance** - Catches pipeline bugs early
 2. ✅ **Self-documenting** - Schemas serve as data dictionary
 3. ✅ **Type safety** - Prevents silent type coercion errors
@@ -150,6 +157,7 @@ The project is currently in **manuscript finalization phase** where:
 5. ✅ **Professional architecture** - Production-grade design
 
 **Weaknesses:**
+
 1. ❌ **High upfront cost** - 3-4 weeks implementation
 2. ❌ **New abstractions** - Learning curve for contributors
 3. ❌ **Schema maintenance** - Must keep schemas in sync with pipeline
@@ -157,18 +165,21 @@ The project is currently in **manuscript finalization phase** where:
 5. ❌ **Migration required** - Need to update all notebooks
 
 **Mitigations:**
+
 - Make validation optional (`validate = FALSE`)
 - Maintain backward compatibility
 - Comprehensive test suite
 - Gradual migration path
 
 **Best Use Cases:**
+
 - Production pipelines
 - Multi-team collaborations
 - Long-term maintained projects
 - Data quality critical applications
 
 **Risk Assessment:** MEDIUM
+
 - Significant new code to maintain
 - Risk of schema drift
 - Requires team buy-in and training
@@ -178,6 +189,7 @@ The project is currently in **manuscript finalization phase** where:
 ### Proposal 3: Analysis-Ready Data Snapshots
 
 **Strengths:**
+
 1. ✅ **Explicit versioning** - Clear version tags
 2. ✅ **Best absolute performance** - Instant loading (<1 second)
 3. ✅ **Collaboration friendly** - Share single snapshot file
@@ -186,6 +198,7 @@ The project is currently in **manuscript finalization phase** where:
 6. ✅ **Pre-processed** - Data optimized for analysis
 
 **Weaknesses:**
+
 1. ⚠️ **Two-step workflow** - Run pipeline, then generate snapshot
 2. ⚠️ **Stale data risk** - Must remember to regenerate
 3. ⚠️ **Storage overhead** - Multiple snapshots consume space
@@ -193,18 +206,21 @@ The project is currently in **manuscript finalization phase** where:
 5. ⚠️ **Workflow change** - All notebooks must migrate
 
 **Mitigations:**
+
 - Integrate snapshot generation into pipeline
 - Display snapshot age on load
 - Compress with xz (80-90% size reduction)
 - Include manifest CSV for transparency
 
 **Best Use Cases:**
+
 - Manuscript preparation and submission
 - Sharing data with external collaborators
 - Freezing data for reproducible publications
 - Working with stable pipeline outputs
 
 **Risk Assessment:** LOW-MEDIUM
+
 - Requires workflow discipline
 - Additional storage needed
 - Easy to revert if issues arise
@@ -216,6 +232,7 @@ The project is currently in **manuscript finalization phase** where:
 ### Criteria Weights
 
 Based on project goals (from problem statement):
+
 - **Ease of implementation** (20%) - Need to finalize manuscript soon
 - **Iterative analysis support** (25%) - Figures being refined frequently
 - **Minimal disruption** (20%) - Don't break existing work
@@ -258,6 +275,7 @@ Based on project goals (from problem statement):
 ### Implementation Priority
 
 **Phase 1 (Immediate):** Proposal 1 - Enhanced Caching
+
 - Implement core caching infrastructure
 - Add cache management utilities
 - Update most-used functions (`load_genomic_context_metrics()`, `load_variant_table()`)
@@ -266,6 +284,7 @@ Based on project goals (from problem statement):
 - **Impact:** Immediate 80-95% performance improvement
 
 **Phase 2 (Future consideration):** Proposal 3 - Data Snapshots
+
 - After manuscript figures are finalized
 - For submission and external sharing
 - When stable data artifacts are needed
@@ -273,6 +292,7 @@ Based on project goals (from problem statement):
 - **Impact:** Reproducible publication artifacts
 
 **Phase 3 (Optional):** Proposal 2 - Validation Layer
+
 - If data quality issues arise
 - For long-term maintenance
 - When project scales to larger team
@@ -284,6 +304,7 @@ Based on project goals (from problem statement):
 ## Conclusion
 
 **Proposal 1 (Enhanced Caching Library)** provides the optimal balance of:
+
 - Immediate performance improvements (80-95% faster)
 - Zero disruption to existing workflows
 - Rapid implementation (1-2 weeks)

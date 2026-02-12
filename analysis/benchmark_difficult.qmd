@@ -164,7 +164,6 @@ diff_cov_df %>%
   ) +
   scale_benchmark_version(aesthetic = "fill") +
   facet_wrap(~bench_type, nrow = 1)
-
 ```
 
 ## Variants in Difficult Genomic Contexts
@@ -173,14 +172,13 @@ This section visualizes variant counts by genomic context region using loaded va
 
 ```{r variant_counts_by_context}
 # Create variant count breakdown by genomic context from aggregated metrics
-genomic_context_var_df <- variants_df %>% 
+genomic_context_var_df <- variants_df %>%
   filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
   count(bench_version, ref, bench_type, var_type, context_ids, name = "count")
-
 ```
 
 ```{r variant_counts_by_context_plot}
-(genomic_context_smvar_plt <- genomic_context_var_df  %>%
+(genomic_context_smvar_plt <- genomic_context_var_df %>%
   filter(bench_type == "smvar") %>%
   mutate(
     bench_version = factor(
@@ -212,7 +210,7 @@ genomic_context_var_df <- variants_df %>%
 ```
 
 ```{r structural_variant_counts_by_context_plot}
-(genomic_context_stvar_plt <- genomic_context_var_df  %>%
+(genomic_context_stvar_plt <- genomic_context_var_df %>%
   filter(bench_type == "stvar", .preserve = TRUE) %>%
   mutate(
     bench_version = factor(
@@ -245,11 +243,11 @@ genomic_context_var_df <- variants_df %>%
   ))
 
 ggsave(
-    filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
-    plot = combined_context_plt,
-    width = 8,
-    height = 6,
-    dpi = 300
+  filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
+  plot = combined_context_plt,
+  width = 8,
+  height = 6,
+  dpi = 300
 )
 ```
 
@@ -342,16 +340,21 @@ benchmarks <- parse_pipeline_config()$benchmarks
 diff_coverage_df <- benchmarks %>%
   purrr::map_dfr(function(bench_id) {
     # Skip PP benchmarks as they don't have coverage data yet
-    if (str_detect(bench_id, "^PP")) return(NULL)
-    
-    tryCatch({
-      load_genomic_context_coverage(bench_id) %>%
-        # Parse benchmark ID to get metadata columns
-        bind_cols(parse_benchmark_id(bench_id))
-    }, error = function(e) {
-      warning(glue::glue("Could not load coverage for {bench_id}: {e$message}"))
+    if (str_detect(bench_id, "^PP")) {
       return(NULL)
-    })
+    }
+
+    tryCatch(
+      {
+        load_genomic_context_coverage(bench_id) %>%
+          # Parse benchmark ID to get metadata columns
+          bind_cols(parse_benchmark_id(bench_id))
+      },
+      error = function(e) {
+        warning(glue::glue("Could not load coverage for {bench_id}: {e$message}"))
+        return(NULL)
+      }
+    )
   })
 
 # Calculate total coverage per context

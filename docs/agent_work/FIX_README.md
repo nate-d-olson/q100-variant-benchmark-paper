@@ -3,6 +3,7 @@
 ## Problem
 
 The pipeline was failing with:
+
 ```
 InputFunctionException in rule download_benchmark_dip_bed
 KeyError: 'dip_bed'
@@ -20,6 +21,7 @@ Snakemake evaluates `ensure()` function parameters **during rule parsing** (pars
 ### What Changed
 
 1. **Removed lambda from ensure() (lines 112-115)**
+
    ```python
    # BEFORE (caused error at parse time)
    output:
@@ -38,14 +40,17 @@ Snakemake evaluates `ensure()` function parameters **during rule parsing** (pars
    ```
 
 2. **Moved validation to params (lines 116-118)**
+
    ```python
    params:
        url=lambda w: config["benchmarksets"][w.benchmark]["dip_bed"]["url"],
        sha256=lambda w: config["benchmarksets"][w.benchmark]["dip_bed"]["sha256"],
    ```
+
    These lambdas are only evaluated at **runtime**, after wildcard constraints filter out non-v5q benchmarks.
 
 3. **Added SHA256 validation to shell script (lines 137-149)**
+
    ```bash
    # Download to temporary location
    wget --no-verbose -O {output.bed}.tmp "{params.url}" 2>&1 | tee -a {log}
@@ -59,6 +64,7 @@ Snakemake evaluates `ensure()` function parameters **during rule parsing** (pars
    ```
 
 4. **Kept wildcard constraint (line 121)**
+
    ```python
    wildcard_constraints:
        benchmark="v5q_chm13_smvar|v5q_chm13_stvar|v5q_grch37_smvar|v5q_grch37_stvar|v5q_grch38_smvar|v5q_grch38_stvar",
@@ -121,6 +127,7 @@ See [docs/PARSE_TIME_VS_RUNTIME_FIX.md](docs/PARSE_TIME_VS_RUNTIME_FIX.md) for d
 ## Affected Benchmarks
 
 ### ✅ Will Process (with dip_bed)
+
 - v5q_chm13_smvar
 - v5q_chm13_stvar
 - v5q_grch37_smvar
@@ -129,6 +136,7 @@ See [docs/PARSE_TIME_VS_RUNTIME_FIX.md](docs/PARSE_TIME_VS_RUNTIME_FIX.md) for d
 - v5q_grch38_stvar
 
 ### ⏭️ Will Skip (no dip_bed)
+
 - v421_grch38_smvar
 - v06_grch37_stvar
 
@@ -136,26 +144,32 @@ These benchmarks will still generate variant tables but won't have stratificatio
 
 ## Troubleshooting
 
-### If error persists after testing:
+### If error persists after testing
 
 1. **Verify the fix is in place:**
+
    ```bash
    grep -A 5 "rule download_benchmark_dip_bed:" workflow/rules/downloads.smk | grep -A 3 "output:"
    ```
+
    Should show `ensure()` with NO sha256 parameter.
 
 2. **Check Snakemake version:**
+
    ```bash
    snakemake --version
    ```
+
    Should be >= 8.0
 
 3. **Manually clear cache again:**
+
    ```bash
    ./scripts/clear_snakemake_cache.sh
    ```
 
 4. **Check for syntax errors:**
+
    ```bash
    python -m py_compile workflow/rules/downloads.smk
    ```

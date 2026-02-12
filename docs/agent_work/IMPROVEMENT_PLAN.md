@@ -13,7 +13,9 @@ This document outlines 5 key improvements to enhance the maintainability, reliab
 ## Feature 1: Code Duplication Removal
 
 ### Problem
+
 `workflow/rules/common.smk` contains duplicate function definitions (lines 29-69 duplicated at lines 86-129):
+
 - `get_comparison_files()` - appears twice
 - `get_stratifications_for_comp()` - appears twice
 - `get_strat_inputs()` - appears twice with minor variations
@@ -21,17 +23,20 @@ This document outlines 5 key improvements to enhance the maintainability, reliab
 This creates maintenance burden and risk of inconsistencies when updating logic.
 
 ### Solution
+
 - Remove duplicate function definitions
 - Consolidate into single canonical implementations
 - Add clear documentation for each function's purpose and parameters
 - Add type hints for better IDE support
 
 ### Benefits
+
 - **Maintainability**: Single source of truth for helper functions
 - **Consistency**: No risk of divergent implementations
 - **Readability**: Clearer code structure with ~50 fewer lines
 
 ### Implementation Scope
+
 - File: `workflow/rules/common.smk`
 - Estimated lines removed: ~40
 - Complexity: Low
@@ -42,13 +47,16 @@ This creates maintenance burden and risk of inconsistencies when updating logic.
 ## Feature 2: Python Code Quality Tooling
 
 ### Problem
+
 The codebase lacks automated Python code quality enforcement:
+
 - No linting (ruff not configured)
 - No auto-formatting (black not configured)
 - No type checking (mypy not used despite type hints present)
 - Inconsistent code style across Python scripts
 
 ### Solution
+
 Implement comprehensive Python tooling suite:
 
 1. **Ruff for Linting**
@@ -70,6 +78,7 @@ Implement comprehensive Python tooling suite:
    - Prevent bad code from entering repository
 
 ### Configuration Files to Add
+
 ```toml
 # pyproject.toml additions
 [tool.ruff]
@@ -88,12 +97,14 @@ warn_unused_configs = true
 ```
 
 ### Benefits
+
 - **Code Quality**: Catch bugs and style issues early
 - **Consistency**: Uniform code style across project
 - **Developer Experience**: Better IDE support with type hints
 - **Collaboration**: Easier code reviews with automated checks
 
 ### Implementation Scope
+
 - Add configuration files: `pyproject.toml`, `.pre-commit-config.yaml`
 - Update `Makefile` with new targets: `make lint-py`, `make format-py`, `make typecheck`
 - Fix existing linting/formatting issues
@@ -105,13 +116,16 @@ warn_unused_configs = true
 ## Feature 3: CI/CD Pipeline with GitHub Actions
 
 ### Problem
+
 No continuous integration or automated testing:
+
 - Tests not run automatically on commits/PRs
 - No validation of pull requests before merge
 - Manual testing burden on developers
 - Risk of breaking changes reaching main branch
 
 ### Solution
+
 Implement GitHub Actions CI/CD pipeline:
 
 **Workflows to Create:**
@@ -136,6 +150,7 @@ Implement GitHub Actions CI/CD pipeline:
    - Deploy to GitHub Pages
 
 **Example CI Job Structure:**
+
 ```yaml
 name: CI
 
@@ -164,12 +179,14 @@ jobs:
 ```
 
 ### Benefits
+
 - **Quality Assurance**: Automated testing catches issues early
 - **Confidence**: Safe to merge PRs with passing checks
 - **Documentation**: CI badge shows build status
 - **Efficiency**: Reduces manual testing burden
 
 ### Implementation Scope
+
 - Create `.github/workflows/ci.yml`
 - Update README with CI badge
 - Configure test coverage reporting
@@ -181,7 +198,9 @@ jobs:
 ## Feature 4: Comprehensive Test Coverage
 
 ### Problem
+
 Testing coverage is minimal:
+
 - Only validators and exceptions have tests
 - **0%** coverage of Python scripts (14 scripts, 1,836 lines)
 - **0%** integration tests for Snakemake rules
@@ -189,9 +208,11 @@ Testing coverage is minimal:
 - Limited test fixtures (only 2: sample.bed, sample.vcf)
 
 ### Solution
+
 Expand testing in phases:
 
 **Phase 1: Unit Tests for Python Scripts**
+
 - `count_variants_by_type.py` - test variant counting logic
 - `stratify_comparison.py` - test stratification processing
 - `combine_beds_with_id.py` - test BED interval merging
@@ -199,6 +220,7 @@ Expand testing in phases:
 - Target: 80% line coverage for scripts/
 
 **Phase 2: Integration Tests**
+
 - Test key Snakemake rules with realistic data
 - Rules to test:
   - `download_vcf` - test download and checksum validation
@@ -207,11 +229,13 @@ Expand testing in phases:
   - `aggregate_comparison` - test result aggregation
 
 **Phase 3: Expanded Test Fixtures**
+
 - Add multi-reference test data (GRCh37, GRCh38, CHM13v2.0)
 - Add edge case fixtures (empty files, malformed data)
 - Add realistic benchmark set samples
 
 **Test Structure:**
+
 ```
 tests/
 ├── unit/
@@ -230,12 +254,14 @@ tests/
 ```
 
 ### Benefits
+
 - **Reliability**: Catch bugs before production
 - **Refactoring Safety**: Confidently modify code
 - **Documentation**: Tests show expected behavior
 - **Quality Metrics**: Track coverage trends
 
 ### Implementation Scope
+
 - Add 15-20 new test files
 - Create comprehensive test fixtures
 - Update CI to run all tests
@@ -247,7 +273,9 @@ tests/
 ## Feature 5: Architecture & API Documentation
 
 ### Problem
+
 Documentation gaps prevent easy understanding and contribution:
+
 - No architecture overview or data flow diagrams
 - No API reference for Python scripts
 - Configuration schema undocumented
@@ -255,9 +283,11 @@ Documentation gaps prevent easy understanding and contribution:
 - No development setup instructions
 
 ### Solution
+
 Create comprehensive documentation suite:
 
 **1. Architecture Documentation** (`docs/architecture.md`)
+
 - High-level pipeline overview diagram
 - Data flow through rules
 - Directory structure explanation
@@ -265,12 +295,14 @@ Create comprehensive documentation suite:
 - Resource requirements (CPU, memory, disk)
 
 **2. API Reference** (`docs/api-reference.md`)
+
 - Automatically generated from docstrings
 - Document all Python scripts and functions
 - Include type signatures and examples
 - Cross-reference with Snakemake rules
 
 **3. Configuration Guide** (`docs/configuration.md`)
+
 - Explain config.yaml structure
 - Document all config parameters
 - Provide examples for common use cases:
@@ -280,12 +312,14 @@ Create comprehensive documentation suite:
 - Document config.schema.yaml validation rules
 
 **4. Troubleshooting Guide** (`docs/troubleshooting.md`)
+
 - Common errors and solutions
 - Debugging workflow failures
 - Performance optimization tips
 - FAQ section
 
 **5. Developer Guide** (`docs/development.md`)
+
 - Development environment setup
 - Code style guidelines
 - Testing best practices
@@ -293,24 +327,28 @@ Create comprehensive documentation suite:
 - Release process
 
 **6. Enhanced README**
+
 - Quick start guide
 - Installation instructions
 - Basic usage examples
 - Link to detailed documentation
 
 ### Documentation Tools
+
 - Use **mkdocs** or **Sphinx** for documentation site
 - Auto-generate API docs from docstrings
 - Include Mermaid diagrams for workflows
 - Host on GitHub Pages
 
 ### Benefits
+
 - **Onboarding**: New contributors get up to speed faster
 - **Usability**: Users understand how to customize pipeline
 - **Maintenance**: Clear architecture aids debugging
 - **Collaboration**: Better knowledge sharing
 
 ### Implementation Scope
+
 - Create 6 new documentation files
 - Set up documentation build system
 - Generate API reference
@@ -323,19 +361,23 @@ Create comprehensive documentation suite:
 ## Implementation Roadmap
 
 ### Phase 1: Quick Wins (Week 1)
+
 1. **Feature 1**: Remove code duplication (~2 hours)
 2. **Feature 2**: Add Python tooling configuration (~4 hours)
 
 ### Phase 2: Automation (Week 2)
-3. **Feature 3**: Implement CI/CD pipeline (~8 hours)
+
+1. **Feature 3**: Implement CI/CD pipeline (~8 hours)
 
 ### Phase 3: Testing (Weeks 3-4)
-4. **Feature 4**: Expand test coverage (~16 hours)
+
+1. **Feature 4**: Expand test coverage (~16 hours)
    - Week 3: Unit tests for scripts
    - Week 4: Integration tests
 
 ### Phase 4: Documentation (Week 5)
-5. **Feature 5**: Create comprehensive documentation (~12 hours)
+
+1. **Feature 5**: Create comprehensive documentation (~12 hours)
 
 **Total Estimated Effort:** ~42 hours over 5 weeks
 
@@ -344,17 +386,20 @@ Create comprehensive documentation suite:
 ## Success Metrics
 
 ### Code Quality
+
 - **Duplication**: 0 duplicate functions in common.smk
 - **Linting**: 100% of Python files pass ruff checks
 - **Formatting**: 100% of Python files formatted with black
 - **Type Coverage**: 100% of Python files type-checked with mypy
 
 ### Testing
+
 - **Unit Test Coverage**: ≥80% for workflow/scripts/
 - **Integration Tests**: ≥5 critical rules tested
 - **CI Pass Rate**: 100% of main branch commits pass CI
 
 ### Documentation
+
 - **Coverage**: All 6 documentation sections complete
 - **API Docs**: 100% of public functions documented
 - **Examples**: ≥3 configuration examples provided
@@ -385,6 +430,6 @@ Create comprehensive documentation suite:
 ## References
 
 - Original codebase analysis: See exploration agent output
-- Snakemake best practices: https://snakemake.readthedocs.io/
+- Snakemake best practices: <https://snakemake.readthedocs.io/>
 - Python tooling: ruff, black, mypy documentation
 - Testing: pytest best practices

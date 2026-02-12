@@ -14,15 +14,15 @@ assign_size_bin <- function(var_size) {
 test_that("assign_size_bin correctly categorizes variants", {
   sizes <- c(0, 1, 14, 15, 49, 50, 100, -5, -15, -49, -50)
   bins <- assign_size_bin(sizes)
-  
+
   expected <- c(
-    "<15bp", "<15bp", "<15bp",  # 0, 1, 14
-    "15-49bp", "15-49bp",       # 15, 49
-    ">=50bp", ">=50bp",         # 50, 100
-    "<15bp",                    # -5
-    "15-49bp", "15-49bp",       # -15, -49
-    ">=50bp"                    # -50
+    "<15bp", "<15bp", "<15bp", # 0, 1, 14
+    "15-49bp", "15-49bp", # 15, 49
+    ">=50bp", ">=50bp", # 50, 100
+    "<15bp", # -5
+    "15-49bp", "15-49bp", # -15, -49
+    ">=50bp" # -50
   )
-  
+
   expect_equal(bins, expected)
 })

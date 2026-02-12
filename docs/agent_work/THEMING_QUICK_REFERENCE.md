@@ -7,11 +7,13 @@ Publication-ready ggplot2 and gt table styling system for Cell Genomics journal 
 ## Quick Start
 
 ### Load themes
+
 ```r
 source(here("R/plot_themes.R"))
 ```
 
 ### Create a themed figure
+
 ```r
 ggplot(data, aes(x = context_name, y = value, fill = bench_version)) +
   geom_col(position = "dodge") +
@@ -22,6 +24,7 @@ ggplot(data, aes(x = context_name, y = value, fill = bench_version)) +
 ```
 
 ### Create a themed table
+
 ```r
 data %>%
   gt() %>%
@@ -32,6 +35,7 @@ data %>%
 ## Color Palettes
 
 ### Benchmark Versions
+
 ```r
 scale_benchmark_version(aesthetic = "fill")  # or "color"
 # v0.6   → #1B9E77 (teal)
@@ -40,6 +44,7 @@ scale_benchmark_version(aesthetic = "fill")  # or "color"
 ```
 
 ### Reference Genomes
+
 ```r
 scale_reference_genome(aesthetic = "fill")
 # GRCh37    → #E41A1C (red)
@@ -48,6 +53,7 @@ scale_reference_genome(aesthetic = "fill")
 ```
 
 ### Genomic Contexts
+
 ```r
 scale_genomic_context(aesthetic = "fill")
 # HP    → #E41A1C (red)
@@ -59,6 +65,7 @@ scale_genomic_context(aesthetic = "fill")
 ```
 
 ### Variant Types
+
 ```r
 scale_variant_type(aesthetic = "fill")
 # smvar → #1B9E77 (teal)
@@ -68,6 +75,7 @@ scale_variant_type(aesthetic = "fill")
 ## Theme Features
 
 ### theme_manuscript()
+
 - ✓ 9pt body font, 8pt labels
 - ✓ 85-180mm figure width optimized
 - ✓ Professional minimal design
@@ -76,6 +84,7 @@ scale_variant_type(aesthetic = "fill")
 - ✓ Facet styling with gray background
 
 ### theme_gt_manuscript()
+
 - ✓ 9pt body, 10pt headers
 - ✓ Black top/bottom borders
 - ✓ Gray column headers
@@ -102,18 +111,21 @@ gt_object %>% gtsave("table.pdf")
 ## Helper Functions
 
 ### Get context labels
+
 ```r
 get_context_labels()                    # All labels
 get_context_labels(c("HP", "TR"))       # Specific labels
 ```
 
 ### Get variant type labels
+
 ```r
 get_variant_type_labels()               # All labels
 get_variant_type_labels(c("smvar"))     # Specific labels
 ```
 
 ### Get all colors
+
 ```r
 palettes <- get_color_palettes()
 palettes$bench_version
@@ -121,6 +133,7 @@ palettes$context_name
 ```
 
 ### Figure export parameters
+
 ```r
 params <- get_figure_params("my_figure", figure_number = 1)
 # Returns: filename, width, height, dpi, units, bg, format
@@ -129,6 +142,7 @@ params <- get_figure_params("my_figure", figure_number = 1)
 ## Common Patterns
 
 ### Multi-series comparison
+
 ```r
 ggplot(data, aes(x = ref, y = value, fill = bench_version)) +
   geom_col(position = "dodge") +
@@ -137,6 +151,7 @@ ggplot(data, aes(x = ref, y = value, fill = bench_version)) +
 ```
 
 ### Faceted by genomic context
+
 ```r
 ggplot(data, aes(x = bench_version, y = count, fill = var_type)) +
   geom_col() +
@@ -146,6 +161,7 @@ ggplot(data, aes(x = bench_version, y = count, fill = var_type)) +
 ```
 
 ### Grouped table
+
 ```r
 data %>%
   gt(groupname_col = "bench_version") %>%
@@ -154,6 +170,7 @@ data %>%
 ```
 
 ### Multi-panel figure
+
 ```r
 library(patchwork)
 p1 + p2 + p3 +
@@ -178,6 +195,7 @@ p1 + p2 + p3 +
 ## Customization
 
 ### Override specific theme elements
+
 ```r
 plot + theme_manuscript() +
   theme(
@@ -187,6 +205,7 @@ plot + theme_manuscript() +
 ```
 
 ### Create custom palette
+
 ```r
 my_colors <- c("Option1" = "#E41A1C", "Option2" = "#377EB8")
 scale_custom <- function(aes = "color") {
@@ -200,6 +219,7 @@ scale_custom <- function(aes = "color") {
 ## Examples
 
 See full examples in `R/example_themed_analysis.R`:
+
 - Variant counts by genomic context
 - Variant density by context
 - Summary statistics table
@@ -210,6 +230,7 @@ See full examples in `R/example_themed_analysis.R`:
 ## Documentation
 
 Complete guide: `docs/plot_themes_guide.md`
+
 - Detailed usage instructions
 - Color palette rationale
 - Troubleshooting guide

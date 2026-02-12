@@ -34,7 +34,7 @@ This directory contains comprehensive proposals for improving data loading in Qu
 
 ### Analysis & Selection
 
-4. **[proposal_comparison_and_selection.md](./proposal_comparison_and_selection.md)** (12 KB)
+1. **[proposal_comparison_and_selection.md](./proposal_comparison_and_selection.md)** (12 KB)
    - Detailed comparison across 6 criteria (implementation, performance, UX, maintainability, reproducibility, alignment)
    - Weighted scoring methodology (Proposal 1: 91.25, Proposal 2: 71.25, Proposal 3: 78.5)
    - Rationale for selecting Proposal 1
@@ -42,7 +42,7 @@ This directory contains comprehensive proposals for improving data loading in Qu
 
 ### Implementation
 
-5. **[implementation_plan_caching.md](./implementation_plan_caching.md)** (26 KB)
+1. **[implementation_plan_caching.md](./implementation_plan_caching.md)** (26 KB)
    - Complete 4-phase implementation plan for Proposal 1
    - Timeline: 10-14 days
    - Detailed tasks with acceptance criteria
@@ -50,14 +50,14 @@ This directory contains comprehensive proposals for improving data loading in Qu
    - Risk assessment and rollback strategy
    - Success metrics and validation procedures
 
-6. **[cache_format_comparison.md](./cache_format_comparison.md)** (20 KB) ⭐ NEW
+2. **[cache_format_comparison.md](./cache_format_comparison.md)** (20 KB) ⭐ NEW
    - **Response to PR comment:** Comparison of cache formats (RDS vs Arrow/Parquet vs SQLite/DuckDB)
    - Performance benchmarks for different data sizes
    - Memory usage analysis for exploratory analysis
    - **Recommendation:** Arrow/Parquet for 2-4x performance, optional DuckDB for queries
    - Use case analysis and migration path
 
-7. **[implementation_plan_parquet_addendum.md](./implementation_plan_parquet_addendum.md)** (19 KB) ⭐ NEW
+3. **[implementation_plan_parquet_addendum.md](./implementation_plan_parquet_addendum.md)** (19 KB) ⭐ NEW
    - **Extension to implementation plan:** Adds Arrow/Parquet format support
    - Multi-format caching (RDS + Parquet) with auto-selection
    - Optional DuckDB query support for large datasets
@@ -108,12 +108,14 @@ Following PR feedback, the implementation plan has been enhanced to support mult
 ### Performance Benefits
 
 **Parquet vs RDS:**
+
 - Read speed: 2-4x faster
 - Compression: 40-60% smaller files
 - Memory: Column subsetting reduces memory usage
 - Queries: Direct SQL queries without full data load (with DuckDB)
 
-**See:** 
+**See:**
+
 - [cache_format_comparison.md](./cache_format_comparison.md) - Detailed analysis
 - [implementation_plan_parquet_addendum.md](./implementation_plan_parquet_addendum.md) - Implementation details
 
@@ -150,30 +152,36 @@ Following PR feedback, the implementation plan has been enhanced to support mult
 ## Context
 
 ### Project Phase
+
 The q100-variant-benchmark-paper project is currently in the manuscript finalization phase where:
+
 - Figures are being iteratively refined based on feedback
 - Notebooks are being re-run frequently (5-10+ times per day)
 - External collaborators need to review results
 - Pipeline outputs are relatively stable
 
 ### Current Pain Points
+
 1. Loading data from pipeline outputs is slow (2-5 seconds per dataset)
 2. No caching mechanism exists, requiring full reload every time
 3. Some notebooks use inconsistent data loading patterns
 4. Large variant tables (GB-scale) are very slow to load
 
 ### Goal
+
 Make it easier to finalize the initial set of figures and tables for the scientific manuscript while maintaining flexibility for exploratory analysis.
 
 ## Technical Details
 
 ### Current Architecture
+
 - Data loading functions in `R/data_loading.R`
 - Snakemake pipeline outputs in `results/` directory
 - Two-tier approach: aggregated metrics (fast) vs. full variant tables (slow)
 - Helper functions provide primary interface
 
 ### Proposed Enhancement (Proposal 1)
+
 - Add internal `.cache_wrapper()` function
 - Wrap existing loaders with caching layer
 - Store cached objects in `analysis/cache/` (gitignored)
@@ -181,6 +189,7 @@ Make it easier to finalize the initial set of figures and tables for the scienti
 - Provide management utilities (`clear_analysis_cache()`, `cache_stats()`)
 
 ### Performance Expectations
+
 - First load: 2-5 seconds (same as current)
 - Cached load: 0.1-0.5 seconds (10-50x faster)
 - Overall improvement: 80-95% for typical notebook re-runs
@@ -188,12 +197,14 @@ Make it easier to finalize the initial set of figures and tables for the scienti
 ## References
 
 ### Related Documentation
+
 - [Pipeline Outputs Reference](../pipeline-outputs.md) - Structure of Snakemake outputs
 - [Data Dictionary](../data-dictionary.md) - Metric definitions
 - [API Reference](../api-reference.md) - Function documentation
 - [Architecture](../architecture.md) - System design overview
 
 ### Code Files
+
 - `R/data_loading.R` - Current data loading functions (to be enhanced)
 - `analysis/*.qmd` - Quarto notebooks using data loading functions
 - `config/config.yaml` - Pipeline configuration
@@ -201,6 +212,7 @@ Make it easier to finalize the initial set of figures and tables for the scienti
 ## Questions?
 
 For questions or clarifications about these proposals:
+
 1. Review the detailed proposal documents
 2. Check the implementation plan for technical details
 3. Consult the comparison document for selection rationale

@@ -64,7 +64,9 @@ rule compute_genomic_context_size:
     input:
         bed="results/genomic_context/{benchmark}/coverage/{genomic_context}.bed.gz",
     output:
-        size=temp("results/genomic_context/{benchmark}/sizes/{genomic_context}_size.txt"),
+        size=temp(
+            "results/genomic_context/{benchmark}/sizes/{genomic_context}_size.txt"
+        ),
     log:
         "logs/genomic_context/{benchmark}/{genomic_context}_size.log",
     message:

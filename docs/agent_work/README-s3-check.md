@@ -67,15 +67,18 @@ python3 scripts/check_s3_objects.py --url s3://giab-data/path/to/file.bed --fix
 ## What the Script Does
 
 ### 1. Object Existence
+
 - Uses `HeadObject` to verify the object exists
 - Reports missing objects
 
 ### 2. ACL Permissions
+
 - Checks if object has `public-read` ACL
 - If not, sets ACL to `public-read` (when `--fix` is used)
 - Looks for AllUsers group with READ permission
 
 ### 3. Storage Class
+
 - Checks the object's storage class
 - For Glacier storage classes (GLACIER, DEEP_ARCHIVE, GLACIER_IR):
   - Checks if restore is in progress or complete

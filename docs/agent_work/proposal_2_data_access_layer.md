@@ -391,21 +391,25 @@ validate_external_evals <- function(df, var_type) {
 ## Implementation Steps
 
 ### Phase 1: Schema Definition (Week 1)
+
 1. Create `R/schemas.R` with complete schema registry
 2. Document all pipeline output structures
 3. Add schema for external data sources
 
 ### Phase 2: Validation Engine (Week 2)
+
 1. Implement `R/validation.R` with validation logic
 2. Add comprehensive test suite for validation
 3. Create validation report generator
 
 ### Phase 3: Data Access Layer (Week 3)
+
 1. Create `R/data_access.R` with validated wrappers
 2. Create `R/external_data.R` for external data
 3. Update documentation with new functions
 
 ### Phase 4: Notebook Migration (Week 4)
+
 1. Update `benchmarkset_characterization.qmd` to use new layer
 2. Update `external_evaluation.qmd` to use `load_external_evaluations()`
 3. Update `benchmark_difficult.qmd`
@@ -414,18 +418,21 @@ validate_external_evals <- function(df, var_type) {
 ## Benefits
 
 ### Data Quality Assurance
+
 - **Early detection** of pipeline output issues
 - **Type safety** prevents silent type coercion bugs
 - **Schema documentation** serves as data dictionary
 - **Consistent validation** across all notebooks
 
 ### Developer Experience
+
 - **Self-documenting** - schemas explain data structure
 - **Autocomplete support** - clear function signatures
 - **Error messages** pinpoint exact validation failures
 - **Standardized interface** - one way to load each data type
 
 ### Maintainability
+
 - **Centralized** - schema changes update all notebooks
 - **Versioned** - schemas can evolve with pipeline
 - **Testable** - validation logic has comprehensive tests
@@ -434,6 +441,7 @@ validate_external_evals <- function(df, var_type) {
 ## Drawbacks and Mitigations
 
 ### Additional Complexity
+
 - **Risk**: More files and abstraction layers
 - **Mitigation**:
   - Keep existing `data_loading.R` functions
@@ -442,6 +450,7 @@ validate_external_evals <- function(df, var_type) {
   - Document with examples
 
 ### Performance Overhead
+
 - **Risk**: Validation adds runtime cost
 - **Mitigation**:
   - Validation is fast (milliseconds for most datasets)
@@ -449,6 +458,7 @@ validate_external_evals <- function(df, var_type) {
   - Cache validation results
 
 ### Migration Effort
+
 - **Risk**: Requires updating existing notebooks
 - **Mitigation**:
   - Both old and new interfaces work simultaneously
@@ -517,16 +527,19 @@ metrics <- data_access_genomic_metrics()
 ## Comparison to Other Proposals
 
 **Advantages over Proposal 1 (Caching):**
+
 - Guarantees data quality
 - Self-documenting schemas
 - Catches pipeline bugs early
 
 **Advantages over Proposal 3 (Snapshots):**
+
 - Real-time validation on current data
 - No manual snapshot generation
 - Works with dynamic queries
 
 **Disadvantages compared to Proposal 1:**
+
 - Higher implementation effort
 - More files to maintain
 - Requires notebook migration

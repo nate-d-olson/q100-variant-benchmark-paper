@@ -24,6 +24,7 @@ This document provides a detailed implementation plan for Proposal 1: Enhanced D
 ## Phase 1: Core Caching Infrastructure (Days 1-3)
 
 ### Objectives
+
 - Create internal caching utilities
 - Establish cache directory structure
 - Implement cache key generation
@@ -36,18 +37,21 @@ This document provides a detailed implementation plan for Proposal 1: Enhanced D
 **File:** `environment.yaml` or `renv.lock`
 
 **Changes:**
+
 ```yaml
 # Add to dependencies:
   - r-digest>=0.6.33  # For cache key generation
 ```
 
 **Test:**
+
 ```r
 library(digest)
 digest::digest("test")  # Should return hash
 ```
 
 **Acceptance Criteria:**
+
 - [ ] `digest` package installs successfully
 - [ ] Can generate SHA1 hashes from R objects
 
@@ -60,6 +64,7 @@ digest::digest("test")  # Should return hash
 **Location:** Add to beginning of file (after initial comments)
 
 **Code to Add:**
+
 ```r
 #' Internal: Cache Wrapper for Data Loading Functions
 #'
@@ -150,6 +155,7 @@ digest::digest("test")  # Should return hash
 ```
 
 **Tests:**
+
 ```r
 # Test cache key generation
 key1 <- .generate_cache_key(param1 = "a", param2 = 1)
@@ -161,6 +167,7 @@ stopifnot(key1 != key3)  # Different inputs = different key
 ```
 
 **Acceptance Criteria:**
+
 - [ ] `.cache_wrapper()` function created
 - [ ] `.generate_cache_key()` function created
 - [ ] Functions are marked as internal with `@keywords internal`
@@ -176,6 +183,7 @@ stopifnot(key1 != key3)  # Different inputs = different key
 **Location:** Add at end of file
 
 **Code to Add:**
+
 ```r
 #' Clear Analysis Cache
 #'
@@ -276,6 +284,7 @@ cache_stats <- function() {
 ```
 
 **Tests:**
+
 ```r
 # Test cache management
 clear_analysis_cache()  # Should report clearing or empty
@@ -283,6 +292,7 @@ cache_stats()           # Should show empty cache
 ```
 
 **Acceptance Criteria:**
+
 - [ ] `clear_analysis_cache()` function created and exported
 - [ ] `cache_stats()` function created and exported
 - [ ] Functions handle missing cache directory gracefully
@@ -295,6 +305,7 @@ cache_stats()           # Should show empty cache
 **File:** `.gitignore`
 
 **Changes:**
+
 ```gitignore
 # Analysis cache (do not commit cached data)
 analysis/cache/
@@ -302,6 +313,7 @@ analysis/cache/
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Cache directory excluded from git
 - [ ] Verify with `git status` that cache files are ignored
 
@@ -310,6 +322,7 @@ analysis/cache/
 ## Phase 2: Integrate Caching into Functions (Days 4-7)
 
 ### Objectives
+
 - Update high-impact functions with caching
 - Maintain backward compatibility
 - Add comprehensive documentation
@@ -326,6 +339,7 @@ analysis/cache/
 **Changes:**
 
 **Step 1:** Rename existing function:
+
 ```r
 # Find the existing function definition (line ~148)
 load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = NULL) {
@@ -335,6 +349,7 @@ load_genomic_context_metrics <- function(results_dir = NULL, benchmark_filter = 
 ```
 
 **Step 2:** Create new cached wrapper at same location:
+
 ```r
 #' Load Genomic Context Metrics
 #'
@@ -414,6 +429,7 @@ load_genomic_context_metrics <- function(results_dir = NULL,
 ```
 
 **Tests:**
+
 ```r
 # Test caching behavior
 metrics1 <- load_genomic_context_metrics()  # First load - should cache
@@ -437,6 +453,7 @@ stopifnot(identical(metrics1, metrics4))
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Function maintains existing behavior when `use_cache = FALSE`
 - [ ] Caching works correctly with default parameters
 - [ ] Cache invalidates when source files change
@@ -460,11 +477,13 @@ stopifnot(identical(metrics1, metrics4))
 4. Update documentation
 
 **Special Considerations:**
+
 - Large file caching (warn if cache >500 MB)
 - Include filters in cache key
 - Consider adding `lazy` parameter for future enhancement
 
 **Acceptance Criteria:**
+
 - [ ] Function caches large variant tables
 - [ ] Cache key includes all filter parameters
 - [ ] Warning displayed for large cache files (>500 MB)
@@ -479,6 +498,7 @@ stopifnot(identical(metrics1, metrics4))
 **Changes:** Follow same pattern as above
 
 **Acceptance Criteria:**
+
 - [ ] Function integrated with caching
 - [ ] Context filter included in cache key
 - [ ] Documentation updated
@@ -492,6 +512,7 @@ stopifnot(identical(metrics1, metrics4))
 **Changes:** Follow same pattern as above
 
 **Acceptance Criteria:**
+
 - [ ] Function integrated with caching
 - [ ] BED files included in cache key calculation
 - [ ] Documentation updated
@@ -501,6 +522,7 @@ stopifnot(identical(metrics1, metrics4))
 ## Phase 3: Documentation and Testing (Days 8-10)
 
 ### Objectives
+
 - Comprehensive documentation
 - Test suite for caching logic
 - Usage examples
@@ -556,6 +578,7 @@ metrics <- load_genomic_context_metrics(use_cache = FALSE)
 # Or set environment variable
 Sys.setenv(R_ANALYSIS_CACHE = "false")
 ```
+
 ```
 
 **Acceptance Criteria:**
@@ -589,6 +612,7 @@ clear_analysis_cache()
 **Symptom:** Disk space warnings or slow cache operations
 
 **Solution:**
+
 ```r
 cache_stats()  # Check cache size
 clear_analysis_cache()  # Remove all cached data
@@ -602,6 +626,7 @@ variants <- load_variant_table("v5.0q_GRCh38_smvar", use_cache = FALSE)
 **Symptom:** Error writing to cache directory
 
 **Solution:**
+
 ```bash
 # Check permissions
 ls -la analysis/cache/
@@ -609,6 +634,7 @@ ls -la analysis/cache/
 # Fix permissions
 chmod -R u+w analysis/cache/
 ```
+
 ```
 
 **Acceptance Criteria:**
@@ -712,11 +738,13 @@ test_that("clear_analysis_cache removes all files", {
 ```
 
 **Run Tests:**
+
 ```r
 testthat::test_file("tests/testthat/test-caching.R")
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All tests pass
 - [ ] Test coverage >80% for caching code
 - [ ] Tests run in isolated environment
@@ -727,6 +755,7 @@ testthat::test_file("tests/testthat/test-caching.R")
 ## Phase 4: Validation and Rollout (Days 11-14)
 
 ### Objectives
+
 - Validate caching behavior with real data
 - Benchmark performance improvements
 - Update example notebooks
@@ -768,11 +797,13 @@ cat("✓ Data integrity verified\n")
 ```
 
 **Expected Results:**
+
 - First load: 2-5 seconds
 - Cached load: 0.1-0.5 seconds
 - Improvement: 10-50x faster
 
 **Acceptance Criteria:**
+
 - [ ] Cached loads are at least 10x faster
 - [ ] Data integrity maintained
 - [ ] Performance meets expectations
@@ -821,6 +852,7 @@ clear_analysis_cache()
 # Then reload
 strat_metrics_df <- load_genomic_context_metrics()
 ```
+
 ```
 
 **Acceptance Criteria:**
@@ -862,6 +894,7 @@ To refresh data after pipeline updates:
 
 clear_analysis_cache()
 ```
+
 ```
 
 ### Recommended: Document Caching
@@ -914,6 +947,7 @@ cache_stats()
 ## Troubleshooting
 
 See [Troubleshooting Guide](../troubleshooting.md#caching-issues)
+
 ```
 
 **Acceptance Criteria:**
@@ -968,11 +1002,13 @@ git push origin main
 ```
 
 ### Graceful Rollback (after merge)
+
 1. Set `use_cache = FALSE` as default in all functions
 2. Add deprecation notice
 3. Plan removal in next version
 
 ### Emergency Rollback
+
 ```r
 # Add to top of R/data_loading.R
 options(analysis_cache_enabled = FALSE)

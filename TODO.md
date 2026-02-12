@@ -27,10 +27,13 @@ Improve and simplify vcf processing using functions from the truvari api to repl
 - fix difficult regions included and difficult region bases excluded code
 
 Documentation
+
 - Column descriptions for variant tables
 
 Analyses
+
 - Look for small intervals in v5q
 
 Low priority
+
 - Optimize variant tables: data.table, database, arrow, etc.?

@@ -104,9 +104,11 @@ interval_count_plt <- interval_regions_df %>%
     scales = "free",
     labeller = as_labeller(bench_type_labels)
   ) +
-  scale_benchmark_version(aesthetic = "fill", 
-                          name = "Benchmark Version", 
-                          guide = "none") +
+  scale_benchmark_version(
+    aesthetic = "fill",
+    name = "Benchmark Version",
+    guide = "none"
+  ) +
   scale_y_continuous(labels = scales::comma) +
   labs(
     x = "Benchmark Version",

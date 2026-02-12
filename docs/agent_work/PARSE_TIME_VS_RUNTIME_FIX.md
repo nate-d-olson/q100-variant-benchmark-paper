@@ -5,6 +5,7 @@
 Snakemake evaluates code at two different times, and mixing them caused the error:
 
 ### Parse Time (DAG Construction)
+
 - Happens when you run `snakemake -n` or `snakemake --cores 8`
 - Snakemake reads all rules to understand dependencies
 - Evaluates certain parameters to build the dependency graph
@@ -12,6 +13,7 @@ Snakemake evaluates code at two different times, and mixing them caused the erro
 - Wildcard constraints haven't filtered anything yet
 
 ### Runtime (Rule Execution)
+
 - Happens when a rule actually runs
 - Only evaluates for wildcards that match the rule
 - **`params` lambdas are evaluated here**
@@ -35,6 +37,7 @@ wildcard_constraints:
 ```
 
 **What happened:**
+
 1. Snakemake parses the rule
 2. Evaluates `ensure()` sha256 lambda to understand the rule structure
 3. Tries ALL benchmark values from config (v421, v06, AND v5q)
@@ -42,9 +45,11 @@ wildcard_constraints:
 5. Error occurs before wildcard constraint can filter
 
 **Even defensive code didn't work:**
+
 ```python
 sha256=lambda w: config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("sha256", "")
 ```
+
 The lambda itself was still being evaluated at parse time with ALL benchmark names.
 
 ## The Fix
@@ -72,12 +77,14 @@ shell:
 
 **What happens now:**
 
-### Parse Time (safe):
+### Parse Time (safe)
+
 1. Snakemake parses the rule
 2. No lambdas in `ensure()` → nothing to evaluate
 3. No error! ✅
 
-### Runtime (safe):
+### Runtime (safe)
+
 1. Wildcard constraint limits matches to v5q benchmarks only
 2. Rule runs with `benchmark=v5q_grch38_smvar` (for example)
 3. Now `params` lambdas are evaluated
@@ -117,6 +124,7 @@ User runs: snakemake --cores 8
 ## Similar Snakemake Gotchas
 
 This same issue can occur with:
+
 - `ensure()` with any lambda parameter
 - `protected()` with lambda
 - `temp()` with lambda

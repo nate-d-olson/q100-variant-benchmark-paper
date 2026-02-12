@@ -335,13 +335,13 @@ Add snapshot generation to the Makefile:
 
 .PHONY: snapshot
 snapshot: ## Generate analysis-ready data snapshot
-	@echo "Generating analysis snapshots from pipeline outputs..."
-	Rscript -e "source('R/generate_snapshots.R'); generate_analysis_snapshots()"
+ @echo "Generating analysis snapshots from pipeline outputs..."
+ Rscript -e "source('R/generate_snapshots.R'); generate_analysis_snapshots()"
 
 .PHONY: list-snapshots
 list-snapshots: ## List available data snapshots
-	@echo "Available data snapshots:"
-	Rscript -e "source('R/load_snapshots.R'); print(list_snapshots())"
+ @echo "Available data snapshots:"
+ Rscript -e "source('R/load_snapshots.R'); print(list_snapshots())"
 ```
 
 ### 4. Notebook Template
@@ -374,24 +374,28 @@ exclusions <- snapshot$exclusions
 ## Implementation Steps
 
 ### Phase 1: Snapshot Generation (Week 1)
+
 1. Create `R/generate_snapshots.R` with generation logic
 2. Create `R/load_snapshots.R` with loading functions
 3. Add snapshot generation tests
 4. Document snapshot structure
 
 ### Phase 2: Initial Snapshot (Week 2)
+
 1. Run pipeline to generate fresh outputs
 2. Generate first official snapshot
 3. Validate snapshot completeness
 4. Archive snapshot with version tag
 
 ### Phase 3: Notebook Migration (Week 3)
+
 1. Update `benchmarkset_characterization.qmd` to use snapshots
 2. Update `benchmark_difficult.qmd` to use snapshots
 3. Update `external_evaluation.qmd` (external data separate)
 4. Verify all figures reproduce correctly
 
 ### Phase 4: Workflow Integration (Week 4)
+
 1. Add `make snapshot` target
 2. Create snapshot refresh workflow
 3. Document snapshot lifecycle
@@ -400,24 +404,28 @@ exclusions <- snapshot$exclusions
 ## Benefits
 
 ### Stability and Reproducibility
+
 - **Frozen artifacts** - Data doesn't change between analysis runs
 - **Version control** - Track which snapshot produced each manuscript version
 - **Portability** - Single file contains all analysis data
 - **Rollback capability** - Can always return to previous snapshot
 
 ### Performance
+
 - **Instant loading** - Pre-processed data loads in <1 second
 - **Optimized format** - Compressed RDS with factors pre-set
 - **No parsing** - Skip CSV reading and type conversion
 - **Pre-joined data** - Common joins already performed
 
 ### Collaboration
+
 - **Easy sharing** - Send single snapshot file to collaborators
 - **Consistent results** - Everyone uses same data version
 - **Reduced pipeline dependencies** - Analysts don't need to run full pipeline
 - **Clear versioning** - Explicit snapshot versions in filenames
 
 ### Analysis-Ready
+
 - **Pre-factored** - All categorical variables with correct levels
 - **Pre-joined** - Common joins already performed
 - **Derived columns** - Useful calculations pre-computed
@@ -426,6 +434,7 @@ exclusions <- snapshot$exclusions
 ## Drawbacks and Mitigations
 
 ### Stale Data Risk
+
 - **Risk**: Analysts may forget to regenerate snapshots
 - **Mitigation**:
   - Display snapshot age when loading
@@ -434,6 +443,7 @@ exclusions <- snapshot$exclusions
   - Warn if snapshot is >7 days old
 
 ### Storage Requirements
+
 - **Risk**: Multiple snapshot versions consume disk space
 - **Mitigation**:
   - Compress with `xz` compression (typically 80-90% reduction)
@@ -442,6 +452,7 @@ exclusions <- snapshot$exclusions
   - Snapshots are much smaller than raw pipeline outputs
 
 ### Two-Step Workflow
+
 - **Risk**: Requires running pipeline then generating snapshot
 - **Mitigation**:
   - Integrate snapshot generation into pipeline (`onsuccess` hook)
@@ -449,6 +460,7 @@ exclusions <- snapshot$exclusions
   - Document workflow clearly
 
 ### Binary Format
+
 - **Risk**: RDS files are not human-readable
 - **Mitigation**:
   - Include manifest CSV showing snapshot contents
@@ -538,18 +550,21 @@ sum(current$benchmark_summary$total_variants) -
 ## Comparison to Other Proposals
 
 **Advantages over Proposal 1 (Caching):**
+
 - Version control and explicit versioning
 - Pre-processed and optimized for analysis
 - Portable and shareable
 - Stable across sessions
 
 **Advantages over Proposal 2 (Data Access Layer):**
+
 - Zero runtime overhead (data pre-loaded)
 - Simple interface (single load function)
 - Faster implementation
 - No validation runtime cost
 
 **Disadvantages:**
+
 - Requires explicit refresh step
 - Additional storage for snapshots
 - Binary format less transparent

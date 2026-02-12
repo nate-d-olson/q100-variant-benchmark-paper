@@ -16,6 +16,7 @@ Enhance the existing `R/data_loading.R` library with intelligent caching mechani
 ### 1. Add Caching Layer to Existing Functions
 
 Wrap existing data loading functions with a caching layer that:
+
 - Stores processed R objects as `.rds` files in `analysis/cache/`
 - Uses content-based cache keys (file modification time + file size)
 - Automatically invalidates when source files change
@@ -141,24 +142,28 @@ load_variant_table <- function(benchmark_id,
 ## Implementation Steps
 
 ### Phase 1: Core Caching Infrastructure (Week 1)
+
 1. Add `.cache_wrapper()` internal function
 2. Add cache management utilities (`clear_analysis_cache()`, `cache_stats()`)
 3. Update `.gitignore` to exclude `analysis/cache/` directory
 4. Document caching behavior in function documentation
 
 ### Phase 2: Integrate Caching into Existing Functions (Week 2)
+
 1. Update `load_genomic_context_metrics()` with caching
 2. Update `load_variant_table()` with caching (most impactful)
 3. Update `load_diff_coverage()` with caching
 4. Update `load_benchmark_regions()` with caching
 
 ### Phase 3: Testing and Documentation (Week 3)
+
 1. Add unit tests for caching logic
 2. Update README with caching documentation
 3. Add troubleshooting guide for cache issues
 4. Update Quarto notebooks with caching examples
 
 ### Phase 4: Advanced Features (Optional)
+
 1. Implement lazy loading for very large files
 2. Add parallel cache warming utility
 3. Add cache compression optimization
@@ -166,16 +171,19 @@ load_variant_table <- function(benchmark_id,
 ## Benefits
 
 ### Performance Improvements
+
 - **80-95% faster re-runs** of analysis notebooks (cached data loads in milliseconds)
 - **Instant restarts** after R session crashes or kernel restarts
 - **Reduced memory pressure** when working with multiple notebooks simultaneously
 
 ### Development Experience
+
 - **Faster iteration** when tweaking visualizations or statistical models
 - **Notebook portability** - cache travels with analysis directory
 - **Explicit refresh** when pipeline outputs update
 
 ### Reproducibility
+
 - **Stable snapshots** of intermediate data transformations
 - **Cache key tracking** for provenance
 - **Version control friendly** (cache directory excluded from git)
@@ -183,13 +191,15 @@ load_variant_table <- function(benchmark_id,
 ## Drawbacks and Mitigations
 
 ### Disk Space Usage
+
 - **Risk**: Cache directory can grow large with many datasets
-- **Mitigation**: 
+- **Mitigation**:
   - Provide `clear_analysis_cache()` utility
   - Add cache size warnings when >1GB
   - Document cache location for manual cleanup
 
 ### Stale Cache Issues
+
 - **Risk**: Users may forget to refresh cache after pipeline updates
 - **Mitigation**:
   - Automatic invalidation based on file modification times
@@ -197,6 +207,7 @@ load_variant_table <- function(benchmark_id,
   - Display cache age in `cache_stats()`
 
 ### Complexity
+
 - **Risk**: Adds another layer of abstraction
 - **Mitigation**:
   - Make caching opt-in via `use_cache` parameter (default: TRUE)
@@ -255,11 +266,13 @@ metrics <- load_genomic_context_metrics()  # Fresh load
 ## Comparison to Other Proposals
 
 **Advantages over Proposal 2 (Standardized Layer):**
+
 - Lighter weight, builds on existing code
 - No architectural changes required
 - Faster to implement
 
 **Advantages over Proposal 3 (Snapshots):**
+
 - No manual snapshot generation steps
 - Automatic invalidation on data changes
 - Works with dynamic filtering and subsets

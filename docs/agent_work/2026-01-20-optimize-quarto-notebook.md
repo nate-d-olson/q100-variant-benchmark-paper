@@ -13,6 +13,7 @@
 ## Task 1: Create Python Script for Variant Table Processing
 
 **Files:**
+
 - Create: `workflow/scripts/process_variant_table.py`
 
 **Step 1: Write failing test for variant table processing**
@@ -551,6 +552,7 @@ git commit -m "feat: add variant table processing script
 ## Task 2: Add Snakemake Rule for Processing Variant Tables
 
 **Files:**
+
 - Modify: `workflow/rules/var_tables.smk`
 - Create: `workflow/envs/pandas.yaml`
 
@@ -675,6 +677,7 @@ git commit -m "feat: add Snakemake rule to process variant tables
 ## Task 3: Update Quarto Notebook to Use Processed Tables
 
 **Files:**
+
 - Modify: `analysis/benchmarkset-characterization.qmd`
 
 **Step 1: Write test to verify notebook runs faster**
@@ -752,11 +755,16 @@ bench_vars_tbls <- processed_var_tbl_files %>%
     unnest(data)
 ```
 
-# Remove these functions (no longer needed):
+# Remove these functions (no longer needed)
+
 # - tidy_smvar() (lines 56-87)
+
 # - tidy_stvar() (lines 89-111)
+
 # - get_bench_var_cols() (lines 113-234)
+
 # - read_bench_file() (lines 237-285)
+
 ```
 
 **Step 4: Update TODO comment about optimization**
@@ -791,6 +799,7 @@ git commit -m "refactor: simplify Quarto notebook using processed tables
 ## Task 4: Run Full Pipeline and Verify Outputs
 
 **Files:**
+
 - None (testing/validation task)
 
 **Step 1: Clean existing outputs**
@@ -856,7 +865,7 @@ for table in results/variant_tables_processed/*/variants_processed.tsv; do
 
     # Check for expected columns
     header=$(head -n 1 "$table")
-    expected="chrom	pos	end	gt	vkx	var_type	var_size	region_ids	strat_ids"
+    expected="chrom pos end gt vkx var_type var_size region_ids strat_ids"
 
     if [ "$header" != "$expected" ]; then
         echo "ERROR: $table has unexpected columns"
@@ -891,6 +900,7 @@ git commit -m "test: add verification script for processed tables
 ## Task 5: Update Documentation
 
 **Files:**
+
 - Modify: `README.md` or workflow documentation
 
 **Step 1: Document the optimization**
@@ -956,6 +966,7 @@ git commit -m "docs: document variant table processing optimization
 ## Task 6: Optional - Add Performance Benchmarking
 
 **Files:**
+
 - Create: `tests/benchmark_notebook_performance.sh`
 
 **Step 1: Create benchmarking script**

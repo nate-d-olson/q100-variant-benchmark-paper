@@ -75,17 +75,19 @@ stvar_callsets <- c(
   "Ucla-Ensamble" = "Ensamble"
 )
 
-smvar_callsets <- c("Illumina-Dragen" = "DRAGEN", 
-                    "Jhu-Imputefirst" = "Impute",
-                    "Pacbio-Deepvariant" = "PB-DV",
-                    "Roche-Neusomatic" = "roche",
-                    "Ultima-Ug" = "ultima")
+smvar_callsets <- c(
+  "Illumina-Dragen" = "DRAGEN",
+  "Jhu-Imputefirst" = "Impute",
+  "Pacbio-Deepvariant" = "PB-DV",
+  "Roche-Neusomatic" = "roche",
+  "Ultima-Ug" = "ultima"
+)
 
 
 ## Cleaned up tables with updated curations
 smvar_curations <- smvar_evals %>%
   left_join(recurations_smvar) %>%
-  rename(unique_to = label) %>% 
+  rename(unique_to = label) %>%
   select(
     callset,
     GRCh38_chr, GRCh38_start, GRCh38_end,
@@ -100,15 +102,16 @@ smvar_curations <- smvar_evals %>%
     curation = factor(curation,
       levels = c("no", "unsure", "yes")
     )
-  ) %>% 
+  ) %>%
   mutate(callset = smvar_callsets[callset])
 
 stvar_curations <- stvar_evals %>%
   left_join(recurations_stvar) %>%
   rename(var_type = SVTYPE) %>%
-  mutate(unique_to = if_else(unique_to == "bnechmark", "bench", "query"),
-         strata = str_glue("{TR_anno}\n{sv_cat}\n{unique_to}")) %>% 
-  
+  mutate(
+    unique_to = if_else(unique_to == "bnechmark", "bench", "query"),
+    strata = str_glue("{TR_anno}\n{sv_cat}\n{unique_to}")
+  ) %>%
   select(
     callset,
     GRCh38_chr, GRCh38_start, GRCh38_end,
@@ -123,9 +126,8 @@ stvar_curations <- stvar_evals %>%
     curation = factor(curation,
       levels = c("no", "unsure", "yes")
     )
-  ) %>% 
+  ) %>%
   mutate(callset = stvar_callsets[callset])
-
 ```
 
 
@@ -190,37 +192,37 @@ edges <- tribble(
   ~from,           ~to,
   "Start",         "SNV_Branch",
   "Start",         "INDEL_Branch",
-  
+
   # --- SNV Logic ---
   "SNV_Branch",    "SNV_IsTR",
-  
+
   # Check TR
-  "SNV_IsTR",      "S01_S10",    # Yes -> Result
+  "SNV_IsTR",      "S01_S10", # Yes -> Result
   "SNV_IsTR",      "SNV_IsDiff", # No -> Next Check
-  
+
   # Check Diff Map
-  "SNV_IsDiff",    "S02_S11",    # Yes -> Result
-  "SNV_IsDiff",    "SNV_IsXY",   # No -> Next Check
-  
+  "SNV_IsDiff",    "S02_S11", # Yes -> Result
+  "SNV_IsDiff",    "SNV_IsXY", # No -> Next Check
+
   # Check XY
-  "SNV_IsXY",      "S03_S12",    # Yes -> Result
-  "SNV_IsXY",      "S04_S13",    # No (Autosome) -> Result
+  "SNV_IsXY",      "S03_S12", # Yes -> Result
+  "SNV_IsXY",      "S04_S13", # No (Autosome) -> Result
 
   # --- INDEL Logic ---
   "INDEL_Branch",  "IND_IsHomo",
-  
+
   # Check Homopolymer (Unique to Indels)
-  "IND_IsHomo",    "S05_S14",    # Yes -> Result
-  "IND_IsHomo",    "IND_IsTR",   # No -> Next Check
-  
+  "IND_IsHomo",    "S05_S14", # Yes -> Result
+  "IND_IsHomo",    "IND_IsTR", # No -> Next Check
+
   # Check TR
   "IND_IsTR",      "S06_S15",
   "IND_IsTR",      "IND_IsDiff",
-  
+
   # Check Diff Map
   "IND_IsDiff",    "S07_S16",
   "IND_IsDiff",    "IND_IsXY",
-  
+
   # Check XY
   "IND_IsXY",      "S08_S17",
   "IND_IsXY",      "S09_S18"
@@ -228,34 +230,32 @@ edges <- tribble(
 
 # 2. Define Node Attributes (Labels and Types for Coloring)
 nodes <- tribble(
-  ~name,           ~label,                  ~type,
-  "Start",         "Small Variants",          "Root",
-  
-  "SNV_Branch",    "SNVs",                  "Branch",
-  "INDEL_Branch",  "INDELs",                "Branch",
-  
+  ~name, ~label, ~type,
+  "Start", "Small Variants", "Root",
+  "SNV_Branch", "SNVs", "Branch",
+  "INDEL_Branch", "INDELs", "Branch",
+
   # SNV Decision Nodes
-  "SNV_IsTR",      "in Tandem\nRepeat",       "Decision",
-  "SNV_IsDiff",    "in Difficult\nRegion",    "Decision",
-  "SNV_IsXY",      "XY\nnonPAR",           "Decision",
-  
+  "SNV_IsTR", "in Tandem\nRepeat", "Decision",
+  "SNV_IsDiff", "in Difficult\nRegion", "Decision",
+  "SNV_IsXY", "XY\nnonPAR", "Decision",
+
   # INDEL Decision Nodes
-  "IND_IsHomo",    "in Homopolymer\n(>6bp)",  "Decision",
-  "IND_IsTR",      "in Tandem\nRepeat",       "Decision",
-  "IND_IsDiff",    "in Difficult\nRegion",    "Decision",
-  "IND_IsXY",      "XY\nnonPAR",           "Decision",
-  
+  "IND_IsHomo", "in Homopolymer\n(>6bp)", "Decision",
+  "IND_IsTR", "in Tandem\nRepeat", "Decision",
+  "IND_IsDiff", "in Difficult\nRegion", "Decision",
+  "IND_IsXY", "XY\nnonPAR", "Decision",
+
   # Leaves (Grouped Query/Benchmark for compactness)
-  "S01_S10",       "S01 / S10\n(TR)",       "Leaf",
-  "S02_S11",       "S02 / S11\n(Diff)",     "Leaf",
-  "S03_S12",       "S03 / S12\n(XY)",       "Leaf",
-  "S04_S13",       "S04 / S13\n(Auto)",     "Leaf",
-  
-  "S05_S14",       "S05 / S14\n(Homo)",     "Leaf",
-  "S06_S15",       "S06 / S15\n(TR)",       "Leaf",
-  "S07_S16",       "S07 / S16\n(Diff)",     "Leaf",
-  "S08_S17",       "S08 / S17\n(XY)",       "Leaf",
-  "S09_S18",       "S09 / S18\n(Auto)",     "Leaf"
+  "S01_S10", "S01 / S10\n(TR)", "Leaf",
+  "S02_S11", "S02 / S11\n(Diff)", "Leaf",
+  "S03_S12", "S03 / S12\n(XY)", "Leaf",
+  "S04_S13", "S04 / S13\n(Auto)", "Leaf",
+  "S05_S14", "S05 / S14\n(Homo)", "Leaf",
+  "S06_S15", "S06 / S15\n(TR)", "Leaf",
+  "S07_S16", "S07 / S16\n(Diff)", "Leaf",
+  "S08_S17", "S08 / S17\n(XY)", "Leaf",
+  "S09_S18", "S09 / S18\n(Auto)", "Leaf"
 )
 
 # 3. Create the Chart
@@ -264,8 +264,8 @@ nodes <- tribble(
   scale_fill_manual(values = c(
     "Root" = "#333333",
     "Branch" = "#777777",
-    "Decision" = "#56B4E9",  # Light Blue for logic
-    "Leaf" = "#E69F00"       # Orange for final strata
+    "Decision" = "#56B4E9", # Light Blue for logic
+    "Leaf" = "#E69F00" # Orange for final strata
   )) +
   # Add Title and Caption
   labs(
@@ -280,7 +280,7 @@ ggsave(
   filename = here("manuscript", "figs", "smvar_strat_flow.png"),
   plot = smvar_flow,
   width = 8,
-  height =8,
+  height = 8,
   dpi = 300
 )
 ```
@@ -323,7 +323,6 @@ strata_meta <- tribble(
   "S06",   "INDEL", "Tandem Repeat",        "Unique to Query",
   "S07",   "INDEL", "Difficult Region",     "Unique to Query",
   "S09",   "INDEL", "Autosomes",            "Unique to Query",
-  
   "S10",   "SNV",   "Tandem Repeat",        "Unique to Benchmark",
   "S11",   "SNV",   "Difficult Region",     "Unique to Benchmark",
   "S13",   "SNV",   "Autosomes",            "Unique to Benchmark",
@@ -355,17 +354,17 @@ plot_data <- strata_meta %>%
 # 3. Create the Horizontal Faceted Plot
 ggplot(plot_data, aes(y = Rich_Label, x = Count, fill = Status)) +
   geom_col(position = "stack", width = 0.7) +
-  
+
   # FACETING: Separate Query (False Positives) from Benchmark (False Negatives)
   # scales="free_y" ensures each panel only shows its own relevant labels
   facet_grid(rows = vars(Source), scales = "free_y", space = "free_y") +
-  
+
   # FORMATTING
   scale_fill_manual(values = c("yes" = "#8da0cb", "unsure" = "#fc8d62", "no" = "#66c2a5")) +
   theme_bw(base_size = 14) +
-  
-  # Enable Markdown for bold text in labels (requires 'ggtext' package usually, 
-  # but standard theme handles basic text well. If **bold** doesn't render, 
+
+  # Enable Markdown for bold text in labels (requires 'ggtext' package usually,
+  # but standard theme handles basic text well. If **bold** doesn't render,
   # remove the ** from the mutate step or use theme(axis.text.y = ggtext::element_markdown())
   theme(
     axis.text.y = element_text(hjust = 0), # Left align labels
@@ -373,7 +372,6 @@ ggplot(plot_data, aes(y = Rich_Label, x = Count, fill = Status)) +
     strip.background = element_rect(fill = "#56B4E9"),
     legend.position = "bottom"
   ) +
-  
   labs(
     title = "Small Variant Stratification Performance",
     subtitle = "Reviewing unique calls by genomic context",
@@ -405,7 +403,7 @@ logic_flow_data <- tribble(
   "INDEL", "Difficult Region",     "S07",   "Query",
   "INDEL", "XY nonPAR",            "S08",   "Query",
   "INDEL", "Autosomes",            "S09",   "Query",
-  
+
   # Benchmark (Mirroring the logic)
   "SNV",   "Tandem Repeat",        "S10",   "Benchmark",
   "SNV",   "Difficult Region",     "S11",   "Benchmark",
@@ -421,23 +419,24 @@ logic_flow_data <- tribble(
 
 # 2. Create the Sankey Plot (Left Side)
 # We reverse the Y-axis limits so S01 is at the top, matching the bar chart natural order
-p_sankey <- ggplot(logic_flow_data,
-                   aes(y = Flow_Value, axis1 = Type, axis2 = Context, axis3 = Strata)) +
-  geom_alluvium(aes(fill = Type), width = 1/3, alpha = 0.6) +
-  geom_stratum(width = 1/3, fill = "white", color = "grey") +
-  
+p_sankey <- ggplot(
+  logic_flow_data,
+  aes(y = Flow_Value, axis1 = Type, axis2 = Context, axis3 = Strata)
+) +
+  geom_alluvium(aes(fill = Type), width = 1 / 3, alpha = 0.6) +
+  geom_stratum(width = 1 / 3, fill = "white", color = "grey") +
+
   # Add Text Labels to the Nodes
   geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
-  
   scale_fill_manual(values = c("SNV" = "#E69F00", "INDEL" = "#56B4E9")) +
   scale_y_continuous(breaks = NULL) + # Hide Y axis numbers
-  theme_void() + 
+  theme_void() +
   theme(legend.position = "none") +
   labs(title = "Stratification Logic")
 
 # 3. Create the Bar Chart (Right Side)
 # Using the same data logic, but normally you'd join this with your real counts
-# We filter to just one 'Source' (e.g. Query) or facet it. 
+# We filter to just one 'Source' (e.g. Query) or facet it.
 # For this demo, let's plot S01-S09 (Query) to keep it readable.
 
 # Filter data to just Query for the demo
@@ -472,7 +471,7 @@ bar_data$Strata <- factor(bar_data$Strata, levels = rev(common_levels))
 # Re-run plots with factors applied... (omitted for brevity, assume applied)
 
 # Combine: Sankey (Width 2) + Bars (Width 1)
-combined_plot <- p_sankey + p_bars + 
+combined_plot <- p_sankey + p_bars +
   plot_layout(widths = c(2, 1))
 
 combined_plot
@@ -583,8 +582,8 @@ DT::datatable(stvars_no_or_unsure,
 ## Combined plot by callset
 
 ```{r fig.width = 8}
-(combined_eval_plt <- (smvar_eval_callset_plt + smvar_eval_strata_plt +  
-                         stvar_eval_callset_plt + stvar_eval_strata_plt) +
+(combined_eval_plt <- (smvar_eval_callset_plt + smvar_eval_strata_plt +
+  stvar_eval_callset_plt + stvar_eval_strata_plt) +
   plot_annotation(tag_levels = "A") +
   plot_layout(guides = "collect", ncol = 2, nrow = 2) & theme(legend.position = "bottom")
 )
@@ -595,7 +594,7 @@ ggsave(
   filename = here("manuscript", "figs", "combined_eval.png"),
   plot = combined_eval_plt,
   width = 8,
-  height =8,
+  height = 8,
   dpi = 300
 )
 ```

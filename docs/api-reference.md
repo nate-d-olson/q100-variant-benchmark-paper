@@ -20,12 +20,15 @@ This document provides detailed reference for helper functions in the Q100 varia
 Get exclusion configuration for a benchmark set.
 
 **Parameters:**
+
 - `benchmark` (str): Benchmark set name (e.g., "v5.0q_GRCh38")
 
 **Returns:**
+
 - `list`: List of exclusion dictionaries with keys: `name`, `type`, `files`
 
 **Example:**
+
 ```python
 exclusions = get_exclusion_config("v5.0q_GRCh38")
 # Returns: [
@@ -36,6 +39,7 @@ exclusions = get_exclusion_config("v5.0q_GRCh38")
 ```
 
 **Notes:**
+
 - Returns empty list if benchmark has no exclusions configured
 - Used by other exclusion functions to access config
 
@@ -48,12 +52,15 @@ exclusions = get_exclusion_config("v5.0q_GRCh38")
 Get list of exclusion names for a benchmark set.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards object with `benchmark` attribute
 
 **Returns:**
+
 - `list[str]`: List of exclusion names
 
 **Example:**
+
 ```python
 # In Snakemake rule:
 rule process_exclusions:
@@ -69,16 +76,20 @@ rule process_exclusions:
 Get a specific exclusion entry by name.
 
 **Parameters:**
+
 - `benchmark` (str): Benchmark set name
 - `exclusion_name` (str): Name of the exclusion category
 
 **Returns:**
+
 - `dict`: Exclusion entry with keys: `name`, `type`, `files`
 
 **Raises:**
+
 - `ValueError`: If exclusion_name not found for the benchmark
 
 **Example:**
+
 ```python
 entry = get_exclusion_entry("v5.0q_GRCh38", "consecutive-svs")
 # Returns: {"name": "consecutive-svs", "type": "single", "files": [...]}
@@ -91,20 +102,24 @@ entry = get_exclusion_entry("v5.0q_GRCh38", "consecutive-svs")
 Get the standardized local path for an exclusion file.
 
 **Parameters:**
+
 - `benchmark` (str): Benchmark set name
 - `exclusion_name` (str): Name of the exclusion category
 - `file_idx` (int): Index of the file (0-based)
 
 **Returns:**
+
 - `str`: Local file path where downloaded exclusion file will be stored
 
 **Example:**
+
 ```python
 path = get_exclusion_file_path("v5.0q_GRCh38", "consecutive-svs", 0)
 # Returns: "resources/exclusions/v5.0q_GRCh38/consecutive-svs_0.bed"
 ```
 
 **Notes:**
+
 - Used by download rules and input functions
 - Ensures consistent naming convention
 
@@ -115,12 +130,15 @@ path = get_exclusion_file_path("v5.0q_GRCh38", "consecutive-svs", 0)
 Get input file paths for an exclusion.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards with `benchmark` and `exclusion` attributes
 
 **Returns:**
+
 - `list[str]`: List of file paths for exclusion BED files
 
 **Example:**
+
 ```python
 # For exclusion with 2 files:
 paths = get_exclusion_inputs(wildcards)
@@ -137,12 +155,15 @@ paths = get_exclusion_inputs(wildcards)
 Get type (single/pair) for an exclusion.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards with `benchmark` and `exclusion` attributes
 
 **Returns:**
+
 - `str`: "single" or "pair"
 
 **Example:**
+
 ```python
 excl_type = get_exclusion_type(wildcards)
 # Returns: "single" or "pair"
@@ -157,12 +178,15 @@ excl_type = get_exclusion_type(wildcards)
 Get list of stratification BED files with IDs.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards with `benchmark` attribute
 
 **Returns:**
+
 - `list[str]`: List of BED file paths with IDs in "path:ID" format
 
 **Example:**
+
 ```python
 beds = get_stratification_beds(wildcards)
 # Returns: [
@@ -173,6 +197,7 @@ beds = get_stratification_beds(wildcards)
 ```
 
 **Format:**
+
 - Each entry is `{file_path}:{strat_id}`
 - Used by annotation rules to add stratification IDs
 
@@ -183,18 +208,22 @@ beds = get_stratification_beds(wildcards)
 Get list of stratification IDs for a benchmark.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards with `benchmark` attribute
 
 **Returns:**
+
 - `list[str]`: List of stratification IDs (short names)
 
 **Example:**
+
 ```python
 ids = get_strat_ids(wildcards)
 # Returns: ["TR", "HOMOPOLYMERS_7BP", "SEGDUPS", "LOWMAP", ...]
 ```
 
 **Alias:**
+
 - `get_stratification_ids(wildcards)` - Same functionality, different name
 
 ---
@@ -206,12 +235,15 @@ ids = get_strat_ids(wildcards)
 Get benchmark region BED and exclusion BEDs with IDs.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards with `benchmark` attribute
 
 **Returns:**
+
 - `list[str]`: List of BED file paths with IDs in "path:ID" format
 
 **Example:**
+
 ```python
 beds = get_region_beds(wildcards)
 # Returns: [
@@ -223,16 +255,19 @@ beds = get_region_beds(wildcards)
 ```
 
 **Format:**
+
 - Benchmark regions always have ID "BMKREGIONS"
 - Exclusions have ID format "EXCL_{EXCLUSION_NAME}"
 - Exclusion names converted: "consecutive-svs" → "CONSECUTIVE_SVS"
 
 **Logic:**
+
 1. Always includes benchmark regions BED
 2. For v5q benchmarks, adds all configured exclusion BEDs
 3. Each exclusion file gets unique ID suffix if multiple files
 
 **Notes:**
+
 - Central function for combining benchmark and exclusion regions
 - Used by annotation pipeline to track which regions variants fall in
 
@@ -243,12 +278,15 @@ beds = get_region_beds(wildcards)
 Get list of region IDs (benchmark + exclusions).
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards with `benchmark` attribute
 
 **Returns:**
+
 - `list[str]`: List of region ID strings
 
 **Example:**
+
 ```python
 ids = get_region_ids(wildcards)
 # Returns: [
@@ -260,6 +298,7 @@ ids = get_region_ids(wildcards)
 ```
 
 **Notes:**
+
 - Matches the IDs used in `get_region_beds()`
 - Used by `expand_annotations.py` to create binary columns
 
@@ -272,15 +311,19 @@ ids = get_region_ids(wildcards)
 Get checksum value for a reference genome.
 
 **Parameters:**
+
 - `ref_name` (str): Name of the reference in `config["references"]`
 
 **Returns:**
+
 - `str`: Checksum string (MD5 or SHA256)
 
 **Raises:**
+
 - `ValueError`: If no checksum found for reference
 
 **Example:**
+
 ```python
 checksum = get_reference_checksum("GRCh38")
 # Returns: "abc123def456..." (SHA256 or MD5 value)
@@ -293,21 +336,26 @@ checksum = get_reference_checksum("GRCh38")
 Determine checksum type for a reference genome.
 
 **Parameters:**
+
 - `ref_name` (str): Name of the reference in `config["references"]`
 
 **Returns:**
+
 - `str`: "md5" or "sha256"
 
 **Raises:**
+
 - `ValueError`: If no checksum found for reference
 
 **Example:**
+
 ```python
 checksum_type = get_reference_checksum_type("GRCh38")
 # Returns: "sha256" or "md5"
 ```
 
 **Notes:**
+
 - Checks for SHA256 first, then MD5
 - Used by download rules to select appropriate hash algorithm
 
@@ -320,12 +368,15 @@ checksum_type = get_reference_checksum_type("GRCh38")
 Generate list of variant table files for all benchmarks.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards (unused but required by Snakemake)
 
 **Returns:**
+
 - `list[str]`: List of variant table file paths
 
 **Example:**
+
 ```python
 files = get_var_table_inputs(wildcards)
 # Returns: [
@@ -343,12 +394,15 @@ files = get_var_table_inputs(wildcards)
 Generate list of exclusion intersection tables for all benchmarks that have exclusions configured.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards (unused but required by Snakemake)
 
 **Returns:**
+
 - `list[str]`: List of exclusion table file paths
 
 **Example:**
+
 ```python
 files = get_exclusion_table_inputs(wildcards)
 # Returns: [
@@ -359,6 +413,7 @@ files = get_exclusion_table_inputs(wildcards)
 ```
 
 **Notes:**
+
 - Only includes benchmarks with `"exclusions"` in config
 - Returns empty list if no benchmarks have exclusions
 
@@ -369,12 +424,15 @@ files = get_exclusion_table_inputs(wildcards)
 Generate list of stratification metrics table files for all benchmarks.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards (unused but required by Snakemake)
 
 **Returns:**
+
 - `list[str]`: List of stratification metrics file paths
 
 **Example:**
+
 ```python
 files = get_strat_metrics_inputs(wildcards)
 # Returns: [
@@ -385,6 +443,7 @@ files = get_strat_metrics_inputs(wildcards)
 ```
 
 **Notes:**
+
 - Only includes benchmarks with `"dip_bed"` configured
 - Stratification metrics require dip.bed file for computation
 
@@ -395,12 +454,15 @@ files = get_strat_metrics_inputs(wildcards)
 Generate list of variant count table files for all benchmarks.
 
 **Parameters:**
+
 - `wildcards`: Snakemake wildcards (unused but required by Snakemake)
 
 **Returns:**
+
 - `list[str]`: List of variant count file paths
 
 **Example:**
+
 ```python
 files = get_var_counts_inputs(wildcards)
 # Returns: [
@@ -411,6 +473,7 @@ files = get_var_counts_inputs(wildcards)
 ```
 
 **Notes:**
+
 - Only includes benchmarks with `"dip_bed"` configured
 - Variant counts depend on stratification metrics
 

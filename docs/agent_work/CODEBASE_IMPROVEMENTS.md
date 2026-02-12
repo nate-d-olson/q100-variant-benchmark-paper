@@ -10,6 +10,7 @@ This document outlines 5 key improvements identified for the q100-variant-benchm
 **Impact: Critical - Script will fail**
 
 ### Problem
+
 Line 125 in `workflow/scripts/stratify_comparison.py` has incorrect indentation - `import gzip` is placed inside the `main()` function instead of at the module level. This breaks the script's functionality.
 
 ```python
@@ -21,9 +22,11 @@ import gzip    # <-- This should be at the top with other imports
 ```
 
 ### Solution
+
 Move `import gzip` to the top of the file with other imports (lines 1-5).
 
 ### Benefits
+
 - Fixes immediate script execution error
 - Follows Python best practices for import placement
 - Improves code readability
@@ -36,12 +39,15 @@ Move `import gzip` to the top of the file with other imports (lines 1-5).
 **Impact: Reliability and maintainability**
 
 ### Problem
+
 The pipeline currently has no automated tests for:
+
 - Python helper scripts (`workflow/scripts/*.py`)
 - Snakemake rule logic (`workflow/rules/common.smk` functions)
 - Configuration validation beyond schema
 
 ### Solution
+
 Implement pytest-based testing:
 
 ```bash
@@ -60,6 +66,7 @@ tests/
 ```
 
 **Key test areas:**
+
 1. Helper function logic (common.smk)
 2. VCF parsing and annotation scripts
 3. Stratification analysis correctness
@@ -67,6 +74,7 @@ tests/
 5. Integration tests for critical workflows
 
 ### Benefits
+
 - Catch bugs before they reach production
 - Enable confident refactoring
 - Document expected behavior
@@ -80,7 +88,9 @@ tests/
 **Impact: User experience and debugging**
 
 ### Problem
+
 Current error handling is minimal:
+
 - `stratify_comparison.py` logs errors but continues processing
 - No pre-flight validation of inputs (URLs, file existence)
 - Generic subprocess error messages lack context
@@ -89,6 +99,7 @@ Current error handling is minimal:
 ### Solution
 
 **A. Add Pre-flight Validation Rule:**
+
 ```python
 rule validate_inputs:
     """Validate all inputs before pipeline execution"""
@@ -101,6 +112,7 @@ rule validate_inputs:
 ```
 
 **B. Enhance `stratify_comparison.py` error handling:**
+
 ```python
 # Instead of logging and returning 0, raise informative exceptions
 def run_bedtools_intersect_vcf(vcf_file, bed_file):
@@ -127,12 +139,14 @@ def run_bedtools_intersect_vcf(vcf_file, bed_file):
 ```
 
 **C. Add input validation script:**
+
 - Check URLs are reachable (HTTP HEAD request)
 - Verify required tools exist (bedtools, rtg, truvari)
 - Validate stratification file existence
 - Check disk space for large downloads
 
 ### Benefits
+
 - Fail fast with clear error messages
 - Reduce debugging time
 - Prevent partial pipeline execution
@@ -146,7 +160,9 @@ def run_bedtools_intersect_vcf(vcf_file, bed_file):
 **Impact: Usability and maintainability**
 
 ### Problem
+
 Current documentation gaps:
+
 - No documentation for new comparison functionality (Gemini addition)
 - Missing docstrings in `stratify_comparison.py`
 - No type hints in several helper functions
@@ -156,6 +172,7 @@ Current documentation gaps:
 ### Solution
 
 **A. Add Comparison Documentation Section to README.qmd:**
+
 ```markdown
 ## Benchmark Comparisons
 
@@ -187,6 +204,7 @@ comparisons:
     old_benchmark: v4.2.1_GRCh38_smvar
     ref: GRCh38
 ```
+
 ```
 
 **B. Add comprehensive docstrings to `stratify_comparison.py`:**
@@ -216,6 +234,7 @@ def run_bedtools_intersect_vcf(vcf_file: str, bed_file: str) -> int:
 ```
 
 **C. Add type hints to `common.smk` functions:**
+
 ```python
 from typing import List, Dict, Any
 
@@ -225,6 +244,7 @@ def get_exclusion_file_path(benchmark: str, exclusion_name: str, file_idx: int) 
 ```
 
 ### Benefits
+
 - Easier onboarding for new contributors
 - Self-documenting code
 - IDE autocomplete support
@@ -238,7 +258,9 @@ def get_exclusion_file_path(benchmark: str, exclusion_name: str, file_idx: int) 
 **Impact: Pipeline execution speed**
 
 ### Problem
+
 Current implementation has performance inefficiencies:
+
 - Multiple subprocess calls per stratification (N × 3 bedtools calls)
 - Temporary files created/destroyed repeatedly
 - Sequential processing (no parallelization)
@@ -247,6 +269,7 @@ Current implementation has performance inefficiencies:
 ### Solution
 
 **A. Batch bedtools operations:**
+
 ```python
 # Instead of N separate bedtools calls, use bedtools multiIntersect
 def batch_intersect_stratifications(vcf, strat_beds):
@@ -265,6 +288,7 @@ def batch_intersect_stratifications(vcf, strat_beds):
 ```
 
 **B. Cache decompressed files:**
+
 ```python
 @functools.lru_cache(maxsize=32)
 def get_decompressed_vcf(vcf_path: str) -> str:
@@ -281,6 +305,7 @@ def get_decompressed_vcf(vcf_path: str) -> str:
 ```
 
 **C. Use pybedtools instead of subprocess:**
+
 ```python
 import pybedtools
 
@@ -292,6 +317,7 @@ def count_overlaps(vcf_file: str, bed_file: str) -> int:
 ```
 
 ### Benefits
+
 - Reduce pipeline runtime (estimated 30-50% for comparison rules)
 - Lower disk I/O
 - More Pythonic code (easier to maintain)

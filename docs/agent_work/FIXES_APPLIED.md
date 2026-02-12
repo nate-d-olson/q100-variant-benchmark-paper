@@ -11,9 +11,11 @@ Wildcards: benchmark=v421_grch38_smvar
 ## ✅ All Fixes Applied
 
 ### ✅ Fix 1: Filter Helper Functions
+
 **File:** `workflow/rules/common.smk` lines 158-189
 
 **Verified:**
+
 ```python
 def get_strat_metrics_inputs(wildcards):
     return [
@@ -28,9 +30,11 @@ def get_strat_metrics_inputs(wildcards):
 ---
 
 ### ✅ Fix 2: Defensive Lambda Functions
+
 **File:** `workflow/rules/downloads.smk` lines 115-118
 
 **Verified:**
+
 ```python
 sha256=lambda w: config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("sha256", ""),
 ...
@@ -42,9 +46,11 @@ url=lambda w: config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("url",
 ---
 
 ### ✅ Fix 3: Wildcard Constraint
+
 **File:** `workflow/rules/downloads.smk` lines 119-120
 
 **Verified:**
+
 ```python
 wildcard_constraints:
     benchmark="|".join([b for b, conf in config["benchmarksets"].items() if "dip_bed" in conf]),
@@ -65,6 +71,7 @@ wildcard_constraints:
 ## Expected Behavior
 
 **Benchmarks with stratification analysis (6):**
+
 - v5q_chm13_smvar
 - v5q_chm13_stvar
 - v5q_grch37_smvar
@@ -73,6 +80,7 @@ wildcard_constraints:
 - v5q_grch38_stvar
 
 **Benchmarks without stratification (2):**
+
 - v421_grch38_smvar
 - v06_grch37_stvar
 
