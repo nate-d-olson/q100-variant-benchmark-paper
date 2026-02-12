@@ -1,5 +1,7 @@
 # Analysis
 
+- exclusion interactions - no variants
+
 ### benchmark_exclusions.qmd
 
 - WIP - claude: Add upset plot for exclusion region intersections

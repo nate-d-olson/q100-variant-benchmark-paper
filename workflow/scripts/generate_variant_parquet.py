@@ -158,9 +158,42 @@ def generate_variant_parquet(
         df["ref_len"] = df["ref"].str.len().astype("Int32")
         df["alt_len"] = df["alt"].str.len().astype("Int32")
         df.drop(columns=["ref", "alt"], inplace=True)
-    else:
-        logging.warning("No ref/alt allele columns — ref_len/alt_len will be missing")
+    elif "alleles" in df.columns and not df.empty:
+        # Try to extract from alleles column if it exists and ref/alt don't
+        try:
+            # Truvari 4.0+ might return alleles tuple in 'alleles' column
+            df["ref_len"] = (
+                df["alleles"].map(lambda x: len(x[0]) if x else pd.NA).astype("Int32")
+            )
+            df["alt_len"] = (
+                df["alleles"]
+                .map(lambda x: len(x[1]) if x and len(x) > 1 else pd.NA)
+                .astype("Int32")
+            )
+            logging.info("Extracted ref_len/alt_len from 'alleles' column")
+        except Exception as e:
+            logging.warning("Failed to extract alleles from 'alleles' column: %s", e)
 
+    # Ensure columns exist even if empty or failed to extract, to prevent KeyErrors later
+    logging.info("Columns before ref_len check: %s", list(df.columns))
+    if "ref_len" not in df.columns:
+        logging.warning(
+            "No ref/alt allele columns found or extraction failed — ref_len/alt_len will be missing"
+        )
+        # Use explicit loc assignment and handle empty case directly
+        if len(df) == 0:
+            df["ref_len"] = pd.Series([], dtype="Int32")
+        else:
+            df["ref_len"] = pd.Series([pd.NA] * len(df), dtype="Int32", index=df.index)
+            
+    if "alt_len" not in df.columns:
+        if len(df) == 0:
+            df["alt_len"] = pd.Series([], dtype="Int32")
+        else:
+            df["alt_len"] = pd.Series([pd.NA] * len(df), dtype="Int32", index=df.index)
+
+    logging.info("Columns after ref_len check: %s", list(df.columns))
+    
     # Classify variant types
     logging.info("Classifying variant types...")
     if bench_type == "smvar":
