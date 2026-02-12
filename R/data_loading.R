@@ -699,6 +699,77 @@ load_exclusion_metrics <- function(results_dir = NULL) {
 }
 
 
+#' Load Exclusion Interaction Data
+#'
+#' Loads exclusion_interactions.csv files with upset-style decomposition
+#' of exclusion overlaps. Shows which exclusion combinations overlap and
+#' how many bases/variants are affected by each combination.
+#'
+#' @param results_dir Path to results directory.
+#'   Default: `here::here("results")`
+#'
+#' @return Tibble with columns:
+#'   - bench_version: Benchmark version (e.g., "v5.0q")
+#'   - ref: Reference genome (GRCh37, GRCh38, CHM13v2.0)
+#'   - bench_type: Benchmark type (smvar, stvar)
+#'   - exclusion_combination: Pipe-delimited exclusion names
+#'   - n_exclusions: Number of exclusions in this combination
+#'   - bases_bp: Bases excluded by exactly this combination
+#'   - variant_count: Variants excluded by exactly this combination
+#'
+#' @examples
+#' \dontrun{
+#' interactions <- load_exclusion_interactions()
+#' }
+#'
+#' @export
+load_exclusion_interactions <- function(results_dir = NULL) {
+  results_dir <- .default_results_dir(results_dir)
+
+  # Find all exclusion interaction files
+  interaction_files <- fs::dir_ls(
+    results_dir,
+    recurse = TRUE,
+    glob = "**/exclusion_interactions.csv",
+    fail = FALSE
+  )
+
+  if (length(interaction_files) == 0) {
+    warning(
+      paste(
+        "No exclusion interaction files found.",
+        "These are only available for v5.0q benchmarks."
+      ),
+      call. = FALSE
+    )
+    tibble::tibble()
+  } else {
+    # Read all files and add benchmark metadata
+    interaction_files %>%
+      purrr::map_dfr(function(file) {
+        # Read file
+        raw_df <- file %>%
+          vroom::vroom(
+            col_types = vroom::cols(
+              exclusion_combination = "c",
+              n_exclusions = "i",
+              bases_bp = "d",
+              variant_count = "i"
+            ),
+            show_col_types = FALSE
+          )
+
+        .add_benchmark_metadata(raw_df, .benchmark_id_from_file(file))
+      }) %>%
+      dplyr::mutate(
+        bench_version = std_bench_versions(bench_version),
+        ref = std_references(ref),
+        bench_type = std_bench_types(bench_type)
+      )
+  }
+}
+
+
 #' Load Reference Genome Sizes
 #'
 #' Loads reference genome size files and calculates assembled bases

@@ -146,6 +146,7 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 
 - **Formatter:** `air` (config in `air.toml`: 100-char lines, 2-space indent)
 - **Linter:** `lintr` (config in `.lintr`: allows `dotted.case` for internal helpers)
+- **Pipe Operator:** Use `%>%` (magrittr pipe) instead of `|>` (native pipe) for consistency with existing codebase
 
 ## Important Patterns
 
