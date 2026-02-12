@@ -1,0 +1,69 @@
+name: Snakemake Workflow Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches_ignore: []
+
+jobs:
+  r-format-suggest:
+    name: format-suggest
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to push suggestion comments to the PR
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install
+        uses: posit-dev/setup-air@v1
+
+      - name: Format
+        run: air format .
+
+      - name: Suggest
+        uses: reviewdog/action-suggester@v1
+        with:
+          level: error
+          fail_level: error
+          tool_name: air
+
+  py-format:
+    name: format-suggest
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to push suggestion comments to the PR
+      pull-requests: write
+    steps:
+      - uses: astral-sh/ruff-action@v3
+
+  snk-linting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Linting
+        uses: snakemake/snakemake-github-action@v2
+        with:
+          directory: .test
+          snakefile: workflow/Snakefile
+          args: "--configfile .test/config_complex/config.yaml --lint"
+
+  snk-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: run workflow
+        uses: snakemake/snakemake-github-action@v2
+        with:
+          directory: .test
+          snakefile: workflow/Snakefile
+          args: >-
+            --conda-cleanup-pkgs cache
+            --software-deployment-method conda
+            --show-failed-logs
+            --dry-run
+          show-disk-usage-on-error: true
