@@ -20,7 +20,10 @@
       "Bash(Rscript:*)",
       "Bash(micromamba activate:*)",
       "WebFetch(domain:truvari.readthedocs.io)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)"
     ]
   },
   "sandbox": {
