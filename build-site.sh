@@ -46,7 +46,7 @@ for dir in R config results resources manuscript; do
   fi
 done
 
-# Symlink styles.css and bibliography for notebooks that reference them
+# Symlink styles.css for notebooks that reference it
 [ -f "$REPO_ROOT/styles.css" ] && ln -sfn "$REPO_ROOT/styles.css" "$SITE_DIR/styles.css"
 
 # Sentinel file so here::here() resolves inside site/
@@ -60,5 +60,5 @@ echo "==> Site built at $SITE_DIR/_site/"
 
 if [ "${1:-}" = "--publish" ]; then
   echo "==> Publishing to gh-pages branch ..."
-  quarto publish gh-pages --no-browser
+  quarto publish gh-pages --no-browser --no-render
 fi
