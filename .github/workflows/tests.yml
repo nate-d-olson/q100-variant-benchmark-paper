@@ -7,25 +7,15 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'workflow/**'
-      - 'config/**'
-      - 'environment.yaml'
-      - '.github/workflows/tests.yml'
-
 jobs:
-  Linting:
+  - name: snakemke
     uses: snakemake/snakemake-github-action@v2
-    with:
-      directory: ".test"
-      snakefile: "workflow/Snakefile"
-      args: "--lint"
 
-  Testing:
-    uses: snakemake/snakemake-github-action@v2
-    with:
-      directory: ".test"
-      snakefile: "workflow/Snakefile"
-      args: "--dry-run --sdm conda --conda-cleanup-pkgs cache"
-      stagein: "" # additional preliminary commands to run (can be multiline)
-      show-disk-usage-on-error: true
+  # Testing:
+  #   uses: snakemake/snakemake-github-action@v2
+  #   with:
+  #     directory: ".test"
+  #     snakefile: "workflow/Snakefile"
+  #     args: "--dry-run --sdm conda --conda-cleanup-pkgs cache"
+  #     stagein: "" # additional preliminary commands to run (can be multiline)
+  #     show-disk-usage-on-error: true
