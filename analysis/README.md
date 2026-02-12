@@ -37,6 +37,33 @@ Comprehensive characterization of the v5q benchmark set variants and regions, in
 
 ---
 
+### benchmark_unique_regions.qmd
+
+Focused comparison of benchmark regions and variants unique to v5 or previous benchmark versions for:
+
+- small variants on `GRCh38` (`v5.0q` vs `v4.2.1`)
+- structural variants on `GRCh37` (`v5.0q` vs `v0.6`)
+
+**Input Files:**
+
+| File | Source | Description |
+|------|--------|-------------|
+| `resources/benchmarksets/{benchmark}_benchmark.bed` | Snakemake pipeline | Benchmark region BED files |
+| `resources/benchmarksets/{benchmark}_dip.bed` | Snakemake pipeline | v5 diploid regions |
+| `resources/exclusions/{benchmark}/*.bed` | Snakemake pipeline | v5 exclusion BED files |
+| `results/exclusions/{comp_id}/old_only_variants.tsv` | Snakemake pipeline | Old-only variant status with exclusion overlap |
+| `results/variant_tables/{benchmark}/variants.tsv` | Snakemake pipeline | Variant tables for v5-only region variant summaries |
+| `resources/stratifications/{ref}_{context}.bed.gz` | Snakemake pipeline | Genomic context BED files |
+
+**Key Analyses:**
+
+- unique base and variant counts for v5-only vs previous-only benchmark regions
+- previous-only region status (`not_in_dipbed`, `excluded`, `in_v5_dipbed_not_excluded`)
+- exclusion-overlap reasons and genomic context for excluded previous-only regions
+- v5-only variant type/size breakdown and genomic context for new regions
+
+---
+
 ### benchmark_interval_size_distributions.qmd
 
 Benchmark interval size distribution analysis, combining benchmark BED regions with Platinum Pedigree regions.
@@ -121,6 +148,9 @@ snakemake --cores 4 --sdm conda
 ```bash
 # Render a single notebook
 quarto render analysis/benchmarkset_characterization.qmd
+
+# Render unique-region comparison notebook
+quarto render analysis/benchmark_unique_regions.qmd
 
 # Render interval size distribution notebook
 quarto render analysis/benchmark_interval_size_distributions.qmd

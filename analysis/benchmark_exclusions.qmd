@@ -21,6 +21,10 @@ analysis_setup(
   load_plot_themes = TRUE,
   load_gt = TRUE
 )
+
+# Load additional packages for upset plots
+library(ggupset)
+library(glue)
 ```
 
 ## Data Loading
@@ -66,4 +70,258 @@ make_exclusion_tbl <- function(exclusion_tbl, table_title) {
 ```{r}
 exclusion_interset_gt_tbl %>%
   make_exclusion_tbl(table_title = "Benchmark Set Exclusions")
+```
+
+## Exclusion Interactions
+
+The following sections analyze how exclusions overlap with each other, showing which combinations of exclusions co-occur and their impact on the benchmark.
+
+```{r}
+# Load exclusion interaction data
+exclusion_interaction_tbl <- load_exclusion_interactions() %>%
+  dplyr::filter(bench_version == "v5.0q")
+
+if (nrow(exclusion_interaction_tbl) == 0) {
+  stop("No v5.0q exclusion interaction data found in results/exclusions.")
+}
+```
+
+### Filtering Strategy
+
+For upset plots, we filter exclusion combinations to focus on the most impactful overlaps:
+
+- **Bases**: Include combinations representing ≥1% of total excluded bases OR with ≥2 exclusions
+- **Variants**: Include combinations representing ≥1% of total excluded variants OR with ≥2 exclusions
+
+```{r}
+# Compute filtering thresholds for each ref/bench_type combination
+interaction_filtered_tbl <- exclusion_interaction_tbl %>%
+  dplyr::group_by(ref, bench_type) %>%
+  dplyr::mutate(
+    total_bases = sum(bases_bp),
+    total_variants = sum(variant_count),
+    pct_bases = 100 * bases_bp / total_bases,
+    pct_variants = 100 * variant_count / total_variants,
+    # Include if: (1% or more of total) OR (multi-exclusion combo)
+    include_bases = pct_bases >= 1 | n_exclusions >= 2,
+    include_variants = pct_variants >= 1 | n_exclusions >= 2
+  ) %>%
+  dplyr::ungroup()
+```
+
+### Single-Exclusion Summary
+
+The following table shows single exclusions that fall below the visualization threshold (<1% of total bases AND <1% of total variants). These exclusions have minimal impact on the benchmark and are not shown in the upset plots to keep the visualizations focused on the most impactful exclusion patterns.
+
+```{r}
+# Extract single-exclusion data not included in upset plots
+single_exclusion_summary <- interaction_filtered_tbl %>%
+  dplyr::filter(n_exclusions == 1, !include_bases & !include_variants) %>%
+  dplyr::select(ref, bench_type, exclusion_combination, bases_bp, variant_count) %>%
+  tidyr::pivot_wider(
+    names_from = ref,
+    values_from = c(bases_bp, variant_count)
+  ) %>%
+  dplyr::arrange(-bases_bp_CHM13v2.0)
+
+if (nrow(single_exclusion_summary) > 0) {
+  single_exclusion_summary %>%
+    gt::gt() %>%
+    gt::fmt_integer(columns = contains("bases_bp")) %>%
+    gt::fmt_integer(columns = contains("variant_count")) %>%
+    gt::tab_spanner(label = "GRCh37", columns = contains("GRCh37")) %>%
+    gt::tab_spanner(label = "GRCh38", columns = contains("GRCh38")) %>%
+    gt::tab_spanner(label = "CHM13v2.0", columns = contains("CHM13v2.0")) %>%
+    gt::tab_header(title = "Single Exclusions Not Shown in Upset Plots") %>%
+    gt::cols_label(
+      exclusion_combination = "Exclusion",
+      bench_type = "Type"
+    ) %>%
+    theme_gt_manuscript()
+} else {
+  cat("All single exclusions are included in the upset plots (meet size threshold).\n")
+}
+```
+
+### Understanding Upset Plots
+
+Upset plots show the impact of different exclusion combinations:
+
+- **Single dots**: Regions/variants excluded by only one exclusion type
+- **Multiple connected dots**: Regions/variants where multiple exclusions overlap
+- **Bar height**: Total bases or variants affected by that exact combination
+- **Ordering**: Plots are ordered by decreasing impact (largest first)
+
+```{r}
+library(ggplot2)
+
+# Function to create upset plot for bases
+create_base_upset <- function(data, ref_name, bench_type_name, title_suffix = "") {
+  plot_data <- data %>%
+    dplyr::filter(
+      ref == ref_name,
+      bench_type == bench_type_name,
+      include_bases
+    ) %>%
+    dplyr::mutate(
+      exclusions_list = strsplit(exclusion_combination, "\\|")
+    ) %>%
+    dplyr::arrange(-bases_bp)
+
+  if (nrow(plot_data) == 0) {
+    return(NULL)
+  }
+
+  ggplot(plot_data, aes(x = exclusions_list, y = bases_bp)) +
+    ggupset::scale_x_upset(n_intersections = 30) +
+    geom_bar(stat = "identity", fill = "#2171b5") +
+    labs(
+      title = glue::glue("Bases: {ref_name} {bench_type_name}{title_suffix}"),
+      x = NULL,
+      y = "Bases (bp)"
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    theme_bw(base_size = 11) +
+    theme(
+      axis.text.x = element_text(angle = 0, hjust = 0.5),
+      panel.grid.major.x = element_blank(),
+      plot.title = element_text(size = 11, face = "bold")
+    )
+}
+
+# Function to create upset plot for variants
+create_variant_upset <- function(data, ref_name, bench_type_name, title_suffix = "") {
+  plot_data <- data %>%
+    dplyr::filter(
+      ref == ref_name,
+      bench_type == bench_type_name,
+      include_variants
+    ) %>%
+    dplyr::mutate(
+      exclusions_list = strsplit(exclusion_combination, "\\|")
+    ) %>%
+    dplyr::arrange(-variant_count)
+
+  if (nrow(plot_data) == 0) {
+    return(NULL)
+  }
+
+  ggplot(plot_data, aes(x = exclusions_list, y = variant_count)) +
+    ggupset::scale_x_upset(n_intersections = 30) +
+    geom_bar(stat = "identity", fill = "#d94801") +
+    labs(
+      title = glue::glue("Variants: {ref_name} {bench_type_name}{title_suffix}"),
+      x = NULL,
+      y = "Variant Count"
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    theme_bw(base_size = 11) +
+    theme(
+      axis.text.x = element_text(angle = 0, hjust = 0.5),
+      panel.grid.major.x = element_blank(),
+      plot.title = element_text(size = 11, face = "bold")
+    )
+}
+```
+
+### GRCh38 Exclusion Patterns (Main Figure)
+
+Combined upset plots showing bases and variants excluded for GRCh38 benchmarks.
+
+```{r grch38-upset}
+#| fig-height: 10
+#| fig-width: 14
+#| fig-cap: "Exclusion patterns for GRCh38 benchmarks showing bases (blue) and variants (orange) affected by different exclusion combinations."
+
+# Create plots for GRCh38
+p_bases_smvar <- create_base_upset(interaction_filtered_tbl, "GRCh38", "smvar")
+p_vars_smvar <- create_variant_upset(interaction_filtered_tbl, "GRCh38", "smvar")
+p_bases_stvar <- create_base_upset(interaction_filtered_tbl, "GRCh38", "stvar")
+p_vars_stvar <- create_variant_upset(interaction_filtered_tbl, "GRCh38", "stvar")
+
+# Combine using patchwork
+combined_plot <- (p_bases_smvar | p_vars_smvar) / (p_bases_stvar | p_vars_stvar) +
+  plot_annotation(
+    title = "GRCh38 Exclusion Patterns",
+    theme = theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+  )
+
+print(combined_plot)
+```
+
+### All References Exclusion Patterns (Supplemental)
+
+Comprehensive upset plots for all three reference genomes. Each reference genome is shown on a separate page with both bases and variants side-by-side.
+
+```{r all-refs-upset}
+#| fig-height: 10
+#| fig-width: 14
+
+# Function to create combined plot for a single reference
+create_ref_combined_plot <- function(data, ref_name) {
+  p_bases_smvar <- create_base_upset(data, ref_name, "smvar")
+  p_vars_smvar <- create_variant_upset(data, ref_name, "smvar")
+  p_bases_stvar <- create_base_upset(data, ref_name, "stvar")
+  p_vars_stvar <- create_variant_upset(data, ref_name, "stvar")
+
+  # Check if we have any plots
+  has_plots <- !is.null(p_bases_smvar) || !is.null(p_vars_smvar) ||
+               !is.null(p_bases_stvar) || !is.null(p_vars_stvar)
+
+  if (!has_plots) {
+    return(NULL)
+  }
+
+  # Combine using patchwork
+  combined <- (p_bases_smvar | p_vars_smvar) / (p_bases_stvar | p_vars_stvar) +
+    plot_annotation(
+      title = glue::glue("{ref_name} Exclusion Patterns"),
+      theme = theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+    )
+
+  return(combined)
+}
+
+# Generate plots for each reference
+refs <- c("GRCh37", "GRCh38", "CHM13v2.0")
+
+for (ref in refs) {
+  p <- create_ref_combined_plot(interaction_filtered_tbl, ref)
+  if (!is.null(p)) {
+    print(p)
+    cat("\n\n---\n\n")  # Page break for multi-page output
+  }
+}
+```
+
+### Summary Statistics
+
+```{r}
+# Compute summary statistics about exclusion interactions
+interaction_summary <- interaction_filtered_tbl %>%
+  dplyr::group_by(ref, bench_type) %>%
+  dplyr::summarise(
+    total_combinations = dplyr::n(),
+    single_exclusions = sum(n_exclusions == 1),
+    multi_exclusions = sum(n_exclusions >= 2),
+    max_overlap = max(n_exclusions),
+    total_bases = scales::comma(sum(bases_bp)),
+    total_variants = scales::comma(sum(variant_count)),
+    .groups = "drop"
+  )
+
+interaction_summary %>%
+  gt::gt() %>%
+  gt::tab_header(title = "Exclusion Interaction Summary") %>%
+  gt::cols_label(
+    ref = "Reference",
+    bench_type = "Type",
+    total_combinations = "Total Combos",
+    single_exclusions = "Single Only",
+    multi_exclusions = "Multi-Overlap",
+    max_overlap = "Max Overlap",
+    total_bases = "Total Bases",
+    total_variants = "Total Variants"
+  ) %>%
+  theme_gt_manuscript()
 ```
