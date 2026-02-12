@@ -26,8 +26,36 @@
       "Bash(gh pr diff:*)"
     ]
   },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.R || \"$filepath\" == *.r ]]; then air format \"$filepath\" 2>/dev/null; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; case \"$filepath\" in */config/schema/*.yaml|*/.markdownlint*) echo 'BLOCK: This is a protected file. Please confirm with the user before editing.'; exit 2;; esac; exit 0"
+          }
+        ]
+      }
+    ]
+  },
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true
-  }
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "github"
+  ]
 }
