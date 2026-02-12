@@ -82,11 +82,6 @@ rule all:
             benchmark=BENCHMARK,
             context=STRAT,
         ),
-        ## Benchmarkset variant counts by type and difficult region stratifications
-        expand(
-            "results/genomic_context/{benchmark}/combined_metrics.csv",
-            benchmark=BENCHMARK,
-        ),
         ## Per-exclusion impact: BED metrics + variant counts
         get_exclusion_impact_targets,
         ## Exclusion interactions (upset-style decomposition)
