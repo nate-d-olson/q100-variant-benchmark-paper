@@ -9,3 +9,8 @@
 - Add variants to the exclusion tables
 - Small variant counts breakdown by <15bp , 15 - 49bp
 - Look into number and distribution of small intervals (50 - 100bp) in v5q
+
+### benchmark_unique_regions.qmd
+
+- Validate summary outputs against old_only status CSVs
+- Add compact figure for v5-only vs previous-only base/variant deltas

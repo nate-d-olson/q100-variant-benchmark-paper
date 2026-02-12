@@ -1,0 +1,975 @@
+---
+title: "Unique Region and Variant Analysis: v5 vs Previous Benchmarks"
+date: '`r Sys.Date()`'
+author: "ND Olson"
+format:
+  html:
+    theme: flatly
+    page-layout: full
+    toc: true
+    self-contained: true
+editor: source
+code-fold: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r setup}
+#| include: false
+source(here::here("analysis/_notebook_setup.R"))
+analysis_setup(
+  load_plot_themes = TRUE,
+  load_gt = TRUE
+)
+
+library(data.table)
+library(yaml)
+```
+
+## Scope
+
+This notebook compares:
+
+- `v5.0q_GRCh38_smvar` vs `v4.2.1_GRCh38_smvar`
+- `v5.0q_GRCh37_stvar` vs `v0.6_GRCh37_stvar`
+
+It summarizes:
+
+- benchmark region bases unique to each version
+- variants in version-specific regions, grouped by variant type and size
+- for old-only regions, exclusion-overlap reasons and genomic context
+- for v5-only regions, variant and genomic-context breakdowns
+
+```{r helpers}
+#| include: false
+
+empty_bed <- function() {
+  data.table(
+    chrom = character(),
+    start = integer(),
+    end = integer()
+  )
+}
+
+normalize_chrom <- function(x) {
+  x <- as.character(x)
+  ifelse(grepl("^chr", x), x, paste0("chr", x))
+}
+
+resolve_data_root <- function() {
+  current_root <- here::here()
+  if (
+    dir.exists(file.path(current_root, "results")) &&
+      dir.exists(file.path(current_root, "resources"))
+  ) {
+    return(current_root)
+  }
+
+  git_common <- tryCatch(
+    system2(
+      "git",
+      c("rev-parse", "--git-common-dir"),
+      stdout = TRUE,
+      stderr = FALSE
+    ),
+    error = function(e) character()
+  )
+
+  if (length(git_common) > 0) {
+    common_path <- git_common[[1]]
+    common_abs <- if (grepl("^/", common_path)) {
+      common_path
+    } else {
+      normalizePath(
+        file.path(current_root, common_path),
+        mustWork = FALSE
+      )
+    }
+    candidate_root <- dirname(common_abs)
+    if (
+      dir.exists(file.path(candidate_root, "results")) &&
+        dir.exists(file.path(candidate_root, "resources"))
+    ) {
+      return(candidate_root)
+    }
+  }
+
+  stop(
+    "Could not locate a data root containing both 'results/' and 'resources/'.",
+    call. = FALSE
+  )
+}
+
+merge_intervals <- function(dt) {
+  if (nrow(dt) == 0) {
+    return(empty_bed())
+  }
+  x <- copy(dt)[, .(chrom, start, end)]
+  x <- x[end > start]
+  if (nrow(x) == 0) {
+    return(empty_bed())
+  }
+  setorder(x, chrom, start, end)
+  x[, cum_end := cummax(end), by = chrom]
+  x[, grp_break := ifelse(
+    is.na(shift(cum_end)),
+    1L,
+    as.integer(start > shift(cum_end))
+  ), by = chrom]
+  x[, grp := cumsum(grp_break), by = chrom]
+  merged <- x[, .(
+    start = min(start),
+    end = max(end)
+  ), by = .(chrom, grp)][, grp := NULL]
+  setorder(merged, chrom, start, end)
+  merged[]
+}
+
+read_bed <- function(path, merge = TRUE) {
+  if (!file.exists(path)) {
+    stop(glue::glue("BED file not found: {path}"), call. = FALSE)
+  }
+
+  dt <- if (grepl("\\.gz$", path)) {
+    data.table::fread(
+      cmd = paste("gzip -dc", shQuote(path)),
+      select = 1:3,
+      col.names = c("chrom", "start", "end"),
+      showProgress = FALSE
+    )
+  } else {
+    data.table::fread(
+      path,
+      select = 1:3,
+      col.names = c("chrom", "start", "end"),
+      showProgress = FALSE
+    )
+  }
+
+  dt[, chrom := normalize_chrom(chrom)]
+  dt[, `:=`(
+    start = as.integer(start),
+    end = as.integer(end)
+  )]
+  dt <- dt[end > start]
+
+  if (merge) merge_intervals(dt) else dt
+}
+
+interval_bases <- function(dt) {
+  if (nrow(dt) == 0) return(0)
+  sum(as.numeric(dt$end - dt$start))
+}
+
+intersect_intervals <- function(a, b) {
+  if (nrow(a) == 0 || nrow(b) == 0) {
+    return(empty_bed())
+  }
+
+  a <- merge_intervals(a)
+  b <- merge_intervals(b)
+  shared_chroms <- intersect(unique(a$chrom), unique(b$chrom))
+  if (length(shared_chroms) == 0) {
+    return(empty_bed())
+  }
+
+  out <- vector("list", length(shared_chroms))
+
+  for (idx in seq_along(shared_chroms)) {
+    chrom_id <- shared_chroms[[idx]]
+    ad <- a[chrom == chrom_id]
+    bd <- b[chrom == chrom_id]
+    i <- 1L
+    j <- 1L
+    starts <- integer()
+    ends <- integer()
+
+    while (i <= nrow(ad) && j <= nrow(bd)) {
+      s <- max(ad$start[[i]], bd$start[[j]])
+      e <- min(ad$end[[i]], bd$end[[j]])
+      if (s < e) {
+        starts <- c(starts, s)
+        ends <- c(ends, e)
+      }
+      if (ad$end[[i]] <= bd$end[[j]]) {
+        i <- i + 1L
+      } else {
+        j <- j + 1L
+      }
+    }
+
+    out[[idx]] <- if (length(starts) == 0) {
+      NULL
+    } else {
+      data.table(chrom = chrom_id, start = starts, end = ends)
+    }
+  }
+
+  merged <- rbindlist(out, use.names = TRUE, fill = TRUE)
+  if (nrow(merged) == 0) {
+    return(empty_bed())
+  }
+  merge_intervals(merged)
+}
+
+subtract_intervals <- function(a, b) {
+  if (nrow(a) == 0) {
+    return(empty_bed())
+  }
+  if (nrow(b) == 0) {
+    return(merge_intervals(a))
+  }
+
+  a <- merge_intervals(a)
+  b <- merge_intervals(b)
+  chroms <- unique(a$chrom)
+  out <- vector("list", length(chroms))
+
+  for (idx in seq_along(chroms)) {
+    chrom_id <- chroms[[idx]]
+    ad <- a[chrom == chrom_id]
+    bd <- b[chrom == chrom_id]
+
+    if (nrow(bd) == 0) {
+      out[[idx]] <- ad
+      next
+    }
+
+    starts <- integer()
+    ends <- integer()
+    j <- 1L
+    nb <- nrow(bd)
+
+    for (i in seq_len(nrow(ad))) {
+      s <- ad$start[[i]]
+      e <- ad$end[[i]]
+
+      while (j <= nb && bd$end[[j]] <= s) {
+        j <- j + 1L
+      }
+
+      cur <- s
+      k <- j
+
+      while (k <= nb && bd$start[[k]] < e) {
+        if (bd$start[[k]] > cur) {
+          starts <- c(starts, cur)
+          ends <- c(ends, min(bd$start[[k]], e))
+        }
+        cur <- max(cur, bd$end[[k]])
+        if (cur >= e) {
+          break
+        }
+        k <- k + 1L
+      }
+
+      if (cur < e) {
+        starts <- c(starts, cur)
+        ends <- c(ends, e)
+      }
+    }
+
+    out[[idx]] <- if (length(starts) == 0) {
+      NULL
+    } else {
+      data.table(chrom = chrom_id, start = starts, end = ends)
+    }
+  }
+
+  merged <- rbindlist(out, use.names = TRUE, fill = TRUE)
+  if (nrow(merged) == 0) {
+    return(empty_bed())
+  }
+  merge_intervals(merged)
+}
+
+read_exclusion_beds <- function(benchmark_id, resources_dir) {
+  exclusion_dir <- file.path(resources_dir, "exclusions", benchmark_id)
+  if (!dir.exists(exclusion_dir)) {
+    return(list())
+  }
+
+  files <- list.files(
+    exclusion_dir,
+    pattern = "\\.bed$",
+    full.names = TRUE
+  )
+  if (length(files) == 0) {
+    return(list())
+  }
+
+  exclusion_names <- sub("_[0-9]+\\.bed$", "", basename(files))
+  grouped <- split(files, exclusion_names)
+
+  lapply(grouped, function(paths) {
+    merged <- rbindlist(
+      lapply(paths, function(p) read_bed(p, merge = FALSE)),
+      use.names = TRUE
+    )
+    merge_intervals(merged)
+  })
+}
+
+read_context_beds <- function(ref, resources_dir) {
+  context_names <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
+  beds <- purrr::map(
+    context_names,
+    function(ctx) read_bed(
+      file.path(resources_dir, "stratifications", paste0(ref, "_", ctx, ".bed.gz"))
+    )
+  )
+  names(beds) <- context_names
+  beds
+}
+
+subset_variants_by_regions <- function(variants_dt, regions_dt) {
+  if (nrow(variants_dt) == 0 || nrow(regions_dt) == 0) {
+    return(variants_dt[0])
+  }
+
+  reg <- copy(regions_dt)[, .(
+    chrom,
+    start,
+    end = end - 1L
+  )][end >= start]
+
+  var_iv <- copy(variants_dt)[, .(
+    idx = .I,
+    chrom,
+    start = pmax(as.integer(pos) - 1L, 0L),
+    end = pmax(as.integer(pos), as.integer(end)) - 1L
+  )][end >= start]
+
+  setkey(reg, chrom, start, end)
+  setkey(var_iv, chrom, start, end)
+  hits <- foverlaps(var_iv, reg, nomatch = 0L)
+  variants_dt[sort(unique(hits$idx))]
+}
+
+read_variant_table_tsv <- function(path, bench_type, benchmark_only = TRUE) {
+  if (!file.exists(path)) {
+    stop(glue::glue("Variant table not found: {path}"), call. = FALSE)
+  }
+
+  header <- names(fread(path, nrows = 0, sep = "\t", check.names = FALSE))
+  wanted <- c(
+    1L,
+    2L,
+    3L,
+    match(
+      c(
+        "TYPE",
+        "STRLEN(REF)",
+        "STRLEN(ALT)",
+        "CONTEXT_IDS",
+        "REGION_IDS",
+        "SVTYPE",
+        "SVLEN"
+      ),
+      header
+    )
+  )
+  wanted <- sort(unique(wanted[!is.na(wanted)]))
+
+  dt <- fread(
+    path,
+    sep = "\t",
+    select = wanted,
+    check.names = FALSE,
+    quote = "",
+    showProgress = FALSE
+  )
+
+  setnames(dt, names(dt)[1:3], c("chrom", "pos", "end"))
+
+  if (!"CONTEXT_IDS" %in% names(dt)) dt[, CONTEXT_IDS := "."]
+  if (!"REGION_IDS" %in% names(dt)) dt[, REGION_IDS := "."]
+  if (!"SVTYPE" %in% names(dt)) dt[, SVTYPE := NA_character_]
+  if (!"SVLEN" %in% names(dt)) dt[, SVLEN := NA_character_]
+
+  dt[, chrom := normalize_chrom(chrom)]
+  dt[, pos := as.integer(pos)]
+  dt[, end := as.integer(end)]
+
+  dt[, type_raw := as.character(TYPE)]
+  dt[, ref_len := suppressWarnings(as.integer(`STRLEN(REF)`))]
+  dt[, alt_len := suppressWarnings(as.integer(`STRLEN(ALT)`))]
+  dt[, svtype := as.character(SVTYPE)]
+  dt[, svlen_num := suppressWarnings(as.numeric(SVLEN))]
+  dt[, context_ids := as.character(CONTEXT_IDS)]
+  dt[, region_ids := as.character(REGION_IDS)]
+
+  dt[, size_len := abs(alt_len - ref_len)]
+  dt[, size_coord := pmax(end - pos + 1L, 0L)]
+  dt[, var_size := ifelse(!is.na(svlen_num), abs(as.integer(round(svlen_num))), size_len)]
+  dt[is.na(var_size) | var_size == 0L, var_size := size_coord]
+
+  if (bench_type == "smvar") {
+    dt[, variant_type := dplyr::case_when(
+      type_raw %in% c("SNP", "SNV") ~ "SNV",
+      type_raw == "INDEL" & alt_len > ref_len ~ "INS",
+      type_raw == "INDEL" & alt_len < ref_len ~ "DEL",
+      type_raw == "INDEL" ~ "INDEL",
+      TRUE ~ "OTHER"
+    )]
+    dt <- dt[var_size < 50]
+  } else {
+    dt[, variant_type := dplyr::case_when(
+      grepl("INS", svtype, ignore.case = TRUE) ~ "SV_INS",
+      grepl("DEL", svtype, ignore.case = TRUE) ~ "SV_DEL",
+      alt_len > ref_len ~ "SV_INS",
+      alt_len < ref_len ~ "SV_DEL",
+      TRUE ~ "SV_OTHER"
+    )]
+    dt <- dt[var_size >= 50]
+  }
+
+  dt[, in_benchmark := grepl("(^|,)BMKREGIONS(,|$)", region_ids)]
+  if (benchmark_only) {
+    dt <- dt[in_benchmark == TRUE]
+  }
+
+  dt[, .(
+    chrom,
+    pos,
+    end,
+    variant_type,
+    var_size,
+    context_ids,
+    region_ids
+  )]
+}
+
+normalize_old_only_variants <- function(path, bench_type) {
+  if (!file.exists(path)) {
+    return(data.table())
+  }
+  dt <- fread(path, sep = "\t", showProgress = FALSE)
+  if (nrow(dt) == 0) {
+    return(dt)
+  }
+
+  dt[, chrom := normalize_chrom(chrom)]
+  dt[, pos := as.integer(pos)]
+  dt[, end := as.integer(end)]
+  dt[, ref := as.character(ref)]
+  dt[, alt := as.character(alt)]
+  dt[, status := as.character(status)]
+  dt[, exclusion_ids := as.character(exclusion_ids)]
+  dt[is.na(exclusion_ids), exclusion_ids := ""]
+
+  dt[, ref_len := nchar(ref)]
+  dt[, alt_len := nchar(alt)]
+  dt[, size_len := abs(alt_len - ref_len)]
+  dt[, size_coord := pmax(end - pos + 1L, 0L)]
+  dt[, var_size := pmax(size_len, size_coord, na.rm = TRUE)]
+
+  dt[, variant_type := dplyr::case_when(
+    var_type %in% c("SNP", "SNV") ~ "SNV",
+    var_type == "INDEL" & alt_len > ref_len ~ "INS",
+    var_type == "INDEL" & alt_len < ref_len ~ "DEL",
+    var_type == "INDEL" ~ "INDEL",
+    TRUE ~ "OTHER"
+  )]
+  dt[variant_type == "SNV", var_size := 1L]
+
+  if (bench_type == "smvar") {
+    dt <- dt[var_size < 50]
+  } else {
+    dt <- dt[var_size >= 50]
+  }
+
+  dt[, .(
+    chrom,
+    pos,
+    end,
+    variant_type,
+    var_size,
+    status,
+    exclusion_ids
+  )]
+}
+
+size_bin_for <- function(var_size, variant_type, bench_type) {
+  if (bench_type == "smvar") {
+    dplyr::case_when(
+      variant_type == "SNV" ~ "SNV (1 bp)",
+      var_size <= 5 ~ "2-5 bp",
+      var_size <= 14 ~ "6-14 bp",
+      var_size <= 49 ~ "15-49 bp",
+      TRUE ~ ">=50 bp"
+    )
+  } else {
+    dplyr::case_when(
+      var_size <= 99 ~ "50-99 bp",
+      var_size <= 299 ~ "100-299 bp",
+      var_size <= 999 ~ "300-999 bp",
+      var_size <= 4999 ~ "1-4.9 kb",
+      TRUE ~ ">=5 kb"
+    )
+  }
+}
+
+summarize_variant_type_size <- function(dt, bench_type, comparison_id, comparison_label, region_group) {
+  if (nrow(dt) == 0) {
+    return(tibble(
+      comparison_id = comparison_id,
+      comparison_label = comparison_label,
+      region_group = region_group,
+      variant_type = character(),
+      size_bin = character(),
+      variant_count = integer()
+    ))
+  }
+
+  as_tibble(dt) %>%
+    mutate(size_bin = size_bin_for(var_size, variant_type, bench_type)) %>%
+    count(variant_type, size_bin, name = "variant_count") %>%
+    mutate(
+      comparison_id = comparison_id,
+      comparison_label = comparison_label,
+      region_group = region_group,
+      .before = 1
+    ) %>%
+    arrange(comparison_label, region_group, desc(variant_count))
+}
+
+summarize_variant_context <- function(dt, comparison_id, comparison_label, region_group) {
+  if (nrow(dt) == 0) {
+    return(tibble(
+      comparison_id = comparison_id,
+      comparison_label = comparison_label,
+      region_group = region_group,
+      context_name = character(),
+      variant_count = integer()
+    ))
+  }
+
+  as_tibble(dt) %>%
+    transmute(context_ids) %>%
+    filter(!is.na(context_ids), context_ids != ".", context_ids != "") %>%
+    separate_rows(context_ids, sep = ",") %>%
+    filter(context_ids != "", !is.na(context_ids)) %>%
+    count(context_ids, name = "variant_count") %>%
+    rename(context_name = context_ids) %>%
+    mutate(
+      comparison_id = comparison_id,
+      comparison_label = comparison_label,
+      region_group = region_group,
+      .before = 1
+    ) %>%
+    arrange(comparison_label, desc(variant_count))
+}
+
+summarize_region_context <- function(regions_dt, context_beds, comparison_id, comparison_label, region_group) {
+  total_bp <- interval_bases(regions_dt)
+  tibble(
+    context_name = names(context_beds),
+    overlap_bp = purrr::map_dbl(
+      context_beds,
+      ~ interval_bases(intersect_intervals(regions_dt, .x))
+    )
+  ) %>%
+    mutate(
+      comparison_id = comparison_id,
+      comparison_label = comparison_label,
+      region_group = region_group,
+      total_region_bp = total_bp,
+      pct_of_region = if (total_bp > 0) {
+        100 * overlap_bp / total_bp
+      } else {
+        0
+      },
+      .before = 1
+    ) %>%
+    arrange(comparison_label, desc(overlap_bp))
+}
+
+get_exclusion_descriptions <- function(config_path, benchmark_id) {
+  cfg <- yaml::read_yaml(config_path)
+  exclusions <- cfg$benchmarksets[[benchmark_id]]$exclusions
+  if (is.null(exclusions) || length(exclusions) == 0) {
+    return(tibble(exclusion = character(), description = character()))
+  }
+  tibble(
+    exclusion = purrr::map_chr(exclusions, "name"),
+    description = purrr::map_chr(exclusions, ~ .x$description %||% "")
+  )
+}
+
+analyze_comparison <- function(comp, results_dir, resources_dir, config_path, context_cache) {
+  old_bed <- read_bed(file.path(
+    resources_dir, "benchmarksets", paste0(comp$old_benchmark, "_benchmark.bed")
+  ))
+  new_bed <- read_bed(file.path(
+    resources_dir, "benchmarksets", paste0(comp$new_benchmark, "_benchmark.bed")
+  ))
+  new_dip_bed <- read_bed(file.path(
+    resources_dir, "benchmarksets", paste0(comp$new_benchmark, "_dip.bed")
+  ))
+
+  old_only <- subtract_intervals(old_bed, new_bed)
+  new_only <- subtract_intervals(new_bed, old_bed)
+  shared <- intersect_intervals(old_bed, new_bed)
+
+  exclusion_beds <- read_exclusion_beds(comp$new_benchmark, resources_dir)
+  all_exclusions <- if (length(exclusion_beds) == 0) {
+    empty_bed()
+  } else {
+    merge_intervals(rbindlist(exclusion_beds, use.names = TRUE))
+  }
+
+  old_only_in_dip <- intersect_intervals(old_only, new_dip_bed)
+  old_only_excluded <- if (nrow(all_exclusions) > 0) {
+    intersect_intervals(old_only_in_dip, all_exclusions)
+  } else {
+    empty_bed()
+  }
+  old_only_not_in_dip <- subtract_intervals(old_only, new_dip_bed)
+  old_only_in_dip_not_excluded <- if (nrow(all_exclusions) > 0) {
+    subtract_intervals(old_only_in_dip, all_exclusions)
+  } else {
+    old_only_in_dip
+  }
+
+  exclusion_desc <- get_exclusion_descriptions(config_path, comp$new_benchmark)
+
+  old_exclusion_base <- purrr::imap_dfr(
+    exclusion_beds,
+    function(excl_bed, excl_name) {
+      tibble(
+        exclusion = excl_name,
+        bases_bp = interval_bases(intersect_intervals(old_only_excluded, excl_bed))
+      )
+    }
+  )
+
+  old_excluded_bp <- interval_bases(old_only_excluded)
+
+  old_exclusion_base <- old_exclusion_base %>%
+    left_join(exclusion_desc, by = "exclusion") %>%
+    mutate(
+      comparison_id = comp$comp_id,
+      comparison_label = comp$comparison_label,
+      pct_of_excluded_bases = if (old_excluded_bp > 0) {
+        100 * bases_bp / old_excluded_bp
+      } else {
+        0
+      },
+      .before = 1
+    ) %>%
+    arrange(comparison_label, desc(bases_bp))
+
+  old_variant_dt <- normalize_old_only_variants(
+    file.path(results_dir, "exclusions", comp$comp_id, "old_only_variants.tsv"),
+    comp$bench_type
+  )
+
+  old_variant_status <- as_tibble(old_variant_dt) %>%
+    count(status, name = "variant_count") %>%
+    mutate(
+      pct_of_old_only_variants = if (sum(variant_count) > 0) {
+        100 * variant_count / sum(variant_count)
+      } else {
+        0
+      }
+    ) %>%
+    mutate(
+      comparison_id = comp$comp_id,
+      comparison_label = comp$comparison_label,
+      .before = 1
+    )
+
+  old_variant_exclusion <- as_tibble(old_variant_dt) %>%
+    filter(status == "excluded", !is.na(exclusion_ids), exclusion_ids != "") %>%
+    separate_rows(exclusion_ids, sep = ",") %>%
+    count(exclusion_ids, name = "variant_count") %>%
+    rename(exclusion = exclusion_ids) %>%
+    left_join(exclusion_desc, by = "exclusion") %>%
+    mutate(
+      comparison_id = comp$comp_id,
+      comparison_label = comp$comparison_label,
+      .before = 1
+    ) %>%
+    arrange(comparison_label, desc(variant_count))
+
+  new_variant_dt <- read_variant_table_tsv(
+    file.path(results_dir, "variant_tables", comp$new_benchmark, "variants.tsv"),
+    bench_type = comp$bench_type,
+    benchmark_only = TRUE
+  )
+  new_only_variant_dt <- subset_variants_by_regions(new_variant_dt, new_only)
+
+  context_beds <- context_cache[[comp$ref]]
+
+  summary_tbl <- tibble(
+    comparison_id = comp$comp_id,
+    comparison_label = comp$comparison_label,
+    old_benchmark = comp$old_benchmark,
+    new_benchmark = comp$new_benchmark,
+    old_total_bp = interval_bases(old_bed),
+    new_total_bp = interval_bases(new_bed),
+    shared_bp = interval_bases(shared),
+    old_only_bp = interval_bases(old_only),
+    new_only_bp = interval_bases(new_only),
+    old_only_variants = nrow(old_variant_dt),
+    new_only_variants = nrow(new_only_variant_dt)
+  ) %>%
+    mutate(
+      pct_old_only_of_old = if_else(old_total_bp > 0, 100 * old_only_bp / old_total_bp, 0),
+      pct_new_only_of_v5 = if_else(new_total_bp > 0, 100 * new_only_bp / new_total_bp, 0)
+    )
+
+  old_region_reason <- tibble(
+    comparison_id = comp$comp_id,
+    comparison_label = comp$comparison_label,
+    category = c("not_in_dipbed", "excluded", "in_v5_dipbed_not_excluded"),
+    bases_bp = c(
+      interval_bases(old_only_not_in_dip),
+      interval_bases(old_only_excluded),
+      interval_bases(old_only_in_dip_not_excluded)
+    )
+  ) %>%
+    mutate(pct_of_old_only = if (sum(bases_bp) > 0) {
+      100 * bases_bp / sum(bases_bp)
+    } else {
+      0
+    })
+
+  list(
+    summary = summary_tbl,
+    old_region_reason = old_region_reason,
+    old_exclusion_base = old_exclusion_base,
+    old_variant_status = old_variant_status,
+    old_variant_exclusion = old_variant_exclusion,
+    old_variant_type_size = summarize_variant_type_size(
+      old_variant_dt,
+      comp$bench_type,
+      comp$comp_id,
+      comp$comparison_label,
+      "old_only_regions"
+    ),
+    old_excluded_region_context = summarize_region_context(
+      old_only_excluded,
+      context_beds,
+      comp$comp_id,
+      comp$comparison_label,
+      "old_only_excluded_regions"
+    ),
+    new_variant_type_size = summarize_variant_type_size(
+      new_only_variant_dt,
+      comp$bench_type,
+      comp$comp_id,
+      comp$comparison_label,
+      "v5_only_regions"
+    ),
+    new_variant_context = summarize_variant_context(
+      new_only_variant_dt,
+      comp$comp_id,
+      comp$comparison_label,
+      "v5_only_regions"
+    ),
+    new_region_context = summarize_region_context(
+      new_only,
+      context_beds,
+      comp$comp_id,
+      comp$comparison_label,
+      "v5_only_regions"
+    )
+  )
+}
+```
+
+```{r run-analysis}
+data_root <- resolve_data_root()
+results_dir <- file.path(data_root, "results")
+resources_dir <- file.path(data_root, "resources")
+config_path <- here::here("config", "config.yaml")
+
+comparisons <- tribble(
+  ~comp_id, ~comparison_label, ~bench_type, ~ref, ~old_benchmark, ~new_benchmark,
+  "v5_vs_v4_smvar", "GRCh38 Small Variants (v5 vs v4.2.1)", "smvar", "GRCh38", "v4.2.1_GRCh38_smvar", "v5.0q_GRCh38_smvar",
+  "v5_vs_v0.6_stvar", "GRCh37 Structural Variants (v5 vs v0.6)", "stvar", "GRCh37", "v0.6_GRCh37_stvar", "v5.0q_GRCh37_stvar"
+)
+
+context_cache <- list(
+  GRCh38 = read_context_beds("GRCh38", resources_dir),
+  GRCh37 = read_context_beds("GRCh37", resources_dir)
+)
+
+comparison_results <- comparisons %>%
+  split(.$comp_id) %>%
+  purrr::map(~ analyze_comparison(
+    .x,
+    results_dir = results_dir,
+    resources_dir = resources_dir,
+    config_path = config_path,
+    context_cache = context_cache
+  ))
+
+unique_summary_tbl <- bind_rows(purrr::map(comparison_results, "summary"))
+old_region_reason_tbl <- bind_rows(purrr::map(comparison_results, "old_region_reason"))
+old_exclusion_base_tbl <- bind_rows(purrr::map(comparison_results, "old_exclusion_base"))
+old_variant_status_tbl <- bind_rows(purrr::map(comparison_results, "old_variant_status"))
+old_variant_exclusion_tbl <- bind_rows(purrr::map(comparison_results, "old_variant_exclusion"))
+old_variant_type_size_tbl <- bind_rows(purrr::map(comparison_results, "old_variant_type_size"))
+old_excluded_region_context_tbl <- bind_rows(purrr::map(comparison_results, "old_excluded_region_context"))
+new_variant_type_size_tbl <- bind_rows(purrr::map(comparison_results, "new_variant_type_size"))
+new_variant_context_tbl <- bind_rows(purrr::map(comparison_results, "new_variant_context"))
+new_region_context_tbl <- bind_rows(purrr::map(comparison_results, "new_region_context"))
+```
+
+## Unique Bases and Variants
+
+```{r}
+unique_summary_tbl %>%
+  select(
+    comparison_label,
+    old_benchmark,
+    new_benchmark,
+    old_only_bp,
+    new_only_bp,
+    old_only_variants,
+    new_only_variants,
+    pct_old_only_of_old,
+    pct_new_only_of_v5
+  ) %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = c(old_only_bp, new_only_bp, old_only_variants, new_only_variants)) %>%
+  gt::fmt_number(columns = c(pct_old_only_of_old, pct_new_only_of_v5), decimals = 2) %>%
+  gt::cols_label(
+    old_benchmark = "Previous Benchmark",
+    new_benchmark = "v5 Benchmark",
+    old_only_bp = "Previous-Only Bases",
+    new_only_bp = "v5-Only Bases",
+    old_only_variants = "Previous-Only Variants",
+    new_only_variants = "v5-Only Variants",
+    pct_old_only_of_old = "% Previous Benchmark Bases",
+    pct_new_only_of_v5 = "% v5 Benchmark Bases"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+## Previous Benchmark-Specific Regions
+
+### Region Status Relative to v5 Dip and Exclusions
+
+```{r}
+old_region_reason_tbl %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = "bases_bp") %>%
+  gt::fmt_number(columns = "pct_of_old_only", decimals = 2) %>%
+  gt::cols_label(
+    category = "Category",
+    bases_bp = "Bases",
+    pct_of_old_only = "% of Previous-Only Bases"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+### Exclusion Overlap Reasons (Excluded Old-Only Regions)
+
+```{r}
+old_exclusion_reason_tbl <- old_exclusion_base_tbl %>%
+  full_join(
+    old_variant_exclusion_tbl,
+    by = c("comparison_id", "comparison_label", "exclusion", "description")
+  ) %>%
+  mutate(
+    bases_bp = coalesce(bases_bp, 0),
+    variant_count = coalesce(variant_count, 0L),
+    pct_of_excluded_bases = coalesce(pct_of_excluded_bases, 0)
+  ) %>%
+  arrange(comparison_label, desc(bases_bp), desc(variant_count))
+
+old_exclusion_reason_tbl %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = c(bases_bp, variant_count)) %>%
+  gt::fmt_number(columns = "pct_of_excluded_bases", decimals = 2) %>%
+  gt::cols_label(
+    exclusion = "Exclusion",
+    description = "Description",
+    bases_bp = "Excluded Bases Overlap",
+    variant_count = "Excluded Variants Overlap",
+    pct_of_excluded_bases = "% of Excluded Old-Only Bases"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+### Genomic Context of Excluded Old-Only Regions
+
+```{r}
+old_excluded_region_context_tbl %>%
+  select(comparison_label, context_name, overlap_bp, pct_of_region) %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = "overlap_bp") %>%
+  gt::fmt_number(columns = "pct_of_region", decimals = 2) %>%
+  gt::cols_label(
+    context_name = "Genomic Context",
+    overlap_bp = "Overlap Bases",
+    pct_of_region = "% of Excluded Old-Only Region Bases"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+### Previous-Only Variant Breakdown by Type and Size
+
+```{r}
+old_variant_type_size_tbl %>%
+  select(comparison_label, variant_type, size_bin, variant_count) %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = "variant_count") %>%
+  gt::cols_label(
+    variant_type = "Variant Type",
+    size_bin = "Size Bin",
+    variant_count = "Variant Count"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+## v5-Specific Regions
+
+### v5-Only Variant Breakdown by Type and Size
+
+```{r}
+new_variant_type_size_tbl %>%
+  select(comparison_label, variant_type, size_bin, variant_count) %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = "variant_count") %>%
+  gt::cols_label(
+    variant_type = "Variant Type",
+    size_bin = "Size Bin",
+    variant_count = "Variant Count"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+### Genomic Context of v5-Only Regions
+
+```{r}
+new_region_context_tbl %>%
+  select(comparison_label, context_name, overlap_bp, pct_of_region) %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = "overlap_bp") %>%
+  gt::fmt_number(columns = "pct_of_region", decimals = 2) %>%
+  gt::cols_label(
+    context_name = "Genomic Context",
+    overlap_bp = "Overlap Bases",
+    pct_of_region = "% of v5-Only Region Bases"
+  ) %>%
+  theme_gt_manuscript()
+```
+
+### Genomic Context of v5-Only Variants
+
+```{r}
+new_variant_context_tbl %>%
+  gt::gt(groupname_col = "comparison_label") %>%
+  gt::fmt_integer(columns = "variant_count") %>%
+  gt::cols_label(
+    context_name = "Genomic Context",
+    variant_count = "Variant Count"
+  ) %>%
+  theme_gt_manuscript()
+```
