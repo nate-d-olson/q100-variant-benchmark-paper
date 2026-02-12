@@ -1,0 +1,22 @@
+# Build output
+_site/
+.quarto/
+
+# Synced content (copied by build-site.sh, not version-controlled here)
+analysis/
+docs/
+README.md
+
+# Symlinks to repo data directories
+R
+config
+results
+resources
+manuscript
+styles.css
+
+# Sentinel
+.here
+
+# Snakemake reports
+report*.html

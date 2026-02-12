@@ -1,0 +1,63 @@
+---
+title: "R Functions Reference"
+---
+
+## Overview
+
+The R source files in `R/` provide data loading, schema management, caching,
+and plot theming for the analysis notebooks.
+
+| File | Purpose |
+|------|---------|
+| `data_loading.R` | All data loading functions with caching and validation |
+| `schemas.R` | Arrow schema registry, factor levels, validation rules |
+| `cache.R` | Parquet caching system with zstd compression |
+| `plot_themes.R` | Plot theming and visualization helpers |
+
+---
+
+## data_loading.R
+
+```{r}
+#| echo: false
+#| output: asis
+cat("```r\n")
+cat(readLines(here::here("R", "data_loading.R")), sep = "\n")
+cat("\n```\n")
+```
+
+---
+
+## schemas.R
+
+```{r}
+#| echo: false
+#| output: asis
+cat("```r\n")
+cat(readLines(here::here("R", "schemas.R")), sep = "\n")
+cat("\n```\n")
+```
+
+---
+
+## cache.R
+
+```{r}
+#| echo: false
+#| output: asis
+cat("```r\n")
+cat(readLines(here::here("R", "cache.R")), sep = "\n")
+cat("\n```\n")
+```
+
+---
+
+## plot_themes.R
+
+```{r}
+#| echo: false
+#| output: asis
+cat("```r\n")
+cat(readLines(here::here("R", "plot_themes.R")), sep = "\n")
+cat("\n```\n")
+```

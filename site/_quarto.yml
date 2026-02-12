@@ -1,0 +1,50 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Q100 Variant Benchmark"
+  navbar:
+    left:
+      - text: Home
+        href: index.qmd
+      - text: Analysis Notebooks
+        menu:
+          - text: Benchmarkset Characterization
+            href: analysis/benchmarkset_characterization.qmd
+          - text: Benchmark Difficult Regions
+            href: analysis/benchmark_difficult.qmd
+          - text: Genomic Context Analysis
+            href: analysis/genomic_context_analysis.qmd
+          - text: Benchmark Exclusions
+            href: analysis/benchmark_exclusions.qmd
+          - text: Interval Size Distributions
+            href: analysis/benchmark_interval_size_distributions.qmd
+          - text: External Evaluation
+            href: analysis/external_evaluation.qmd
+      - text: Documentation
+        menu:
+          - text: Architecture
+            href: docs/architecture.md
+          - text: Data Dictionary
+            href: docs/data-dictionary.md
+          - text: API Reference
+            href: docs/api-reference.md
+          - text: Pipeline Outputs
+            href: docs/pipeline-outputs.md
+          - text: Plot Themes Guide
+            href: docs/plot_themes_guide.md
+          - text: Troubleshooting
+            href: docs/troubleshooting.md
+      - text: R Reference
+        href: r-reference.qmd
+      - text: Pipeline README
+        href: README.md
+
+execute:
+  freeze: auto
+
+format:
+  html:
+    theme: cosmo
+    toc: true
