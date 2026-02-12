@@ -57,7 +57,7 @@ make_exclusion_tbl <- function(exclusion_tbl) {
     theme_gt_manuscript()
 }
 
-exclusion_intersect_tbl %>%
+load_exclusion_metrics() %>%
   dplyr::select(ref, exclusions, bench_type, intersect_bp, pct_of_dip) %>%
   group_by(exclusions) %>%
   tidyr::pivot_wider(
