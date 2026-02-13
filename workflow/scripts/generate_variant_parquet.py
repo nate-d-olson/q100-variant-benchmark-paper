@@ -223,8 +223,18 @@ def generate_variant_parquet(
         df.drop(columns=["svtype"], inplace=True)
 
     # Clean up context_ids and region_ids: replace '.' with None
+    # AND convert tuple/list objects to comma-separated strings (Truvari bug)
     for col in ["context_ids", "region_ids"]:
         if col in df.columns:
+            # First, convert tuple/list to comma-separated string
+            df[col] = df[col].apply(
+                lambda x: (
+                    ",".join(str(item) for item in x)
+                    if isinstance(x, (tuple, list))
+                    else x
+                )
+            )
+            # Then clean up missing values
             df[col] = df[col].replace({".": pd.NA, "": pd.NA}).astype("string")
 
     # Add benchmark metadata columns
