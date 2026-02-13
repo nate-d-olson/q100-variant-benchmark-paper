@@ -1,6 +1,6 @@
 # Analysis
 
-- exclusion interactions - no variants
+- Lack of potential issue with variant types: only indels and DELs in logs
 
 ### benchmark_exclusions.qmd
 
@@ -16,3 +16,8 @@
 
 - Validate summary outputs against old_only status CSVs
 - Add compact figure for v5-only vs previous-only base/variant deltas
+
+### Low priority
+
+- more sensible results and log directory structures
+- cleanup data_loading script

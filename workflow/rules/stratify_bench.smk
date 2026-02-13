@@ -92,17 +92,13 @@ rule aggregate_stratified_results:
     input:
         tsvs=get_all_stratified_tsvs,
     output:
-        variant_summary=protected(
-            ensure(
-                "results/stratified_bench/{comp_id}/summary_by_variant.tsv",
-                non_empty=True,
-            )
+        variant_summary=ensure(
+            "results/stratified_bench/{comp_id}/summary_by_variant.tsv",
+            non_empty=True,
         ),
-        region_summary=protected(
-            ensure(
-                "results/stratified_bench/{comp_id}/summary_by_region.tsv",
-                non_empty=True,
-            )
+        region_summary=ensure(
+            "results/stratified_bench/{comp_id}/summary_by_region.tsv",
+            non_empty=True,
         ),
     log:
         "logs/stratified_bench/{comp_id}/aggregate.log",

@@ -3,4 +3,3 @@ channels:
 channel_priority: strict
 dependencies:
   - wget
-  - coreutils
