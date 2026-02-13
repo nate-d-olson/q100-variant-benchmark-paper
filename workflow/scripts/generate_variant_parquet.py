@@ -135,7 +135,9 @@ def generate_variant_parquet(
         vr = truvari.VariantRecord(record)
 
         # Get variant type and size using Truvari's methods
-        var_type = vr.var_type().name  # Extract name from SV enum (e.g., "DEL", "INS")
+        var_type = vr.var_type().name
+        if bench_type == "smvar" and var_type in ["INS", "DEL"]:
+            var_type = "INDEL"
         var_size = vr.var_size()
 
         # Filter out NON (non-variant) records
