@@ -134,11 +134,45 @@ def generate_variant_parquet(
         # Create VariantRecord wrapper
         vr = truvari.VariantRecord(record)
 
-        # Get variant type and size using Truvari's methods
+        # Get variant type (as string from enum)
         var_type = vr.var_type().name
+
+        # Get variant size (Truvari returns unsigned/absolute value)
+        abs_size = vr.var_size()
+
+        # Apply sign convention: positive for INS, negative for DEL
+        if var_type == "DEL":
+            var_size = -abs_size
+        elif var_type == "INS":
+            var_size = abs_size
+        elif var_type in ["UNK", "INV"]:
+            # Recalculate size with sign for ambiguous types
+            logging.info(
+                "Reclassifying %s to INS/DEL at %s:%d",
+                var_type,
+                record.chrom,
+                record.pos,
+            )
+            len_ref = len(vr.get_ref())
+            alt = vr.get_alt()
+            if alt is None:
+                logging.warning(
+                    "Skipping %s variant with missing ALT at %s:%d",
+                    var_type,
+                    record.chrom,
+                    record.pos,
+                )
+                continue
+            len_alt = len(alt)
+            var_size = len_alt - len_ref  # Positive for INS, negative for DEL
+            var_type = "INS" if var_size > 0 else "DEL"
+        else:
+            # Other types (SNP, DUP, BND) keep unsigned size
+            var_size = abs_size
+
+        # Convert INS/DEL to INDEL for small variants
         if bench_type == "smvar" and var_type in ["INS", "DEL"]:
             var_type = "INDEL"
-        var_size = vr.var_size()
 
         # Filter out NON (non-variant) records
         if var_type == "NON":
