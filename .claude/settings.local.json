@@ -23,9 +23,17 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(gh pr create:*)",
       "Bash(gh pr list:*)",
-      "Bash(gh pr diff:*)"
+      "Bash(gh pr diff:*)",
+      "Bash(micromamba list:*)",
+      "Bash(micromamba run:*)",
+      "Bash(ls:*)",
+      "Bash(tee:*)"
     ]
   },
+  "enabledMcpjsonServers": [
+    "context7",
+    "github"
+  ],
   "hooks": {
     "PostToolUse": [
       {
@@ -53,9 +61,5 @@
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true
-  },
-  "enabledMcpjsonServers": [
-    "context7",
-    "github"
-  ]
+  }
 }
