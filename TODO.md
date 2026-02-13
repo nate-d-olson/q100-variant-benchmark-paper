@@ -19,5 +19,5 @@
 
 ### Low priority
 
-- more sesible results and log directory structures
+- more sensible results and log directory structures
 - cleanup data_loading script
