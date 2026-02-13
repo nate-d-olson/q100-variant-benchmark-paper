@@ -84,7 +84,7 @@ rule all:
         ),
         ## Benchmarkset variant counts by type and difficult region stratifications
         expand(
-            "results/genomic_context/{benchmark}/combined_metrics.csv",
+            "results/genomic_context/{benchmark}/genomic_context_coverage_table.csv",
             benchmark=BENCHMARK,
         ),
         ## Per-exclusion impact: BED metrics + variant counts

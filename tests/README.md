@@ -105,6 +105,31 @@ Test fixtures are stored in `tests/fixtures/`. Keep test data:
 - Representative (cover edge cases)
 - Well-documented (add comments explaining what each file tests)
 
+### GRCh38 debug subset fixture
+
+For integration-style debugging against realistic benchmark content, use:
+
+- `tests/fixtures/grch38_debug_subset/`
+
+This fixture includes clipped benchmark VCF/BED files, exclusion BEDs, genomic
+context BEDs, and a selected region set (5 autosomes + X/Y) with both
+overlap-rich regions and a no-overlap control region.
+
+Regenerate it with:
+
+```bash
+python scripts/create_grch38_debug_subset.py --force
+```
+
+Run Snakemake against the subset fixture config with workflow replacement:
+
+```bash
+snakemake -s workflow/Snakefile \
+  --replace-workflow-config \
+  --configfile config/config.test_grch38_debug.yaml \
+  -n results/variant_tables/v5q_GRCh38_smvar/variants.parquet
+```
+
 ## Continuous Integration
 
 Tests run automatically on:
