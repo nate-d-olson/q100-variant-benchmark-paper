@@ -7,6 +7,7 @@ Reads a fully annotated VCF (with INFO/CONTEXT_IDS and INFO/REGION_IDS from
 bcftools annotate) and produces a clean Parquet table with:
 - Correct variant type classification using VariantRecord.var_type()
 - Variant sizes using VariantRecord.var_size()
+- Genotype classification using get_gt()
 - Size filtering (smvar <50bp, stvar >=50bp)
 - Truvari size bins (SZBINS) as strings for R compatibility
 - All columns required by R schema for caching and validation
@@ -17,6 +18,11 @@ instead of vcf_to_df(), which provides:
 - Correct handling of all variant types (SNV, INDEL, INS, DEL)
 - Simpler, more maintainable code
 - Direct access to variant properties via tested methods
+
+Truvari Enum Conversions:
+- var_type: SV enum → .name extracts string ("DEL", "INS", "SNP")
+- gt: tuple → get_gt() → GT enum → .name extracts string ("HET", "HOM", "REF")
+- szbin: get_sizebin() returns string directly ("SNP", "[50,100)", etc.)
 
 Output columns match R/schemas.R variant_table schema:
 - bench_version, ref, bench_type (metadata)
@@ -55,22 +61,6 @@ def parse_benchmark_id(benchmark_id: str) -> Dict[str, str]:
         "ref": match.group(2),
         "bench_type": match.group(3),
     }
-
-
-def get_size_bin(var_size: int) -> int:
-    """Get Truvari size bin for variant size.
-
-    Args:
-        var_size: Variant size (can be negative for deletions)
-
-    Returns:
-        Size bin index (0-based)
-    """
-    abs_size = abs(var_size)
-    for i, cutoff in enumerate(truvari.SZBINS):
-        if abs_size < cutoff:
-            return i
-    return len(truvari.SZBINS)
 
 
 def normalize_annotation(value) -> Optional[str]:
@@ -143,23 +133,54 @@ def generate_variant_parquet(
             # Create VariantRecord wrapper
             vr = truvari.VariantRecord(record)
 
-            # Get variant type and size using Truvari's methods
-            var_type = vr.var_type()
-            var_size = vr.var_size()
+            # Get variant type (as string from enum)
+            var_type = vr.var_type().name
 
-            # Filter out NON (non-variant) records
-            if var_type == "NON":
-                filtered_non += 1
-                continue
+            # Get variant size (Truvari returns unsigned/absolute value)
+            abs_size = vr.var_size()
 
-            # Size filtering based on bench_type
-            abs_size = abs(var_size)
-            if bench_type == "smvar" and abs_size >= size_threshold:
-                filtered_size += 1
-                continue
-            if bench_type == "stvar" and abs_size < size_threshold:
-                filtered_size += 1
-                continue
+            # Apply sign convention: positive for INS, negative for DEL
+            if var_type == "DEL":
+                var_size = -abs_size
+            elif var_type == "INS":
+                var_size = abs_size
+            elif var_type in ["UNK", "INV"]:
+                # Recalculate size with sign for ambiguous types
+                logging.info(
+                    "Reclassifying %s to INS/DEL at %s:%d",
+                    var_type,
+                    record.chrom,
+                    record.pos,
+                )
+                ref_len = len(vr.get_ref())
+                alt = vr.get_alt()
+                if alt is None:
+                    logging.warning(
+                        "Skipping %s variant with missing ALT at %s:%d",
+                        var_type,
+                        record.chrom,
+                        record.pos,
+                    )
+                    continue
+                alt_len = len(alt)
+                var_size = alt_len - ref_len  # Positive for INS, negative for DEL
+                var_type = "INS" if var_size > 0 else "DEL"
+            else:
+                # Other types (SNP, DUP, BND) keep unsigned size
+                var_size = abs_size
+
+            # Convert INS/DEL to INDEL for small variants
+            if bench_type == "smvar" and var_type in ["INS", "DEL"]:
+                var_type = "INDEL"
+
+                # Size filtering based on bench_type
+                abs_size = abs(var_size)
+                if bench_type == "smvar" and abs_size >= size_threshold:
+                    filtered_size += 1
+                    continue
+                if bench_type == "stvar" and abs_size < size_threshold:
+                    filtered_size += 1
+                    continue
 
             # Get size bin (convert to string for R schema compatibility)
             szbin = str(get_size_bin(var_size))
@@ -168,12 +189,9 @@ def generate_variant_parquet(
             context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
             region_ids = normalize_annotation(record.info.get("REGION_IDS"))
 
-            # Extract genotype using VariantRecord.gt()
-            gt = vr.gt()
 
-            # Extract allele lengths for R schema
-            ref_len = len(record.ref)
-            alt_len = len(record.alts[0]) if record.alts else None
+            # Extract genotype: gt() returns tuple, convert to GT enum, then extract name
+            gt = truvari.get_gt(vr.gt()).name  # "HET", "HOM", "REF", "NON", "UNK"
 
             # Extract quality and filter for R schema
             qual = float(record.qual) if record.qual is not None else None
@@ -199,12 +217,16 @@ def generate_variant_parquet(
                     "region_ids": region_ids,
                 }
             )
+    vcf.close()
+
 
     logging.info("Collected %d variants", len(variants))
     if filtered_non > 0:
         logging.info("Filtered %d NON (non-variant) records", filtered_non)
     if filtered_size > 0:
-        logging.info("Filtered %d variants by size (%s threshold)", filtered_size, bench_type)
+        logging.info(
+            "Filtered %d variants by size (%s threshold)", filtered_size, bench_type
+        )
 
     if not variants:
         logging.warning("No variants after filtering — creating empty DataFrame")
@@ -247,7 +269,9 @@ def generate_variant_parquet(
         logging.info(
             "Variant type distribution:\n%s", df["var_type"].value_counts().to_string()
         )
-        logging.info("Size bin distribution:\n%s", df["szbin"].value_counts().to_string())
+        logging.info(
+            "Size bin distribution:\n%s", df["szbin"].value_counts().to_string()
+        )
     else:
         logging.info("No variants to report statistics")
 
