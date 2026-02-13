@@ -28,12 +28,10 @@ The functions in `R/data_loading.R` load and standardize pipeline outputs. This 
 | `pct_of_context` | Numeric | Percentage of the genomic context covered by the benchmark |
 | `pct_of_bench` | Numeric | Percentage of the benchmark covered by this genomic context |
 | `total_variants` | Integer | Total number of variants in this context |
-| `snp_count` | Integer | Count of Single Nucleotide Polymorphisms (REF/ALT length == 1) |
-| `mnp_count` | Integer | Count of Multi-Nucleotide Polymorphisms (REF/ALT length > 1, equal) |
-| `del_count` | Integer | Count of Deletions (REF > ALT, all sizes) |
-| `ins_count` | Integer | Count of Insertions (ALT > REF, all sizes) |
-| `complex_count` | Integer | Count of Complex variants |
-| `other_count` | Integer | Count of other variant types (DUP, INV, BND, CNV from SVTYPE) |
+| `snv_count` | Integer | Count of Single Nucleotide Variants (SNV) |
+| `indel_count` | Integer | Count of Insertions/Deletions (INDEL, smvar only) |
+| `del_count` | Integer | Count of Deletions (DEL) |
+| `ins_count` | Integer | Count of Insertions (INS) |
 | `variant_density_per_mb` | Numeric | Number of variants per Megabase |
 
 ### Exclusion Metrics
@@ -294,7 +292,7 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Units:** Integer count
 
-**Calculation:** Sum of all snp_count + mnp_count + del_count + ins_count + complex_count + other_count
+**Calculation:** Sum of all `*_count` columns (snv_count + indel_count + del_count + ins_count + any additional type counts)
 
 **Variant Classification Logic:**
 
@@ -315,11 +313,13 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 ---
 
-#### snp_count
+#### snv_count
 
-**Definition:** Number of single nucleotide polymorphisms (SNPs)
+**Definition:** Number of single nucleotide variants (SNVs)
 
-**Definition of SNP:**
+**Note:** Pipeline outputs use `SNP` internally; the R loading function renames to `snv_count`.
+
+**Definition of SNV:**
 
 - Single base substitution
 - Reference length = 1 bp, Alternate length = 1 bp
@@ -327,47 +327,37 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Classification:**
 
-- Classified when REF_len == ALT_len == 1
+- Classified by Truvari's `VariantRecord.var_type()` as `SV.SNP`
 - Applied to all benchmarks (small variants and structural variants)
 
 **Interpretation:**
 
-- SNPs are most common variant type
+- SNVs are most common variant type
 - Generally easiest to genotype accurately
 - Usually comprise 30-50% of total variants in benchmarks
 
 **Context:**
 
-- Small variants: 180,000-700,000 SNPs per benchmark-genomic context
-- Structural variants: fewer SNPs (focus is on larger variants ≥50bp)
+- Small variants: 180,000-700,000 SNVs per benchmark-genomic context
+- Structural variants: fewer SNVs (focus is on larger variants ≥50bp)
 
 ---
 
-#### mnp_count
+#### indel_count
 
-**Definition:** Number of multi-nucleotide polymorphisms (MNPs)
+**Definition:** Number of insertion/deletion variants (INDELs) in small variant benchmarks
 
-**Definition of MNP:**
+**Definition of INDEL:**
 
-- Multiple adjacent base substitutions
-- Reference length = Alternate length > 1 bp
-- Example: ATG → GCA (3bp substitution)
-
-**Classification:**
-
-- Classified when REF_len == ALT_len > 1
-- Applied to all benchmarks
+- Variant where reference and alternate alleles differ in length
+- For small variant benchmarks: variants < 50bp
+- Classified by Truvari's `VariantRecord.var_type()` and reclassified as INDEL for smvar benchmarks
 
 **Interpretation:**
 
-- Less common than SNPs but more common than complex variants
-- Occur when multiple adjacent bases are substituted simultaneously
-- Often arise from localized mutation processes or sequencing artifacts
-
-**Context:**
-
-- Typically 1-10% of total small variants
-- Can be challenging to distinguish from nearby SNPs in noisy data
+- Represents combined insertions and deletions in small variant benchmarks
+- Heavily concentrated in homopolymer regions (HP) and tandem repeats (TR)
+- Usually 40-65% of total small variants
 
 ---
 

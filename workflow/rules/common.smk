@@ -76,24 +76,6 @@ def get_chromosomes(wildcards) -> str:
     return " ".join([f"chr{c}" for c in chroms])
 
 
-def get_reference_checksum(ref_name: str) -> str:
-    """
-    Get checksum value for a reference genome.
-
-    Args:
-        ref_name: Name of the reference in config["references"]
-
-    Returns:
-        Checksum string (MD5 or SHA256)
-    """
-    ref_config = config["references"].get(ref_name, {})
-    if "sha256" in ref_config:
-        return ref_config["sha256"]
-    if "md5" in ref_config:
-        return ref_config["md5"]
-    raise ValueError(f"No checksum found for reference: {ref_name}")
-
-
 # ============================================================================
 # Variant Table Helpers
 # ============================================================================
@@ -513,12 +495,6 @@ def get_reference_checksum(ref_name: str) -> str:
     """Get checksum value for reference."""
     checksum, _ = get_reference_checksum_info(ref_name)
     return checksum
-
-
-def get_reference_checksum_type(ref_name: str) -> str:
-    """Get checksum type for reference."""
-    _, checksum_type = get_reference_checksum_info(ref_name)
-    return checksum_type
 
 
 def get_chromosomes(wildcards) -> str:

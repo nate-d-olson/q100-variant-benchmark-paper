@@ -28,8 +28,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Key Rules by Layer:**
 
-1. **Metrics** (`workflow/rules/strat_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
-   - Outputs: `results/genomic_context_metrics/{benchmark}/genomic_context_coverage_table.csv`
+1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
+   - Outputs: `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
 2. **Variant Tables** (`workflow/rules/var_tables.smk`): Annotate VCFs with genomic context IDs and generate Parquet
    - Key rule: `annotate_vcf_genomic_contexts` → adds INFO/CONTEXT_IDS to VCF
    - `generate_variant_parquet` → reads annotated VCF with Truvari, classifies types, writes Parquet
@@ -50,7 +50,7 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Output File Patterns:**
 
-- Genomic context files: `results/genomic_context_*/{benchmark}/*.csv`
+- Genomic context files: `results/genomic_context/{benchmark}/*.csv`
 - Variant tables: `results/variant_tables/{benchmark}/variants.parquet`
 - Variant counts: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`
@@ -96,12 +96,10 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 - **Cause**: Truvari's `vcf_to_df()` converts multi-value VCF INFO fields into Python tuples/lists
 - **Root cause**: When written to Parquet, these become string representations like `"('HP', 'MAP')"`
-- **Fix**: Added tuple-to-string conversion in `generate_variant_parquet.py` (lines 226-236)
+- **Fix**: Added `normalize_annotation()` function in `generate_variant_parquet.py` (line 66) for tuple-to-string conversion
 - **Fixed**: February 2026
 - **Verification**: Check logs show clean context names: `Contexts: ['HP', 'MAP', 'SD', ...]`
 - **Impact**: Affected all variant count tables (genomic contexts and exclusions) across all benchmarks
-
-## Data Loading (R/Quarto)
 
 ## R Data Loading Infrastructure
 
@@ -204,7 +202,7 @@ Examples:
 File paths encode this pattern:
 
 ```
-results/genomic_context_metrics/v5.0q_GRCh38_smvar/
+results/genomic_context/v5.0q_GRCh38_smvar/
 results/variant_tables/v5.0q_GRCh38_smvar/variants.parquet
 results/var_counts/v5.0q_GRCh38_smvar/variants_by_genomic_context.parquet
 results/exclusions/v5.0q_GRCh38_smvar/  # only if exclusions configured

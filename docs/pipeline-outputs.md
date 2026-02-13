@@ -48,34 +48,29 @@ All genomic context-related outputs use these consistent identifiers:
 
 These files contain aggregated metrics and should be your default choice for analyses. They're fast to load and sufficient for most use cases.
 
-### 1. Stratification Combined Metrics
+### 1. Variant Counts by Genomic Context
 
-**Path:** `results/genomic_context/{benchmark}/combined_metrics.csv`
+**Path:** `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
 
-**Purpose:** Primary analysis file with per-genomic context metrics and variant counts. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
+**Purpose:** Primary analysis file with per-genomic context variant counts. Loaded and aggregated by `load_genomic_context_metrics()` which pivots variant types into count columns. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
 
 **Size:** Small (~5-10 KB per benchmark)
 
 **Column Schema:**
 
+The raw Parquet file has columns: `context_name`, `var_type`, `szbin`, `count`. The R function `load_genomic_context_metrics()` pivots this into wide format with these columns:
+
 | Column | Type | Description | Range/Units |
 |--------|------|-------------|-------------|
-| bench_version | string | Benchmark version | e.g., "v5.0q" |
-| ref | string | Reference genome | GRCh37, GRCh38, CHM13v2.0 |
-| bench_type | string | Benchmark set type classification | smvar or stvar |
-| context_name | string | Stratification region name | HP, MAP, SD, SD10kb, TR, TR10kb |
-| context_bp | integer | Total bases in genomic context | Bases |
-| intersect_bp | integer | Bases overlapping with benchmark | Bases |
-| pct_of_context | decimal | Percentage of genomic context in benchmark | 0-100% |
-| pct_of_bench | decimal | Percentage of benchmark in genomic context | 0-100% |
-| total_variants | integer | Total variant count in overlap | Count |
-| snp_count | integer | Single nucleotide polymorphism count | Count |
-| mnp_count | integer | Multi-nucleotide polymorphism count | Count |
-| del_count | integer | Deletion count (all sizes) | Count |
-| ins_count | integer | Insertion count (all sizes) | Count |
-| complex_count | integer | Complex variant count | Count |
-| other_count | integer | Other variant types (DUP, INV, BND, CNV from SVTYPE) | Count |
-| variant_density_per_mb | decimal | Variants per megabase | variants/Mb |
+| bench_version | Factor | Benchmark version | v0.6, v4.2.1, v5.0q |
+| ref | Factor | Reference genome | GRCh37, GRCh38, CHM13v2.0 |
+| bench_type | Factor | Benchmark set type classification | smvar or stvar |
+| context_name | Factor | Genomic context region name | HP, MAP, SD, SD10kb, TR, TR10kb |
+| snv_count | integer | Single nucleotide variant count | Count |
+| indel_count | integer | Insertion/deletion count (smvar) | Count |
+| del_count | integer | Deletion count | Count |
+| ins_count | integer | Insertion count | Count |
+| total_variants | integer | Sum of all *_count columns | Count |
 
 **Variant Classification Logic:**
 
@@ -91,12 +86,15 @@ The pipeline uses a dual classification approach:
 
 **Example Data:**
 
+The raw Parquet contains rows like:
 ```
-context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,total_variants,snp_count,mnp_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
-HP,83977437,80057238,95.331843,2.922429,745376,180354,554178,8234,1654,156,400,9310.54
-MAP,248876839,113370415,45.552819,4.138501,851471,724227,86411,35678,4312,421,422,7510.52
-SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,23456,1456,98,617,6232.91
+context_name,var_type,szbin,count
+HP,SNV,[1,5),180354
+HP,INDEL,[1,5),554178
+MAP,SNV,[1,5),724227
 ```
+
+After loading with `load_genomic_context_metrics()`, the data is pivoted to wide format.
 
 **Usage Notes:**
 
@@ -114,7 +112,7 @@ source("R/data_loading.R")
 metrics <- load_genomic_context_metrics()
 
 # Load specific benchmark
-metrics_v5 <- load_genomic context_metrics(
+metrics_v5 <- load_genomic_context_metrics(
   benchmark_filter = c("v5.0q_GRCh38_smvar", "v5.0q_GRCh37_stvar")
 )
 
@@ -276,7 +274,7 @@ These files contain variant-level or base-level data. Load them only when you ne
 
 ### 4. Full Variant Table
 
-**Path:** `results/variant_tables/{benchmark}/variants.tsv`
+**Path:** `results/variant_tables/{benchmark}/variants.parquet`
 
 **Availability:** All benchmarks
 
@@ -440,13 +438,9 @@ coverage %>%
 results/
 ├── genomic_context/
 │   ├── v5.0q_GRCh38_smvar/
-│   │   ├── combined_metrics.csv                    ✓ Primary (load first)
-│   │   ├── genomic_context_coverage_table.csv      (intermediate)
+│   │   ├── genomic_context_coverage_table.csv      ✓ Coverage metrics
 │   │   ├── coverage/                               (BED files)
-│   │   ├── metrics/                                (individual TSV files)
-│   │   └── var_counts/
-│   │       ├── genomic_context_summary.csv         (intermediate)
-│   │       └── variants_by_genomic_context.csv     (intermediate)
+│   │   └── metrics/                                (individual TSV files)
 │   ├── v5.0q_GRCh38_stvar/
 │   ├── v5.0q_GRCh37_smvar/
 │   ├── v5.0q_GRCh37_stvar/
@@ -454,6 +448,11 @@ results/
 │   ├── v5.0q_CHM13v2.0_stvar/
 │   ├── v4.2.1_GRCh38_smvar/
 │   ├── v0.6_GRCh37_stvar/
+│   └── [other benchmarks]
+│
+├── var_counts/
+│   ├── v5.0q_GRCh38_smvar/
+│   │   └── variants_by_genomic_context.parquet    ✓ Primary (load first)
 │   └── [other benchmarks]
 │
 ├── exclusions/
@@ -464,7 +463,7 @@ results/
 │
 ├── variant_tables/
 │   ├── v5.0q_GRCh38_smvar/
-│   │   └── variants.tsv                           ⚠️ Large (~1 GB)
+│   │   └── variants.parquet                           ⚠️ Large (~1 GB)
 │   ├── v5.0q_GRCh38_stvar/
 │   └── [other benchmarks]
 │
@@ -643,11 +642,11 @@ clear_cache()                       # Remove all cached data
 
 ## Troubleshooting
 
-### "No combined_metrics.csv files found"
+### "No variants_by_genomic_context.parquet files found"
 
-- Check that `results/genomic_context/` directory exists
+- Check that `results/var_counts/` directory exists
 - Verify pipeline completed successfully
-- Run `find results/ -name "*combined_metrics*"`
+- Run `find results/ -name "*variants_by_genomic_context*"`
 
 ### Slow loading of variant tables
 

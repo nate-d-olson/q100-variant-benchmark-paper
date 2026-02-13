@@ -44,10 +44,6 @@ All color scales follow the same pattern and are designed to be:
 scale_benchmark_version(aesthetic = "color", name = "Benchmark")
 scale_benchmark_version(aesthetic = "fill", name = "Benchmark")
 
-# For reference genomes
-scale_reference_genome(aesthetic = "color", name = "Reference")
-scale_reference_genome(aesthetic = "fill")
-
 # For benchmark set types
 scale_bench_type(aesthetic = "color", name = "Benchmark Type")
 scale_bench_type(aesthetic = "fill")
