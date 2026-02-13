@@ -29,7 +29,7 @@ rule create_inverse_strat_bed:
     output:
         inverse_bed="results/stratifications/inverse/{ref}_{strat_name}_inverse.bed",
     log:
-        "logs/stratifications/inverse/{ref}_{strat_name}_inverse.log",
+        "logs/create_inverse_strat_bed/{ref}_{strat_name}.log",
     conda:
         "../envs/truvari.yaml"
     shell:
@@ -68,7 +68,7 @@ rule run_truvari_stratify:
         bench_dir=lambda w: f"results/comparisons/stvar/{w.comp_id}/",
         complement_flag=lambda w: "--complement" if w.mode != "within" else "",
     log:
-        "logs/stratified_bench/{comp_id}/{strat_name}_{region_type}_{mode}.log",
+        "logs/run_truvari_stratify/{comp_id}_{strat_name}_{region_type}_{mode}.log",
     conda:
         "../envs/truvari.yaml"
     shell:
@@ -101,7 +101,7 @@ rule aggregate_stratified_results:
             non_empty=True,
         ),
     log:
-        "logs/stratified_bench/{comp_id}/aggregate.log",
+        "logs/aggregate_stratified_results/{comp_id}.log",
     conda:
         "../envs/truvari.yaml"
     script:

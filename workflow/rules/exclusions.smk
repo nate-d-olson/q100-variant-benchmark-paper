@@ -39,7 +39,7 @@ rule materialize_exclusion:
     params:
         exclusion_type=get_exclusion_type,
     log:
-        "logs/exclusions/{benchmark}/{exclusion}_materialize.log",
+        "logs/materialize_exclusion/{benchmark}_{exclusion}.log",
     message:
         "Materializing exclusion {wildcards.exclusion} for {wildcards.benchmark}"
     resources:
@@ -78,7 +78,7 @@ rule compute_dip_size:
     output:
         size="results/exclusions/{benchmark}/dip_size.txt",
     log:
-        "logs/exclusions/{benchmark}/dip_size.log",
+        "logs/compute_dip_size/{benchmark}.log",
     message:
         "Computing dip.bed size for {wildcards.benchmark}"
     resources:
@@ -110,7 +110,7 @@ rule compute_exclusion_metrics:
     output:
         tsv="results/exclusions/{benchmark}/coverage/{exclusion}.tsv",
     log:
-        "logs/exclusions/{benchmark}/coverage_{exclusion}.log",
+        "logs/compute_exclusion_metrics/{benchmark}_{exclusion}.log",
     message:
         "Computing metrics for {wildcards.exclusion} in {wildcards.benchmark}"
     resources:
@@ -141,7 +141,7 @@ rule compute_exclusion_impact:
             get_exclusion_name_mapping(wc.benchmark).items()
         ),
     log:
-        "logs/exclusions/{benchmark}/impact.log",
+        "logs/compute_exclusion_impact/{benchmark}.log",
     message:
         "Computing exclusion impact for {wildcards.benchmark}"
     resources:
@@ -173,7 +173,7 @@ rule compute_exclusion_interactions:
             get_exclusion_name_mapping(wc.benchmark).items()
         ),
     log:
-        "logs/exclusions/{benchmark}/interactions.log",
+        "logs/compute_exclusion_interactions/{benchmark}.log",
     message:
         "Computing exclusion interactions for {wildcards.benchmark}"
     resources:
@@ -214,7 +214,7 @@ rule annotate_old_benchmark_status:
             )
         ],
     log:
-        "logs/exclusions/{comp_id}/old_benchmark_status.log",
+        "logs/annotate_old_benchmark_status/{comp_id}.log",
     message:
         "Annotating old benchmark status for {wildcards.comp_id}"
     resources:

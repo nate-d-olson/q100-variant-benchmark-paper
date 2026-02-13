@@ -15,7 +15,7 @@ rule index_vcf:
     output:
         temp("{prefix}.vcf.gz.tbi"),
     log:
-        "logs/vcf_processing/{prefix}_index.log",
+        "logs/index_vcf/{prefix}.log",
     resources:
         mem_mb=2048,
     conda:
