@@ -132,11 +132,9 @@ rule aggregate_genomic_context_metrics:
             genomic_context=get_genomic_context_ids(wc),
         ),
     output:
-        csv=protected(
-            ensure(
-                "results/genomic_context/{benchmark}/genomic_context_coverage_table.csv",
-                non_empty=True,
-            )
+        csv=ensure(
+            "results/genomic_context/{benchmark}/genomic_context_coverage_table.csv",
+            non_empty=True,
         ),
     log:
         "logs/genomic_context/{benchmark}/aggregate.log",

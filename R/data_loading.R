@@ -1008,7 +1008,31 @@ load_variant_table <- function(
 #' The Parquet file already contains correct variant type classification,
 #' size filtering, and benchmark metadata columns.
 read_variant_table <- function(table_path) {
-  var_df <- arrow::read_parquet(table_path) %>%
+  var_df <- arrow::read_parquet(table_path)
+
+  # Defensive: Handle old column name (SVLEN -> var_size)
+  if ("SVLEN" %in% names(var_df) && !"var_size" %in% names(var_df)) {
+    var_df <- var_df %>% dplyr::rename(var_size = SVLEN)
+  }
+
+  # Defensive: Flatten any list-valued columns from old Truvari multi-value fields
+  # This handles cases where Parquet files were generated before Python normalization
+  list_cols <- names(var_df)[sapply(var_df, is.list)]
+  if (length(list_cols) > 0) {
+    warning(
+      glue::glue(
+        "Found list-valued columns in {fs::path_file(table_path)}: ",
+        "{paste(list_cols, collapse=', ')}. Flattening to scalars."
+      )
+    )
+    for (col in list_cols) {
+      var_df[[col]] <- sapply(var_df[[col]], function(x) {
+        if (is.null(x) || length(x) == 0) NA else x[[1]]
+      })
+    }
+  }
+
+  var_df <- var_df %>%
     dplyr::mutate(chrom = std_chrom(chrom)) %>%
     .normalize_variant_table()
 

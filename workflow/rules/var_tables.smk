@@ -187,11 +187,9 @@ rule generate_variant_parquet:
         vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
         vcfidx="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz.tbi",
     output:
-        parquet=protected(
-            ensure(
-                "results/variant_tables/{benchmark}/variants.parquet",
-                non_empty=True,
-            )
+        parquet=ensure(
+            "results/variant_tables/{benchmark}/variants.parquet",
+            non_empty=True,
         ),
     params:
         bench_type=lambda w: "stvar" if "stvar" in w.benchmark else "smvar",
