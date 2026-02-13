@@ -1,22 +1,28 @@
 #!/usr/bin/env python3
 # AI Disclosure: This script was developed with assistance from Claude (Anthropic).
 """
-Generate variant Parquet table from annotated VCF using Truvari.
+Generate variant Parquet table from annotated VCF using Truvari VariantRecord API.
 
 Reads a fully annotated VCF (with INFO/CONTEXT_IDS and INFO/REGION_IDS from
 bcftools annotate) and produces a clean Parquet table with:
-- Correct variant type classification (SNV vs INDEL for smvar; INS/DEL for stvar)
+- Correct variant type classification using VariantRecord.var_type()
+- Variant sizes using VariantRecord.var_size()
 - Size filtering (smvar <50bp, stvar >=50bp)
 - Truvari size bins (SZBINS)
-- All INFO fields included automatically (no version-specific column lists)
+- Only columns needed for downstream analysis
 
-Replaces: generate_var_table (bcftools query), extract_info_fields,
-          and the R-side tidy_smvar/tidy_stvar/get_bench_var_cols functions.
+This refactored version uses Truvari's VariantFile and VariantRecord classes
+instead of vcf_to_df(), which provides:
+- More robust variant classification (no manual enum mapping)
+- Correct handling of all variant types (SNV, INDEL, INS, DEL)
+- Simpler, more maintainable code
+- Direct access to variant properties via tested methods
 """
 
 import logging
 import re
 from pathlib import Path
+from typing import Dict, List, Optional
 
 import pandas as pd
 import pyarrow as pa
@@ -24,7 +30,7 @@ import pyarrow.parquet as pq
 import truvari
 
 
-def parse_benchmark_id(benchmark_id: str) -> dict:
+def parse_benchmark_id(benchmark_id: str) -> Dict[str, str]:
     """Parse benchmark ID into components.
 
     Args:
@@ -44,50 +50,39 @@ def parse_benchmark_id(benchmark_id: str) -> dict:
     }
 
 
-def classify_smvar(svtype_series: pd.Series) -> pd.Series:
-    """Classify small variant types.
+def get_size_bin(var_size: int) -> int:
+    """Get Truvari size bin for variant size.
 
-    SNP (enum 0) -> SNV, everything else -> INDEL.
+    Args:
+        var_size: Variant size (can be negative for deletions)
+
+    Returns:
+        Size bin index (0-based)
     """
-    return svtype_series.map(lambda x: "SNV" if x == 0 else "INDEL")
+    abs_size = abs(var_size)
+    for i, cutoff in enumerate(truvari.SZBINS):
+        if abs_size < cutoff:
+            return i
+    return len(truvari.SZBINS)
 
 
-def classify_stvar(
-    svtype_series: pd.Series, ref_len_series: pd.Series, alt_len_series: pd.Series
-) -> pd.Series:
-    """Classify structural variant types.
+def normalize_annotation(value) -> Optional[str]:
+    """Normalize VCF INFO annotation to string.
 
-    DEL (1) -> DEL, INS (2) -> INS.
-    DUP (3), INV (4), UNK (6) are reclassified as INS or DEL based on
-    whether ALT is longer (INS) or REF is longer (DEL).
+    Handles Truvari's tuple/list returns for multi-valued INFO fields.
+
+    Args:
+        value: Raw INFO field value (can be None, str, tuple, or list)
+
+    Returns:
+        Normalized string or None
     """
-    # Start with direct mapping for DEL and INS
-    result = svtype_series.map({0: "SNV", 1: "DEL", 2: "INS", 5: "NON"})
-
-    # Reclassify DUP, INV, UNK based on allele lengths
-    needs_reclassify = svtype_series.isin([3, 4, 6])
-    if needs_reclassify.any():
-        n_reclassified = needs_reclassify.sum()
-        logging.info(
-            "Reclassifying %d variants (DUP=%d, INV=%d, UNK=%d) as INS/DEL by allele size",
-            n_reclassified,
-            (svtype_series[needs_reclassify] == 3).sum(),
-            (svtype_series[needs_reclassify] == 4).sum(),
-            (svtype_series[needs_reclassify] == 6).sum(),
-        )
-        result[needs_reclassify] = pd.Series(
-            [
-                "INS" if alt > ref else "DEL"
-                for alt, ref in zip(
-                    alt_len_series[needs_reclassify], ref_len_series[needs_reclassify]
-                )
-            ],
-            index=result[needs_reclassify].index,
-        )
-
-    # Fill any remaining NaN (shouldn't happen, but defensive)
-    result = result.fillna("DEL")
-    return result
+    if value is None or value == ".":
+        return None
+    if isinstance(value, (tuple, list)):
+        # Convert tuple/list to comma-separated string
+        return ",".join(str(item) for item in value)
+    return str(value)
 
 
 def generate_variant_parquet(
@@ -97,7 +92,7 @@ def generate_variant_parquet(
     benchmark_id: str,
     log_path: str,
 ) -> None:
-    """Generate variant Parquet table from annotated VCF.
+    """Generate variant Parquet table from annotated VCF using VariantRecord API.
 
     Args:
         vcf_path: Path to fully annotated VCF (with CONTEXT_IDS, REGION_IDS)
@@ -118,140 +113,125 @@ def generate_variant_parquet(
     logging.info("Input VCF: %s", vcf_path)
     logging.info("Output Parquet: %s", output_path)
 
-    # Read VCF with Truvari — gets all INFO fields, FORMAT fields, and alleles
-    logging.info("Reading VCF with truvari.vcf_to_df()...")
-    df = truvari.vcf_to_df(
-        str(vcf_path), with_info=True, with_format=True, no_prefix=True, alleles=True
-    )
-    logging.info("Loaded %d raw variants with columns: %s", len(df), list(df.columns))
+    # Size threshold for smvar vs stvar
+    size_threshold = 50
 
-    # Filter to variants in benchmark regions (REGION_IDS contains BMKREGIONS)
-    # if "REGION_IDS" in df.columns:
-    #     before = len(df)
-    #     df = df[df["REGION_IDS"].str.contains("BMKREGIONS", na=False)].copy()
-    #     logging.info("Filtered to benchmark regions: %d -> %d", before, len(df))
-    # else:
-    #     logging.warning("No REGION_IDS column found — keeping all variants")
+    # Open VCF with Truvari
+    logging.info("Opening VCF with Truvari VariantFile...")
+    vcf = truvari.VariantFile(vcf_path)
 
-    # Filter out non-variant genotypes (0/0, ./.)
-    # Truvari's is_pass and svtype handle most of this, but explicit filter
-    # for NON (monomorphic ref) variants
-    before = len(df)
-    df = df[df["svtype"] != 5].copy()  # SV.NON = 5
-    if len(df) < before:
-        logging.info("Removed %d non-variant (NON) records", before - len(df))
+    # Get sample name (assuming single-sample VCF)
+    samples = list(vcf.header.samples)
+    if not samples:
+        raise ValueError(f"VCF has no samples: {vcf_path}")
+    sample = samples[0]
+    logging.info("Processing sample: %s", sample)
 
-    # Size filtering
-    logging.info("Applying size filter for %s...", bench_type)
-    abs_svlen = df["svlen"].abs()
-    before = len(df)
-    if bench_type == "smvar":
-        df = df[abs_svlen < 50].copy()
-    else:
-        df = df[abs_svlen >= 50].copy()
-    logging.info("Size filtering: %d -> %d variants", before, len(df))
+    # Iterate through variants and collect data
+    variants: List[Dict] = []
+    filtered_size = 0
+    filtered_non = 0
 
-    # Compute ref_len and alt_len from allele strings before classification
-    # (stvar classification needs allele lengths to reclassify DUP/INV/UNK)
-    # Note: Truvari's "ref" column is the REF allele, not the reference genome
-    if "ref" in df.columns and "alt" in df.columns:
-        df["ref_len"] = df["ref"].str.len().astype("Int32")
-        df["alt_len"] = df["alt"].str.len().astype("Int32")
-        df.drop(columns=["ref", "alt"], inplace=True)
-    elif "alleles" in df.columns and not df.empty:
-        # Try to extract from alleles column if it exists and ref/alt don't
-        try:
-            # Truvari 4.0+ might return alleles tuple in 'alleles' column
-            df["ref_len"] = (
-                df["alleles"].map(lambda x: len(x[0]) if x else pd.NA).astype("Int32")
-            )
-            df["alt_len"] = (
-                df["alleles"]
-                .map(lambda x: len(x[1]) if x and len(x) > 1 else pd.NA)
-                .astype("Int32")
-            )
-            logging.info("Extracted ref_len/alt_len from 'alleles' column")
-        except Exception as e:
-            logging.warning("Failed to extract alleles from 'alleles' column: %s", e)
+    logging.info("Processing variants...")
+    for record in vcf:
+        # Create VariantRecord wrapper
+        vr = truvari.VariantRecord(record)
 
-    # Ensure columns exist even if empty or failed to extract, to prevent KeyErrors later
-    logging.info("Columns before ref_len check: %s", list(df.columns))
-    if "ref_len" not in df.columns:
-        logging.warning(
-            "No ref/alt allele columns found or extraction failed — ref_len/alt_len will be missing"
+        # Get variant type and size using Truvari's methods
+        var_type = vr.var_type()
+        var_size = vr.var_size()
+
+        # Filter out NON (non-variant) records
+        if var_type == "NON":
+            filtered_non += 1
+            continue
+
+        # Size filtering based on bench_type
+        abs_size = abs(var_size)
+        if bench_type == "smvar" and abs_size >= size_threshold:
+            filtered_size += 1
+            continue
+        if bench_type == "stvar" and abs_size < size_threshold:
+            filtered_size += 1
+            continue
+
+        # Get size bin
+        szbin = get_size_bin(var_size)
+
+        # Extract INFO annotations (handle tuple/list → string)
+        context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
+        region_ids = normalize_annotation(record.info.get("REGION_IDS"))
+
+        # Extract genotype using VariantRecord.gt()
+        gt = vr.gt()
+
+        # Collect variant data (only columns needed for analysis)
+        variants.append(
+            {
+                "chrom": record.chrom,
+                "pos": record.pos,
+                "end": vr.end,
+                "var_type": var_type,
+                "var_size": var_size,
+                "szbin": szbin,
+                "context_ids": context_ids,
+                "region_ids": region_ids,
+                "gt": gt,
+            }
         )
-        # Use explicit loc assignment and handle empty case directly
-        if len(df) == 0:
-            df["ref_len"] = pd.Series([], dtype="Int32")
-        else:
-            df["ref_len"] = pd.Series([pd.NA] * len(df), dtype="Int32", index=df.index)
 
-    if "alt_len" not in df.columns:
-        if len(df) == 0:
-            df["alt_len"] = pd.Series([], dtype="Int32")
-        else:
-            df["alt_len"] = pd.Series([pd.NA] * len(df), dtype="Int32", index=df.index)
+    vcf.close()
 
-    logging.info("Columns after ref_len check: %s", list(df.columns))
+    logging.info("Collected %d variants", len(variants))
+    if filtered_non > 0:
+        logging.info("Filtered %d NON (non-variant) records", filtered_non)
+    if filtered_size > 0:
+        logging.info("Filtered %d variants by size (%s threshold)", filtered_size, bench_type)
 
-    # Classify variant types
-    logging.info("Classifying variant types...")
-    if bench_type == "smvar":
-        df["var_type"] = classify_smvar(df["svtype"])
+    if not variants:
+        logging.warning("No variants after filtering — creating empty DataFrame")
+        # Create empty DataFrame with correct schema
+        df = pd.DataFrame(
+            columns=[
+                "chrom",
+                "pos",
+                "end",
+                "var_type",
+                "var_size",
+                "szbin",
+                "context_ids",
+                "region_ids",
+                "gt",
+            ]
+        )
     else:
-        df["var_type"] = classify_stvar(df["svtype"], df["ref_len"], df["alt_len"])
+        # Create DataFrame from collected variants
+        df = pd.DataFrame(variants)
 
-    # Rename Truvari columns to project conventions
-    rename_map = {
-        "svlen": "var_size",  # project uses var_size
-    }
-    # Truvari uses 'start' for 0-based position; project uses 'pos'
-    if "start" in df.columns:
-        rename_map["start"] = "pos"
-    # Normalize INFO field names to lowercase
-    if "CONTEXT_IDS" in df.columns:
-        rename_map["CONTEXT_IDS"] = "context_ids"
-    if "REGION_IDS" in df.columns:
-        rename_map["REGION_IDS"] = "region_ids"
-    # Rename GT format field to lowercase
-    if "GT" in df.columns:
-        rename_map["GT"] = "gt"
-    df.rename(columns=rename_map, inplace=True)
-
-    # Drop the raw svtype enum — var_type is the project classification
-    if "svtype" in df.columns:
-        df.drop(columns=["svtype"], inplace=True)
-
-    # Clean up context_ids and region_ids: replace '.' with None
-    # AND convert tuple/list objects to comma-separated strings (Truvari bug)
-    for col in ["context_ids", "region_ids"]:
-        if col in df.columns:
-            # First, convert tuple/list to comma-separated string
-            df[col] = df[col].apply(
-                lambda x: (
-                    ",".join(str(item) for item in x)
-                    if isinstance(x, (tuple, list))
-                    else x
-                )
-            )
-            # Then clean up missing values
-            df[col] = df[col].replace({".": pd.NA, "": pd.NA}).astype("string")
-
-    # Add benchmark metadata columns
+    # Add benchmark metadata columns at the beginning
     meta = parse_benchmark_id(benchmark_id)
     df.insert(0, "bench_version", meta["bench_version"])
     df.insert(1, "ref", meta["ref"])
     df.insert(2, "bench_type", meta["bench_type"])
 
+    # Set proper dtypes for string columns
+    for col in ["context_ids", "region_ids"]:
+        if col in df.columns:
+            df[col] = df[col].astype("string")
+
     # Log variant type distribution
-    logging.info(
-        "Variant type distribution:\n%s", df["var_type"].value_counts().to_string()
-    )
-    logging.info("Size bin distribution:\n%s", df["szbin"].value_counts().to_string())
+    if not df.empty:
+        logging.info(
+            "Variant type distribution:\n%s", df["var_type"].value_counts().to_string()
+        )
+        logging.info("Size bin distribution:\n%s", df["szbin"].value_counts().to_string())
+    else:
+        logging.info("No variants to report statistics")
 
     # Optimize memory before writing
-    pre, post = truvari.optimize_df_memory(df)
-    logging.info("Memory optimization: %d -> %d bytes", pre, post)
+    if not df.empty:
+        pre, post = truvari.optimize_df_memory(df)
+        logging.info("Memory optimization: %d -> %d bytes", pre, post)
 
     # Write Parquet
     logging.info("Writing Parquet with %d variants...", len(df))
