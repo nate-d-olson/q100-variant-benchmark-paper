@@ -126,12 +126,12 @@ def generate_variant_parquet(
     logging.info("Loaded %d raw variants with columns: %s", len(df), list(df.columns))
 
     # Filter to variants in benchmark regions (REGION_IDS contains BMKREGIONS)
-    if "REGION_IDS" in df.columns:
-        before = len(df)
-        df = df[df["REGION_IDS"].str.contains("BMKREGIONS", na=False)].copy()
-        logging.info("Filtered to benchmark regions: %d -> %d", before, len(df))
-    else:
-        logging.warning("No REGION_IDS column found — keeping all variants")
+    # if "REGION_IDS" in df.columns:
+    #     before = len(df)
+    #     df = df[df["REGION_IDS"].str.contains("BMKREGIONS", na=False)].copy()
+    #     logging.info("Filtered to benchmark regions: %d -> %d", before, len(df))
+    # else:
+    #     logging.warning("No REGION_IDS column found — keeping all variants")
 
     # Filter out non-variant genotypes (0/0, ./.)
     # Truvari's is_pass and svtype handle most of this, but explicit filter
@@ -185,7 +185,7 @@ def generate_variant_parquet(
             df["ref_len"] = pd.Series([], dtype="Int32")
         else:
             df["ref_len"] = pd.Series([pd.NA] * len(df), dtype="Int32", index=df.index)
-            
+
     if "alt_len" not in df.columns:
         if len(df) == 0:
             df["alt_len"] = pd.Series([], dtype="Int32")
@@ -193,7 +193,7 @@ def generate_variant_parquet(
             df["alt_len"] = pd.Series([pd.NA] * len(df), dtype="Int32", index=df.index)
 
     logging.info("Columns after ref_len check: %s", list(df.columns))
-    
+
     # Classify variant types
     logging.info("Classifying variant types...")
     if bench_type == "smvar":
