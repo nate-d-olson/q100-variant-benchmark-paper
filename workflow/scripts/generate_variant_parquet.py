@@ -113,121 +113,112 @@ def generate_variant_parquet(
     # Size threshold for smvar vs stvar
     size_threshold = 50
 
-    # Open VCF with Truvari
+    # Open VCF with Truvari using context manager for proper cleanup
     logging.info("Opening VCF with Truvari VariantFile...")
-    vcf = truvari.VariantFile(vcf_path)
+    with truvari.VariantFile(vcf_path) as vcf:
+        # Get sample name (assuming single-sample VCF)
+        samples = list(vcf.header.samples)
+        if not samples:
+            raise ValueError(f"VCF has no samples: {vcf_path}")
+        sample = samples[0]
+        logging.info("Processing sample: %s", sample)
 
-    # Get sample name (assuming single-sample VCF)
-    samples = list(vcf.header.samples)
-    if not samples:
-        raise ValueError(f"VCF has no samples: {vcf_path}")
-    sample = samples[0]
-    logging.info("Processing sample: %s", sample)
+        # Iterate through variants and collect data
+        variants: List[Dict] = []
+        filtered_size = 0
+        filtered_non = 0
 
-    # Iterate through variants and collect data
-    variants: List[Dict] = []
-    filtered_size = 0
-    filtered_non = 0
+        logging.info("Processing variants...")
+        for record in vcf:
+            # Create VariantRecord wrapper
+            vr = truvari.VariantRecord(record)
 
-    logging.info("Processing variants...")
-    for record in vcf:
-        # Create VariantRecord wrapper
-        vr = truvari.VariantRecord(record)
+            # Get variant type (as string from enum)
+            var_type = vr.var_type().name
 
-        # Get variant type (as string from enum)
-        var_type = vr.var_type().name
+            # Get variant size (Truvari returns unsigned/absolute value)
+            abs_size = vr.var_size()
 
-        # Get variant size (Truvari returns unsigned/absolute value)
-        abs_size = vr.var_size()
-
-        # Apply sign convention: positive for INS, negative for DEL
-        if var_type == "DEL":
-            var_size = -abs_size
-        elif var_type == "INS":
-            var_size = abs_size
-        elif var_type in ["UNK", "INV"]:
-            # Recalculate size with sign for ambiguous types
-            logging.info(
-                "Reclassifying %s to INS/DEL at %s:%d",
-                var_type,
-                record.chrom,
-                record.pos,
-            )
-            len_ref = len(vr.get_ref())
-            alt = vr.get_alt()
-            if alt is None:
-                logging.warning(
-                    "Skipping %s variant with missing ALT at %s:%d",
+            # Apply sign convention: positive for INS, negative for DEL
+            if var_type == "DEL":
+                var_size = -abs_size
+            elif var_type == "INS":
+                var_size = abs_size
+            elif var_type in ["UNK", "INV"]:
+                # Recalculate size with sign for ambiguous types
+                logging.info(
+                    "Reclassifying %s to INS/DEL at %s:%d",
                     var_type,
                     record.chrom,
                     record.pos,
                 )
-                continue
-            len_alt = len(alt)
-            var_size = len_alt - len_ref  # Positive for INS, negative for DEL
-            var_type = "INS" if var_size > 0 else "DEL"
-        else:
-            # Other types (SNP, DUP, BND) keep unsigned size
-            var_size = abs_size
+                ref_len = len(vr.get_ref())
+                alt = vr.get_alt()
+                if alt is None:
+                    logging.warning(
+                        "Skipping %s variant with missing ALT at %s:%d",
+                        var_type,
+                        record.chrom,
+                        record.pos,
+                    )
+                    continue
+                alt_len = len(alt)
+                var_size = alt_len - ref_len  # Positive for INS, negative for DEL
+                var_type = "INS" if var_size > 0 else "DEL"
+            else:
+                # Other types (SNP, DUP, BND) keep unsigned size
+                var_size = abs_size
 
-        # Convert INS/DEL to INDEL for small variants
-        if bench_type == "smvar" and var_type in ["INS", "DEL"]:
-            var_type = "INDEL"
+            # Convert INS/DEL to INDEL for small variants
+            if bench_type == "smvar" and var_type in ["INS", "DEL"]:
+                var_type = "INDEL"
 
-        # Filter out NON (non-variant) records
-        if var_type == "NON":
-            filtered_non += 1
-            continue
+                # Size filtering based on bench_type
+                abs_size = abs(var_size)
+                if bench_type == "smvar" and abs_size >= size_threshold:
+                    filtered_size += 1
+                    continue
+                if bench_type == "stvar" and abs_size < size_threshold:
+                    filtered_size += 1
+                    continue
 
-        # Size filtering based on bench_type
-        abs_size = abs(var_size)
-        if bench_type == "smvar" and abs_size >= size_threshold:
-            filtered_size += 1
-            continue
-        if bench_type == "stvar" and abs_size < size_threshold:
-            filtered_size += 1
-            continue
+            # Get size bin (convert to string for R schema compatibility)
+            szbin = str(get_size_bin(var_size))
 
-        # Get size bin (already returns string from SZBINS list)
-        szbin = truvari.get_sizebin(var_size)
+            # Extract INFO annotations (handle tuple/list → string)
+            context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
+            region_ids = normalize_annotation(record.info.get("REGION_IDS"))
 
-        # Extract INFO annotations (handle tuple/list → string)
-        context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
-        region_ids = normalize_annotation(record.info.get("REGION_IDS"))
 
-        # Extract genotype: gt() returns tuple, convert to GT enum, then extract name
-        gt = truvari.get_gt(vr.gt()).name  # "HET", "HOM", "REF", "NON", "UNK"
+            # Extract genotype: gt() returns tuple, convert to GT enum, then extract name
+            gt = truvari.get_gt(vr.gt()).name  # "HET", "HOM", "REF", "NON", "UNK"
 
-        # Extract allele lengths for R schema
-        ref_len = len(record.ref)
-        alt_len = len(record.alts[0]) if record.alts else None
+            # Extract quality and filter for R schema
+            qual = float(record.qual) if record.qual is not None else None
+            filter_val = ";".join(record.filter.keys()) if record.filter else "PASS"
+            is_pass = len(record.filter) == 0 or "PASS" in record.filter
 
-        # Extract quality and filter for R schema
-        qual = float(record.qual) if record.qual is not None else None
-        filter_val = ";".join(record.filter.keys()) if record.filter else "PASS"
-        is_pass = len(record.filter) == 0 or "PASS" in record.filter
-
-        # Collect variant data (includes all columns from R schema)
-        variants.append(
-            {
-                "chrom": record.chrom,
-                "pos": record.pos,
-                "end": vr.end,
-                "gt": gt,
-                "var_type": var_type,
-                "var_size": var_size,
-                "szbin": szbin,
-                "ref_len": ref_len,
-                "alt_len": alt_len,
-                "qual": qual,
-                "filter": filter_val,
-                "is_pass": is_pass,
-                "context_ids": context_ids,
-                "region_ids": region_ids,
-            }
-        )
-
+            # Collect variant data (includes all columns from R schema)
+            variants.append(
+                {
+                    "chrom": record.chrom,
+                    "pos": record.pos,
+                    "end": vr.end,
+                    "gt": gt,
+                    "var_type": var_type,
+                    "var_size": var_size,
+                    "szbin": szbin,
+                    "ref_len": ref_len,
+                    "alt_len": alt_len,
+                    "qual": qual,
+                    "filter": filter_val,
+                    "is_pass": is_pass,
+                    "context_ids": context_ids,
+                    "region_ids": region_ids,
+                }
+            )
     vcf.close()
+
 
     logging.info("Collected %d variants", len(variants))
     if filtered_non > 0:
