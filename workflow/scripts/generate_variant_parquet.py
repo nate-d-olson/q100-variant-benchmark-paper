@@ -8,8 +8,8 @@ bcftools annotate) and produces a clean Parquet table with:
 - Correct variant type classification using VariantRecord.var_type()
 - Variant sizes using VariantRecord.var_size()
 - Size filtering (smvar <50bp, stvar >=50bp)
-- Truvari size bins (SZBINS)
-- Only columns needed for downstream analysis
+- Truvari size bins (SZBINS) as strings for R compatibility
+- All columns required by R schema for caching and validation
 
 This refactored version uses Truvari's VariantFile and VariantRecord classes
 instead of vcf_to_df(), which provides:
@@ -17,6 +17,13 @@ instead of vcf_to_df(), which provides:
 - Correct handling of all variant types (SNV, INDEL, INS, DEL)
 - Simpler, more maintainable code
 - Direct access to variant properties via tested methods
+
+Output columns match R/schemas.R variant_table schema:
+- bench_version, ref, bench_type (metadata)
+- chrom, pos, end, gt (genomic coordinates and genotype)
+- var_type, var_size, szbin (variant classification)
+- ref_len, alt_len, qual, filter, is_pass (VCF quality info)
+- context_ids, region_ids (annotations)
 """
 
 import logging
@@ -155,8 +162,8 @@ def generate_variant_parquet(
             filtered_size += 1
             continue
 
-        # Get size bin
-        szbin = get_size_bin(var_size)
+        # Get size bin (convert to string for R schema compatibility)
+        szbin = str(get_size_bin(var_size))
 
         # Extract INFO annotations (handle tuple/list → string)
         context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
@@ -165,18 +172,32 @@ def generate_variant_parquet(
         # Extract genotype using VariantRecord.gt()
         gt = vr.gt()
 
-        # Collect variant data (only columns needed for analysis)
+        # Extract allele lengths for R schema
+        ref_len = len(record.ref)
+        alt_len = len(record.alts[0]) if record.alts else None
+
+        # Extract quality and filter for R schema
+        qual = float(record.qual) if record.qual is not None else None
+        filter_val = ";".join(record.filter.keys()) if record.filter else "PASS"
+        is_pass = len(record.filter) == 0 or "PASS" in record.filter
+
+        # Collect variant data (includes all columns from R schema)
         variants.append(
             {
                 "chrom": record.chrom,
                 "pos": record.pos,
                 "end": vr.end,
+                "gt": gt,
                 "var_type": var_type,
                 "var_size": var_size,
                 "szbin": szbin,
+                "ref_len": ref_len,
+                "alt_len": alt_len,
+                "qual": qual,
+                "filter": filter_val,
+                "is_pass": is_pass,
                 "context_ids": context_ids,
                 "region_ids": region_ids,
-                "gt": gt,
             }
         )
 
@@ -190,18 +211,23 @@ def generate_variant_parquet(
 
     if not variants:
         logging.warning("No variants after filtering — creating empty DataFrame")
-        # Create empty DataFrame with correct schema
+        # Create empty DataFrame with correct schema (matching R schema)
         df = pd.DataFrame(
             columns=[
                 "chrom",
                 "pos",
                 "end",
+                "gt",
                 "var_type",
                 "var_size",
                 "szbin",
+                "ref_len",
+                "alt_len",
+                "qual",
+                "filter",
+                "is_pass",
                 "context_ids",
                 "region_ids",
-                "gt",
             ]
         )
     else:
