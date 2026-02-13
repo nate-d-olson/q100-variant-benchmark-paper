@@ -257,7 +257,7 @@ beds = get_region_beds(wildcards)
 **Format:**
 
 - Benchmark regions always have ID "BMKREGIONS"
-- Exclusions have ID format "EXCL_{EXCLUSION_NAME}"
+- Exclusions have ID format "EXCL\_{EXCLUSION_NAME}"
 - Exclusion names converted: "consecutive-svs" → "CONSECUTIVE_SVS"
 
 **Logic:**
@@ -595,5 +595,5 @@ snakemake --dag target_rule | dot -Tpdf > dag.pdf
 
 ---
 
-*Last Updated: 2026-01-13*
-*Branch: feature/codebase-improvements*
+_Last Updated: 2026-01-13_
+_Branch: feature/codebase-improvements_
