@@ -481,18 +481,18 @@ combined_plot
 library(ggplot2)
 
 # Using the 'strat_source_first' data frame concept from previous response
-ggplot(strat_long_data, aes(x = Context, y = Group, fill = Source)) +
-  geom_tile(color = "white", size = 1) + # The Tiles
-  geom_text(aes(label = paste0(Strata, "\n(", Count, ")")), color = "white", fontface = "bold") +
-  scale_fill_manual(values = c("Query" = "#E69F00", "Benchmark" = "#56B4E9")) +
-  scale_x_discrete(limits = c("Homopolymer (>6bp)", "In Tandem Repeat", "In Difficult Region", "XY nonPAR", "Autosomes")) +
-  labs(title = "Stratification Periodic Table", x = NULL, y = NULL) +
-  theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    axis.text.x = element_text(face = "bold", size = 10),
-    axis.text.y = element_text(face = "bold", size = 11)
-  )
+# ggplot(strat_long_data, aes(x = Context, y = Group, fill = Source)) +
+#   geom_tile(color = "white", size = 1) + # The Tiles
+#   geom_text(aes(label = paste0(Strata, "\n(", Count, ")")), color = "white", fontface = "bold") +
+#   scale_fill_manual(values = c("Query" = "#E69F00", "Benchmark" = "#56B4E9")) +
+#   scale_x_discrete(limits = c("Homopolymer (>6bp)", "In Tandem Repeat", "In Difficult Region", "XY nonPAR", "Autosomes")) +
+#   labs(title = "Stratification Periodic Table", x = NULL, y = NULL) +
+#   theme_minimal() +
+#   theme(
+#     panel.grid = element_blank(),
+#     axis.text.x = element_text(face = "bold", size = 10),
+#     axis.text.y = element_text(face = "bold", size = 11)
+#   )
 ```
 
 ### Structural Variants External Evaluations

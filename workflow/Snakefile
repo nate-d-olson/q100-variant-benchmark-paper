@@ -78,9 +78,17 @@ rule all:
             ref=["GRCh37", "GRCh38", "CHM13v2.0"],
         ),
         expand(
-            "results/genomic_context/{benchmark}/coverage/{context}_cov.bed",
+            "results/genomic_context/{benchmark}/genomic_context_coverage_table.csv",
             benchmark=BENCHMARK,
-            context=STRAT,
+        ),
+        expand(
+            "results/genomic_context/{benchmark}/variants_by_genomic_context.parquet",
+            benchmark=BENCHMARK,
+        ),
+        ## Benchmarkset variant counts by type and difficult region stratifications
+        expand(
+            "results/genomic_context/{benchmark}/variants_by_genomic_context.parquet",
+            benchmark=BENCHMARK,
         ),
         ## Per-exclusion impact: BED metrics + variant counts
         get_exclusion_impact_targets,

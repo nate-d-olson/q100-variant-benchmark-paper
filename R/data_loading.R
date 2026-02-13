@@ -513,7 +513,7 @@ load_genomic_context_metrics <- function(
 
   # Find all variant count Parquet files
   count_files <- fs::dir_ls(
-    fs::path(results_dir, "var_counts"),
+    fs::path(results_dir),
     recurse = TRUE,
     glob = "**/variants_by_genomic_context.parquet",
     fail = FALSE
@@ -522,7 +522,7 @@ load_genomic_context_metrics <- function(
   if (length(count_files) == 0) {
     stop(
       glue::glue(
-        "No variants_by_genomic_context.parquet files found in {results_dir}/var_counts"
+        "No variants_by_genomic_context.parquet files found in {results_dir}/genomic_context"
       ),
       call. = FALSE
     )
@@ -1060,7 +1060,6 @@ load_all_variant_tables <- function(
     variant_files,
     read_variant_table
   ) %>%
-    .normalize_variant_table() %>%
     dplyr::mutate(
       bench_version = std_bench_versions(bench_version),
       ref = std_references(ref),
@@ -1135,12 +1134,7 @@ load_genomic_context_coverage <- function(
 
   coverage_id <- glue::glue("{meta$bench_version}_{meta$ref}_{meta$bench_type}")
   coverage_dir_candidates <- c(
-    # New structure: results/genomic_context/{benchmark}/coverage/
-    fs::path(results_dir, "genomic_context", coverage_id, "coverage"),
-    # Legacy structures
-    fs::path(results_dir, "diff_region_coverage", coverage_id),
-    fs::path(results_dir, "genomic-context_coverage", coverage_id),
-    fs::path(results_dir, "genomic_context_coverage", coverage_id)
+    fs::path(results_dir, "genomic_context", coverage_id, "coverage")
   )
   coverage_dir <- coverage_dir_candidates[fs::dir_exists(coverage_dir_candidates)]
 
@@ -1606,13 +1600,7 @@ load_variant_counts_by_context <- function(
     fs::dir_ls(
       results_dir,
       recurse = TRUE,
-      glob = "**/genomic_context/*/var_counts/variants_by_genomic_context.csv",
-      fail = FALSE
-    ),
-    fs::dir_ls(
-      results_dir,
-      recurse = TRUE,
-      glob = "**/var_counts/*/variants_by_genomic_context.csv",
+      glob = "**/variants_by_genomic_context.parquet",
       fail = FALSE
     )
   )
@@ -1620,7 +1608,7 @@ load_variant_counts_by_context <- function(
   if (length(count_files) == 0) {
     stop(
       glue::glue(
-        "No variants_by_genomic_context.csv files found in {results_dir}"
+        "No variants_by_genomic_context.parquet files found in {results_dir}"
       ),
       call. = FALSE
     )
@@ -1629,14 +1617,7 @@ load_variant_counts_by_context <- function(
   counts_df <- count_files %>%
     purrr::map_dfr(function(file) {
       raw_df <- file %>%
-        vroom::vroom(
-          col_types = vroom::cols(
-            context_name = "c",
-            var_type = "c",
-            count = "i"
-          ),
-          show_col_types = FALSE
-        )
+        arrow::read_parquet()
       .add_benchmark_metadata(raw_df, .benchmark_id_from_file(file))
     })
 
