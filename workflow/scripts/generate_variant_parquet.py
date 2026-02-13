@@ -123,85 +123,82 @@ def generate_variant_parquet(
     # Size threshold for smvar vs stvar
     size_threshold = 50
 
-    # Open VCF with Truvari
+    # Open VCF with Truvari using context manager for proper cleanup
     logging.info("Opening VCF with Truvari VariantFile...")
-    vcf = truvari.VariantFile(vcf_path)
+    with truvari.VariantFile(vcf_path) as vcf:
+        # Get sample name (assuming single-sample VCF)
+        samples = list(vcf.header.samples)
+        if not samples:
+            raise ValueError(f"VCF has no samples: {vcf_path}")
+        sample = samples[0]
+        logging.info("Processing sample: %s", sample)
 
-    # Get sample name (assuming single-sample VCF)
-    samples = list(vcf.header.samples)
-    if not samples:
-        raise ValueError(f"VCF has no samples: {vcf_path}")
-    sample = samples[0]
-    logging.info("Processing sample: %s", sample)
+        # Iterate through variants and collect data
+        variants: List[Dict] = []
+        filtered_size = 0
+        filtered_non = 0
 
-    # Iterate through variants and collect data
-    variants: List[Dict] = []
-    filtered_size = 0
-    filtered_non = 0
+        logging.info("Processing variants...")
+        for record in vcf:
+            # Create VariantRecord wrapper
+            vr = truvari.VariantRecord(record)
 
-    logging.info("Processing variants...")
-    for record in vcf:
-        # Create VariantRecord wrapper
-        vr = truvari.VariantRecord(record)
+            # Get variant type and size using Truvari's methods
+            var_type = vr.var_type()
+            var_size = vr.var_size()
 
-        # Get variant type and size using Truvari's methods
-        var_type = vr.var_type()
-        var_size = vr.var_size()
+            # Filter out NON (non-variant) records
+            if var_type == "NON":
+                filtered_non += 1
+                continue
 
-        # Filter out NON (non-variant) records
-        if var_type == "NON":
-            filtered_non += 1
-            continue
+            # Size filtering based on bench_type
+            abs_size = abs(var_size)
+            if bench_type == "smvar" and abs_size >= size_threshold:
+                filtered_size += 1
+                continue
+            if bench_type == "stvar" and abs_size < size_threshold:
+                filtered_size += 1
+                continue
 
-        # Size filtering based on bench_type
-        abs_size = abs(var_size)
-        if bench_type == "smvar" and abs_size >= size_threshold:
-            filtered_size += 1
-            continue
-        if bench_type == "stvar" and abs_size < size_threshold:
-            filtered_size += 1
-            continue
+            # Get size bin (convert to string for R schema compatibility)
+            szbin = str(get_size_bin(var_size))
 
-        # Get size bin (convert to string for R schema compatibility)
-        szbin = str(get_size_bin(var_size))
+            # Extract INFO annotations (handle tuple/list → string)
+            context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
+            region_ids = normalize_annotation(record.info.get("REGION_IDS"))
 
-        # Extract INFO annotations (handle tuple/list → string)
-        context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
-        region_ids = normalize_annotation(record.info.get("REGION_IDS"))
+            # Extract genotype using VariantRecord.gt()
+            gt = vr.gt()
 
-        # Extract genotype using VariantRecord.gt()
-        gt = vr.gt()
+            # Extract allele lengths for R schema
+            ref_len = len(record.ref)
+            alt_len = len(record.alts[0]) if record.alts else None
 
-        # Extract allele lengths for R schema
-        ref_len = len(record.ref)
-        alt_len = len(record.alts[0]) if record.alts else None
+            # Extract quality and filter for R schema
+            qual = float(record.qual) if record.qual is not None else None
+            filter_val = ";".join(record.filter.keys()) if record.filter else "PASS"
+            is_pass = len(record.filter) == 0 or "PASS" in record.filter
 
-        # Extract quality and filter for R schema
-        qual = float(record.qual) if record.qual is not None else None
-        filter_val = ";".join(record.filter.keys()) if record.filter else "PASS"
-        is_pass = len(record.filter) == 0 or "PASS" in record.filter
-
-        # Collect variant data (includes all columns from R schema)
-        variants.append(
-            {
-                "chrom": record.chrom,
-                "pos": record.pos,
-                "end": vr.end,
-                "gt": gt,
-                "var_type": var_type,
-                "var_size": var_size,
-                "szbin": szbin,
-                "ref_len": ref_len,
-                "alt_len": alt_len,
-                "qual": qual,
-                "filter": filter_val,
-                "is_pass": is_pass,
-                "context_ids": context_ids,
-                "region_ids": region_ids,
-            }
-        )
-
-    vcf.close()
+            # Collect variant data (includes all columns from R schema)
+            variants.append(
+                {
+                    "chrom": record.chrom,
+                    "pos": record.pos,
+                    "end": vr.end,
+                    "gt": gt,
+                    "var_type": var_type,
+                    "var_size": var_size,
+                    "szbin": szbin,
+                    "ref_len": ref_len,
+                    "alt_len": alt_len,
+                    "qual": qual,
+                    "filter": filter_val,
+                    "is_pass": is_pass,
+                    "context_ids": context_ids,
+                    "region_ids": region_ids,
+                }
+            )
 
     logging.info("Collected %d variants", len(variants))
     if filtered_non > 0:
