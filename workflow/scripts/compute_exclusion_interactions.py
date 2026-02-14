@@ -8,7 +8,7 @@ For each unique combination of overlapping exclusions, computes:
 - bases_bp: bases in dip.bed excluded by exactly this combination
 - variant_count: size-filtered variants excluded by exactly this combination
 
-Reads the Parquet variant table (already size-filtered and type-classified).
+Reads the Parquet variant table (with boolean excl_* columns).
 """
 
 import csv
@@ -87,35 +87,35 @@ def compute_base_interactions(
 
 def compute_variant_interactions(
     parquet_path: str,
-    excl_name_mapping: Dict[str, str],
+    excl_column_mapping: Dict[str, str],
     log,
 ) -> Dict[str, int]:
     """Compute variant-level exclusion interactions from Parquet variant table.
 
-    Size filtering and variant type classification are already done
-    in the Parquet table.
+    Uses boolean excl_* columns to determine which exclusions overlap each
+    variant, then counts unique combinations.
 
     Returns dict mapping pipe-delimited exclusion combination to variant count.
     """
     combo_counts: Dict[str, int] = Counter()
 
-    df = pd.read_parquet(parquet_path, columns=["region_ids"])
+    excl_cols = list(excl_column_mapping.keys())
+    df = pd.read_parquet(parquet_path, columns=excl_cols)
     log.write(f"Loaded {len(df)} variants from Parquet\n")
+    log.write(f"Exclusion columns: {excl_cols}\n")
 
-    # Filter to variants with region_ids
-    # Empty strings are already converted to NA in generate_variant_parquet.py
-    df = df[df["region_ids"].notna()].copy()
+    # For each variant, find which exclusion columns are True
+    for idx, row in df.iterrows():
+        active_excls = sorted([
+            excl_column_mapping[col]
+            for col in excl_cols
+            if col in df.columns and row.get(col, False)
+        ])
 
-    for region_ids_str in df["region_ids"]:
-        region_ids = [r.strip() for r in region_ids_str.split(",")]
-        excl_ids = sorted([r for r in region_ids if r.startswith("EXCL_")])
-
-        if not excl_ids:
+        if not active_excls:
             continue
 
-        # Map EXCL_* IDs to canonical names
-        canon_names = sorted([excl_name_mapping.get(eid, eid) for eid in excl_ids])
-        combo_key = "|".join(canon_names)
+        combo_key = "|".join(active_excls)
         combo_counts[combo_key] += 1
 
     log.write(f"Found {len(combo_counts)} variant-level combinations\n")
@@ -124,7 +124,7 @@ def compute_variant_interactions(
 
 def main():
     benchmark = snakemake.wildcards.benchmark
-    excl_name_mapping = dict(snakemake.params.excl_name_mapping)
+    excl_column_mapping = dict(snakemake.params.excl_column_mapping)
 
     dip_bed = str(snakemake.input.dip_bed)
     benchmark_bed = str(snakemake.input.benchmark_bed)
@@ -138,7 +138,8 @@ def main():
 
     with open(log_path, "w") as log:
         log.write(f"Computing exclusion interactions for {benchmark}\n")
-        log.write(f"Exclusion BEDs: {exclusion_beds}\n\n")
+        log.write(f"Exclusion BEDs: {exclusion_beds}\n")
+        log.write(f"Exclusion column mapping: {excl_column_mapping}\n\n")
 
         # Base-level interactions
         log.write("Computing base-level interactions...\n")
@@ -148,7 +149,7 @@ def main():
 
         # Variant-level interactions
         log.write("Computing variant-level interactions...\n")
-        var_combos = compute_variant_interactions(parquet_path, excl_name_mapping, log)
+        var_combos = compute_variant_interactions(parquet_path, excl_column_mapping, log)
 
         # Merge and write output
         all_combos = set(base_combos.keys()) | set(var_combos.keys())

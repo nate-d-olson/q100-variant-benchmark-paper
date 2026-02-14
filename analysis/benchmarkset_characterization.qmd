@@ -40,7 +40,7 @@ analysis_data <- load_primary_analysis_data(
 list2env(analysis_data, envir = environment())
 
 ## Filtering variants_df to benchmark regions for the characterization
-variants_df <- variants_df %>% filter(region_ids == "BMKREGIONS")
+variants_df <- variants_df %>% filter(in_benchmark == TRUE)
 ```
 
 

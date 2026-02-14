@@ -45,8 +45,18 @@ get_arrow_schema <- function(dataset_name) {
       qual = arrow::float64(),
       filter = arrow::utf8(),
       is_pass = arrow::boolean(),
-      context_ids = arrow::utf8(),
-      region_ids = arrow::utf8()
+      ## Genomic context boolean columns (one per context)
+      HP = arrow::boolean(),
+      MAP = arrow::boolean(),
+      SD = arrow::boolean(),
+      SD10kb = arrow::boolean(),
+      TR = arrow::boolean(),
+      TR10kb = arrow::boolean(),
+      ## Region membership
+      in_benchmark = arrow::boolean()
+      ## Note: excl_* exclusion columns are dynamic per benchmark and
+      ## not included in the fixed schema. They are present in v5.0q
+      ## Parquet files but absent from v4.2.1 and v0.6 files.
     ),
     diff_coverage = arrow::schema(
       context_name = arrow::utf8(),

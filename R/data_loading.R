@@ -924,12 +924,12 @@ load_hg002q100_size <- function(
 #' @return Tibble with variant-level data:
 #'   - chrom, pos, end: Genomic coordinates
 #'   - gt: Genotype
-#'   - vkx: Variant class
-#'   - var_type: Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER)
-#'   - len_ref, len_alt: Reference and alternate allele lengths
-#'   - var_size: Size of variant (len_alt - len_ref for small variants)
-#'   - region_ids: Region classification
-#'   - Additional columns from original file
+#'   - var_type: Variant type (SNV, INDEL, DEL, INS)
+#'   - ref_len, alt_len: Reference and alternate allele lengths
+#'   - var_size: Size of variant
+#'   - HP, MAP, SD, SD10kb, TR, TR10kb: Boolean genomic context columns
+#'   - in_benchmark: Boolean, TRUE if variant is in benchmark regions
+#'   - excl_*: Boolean exclusion columns (present for v5.0q benchmarks only)
 #'
 #' @examples
 #' \dontrun{
