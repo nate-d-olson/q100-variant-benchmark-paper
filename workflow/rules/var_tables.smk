@@ -1,191 +1,48 @@
 """
-Rules for generating variant tables via bcftools annotate and Truvari.
+Rules for generating variant tables using Truvari with column-wise BED annotations.
 
-This module annotates VCFs with genomic context and region BED overlaps via
-bcftools, then generates comprehensive Parquet variant tables using Truvari's
-vcf_to_df() with correct variant type classification and size filtering.
+This module generates Parquet variant tables by reading VCFs with Truvari's
+VariantRecord API and annotating variants against genomic context and region
+BED files using Python interval overlap queries. Each BED region produces a
+boolean column in the output Parquet.
+
+Replaces the previous bcftools annotate approach that used comma-separated
+INFO fields (CONTEXT_IDS, REGION_IDS).
 """
-
-# Note: Stratification BEDs are downloaded using storage.http()
-# The combine_stratification_beds rule accepts URLs directly
-
-
-rule combine_genomic_context_beds:
-    """Combine genomic context BEDs with IDs for bcftools annotation."""
-    input:
-        beds=lambda w: [b.split(":")[0] for b in get_genomic_context_beds(w)],
-    output:
-        bed=temp(
-            "results/combine_genomic_context_beds/{benchmark}/context_combined.bed"
-        ),
-        bed_gz=temp(
-            ensure(
-                "results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz",
-                non_empty=True,
-            )
-        ),
-        tbi=temp(
-            "results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi"
-        ),
-    params:
-        bed_specs=lambda w: get_genomic_context_beds(w),
-    log:
-        "logs/combine_genomic_context_beds/{benchmark}.log",
-    conda:
-        "../envs/python.yaml"
-    shell:
-        """
-        echo "Combining genomic context BEDs for {wildcards.benchmark}" > {log}
-
-        python workflow/scripts/combine_beds_with_id.py \
-            --beds {params.bed_specs} \
-            --output {output.bed} 2>> {log}
-
-        bgzip -c {output.bed} > {output.bed_gz}
-        tabix -p bed {output.bed_gz}
-
-        echo "Completed at $(date)" >> {log}
-        """
-
-
-rule combine_region_beds:
-    """Combine benchmark region and exclusion BEDs for annotation."""
-    input:
-        beds=lambda w: [b.split(":")[0] for b in get_region_beds(w)],
-    output:
-        bed=temp("results/combine_region_beds/{benchmark}/region_combined.bed"),
-        bed_gz=temp(
-            ensure(
-                "results/combine_region_beds/{benchmark}/region_combined.bed.gz",
-                non_empty=True,
-            )
-        ),
-        tbi=temp("results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi"),
-    params:
-        bed_specs=lambda w: get_region_beds(w),
-    log:
-        "logs/combine_region_beds/{benchmark}.log",
-    conda:
-        "../envs/python.yaml"
-    shell:
-        """
-        echo "Combining region BEDs for {wildcards.benchmark}" > {log}
-
-        python workflow/scripts/combine_beds_with_id.py \
-            --beds {params.bed_specs} \
-            --output {output.bed} 2>> {log}
-
-        bgzip -c {output.bed} > {output.bed_gz}
-        tabix -p bed {output.bed_gz}
-
-        echo "Completed at $(date)" >> {log}
-        """
-
-
-rule generate_annotation_headers:
-    """Generate VCF header lines for annotation fields."""
-    output:
-        headers=temp(
-            "results/generate_annotation_headers/{benchmark}/annotation_headers.txt"
-        ),
-    log:
-        "logs/generate_annotation_headers/{benchmark}.log",
-    conda:
-        "../envs/python.yaml"
-    shell:
-        """
-        python workflow/scripts/generate_header_lines.py \
-            --output {output.headers} 2> {log}
-        """
-
-
-rule annotate_vcf_genomic_contexts:
-    """Annotate VCF with genomic context region IDs."""
-    input:
-        vcf=lambda w: (
-            (
-                "results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz"
-                if w.benchmark.startswith("v06_")
-                else "results/split_multiallelics/{benchmark}/split.vcf.gz"
-            ),
-        ),
-        tbi=lambda w: (
-            "results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz.tbi"
-            if w.benchmark.startswith("v06_")
-            else "results/split_multiallelics/{benchmark}/split.vcf.gz.tbi"
-        ),
-        context_bed="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz",
-        context_tbi="results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi",
-        headers="results/generate_annotation_headers/{benchmark}/annotation_headers.txt",
-    output:
-        vcf=temp(
-            "results/annotate_vcf_genomic_contexts/{benchmark}/context_annotated.vcf.gz"
-        ),
-    log:
-        "logs/annotate_vcf_genomic_contexts/{benchmark}.log",
-    conda:
-        "../envs/bcftools.yaml"
-    shell:
-        """
-        echo "Annotating {wildcards.benchmark} with genomic contexts" > {log}
-
-        bcftools annotate \
-            --annotations {input.context_bed} \
-            --columns CHROM,FROM,TO,INFO/CONTEXT_IDS \
-            --header-lines {input.headers} \
-            --output-type z --output {output.vcf} {input.vcf} 2>> {log}
-
-        echo "Completed at $(date)" >> {log}
-        """
-
-
-rule annotate_vcf_regions:
-    """Annotate VCF with benchmark region and exclusion IDs."""
-    input:
-        vcf="results/annotate_vcf_genomic_contexts/{benchmark}/context_annotated.vcf.gz",
-        tbi="results/annotate_vcf_genomic_contexts/{benchmark}/context_annotated.vcf.gz.tbi",
-        region_bed="results/combine_region_beds/{benchmark}/region_combined.bed.gz",
-        region_tbi="results/combine_region_beds/{benchmark}/region_combined.bed.gz.tbi",
-    output:
-        vcf=temp(
-            ensure(
-                "results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
-                non_empty=True,
-            )
-        ),
-    log:
-        "logs/annotate_vcf_regions/{benchmark}.log",
-    conda:
-        "../envs/bcftools.yaml"
-    shell:
-        """
-        echo "Annotating {wildcards.benchmark} with regions" > {log}
-
-        bcftools annotate \
-            --annotations {input.region_bed} \
-            --columns CHROM,FROM,TO,INFO/REGION_IDS \
-            --output-type z --output {output.vcf} {input.vcf} 2>> {log}
-
-        echo "Completed at $(date)" >> {log}
-        """
 
 
 rule generate_variant_parquet:
     """
-    Generate variant Parquet table from annotated VCF using Truvari.
+    Generate variant Parquet table from VCF with column-wise BED annotations.
 
-    Reads fully annotated VCF (with CONTEXT_IDS, REGION_IDS) and produces
-    a Parquet table with:
-    - Correct variant type classification (SNV/INDEL for smvar, INS/DEL for stvar)
-    - Size filtering (smvar <50bp, stvar >=50bp)
-    - Truvari size bins (SZBINS)
-    - All INFO fields included automatically
+    Reads the pre-processed VCF (split multiallelics or svinfo-annotated),
+    loads genomic context and region BED files into interval indices, and
+    annotates each variant with boolean columns indicating overlap.
 
-    Replaces: extract_info_fields + generate_var_table rules.
+    Output columns:
+    - Metadata: bench_version, ref, bench_type
+    - Variant: chrom, pos, end, gt, var_type, var_size, szbin
+    - Quality: ref_len, alt_len, qual, filter, is_pass
+    - Genomic contexts: HP, TR, SD, MAP, etc. (boolean)
+    - Regions: in_benchmark (boolean), excl_* (boolean, v5.0q only)
     """
     input:
-        vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
-        vcfidx="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz.tbi",
+        vcf=lambda w: (
+            "results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz"
+            if w.benchmark.startswith("v06_")
+            else "results/split_multiallelics/{benchmark}/split.vcf.gz"
+        ),
+        vcfidx=lambda w: (
+            "results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz.tbi"
+            if w.benchmark.startswith("v06_")
+            else "results/split_multiallelics/{benchmark}/split.vcf.gz.tbi"
+        ),
+        context_beds=lambda w: [
+            b.split(":")[0] for b in get_genomic_context_beds(w)
+        ],
+        region_beds=lambda w: [
+            b.split(":")[0] for b in get_region_beds(w)
+        ],
     output:
         parquet=ensure(
             "results/variant_tables/{benchmark}/variants.parquet",
@@ -193,6 +50,8 @@ rule generate_variant_parquet:
         ),
     params:
         bench_type=lambda w: "stvar" if "stvar" in w.benchmark else "smvar",
+        context_bed_specs=lambda w: get_genomic_context_beds(w),
+        region_bed_specs=lambda w: get_region_beds(w),
     log:
         "logs/generate_variant_parquet/{benchmark}.log",
     message:

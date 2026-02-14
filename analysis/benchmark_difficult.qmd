@@ -171,10 +171,16 @@ diff_cov_df %>%
 This section visualizes variant counts by genomic context region using loaded variant tables.
 
 ```{r variant_counts_by_context}
-# Create variant count breakdown by genomic context from aggregated metrics
+# Create variant count breakdown by genomic context from boolean columns
+# Pivot boolean context columns (HP, MAP, SD, TR) to long format
 genomic_context_var_df <- variants_df %>%
-  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
-  count(bench_version, ref, bench_type, var_type, context_ids, name = "count")
+  tidyr::pivot_longer(
+    cols = c(HP, MAP, SD, TR),
+    names_to = "context_name",
+    values_to = "in_context"
+  ) %>%
+  filter(in_context) %>%
+  count(bench_version, ref, bench_type, var_type, context_name, name = "count")
 ```
 
 ```{r variant_counts_by_context_plot}
@@ -198,7 +204,7 @@ genomic_context_var_df <- variants_df %>%
     stat = "identity",
     show.legend = TRUE
   ) +
-  facet_wrap(. ~ context_ids, nrow = 1) +
+  facet_wrap(. ~ context_name, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
   scale_benchmark_version(aesthetic = "fill") +
   labs(x = "Variant Type", y = "Variant Count") +
@@ -226,7 +232,7 @@ genomic_context_var_df <- variants_df %>%
     stat = "identity",
     show.legend = TRUE
   ) +
-  facet_wrap(. ~ context_ids, nrow = 1) +
+  facet_wrap(. ~ context_name, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
   scale_benchmark_version(aesthetic = "fill") +
   labs(x = "Variant Type", y = "Variant Count") +
@@ -254,6 +260,12 @@ ggsave(
 
 ```{r variant_counts_by_context_fold_change}
 genomic_context_var_fld_chg <- variants_df %>%
+  tidyr::pivot_longer(
+    cols = c(HP, MAP, SD, TR, TR10kb, SD10kb),
+    names_to = "context_name",
+    values_to = "in_context"
+  ) %>%
+  filter(in_context) %>%
   mutate(
     var_size_bin = case_when(
       abs(var_size) < 15 ~ "<15bp",
@@ -263,11 +275,11 @@ genomic_context_var_fld_chg <- variants_df %>%
       .default = ">10kb"
     )
   ) %>%
-  count(bench_version, ref, bench_type, var_type, var_size_bin, context_ids) %>%
+  count(bench_version, ref, bench_type, var_type, var_size_bin, context_name) %>%
   pivot_wider(
     names_from = bench_version,
     values_from = n,
-    id_cols = c(ref, bench_type, var_type, var_size_bin, context_ids)
+    id_cols = c(ref, bench_type, var_type, var_size_bin, context_name)
   ) %>%
   filter(
     !is.na(v0.6) | !is.na(v4.2.1),
@@ -285,7 +297,7 @@ genomic_context_var_fld_chg <- variants_df %>%
 
 ```{r variant_counts_by_context_fold_change_plot_combined}
 genomic_context_var_fld_chg %>%
-  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  filter(context_name %in% c("HP", "MAP", "SD", "TR")) %>%
   mutate(
     bench_type = factor(
       bench_type,
@@ -296,7 +308,7 @@ genomic_context_var_fld_chg %>%
   ggplot() +
   geom_point(
     aes(
-      x = context_ids,
+      x = context_name,
       y = fold_chg,
       fill = var_size_bin,
       shape = var_type

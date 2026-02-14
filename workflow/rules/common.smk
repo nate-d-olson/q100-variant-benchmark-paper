@@ -411,7 +411,7 @@ def get_exclusion_file_checksum(benchmark: str, exclusion_name: str, file_idx: i
 
 
 def get_exclusion_name_mapping(benchmark: str) -> Dict[str, str]:
-    """Map EXCL_* IDs (as in REGION_IDS) back to canonical exclusion names.
+    """Map EXCL_* IDs back to canonical exclusion names.
 
     Returns:
         Dict mapping e.g. "EXCL_FLANKS" -> "flanks"
@@ -419,6 +419,19 @@ def get_exclusion_name_mapping(benchmark: str) -> Dict[str, str]:
     exclusions = get_exclusion_config(benchmark)
     return {
         f"EXCL_{_format_exclusion_name(excl['name'])}": excl["name"] for excl in exclusions
+    }
+
+
+def get_exclusion_column_mapping(benchmark: str) -> Dict[str, str]:
+    """Map excl_* Parquet column names to canonical exclusion names.
+
+    Returns:
+        Dict mapping e.g. "excl_flanks" -> "flanks", "excl_satellites" -> "satellites"
+    """
+    exclusions = get_exclusion_config(benchmark)
+    return {
+        f"excl_{_format_exclusion_name(excl['name']).lower()}": excl["name"]
+        for excl in exclusions
     }
 
 

@@ -127,7 +127,7 @@ rule compute_exclusion_impact:
     Compute per-exclusion impact: BED metrics + variant counts.
 
     Combines per-exclusion BED overlap metrics with variant counts from the
-    variant table. Applies size filtering: smvar <50bp, stvar >=50bp.
+    variant table. Reads boolean excl_* columns directly from Parquet.
     """
     input:
         unpack(get_exclusion_impact_inputs),
@@ -137,8 +137,8 @@ rule compute_exclusion_impact:
             non_empty=True,
         ),
     params:
-        excl_name_mapping=lambda wc: list(
-            get_exclusion_name_mapping(wc.benchmark).items()
+        excl_column_mapping=lambda wc: list(
+            get_exclusion_column_mapping(wc.benchmark).items()
         ),
     log:
         "logs/exclusions/{benchmark}/impact.log",
@@ -158,8 +158,8 @@ rule compute_exclusion_interactions:
     Compute exclusion interaction (upset-style) decomposition.
 
     For each unique combination of overlapping exclusions, computes bases
-    and variant counts. Uses bedtools multiinter for bases and variant table
-    REGION_IDS for variants. Size filtering: smvar <50bp, stvar >=50bp.
+    and variant counts. Uses bedtools multiinter for bases and boolean excl_*
+    columns from Parquet for variants.
     """
     input:
         unpack(get_exclusion_interaction_inputs),
@@ -169,8 +169,8 @@ rule compute_exclusion_interactions:
             non_empty=True,
         ),
     params:
-        excl_name_mapping=lambda wc: list(
-            get_exclusion_name_mapping(wc.benchmark).items()
+        excl_column_mapping=lambda wc: list(
+            get_exclusion_column_mapping(wc.benchmark).items()
         ),
     log:
         "logs/exclusions/{benchmark}/interactions.log",

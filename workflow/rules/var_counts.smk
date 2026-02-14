@@ -1,8 +1,8 @@
 """
 Rules for counting variants by genomic context (difficult regions).
 
-Reads the Parquet variant table (with correct variant type classification
-and size filtering already applied) and counts variants per genomic context.
+Reads the Parquet variant table (with boolean genomic context columns) and
+counts variants per genomic context using melt + groupby.
 
 Outputs:
 - Per-genomic context variant counts by variant type (Parquet)
@@ -32,6 +32,8 @@ rule count_variants_by_genomic_context:
             "results/genomic_context/{benchmark}/variants_by_genomic_context.parquet",
             non_empty=True,
         ),
+    params:
+        context_columns=lambda w: get_genomic_context_ids(w),
     log:
         "logs/genomic_context/{benchmark}/count_by_genomic_context.log",
     message:
