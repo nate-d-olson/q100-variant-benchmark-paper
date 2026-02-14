@@ -176,13 +176,13 @@ def generate_variant_parquet(
                 var_type = "INDEL"
 
                 # Size filtering based on bench_type
-                abs_size = abs(var_size)
-                if bench_type == "smvar" and abs_size <= size_threshold:
-                    filtered_size += 1
-                    continue
-                if bench_type == "stvar" and abs_size > size_threshold:
-                    filtered_size += 1
-                    continue
+                # abs_size = abs(var_size)
+            if bench_type == "smvar" and abs_size > size_threshold:
+                filtered_size += 1
+                continue
+            if bench_type == "stvar" and abs_size <= size_threshold:
+                filtered_size += 1
+                continue
 
             # Get size bin (convert to string for R schema compatibility)
             szbin = truvari.get_sizebin(abs_size)
