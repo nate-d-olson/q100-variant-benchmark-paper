@@ -11,6 +11,7 @@ BENCH_TYPE_LEVELS <- c("smvar", "stvar")
 CONTEXT_NAME_LEVELS <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
 CHROM_LEVELS <- paste0("chr", c(1:22, "X", "Y"))
 AUTOSOME_CHROM_LEVELS <- paste0("chr", 1:22)
+VARIANT_CLASS_LEVELS <- c("SNV", "INDEL", "DEL", "INS")
 
 
 #' Get Arrow Schema for a Dataset

@@ -32,7 +32,7 @@ rule materialize_genomic_context:
     params:
         benchmark_ref=lambda w: config["benchmarksets"][w.benchmark]["ref"],
     log:
-        "logs/genomic_context/{benchmark}/{genomic_context}_materialize.log",
+        "logs/materialize_genomic_context/{benchmark}_{genomic_context}.log",
     message:
         "Materializing genomic context {wildcards.genomic_context} for {wildcards.benchmark}"
     resources:
@@ -68,7 +68,7 @@ rule compute_genomic_context_size:
             "results/genomic_context/{benchmark}/sizes/{genomic_context}_size.txt"
         ),
     log:
-        "logs/genomic_context/{benchmark}/{genomic_context}_size.log",
+        "logs/compute_genomic_context_size/{benchmark}_{genomic_context}.log",
     message:
         "Computing size for {wildcards.genomic_context} in {wildcards.benchmark}"
     resources:
@@ -103,7 +103,7 @@ rule compute_genomic_context_metrics:
     output:
         tsv="results/genomic_context/{benchmark}/metrics/{genomic_context}.tsv",
     log:
-        "logs/genomic_context/{benchmark}/{genomic_context}_metrics.log",
+        "logs/compute_genomic_context_metrics/{benchmark}_{genomic_context}.log",
     message:
         "Computing metrics for {wildcards.genomic_context} in {wildcards.benchmark}"
     resources:
@@ -137,7 +137,7 @@ rule aggregate_genomic_context_metrics:
             non_empty=True,
         ),
     log:
-        "logs/genomic_context/{benchmark}/aggregate.log",
+        "logs/aggregate_genomic_context_metrics/{benchmark}.log",
     message:
         "Aggregating genomic context metrics for {wildcards.benchmark}"
     resources:

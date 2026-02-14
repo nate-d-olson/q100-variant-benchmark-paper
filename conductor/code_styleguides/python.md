@@ -38,4 +38,4 @@ This document summarizes key rules and best practices from the Google Python Sty
 
 **BE CONSISTENT.** When editing code, match the existing style.
 
-*Source: [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)*
+_Source: [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)_

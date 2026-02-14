@@ -13,7 +13,7 @@ rule get_ref_assembled_bases:
     output:
         "results/ref_genome_sizes/{ref}_size.tsv",
     log:
-        "logs/ref_genome_sizes/{ref}_size.log",
+        "logs/get_ref_assembled_bases/{ref}.log",
     threads: 2
     resources:
         mem_mb=2048,

@@ -33,14 +33,14 @@ Example: `v5.0q_GRCh38_smvar` = v5.0q benchmark, GRCh38 reference, small variant
 
 All genomic context-related outputs use these consistent identifiers:
 
-| Code | Name | Description |
-|------|------|-------------|
-| HP | Homopolymer | Homopolymer regions (≥7 bp) |
-| MAP | Mapping Quality | Low-complexity regions with mapping issues |
-| SD | Segmental Duplication | Segmental duplications |
+| Code   | Name                        | Description                                |
+| ------ | --------------------------- | ------------------------------------------ |
+| HP     | Homopolymer                 | Homopolymer regions (≥7 bp)                |
+| MAP    | Mapping Quality             | Low-complexity regions with mapping issues |
+| SD     | Segmental Duplication       | Segmental duplications                     |
 | SD10kb | Segmental Duplication ±10kb | Flanking regions ±10kb from segmental dups |
-| TR | Tandem Repeat | Tandem repeats and associated regions |
-| TR10kb | Tandem Repeat ±10kb | Flanking regions ±10kb from tandem repeats |
+| TR     | Tandem Repeat               | Tandem repeats and associated regions      |
+| TR10kb | Tandem Repeat ±10kb         | Flanking regions ±10kb from tandem repeats |
 
 ---
 
@@ -48,34 +48,29 @@ All genomic context-related outputs use these consistent identifiers:
 
 These files contain aggregated metrics and should be your default choice for analyses. They're fast to load and sufficient for most use cases.
 
-### 1. Stratification Combined Metrics
+### 1. Variant Counts by Genomic Context
 
-**Path:** `results/genomic_context/{benchmark}/combined_metrics.csv`
+**Path:** `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
 
-**Purpose:** Primary analysis file with per-genomic context metrics and variant counts. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
+**Purpose:** Primary analysis file with per-genomic context variant counts. Loaded and aggregated by `load_genomic_context_metrics()` which pivots variant types into count columns. Use this for all analyses comparing difficult regions, variant distributions, or benchmark characteristics.
 
 **Size:** Small (~5-10 KB per benchmark)
 
 **Column Schema:**
 
-| Column | Type | Description | Range/Units |
-|--------|------|-------------|-------------|
-| bench_version | string | Benchmark version | e.g., "v5.0q" |
-| ref | string | Reference genome | GRCh37, GRCh38, CHM13v2.0 |
-| bench_type | string | Benchmark set type classification | smvar or stvar |
-| context_name | string | Stratification region name | HP, MAP, SD, SD10kb, TR, TR10kb |
-| context_bp | integer | Total bases in genomic context | Bases |
-| intersect_bp | integer | Bases overlapping with benchmark | Bases |
-| pct_of_context | decimal | Percentage of genomic context in benchmark | 0-100% |
-| pct_of_bench | decimal | Percentage of benchmark in genomic context | 0-100% |
-| total_variants | integer | Total variant count in overlap | Count |
-| snp_count | integer | Single nucleotide polymorphism count | Count |
-| mnp_count | integer | Multi-nucleotide polymorphism count | Count |
-| del_count | integer | Deletion count (all sizes) | Count |
-| ins_count | integer | Insertion count (all sizes) | Count |
-| complex_count | integer | Complex variant count | Count |
-| other_count | integer | Other variant types (DUP, INV, BND, CNV from SVTYPE) | Count |
-| variant_density_per_mb | decimal | Variants per megabase | variants/Mb |
+The raw Parquet file has columns: `context_name`, `var_type`, `szbin`, `count`. The R function `load_genomic_context_metrics()` pivots this into wide format with these columns:
+
+| Column         | Type    | Description                       | Range/Units                     |
+| -------------- | ------- | --------------------------------- | ------------------------------- |
+| bench_version  | Factor  | Benchmark version                 | v0.6, v4.2.1, v5.0q             |
+| ref            | Factor  | Reference genome                  | GRCh37, GRCh38, CHM13v2.0       |
+| bench_type     | Factor  | Benchmark set type classification | smvar or stvar                  |
+| context_name   | Factor  | Genomic context region name       | HP, MAP, SD, SD10kb, TR, TR10kb |
+| snv_count      | integer | Single nucleotide variant count   | Count                           |
+| indel_count    | integer | Insertion/deletion count (smvar)  | Count                           |
+| del_count      | integer | Deletion count                    | Count                           |
+| ins_count      | integer | Insertion count                   | Count                           |
+| total_variants | integer | Sum of all \*\_count columns      | Count                           |
 
 **Variant Classification Logic:**
 
@@ -91,12 +86,16 @@ The pipeline uses a dual classification approach:
 
 **Example Data:**
 
+The raw Parquet contains rows like:
+
 ```
-context_name,context_bp,intersect_bp,pct_of_context,pct_of_bench,total_variants,snp_count,mnp_count,del_count,ins_count,complex_count,other_count,variant_density_per_mb
-HP,83977437,80057238,95.331843,2.922429,745376,180354,554178,8234,1654,156,400,9310.54
-MAP,248876839,113370415,45.552819,4.138501,851471,724227,86411,35678,4312,421,422,7510.52
-SD,166860344,81066975,48.583728,2.959288,505283,405788,73868,23456,1456,98,617,6232.91
+context_name,var_type,szbin,count
+HP,SNV,[1,5),180354
+HP,INDEL,[1,5),554178
+MAP,SNV,[1,5),724227
 ```
+
+After loading with `load_genomic_context_metrics()`, the data is pivoted to wide format.
 
 **Usage Notes:**
 
@@ -114,7 +113,7 @@ source("R/data_loading.R")
 metrics <- load_genomic_context_metrics()
 
 # Load specific benchmark
-metrics_v5 <- load_genomic context_metrics(
+metrics_v5 <- load_genomic_context_metrics(
   benchmark_filter = c("v5.0q_GRCh38_smvar", "v5.0q_GRCh37_stvar")
 )
 
@@ -141,16 +140,16 @@ metrics %>%
 
 **Column Schema:**
 
-| Column | Type | Description |
-|--------|------|-------------|
-| bench_version | string | Benchmark version |
-| ref | string | Reference genome |
-| bench_type | string | Benchmark set type classification |
-| exclusions | string | Exclusion category name |
-| exclusion_bp | integer | Total bases in exclusion region (bases) |
-| intersect_bp | integer | Bases overlapping with benchmark (bases) |
+| Column           | Type    | Description                                  |
+| ---------------- | ------- | -------------------------------------------- |
+| bench_version    | string  | Benchmark version                            |
+| ref              | string  | Reference genome                             |
+| bench_type       | string  | Benchmark set type classification            |
+| exclusions       | string  | Exclusion category name                      |
+| exclusion_bp     | integer | Total bases in exclusion region (bases)      |
+| intersect_bp     | integer | Bases overlapping with benchmark (bases)     |
 | pct_of_exclusion | decimal | % of exclusion overlapping benchmark (0-100) |
-| pct_of_dip | decimal | % of diploid genome represented (0-100) |
+| pct_of_dip       | decimal | % of diploid genome represented (0-100)      |
 
 **Exclusion Categories:**
 
@@ -200,13 +199,13 @@ exclusions %>%
 
 **Column Schema:**
 
-| Column | Type | Description | Example |
-|--------|------|-------------|---------|
-| ref | string | Reference genome name | GRCh38 |
-| chrom | string | Chromosome name (with "chr" prefix) | chr1 |
-| length | integer | Total chromosome length (bp) | 248956422 |
-| ns | integer | Number of N bases | 10000 |
-| asm_bp | integer | Assembled bases (length - ns) | 248946422 |
+| Column | Type    | Description                         | Example   |
+| ------ | ------- | ----------------------------------- | --------- |
+| ref    | string  | Reference genome name               | GRCh38    |
+| chrom  | string  | Chromosome name (with "chr" prefix) | chr1      |
+| length | integer | Total chromosome length (bp)        | 248956422 |
+| ns     | integer | Number of N bases                   | 10000     |
+| asm_bp | integer | Assembled bases (length - ns)       | 248946422 |
 
 **Notes on Calculation:**
 
@@ -225,11 +224,11 @@ GRCh38,chr3,198295559,5200,198290359
 
 **Genome-wide Statistics:**
 
-| Reference | Total Length | Total N | Total Assembled | Notes |
-|-----------|--------------|---------|-----------------|-------|
-| GRCh37 | 3.1 Gb | ~150 Mb | ~2.95 Gb | hg19 assembly |
-| GRCh38 | 3.2 Gb | ~175 Mb | ~3.02 Gb | GRCh38/hg38 assembly |
-| CHM13v2.0 | 3.05 Gb | ~90 Mb | ~2.96 Gb | Complete genome reference |
+| Reference | Total Length | Total N | Total Assembled | Notes                     |
+| --------- | ------------ | ------- | --------------- | ------------------------- |
+| GRCh37    | 3.1 Gb       | ~150 Mb | ~2.95 Gb        | hg19 assembly             |
+| GRCh38    | 3.2 Gb       | ~175 Mb | ~3.02 Gb        | GRCh38/hg38 assembly      |
+| CHM13v2.0 | 3.05 Gb      | ~90 Mb  | ~2.96 Gb        | Complete genome reference |
 
 **Usage Notes:**
 
@@ -276,7 +275,7 @@ These files contain variant-level or base-level data. Load them only when you ne
 
 ### 4. Full Variant Table
 
-**Path:** `results/variant_tables/{benchmark}/variants.tsv`
+**Path:** `results/variant_tables/{benchmark}/variants.parquet`
 
 **Availability:** All benchmarks
 
@@ -288,23 +287,23 @@ These files contain variant-level or base-level data. Load them only when you ne
 
 **Column Schema:**
 
-| Column | Type | Description |
-|--------|------|-------------|
-| chrom | string | Chromosome (e.g., "chr1") |
-| pos | integer | Start position (1-based) |
-| end | integer | End position (inclusive) |
-| ref | string | Reference allele |
-| alt | string | Alternate allele |
-| gt | string | Genotype (typically "." for benchmark) |
-| vkx | string | Variant class |
-| var_type | string | Variant type (SNP, MNP, DEL, INS, COMPLEX, or SV types) |
-| len_ref | integer | Reference allele length |
-| len_alt | integer | Alternate allele length |
-| var_size | integer | Size of variant (len_alt - len_ref) |
-| region_ids | string | Region classification codes |
-| svtype | string | Structural variant type (if >50bp, may be empty) |
-| svlen | integer | Structural variant length (if >50bp, may be empty) |
-| (additional fields) | varies | Source-specific annotations |
+| Column              | Type    | Description                                             |
+| ------------------- | ------- | ------------------------------------------------------- |
+| chrom               | string  | Chromosome (e.g., "chr1")                               |
+| pos                 | integer | Start position (1-based)                                |
+| end                 | integer | End position (inclusive)                                |
+| ref                 | string  | Reference allele                                        |
+| alt                 | string  | Alternate allele                                        |
+| gt                  | string  | Genotype (typically "." for benchmark)                  |
+| vkx                 | string  | Variant class                                           |
+| var_type            | string  | Variant type (SNP, MNP, DEL, INS, COMPLEX, or SV types) |
+| len_ref             | integer | Reference allele length                                 |
+| len_alt             | integer | Alternate allele length                                 |
+| var_size            | integer | Size of variant (len_alt - len_ref)                     |
+| region_ids          | string  | Region classification codes                             |
+| svtype              | string  | Structural variant type (if >50bp, may be empty)        |
+| svlen               | integer | Structural variant length (if >50bp, may be empty)      |
+| (additional fields) | varies  | Source-specific annotations                             |
 
 **Data Quality Notes:**
 
@@ -364,16 +363,16 @@ interesting_vars <- variants %>%
 
 **Column Schema:**
 
-| Column | Type | Description |
-|--------|------|-------------|
-| context_name | string | Stratification region name (extracted from filename) |
-| chrom | string | Chromosome |
-| start | integer | Start position (0-based, BED format) |
-| end | integer | End position (exclusive) |
-| n_overlap | integer | Number of overlapping intervals from bedtools |
-| bases_cov | integer | Bases covered (from bedtools) |
-| ivl_len | integer | Total interval length (end - start) |
-| frac_cov | decimal | Fraction covered (bases_cov / ivl_len) |
+| Column       | Type    | Description                                          |
+| ------------ | ------- | ---------------------------------------------------- |
+| context_name | string  | Stratification region name (extracted from filename) |
+| chrom        | string  | Chromosome                                           |
+| start        | integer | Start position (0-based, BED format)                 |
+| end          | integer | End position (exclusive)                             |
+| n_overlap    | integer | Number of overlapping intervals from bedtools        |
+| bases_cov    | integer | Bases covered (from bedtools)                        |
+| ivl_len      | integer | Total interval length (end - start)                  |
+| frac_cov     | decimal | Fraction covered (bases_cov / ivl_len)               |
 
 **Example Data:**
 
@@ -440,13 +439,9 @@ coverage %>%
 results/
 ├── genomic_context/
 │   ├── v5.0q_GRCh38_smvar/
-│   │   ├── combined_metrics.csv                    ✓ Primary (load first)
-│   │   ├── genomic_context_coverage_table.csv      (intermediate)
+│   │   ├── genomic_context_coverage_table.csv      ✓ Coverage metrics
 │   │   ├── coverage/                               (BED files)
-│   │   ├── metrics/                                (individual TSV files)
-│   │   └── var_counts/
-│   │       ├── genomic_context_summary.csv         (intermediate)
-│   │       └── variants_by_genomic_context.csv     (intermediate)
+│   │   └── metrics/                                (individual TSV files)
 │   ├── v5.0q_GRCh38_stvar/
 │   ├── v5.0q_GRCh37_smvar/
 │   ├── v5.0q_GRCh37_stvar/
@@ -454,6 +449,11 @@ results/
 │   ├── v5.0q_CHM13v2.0_stvar/
 │   ├── v4.2.1_GRCh38_smvar/
 │   ├── v0.6_GRCh37_stvar/
+│   └── [other benchmarks]
+│
+├── var_counts/
+│   ├── v5.0q_GRCh38_smvar/
+│   │   └── variants_by_genomic_context.parquet    ✓ Primary (load first)
 │   └── [other benchmarks]
 │
 ├── exclusions/
@@ -464,7 +464,7 @@ results/
 │
 ├── variant_tables/
 │   ├── v5.0q_GRCh38_smvar/
-│   │   └── variants.tsv                           ⚠️ Large (~1 GB)
+│   │   └── variants.parquet                           ⚠️ Large (~1 GB)
 │   ├── v5.0q_GRCh38_stvar/
 │   └── [other benchmarks]
 │
@@ -575,13 +575,13 @@ coverage %>%
 
 All output files can be loaded using functions in `R/data_loading.R`:
 
-| Function | Purpose | Returns | Notes |
-|----------|---------|---------|-------|
-| `load_genomic_context_metrics()` | Load primary analysis metrics | Tibble | 48+ rows (6 strats × benchmarks) |
-| `load_exclusion_metrics()` | Load exclusion overlaps | Tibble | v5.0q only, warns if empty |
-| `load_reference_sizes()` | Load reference genomes | Tibble | 88-94 rows (24-31 chroms × refs) |
-| `load_variant_table()` | Load full variant data | Tibble | Millions of rows, SLOW |
-| `load_genomic_context_coverage()` | Load base-level coverage | Tibble | Millions of rows |
+| Function                          | Purpose                       | Returns | Notes                            |
+| --------------------------------- | ----------------------------- | ------- | -------------------------------- |
+| `load_genomic_context_metrics()`  | Load primary analysis metrics | Tibble  | 48+ rows (6 strats × benchmarks) |
+| `load_exclusion_metrics()`        | Load exclusion overlaps       | Tibble  | v5.0q only, warns if empty       |
+| `load_reference_sizes()`          | Load reference genomes        | Tibble  | 88-94 rows (24-31 chroms × refs) |
+| `load_variant_table()`            | Load full variant data        | Tibble  | Millions of rows, SLOW           |
+| `load_genomic_context_coverage()` | Load base-level coverage      | Tibble  | Millions of rows                 |
 
 All functions handle:
 
@@ -628,26 +628,26 @@ clear_cache()                       # Remove all cached data
 
 ## File Size Reference
 
-| Output Type | Benchmark Count | Total Size |
-|-------------|-----------------|-----------|
-| Stratification metrics | 8 | ~80 KB |
-| Exclusion tables | 4 (v5.0q only) | ~8 KB |
-| Reference sizes | 3 | ~6 KB |
-| Variant tables | 8 | ~4-6 GB |
-| Coverage files | 8 × 6 = 48 | ~4-8 GB |
-| **Total** | - | **~8-14 GB** |
+| Output Type            | Benchmark Count | Total Size   |
+| ---------------------- | --------------- | ------------ |
+| Stratification metrics | 8               | ~80 KB       |
+| Exclusion tables       | 4 (v5.0q only)  | ~8 KB        |
+| Reference sizes        | 3               | ~6 KB        |
+| Variant tables         | 8               | ~4-6 GB      |
+| Coverage files         | 8 × 6 = 48      | ~4-8 GB      |
+| **Total**              | -               | **~8-14 GB** |
 
-*Sizes are approximate and may vary depending on reference genome and variant density*
+_Sizes are approximate and may vary depending on reference genome and variant density_
 
 ---
 
 ## Troubleshooting
 
-### "No combined_metrics.csv files found"
+### "No variants_by_genomic_context.parquet files found"
 
-- Check that `results/genomic_context/` directory exists
+- Check that `results/var_counts/` directory exists
 - Verify pipeline completed successfully
-- Run `find results/ -name "*combined_metrics*"`
+- Run `find results/ -name "*variants_by_genomic_context*"`
 
 ### Slow loading of variant tables
 

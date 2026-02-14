@@ -100,12 +100,10 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 - **Cause**: Truvari's `vcf_to_df()` converts multi-value VCF INFO fields into Python tuples/lists
 - **Root cause**: When written to Parquet, these become string representations like `"('HP', 'MAP')"`
-- **Fix**: Added tuple-to-string conversion in `generate_variant_parquet.py` (lines 226-236)
+- **Fix**: Added `normalize_annotation()` function in `generate_variant_parquet.py` (line 66) for tuple-to-string conversion
 - **Fixed**: February 2026
 - **Verification**: Check logs show clean context names: `Contexts: ['HP', 'MAP', 'SD', ...]`
 - **Impact**: Affected all variant count tables (genomic contexts and exclusions) across all benchmarks
-
-## Data Loading (R/Quarto)
 
 ## R Data Loading Infrastructure
 

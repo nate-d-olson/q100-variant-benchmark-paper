@@ -189,7 +189,6 @@ def generate_variant_parquet(
             context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
             region_ids = normalize_annotation(record.info.get("REGION_IDS"))
 
-
             # Extract genotype: gt() returns tuple, convert to GT enum, then extract name
             gt = truvari.get_gt(vr.gt()).name  # "HET", "HOM", "REF", "NON", "UNK"
 
@@ -218,7 +217,6 @@ def generate_variant_parquet(
                 }
             )
     vcf.close()
-
 
     logging.info("Collected %d variants", len(variants))
     if filtered_non > 0:

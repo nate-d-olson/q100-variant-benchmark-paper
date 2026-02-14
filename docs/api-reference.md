@@ -257,7 +257,7 @@ beds = get_region_beds(wildcards)
 **Format:**
 
 - Benchmark regions always have ID "BMKREGIONS"
-- Exclusions have ID format "EXCL_{EXCLUSION_NAME}"
+- Exclusions have ID format "EXCL\_{EXCLUSION_NAME}"
 - Exclusion names converted: "consecutive-svs" → "CONSECUTIVE_SVS"
 
 **Logic:**
@@ -380,9 +380,9 @@ Generate list of variant table files for all benchmarks.
 ```python
 files = get_var_table_inputs(wildcards)
 # Returns: [
-#     "results/variant_tables/v5.0q_GRCh38/variants.tsv",
-#     "results/variant_tables/v5.0q_GRCh37/variants.tsv",
-#     "results/variant_tables/v4.2.1_GRCh38/variants.tsv",
+#     "results/variant_tables/v5.0q_GRCh38/variants.parquet",
+#     "results/variant_tables/v5.0q_GRCh37/variants.parquet",
+#     "results/variant_tables/v4.2.1_GRCh38/variants.parquet",
 #     ...
 # ]
 ```
@@ -595,5 +595,5 @@ snakemake --dag target_rule | dot -Tpdf > dag.pdf
 
 ---
 
-*Last Updated: 2026-01-13*
-*Branch: feature/codebase-improvements*
+_Last Updated: 2026-01-13_
+_Branch: feature/codebase-improvements_

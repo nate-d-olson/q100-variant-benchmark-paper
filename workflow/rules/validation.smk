@@ -12,7 +12,7 @@ rule validate_benchmark_vcf:
     output:
         report="results/validation/{benchmark}/{ref}/vcf_validation.txt",
     log:
-        "logs/validation/{benchmark}/{ref}/vcf.log",
+        "logs/validate_benchmark_vcf/{benchmark}_{ref}.log",
     conda:
         "../envs/base.yaml"
     script:
@@ -26,7 +26,7 @@ rule validate_benchmark_bed:
     output:
         report="results/validation/{benchmark}/{ref}/bed_validation.txt",
     log:
-        "logs/validation/{benchmark}/{ref}/bed.log",
+        "logs/validate_benchmark_bed/{benchmark}_{ref}.log",
     conda:
         "../envs/base.yaml"
     script:
@@ -40,7 +40,7 @@ rule validate_stratification_beds:
     output:
         report="results/validation/stratifications/{ref}/{strat_type}_validation.txt",
     log:
-        "logs/validation/stratifications/{ref}/{strat_type}.log",
+        "logs/validate_stratification_beds/{ref}_{strat_type}.log",
     conda:
         "../envs/base.yaml"
     script:
@@ -64,7 +64,7 @@ rule validation_summary:
     output:
         summary="results/validation/validation_summary.txt",
     log:
-        "logs/validation/summary.log",
+        "logs/validation_summary.log",
     shell:
         """
         echo "Validation Summary - $(date)" > {output.summary}

@@ -27,6 +27,7 @@ Purpose: give short, prescriptive steps so an agent can make safe, minimal-code 
 - Commit messages must use Conventional Commits. Keep changes small and focused.
 
 Where to run tests/commands (local dev):
+
 ```bash
 mamba activate q100-smk
 make test
@@ -36,12 +37,15 @@ make dry-run
 If you need to add files, place them under `workflow/` or `workflow/scripts/` and update `workflow/Snakefile` to include them.
 
 ## Analysis / Quarto / R
+
 - Run Quarto documents after pipeline outputs exist; Quarto files live in `analysis/` and `manuscript/`.
 - Use the project environment:
+
 ```bash
 mamba activate q100-smk
 quarto render path/to/doc.qmd
 ```
+
 - Open the project with Posit/ RStudio for interactive R sessions; use the project's R package setup and avoid uncoordinated package upgrades.
 - Quarto caches are safe to clear to force rebuilds; final figures and tables are expected in `analysis/` and `results/`.
 - Do not commit generated HTML/PDF output unless instructed; commit source `.qmd` and code only.

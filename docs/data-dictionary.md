@@ -17,24 +17,22 @@ The functions in `R/data_loading.R` load and standardize pipeline outputs. This 
 
 **Function:** `load_genomic_context_metrics()`
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `bench_version` | Factor | Benchmark version (`v0.6`, `v4.2.1`, `v5.0q`) |
-| `ref` | Factor | Reference genome (`GRCh37`, `GRCh38`, `CHM13v2.0`) |
-| `bench_type` | Factor | Benchmark set type (`smvar`, `stvar`) |
-| `context_name` | Factor | Genomic context identifier (e.g., `HP`, `TR`, `SD`) |
-| `context_bp` | Numeric | Total size of the genomic context in bases |
-| `intersect_bp` | Numeric | Number of bases where the genomic context overlaps the benchmark regions |
-| `pct_of_context` | Numeric | Percentage of the genomic context covered by the benchmark |
-| `pct_of_bench` | Numeric | Percentage of the benchmark covered by this genomic context |
-| `total_variants` | Integer | Total number of variants in this context |
-| `snp_count` | Integer | Count of Single Nucleotide Polymorphisms (REF/ALT length == 1) |
-| `mnp_count` | Integer | Count of Multi-Nucleotide Polymorphisms (REF/ALT length > 1, equal) |
-| `del_count` | Integer | Count of Deletions (REF > ALT, all sizes) |
-| `ins_count` | Integer | Count of Insertions (ALT > REF, all sizes) |
-| `complex_count` | Integer | Count of Complex variants |
-| `other_count` | Integer | Count of other variant types (DUP, INV, BND, CNV from SVTYPE) |
-| `variant_density_per_mb` | Numeric | Number of variants per Megabase |
+| Column                   | Type    | Description                                                              |
+| :----------------------- | :------ | :----------------------------------------------------------------------- |
+| `bench_version`          | Factor  | Benchmark version (`v0.6`, `v4.2.1`, `v5.0q`)                            |
+| `ref`                    | Factor  | Reference genome (`GRCh37`, `GRCh38`, `CHM13v2.0`)                       |
+| `bench_type`             | Factor  | Benchmark set type (`smvar`, `stvar`)                                    |
+| `context_name`           | Factor  | Genomic context identifier (e.g., `HP`, `TR`, `SD`)                      |
+| `context_bp`             | Numeric | Total size of the genomic context in bases                               |
+| `intersect_bp`           | Numeric | Number of bases where the genomic context overlaps the benchmark regions |
+| `pct_of_context`         | Numeric | Percentage of the genomic context covered by the benchmark               |
+| `pct_of_bench`           | Numeric | Percentage of the benchmark covered by this genomic context              |
+| `total_variants`         | Integer | Total number of variants in this context                                 |
+| `snv_count`              | Integer | Count of Single Nucleotide Variants (SNV)                                |
+| `indel_count`            | Integer | Count of Insertions/Deletions (INDEL, smvar only)                        |
+| `del_count`              | Integer | Count of Deletions (DEL)                                                 |
+| `ins_count`              | Integer | Count of Insertions (INS)                                                |
+| `variant_density_per_mb` | Numeric | Number of variants per Megabase                                          |
 
 ### Exclusion Metrics
 
@@ -42,29 +40,29 @@ The functions in `R/data_loading.R` load and standardize pipeline outputs. This 
 
 Available for v5.0q benchmarks only.
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `bench_version` | Factor | Benchmark version (e.g., `v5.0q`) |
-| `ref` | Factor | Reference genome |
-| `bench_type` | Factor | Benchmark set type |
-| `exclusions` | Character | Name of the exclusion region |
-| `exclusion_bp` | Numeric | Total size of the exclusion region |
-| `intersect_bp` | Numeric | Overlap with benchmark |
-| `pct_of_exclusion` | Numeric | Percentage of exclusion region overlapping benchmark |
-| `pct_of_dip` | Numeric | Percentage of diploid genome overlapping benchmark |
-| `total_variants` | Integer | Total variants in this exclusion |
+| Column             | Type      | Description                                          |
+| :----------------- | :-------- | :--------------------------------------------------- |
+| `bench_version`    | Factor    | Benchmark version (e.g., `v5.0q`)                    |
+| `ref`              | Factor    | Reference genome                                     |
+| `bench_type`       | Factor    | Benchmark set type                                   |
+| `exclusions`       | Character | Name of the exclusion region                         |
+| `exclusion_bp`     | Numeric   | Total size of the exclusion region                   |
+| `intersect_bp`     | Numeric   | Overlap with benchmark                               |
+| `pct_of_exclusion` | Numeric   | Percentage of exclusion region overlapping benchmark |
+| `pct_of_dip`       | Numeric   | Percentage of diploid genome overlapping benchmark   |
+| `total_variants`   | Integer   | Total variants in this exclusion                     |
 
 ### Reference Genome Sizes
 
 **Function:** `load_reference_sizes()`
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `ref` | Factor | Reference genome name |
-| `chrom` | Factor | Chromosome name (standardized with "chr" prefix) |
-| `length` | Integer | Total length of the chromosome |
-| `ns` | Integer | Number of 'N' bases (gaps) |
-| `asm_bp` | Integer | Assembled bases (`length` - `ns`) |
+| Column   | Type    | Description                                      |
+| :------- | :------ | :----------------------------------------------- |
+| `ref`    | Factor  | Reference genome name                            |
+| `chrom`  | Factor  | Chromosome name (standardized with "chr" prefix) |
+| `length` | Integer | Total length of the chromosome                   |
+| `ns`     | Integer | Number of 'N' bases (gaps)                       |
+| `asm_bp` | Integer | Assembled bases (`length` - `ns`)                |
 
 ### Variant Table
 
@@ -72,22 +70,22 @@ Available for v5.0q benchmarks only.
 
 Large datasets. Columns may vary slightly between benchmark versions.
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `bench_version` | Factor | Benchmark version |
-| `ref` | Factor | Reference genome |
-| `bench_type` | Factor | Benchmark set type |
-| `chrom` | Factor | Chromosome |
-| `pos` | Integer | 1-based start position |
-| `end` | Integer | End position |
-| `gt` | Character | Genotype |
-| `vkx` | Character | Variant class |
-| `var_type` | Character | Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER) |
-| `len_ref` | Integer | Length of reference allele |
-| `len_alt` | Integer | Length of alternate allele |
-| `var_size` | Integer | Size of the variant |
-| `region_ids` | Character | Comma-separated IDs of regions overlapping the variant |
-| `context_ids` | Character | Comma-separated IDs of genomic contexts overlapping the variant |
+| Column          | Type      | Description                                                     |
+| :-------------- | :-------- | :-------------------------------------------------------------- |
+| `bench_version` | Factor    | Benchmark version                                               |
+| `ref`           | Factor    | Reference genome                                                |
+| `bench_type`    | Factor    | Benchmark set type                                              |
+| `chrom`         | Factor    | Chromosome                                                      |
+| `pos`           | Integer   | 1-based start position                                          |
+| `end`           | Integer   | End position                                                    |
+| `gt`            | Character | Genotype                                                        |
+| `vkx`           | Character | Variant class                                                   |
+| `var_type`      | Character | Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER)             |
+| `len_ref`       | Integer   | Length of reference allele                                      |
+| `len_alt`       | Integer   | Length of alternate allele                                      |
+| `var_size`      | Integer   | Size of the variant                                             |
+| `region_ids`    | Character | Comma-separated IDs of regions overlapping the variant          |
+| `context_ids`   | Character | Comma-separated IDs of genomic contexts overlapping the variant |
 
 ### Genomic Context Coverage
 
@@ -95,29 +93,29 @@ Large datasets. Columns may vary slightly between benchmark versions.
 
 Base-level coverage metrics for difficult genomic contexts.
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `context_name` | Factor | Genomic context identifier |
-| `chrom` | Factor | Chromosome |
-| `start` | Integer | Start position (0-based) |
-| `end` | Integer | End position |
-| `n_overlap` | Integer | Number of overlapping intervals |
-| `bases_cov` | Integer | Number of bases covered |
-| `ivl_len` | Integer | Length of the interval |
-| `frac_cov` | Numeric | Fraction of interval covered (`bases_cov` / `ivl_len`) |
+| Column         | Type    | Description                                            |
+| :------------- | :------ | :----------------------------------------------------- |
+| `context_name` | Factor  | Genomic context identifier                             |
+| `chrom`        | Factor  | Chromosome                                             |
+| `start`        | Integer | Start position (0-based)                               |
+| `end`          | Integer | End position                                           |
+| `n_overlap`    | Integer | Number of overlapping intervals                        |
+| `bases_cov`    | Integer | Number of bases covered                                |
+| `ivl_len`      | Integer | Length of the interval                                 |
+| `frac_cov`     | Numeric | Fraction of interval covered (`bases_cov` / `ivl_len`) |
 
 ### Benchmark Regions
 
 **Function:** `load_benchmark_regions()`
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `bench_version` | Factor | Benchmark version |
-| `ref` | Factor | Reference genome |
-| `bench_type` | Factor | Benchmark set type |
-| `chrom` | Factor | Chromosome |
-| `start` | Integer | Start position (0-based) |
-| `end` | Integer | End position |
+| Column          | Type    | Description                            |
+| :-------------- | :------ | :------------------------------------- |
+| `bench_version` | Factor  | Benchmark version                      |
+| `ref`           | Factor  | Reference genome                       |
+| `bench_type`    | Factor  | Benchmark set type                     |
+| `chrom`         | Factor  | Chromosome                             |
+| `start`         | Integer | Start position (0-based)               |
+| `end`           | Integer | End position                           |
 | `interval_size` | Integer | Size of the interval (`end` - `start`) |
 
 ### HG002 Q100 Assembly Size
@@ -151,13 +149,13 @@ Returns a single numeric value representing the total base pairs of the HG002 Q1
 **Examples by Stratification:**
 
 | Stratification | GRCh37 | GRCh38 | CHM13v2.0 |
-|---|---|---|---|
-| HP | 81.2M | 83.9M | 85.4M |
-| MAP | 245.3M | 248.9M | 251.2M |
-| SD | 159.4M | 166.8M | 170.1M |
-| SD10kb | 141.2M | 151.8M | 155.3M |
-| TR | 234.5M | 241.2M | 244.8M |
-| TR10kb | 198.3M | 205.4M | 208.6M |
+| -------------- | ------ | ------ | --------- |
+| HP             | 81.2M  | 83.9M  | 85.4M     |
+| MAP            | 245.3M | 248.9M | 251.2M    |
+| SD             | 159.4M | 166.8M | 170.1M    |
+| SD10kb         | 141.2M | 151.8M | 155.3M    |
+| TR             | 234.5M | 241.2M | 244.8M    |
+| TR10kb         | 198.3M | 205.4M | 208.6M    |
 
 ---
 
@@ -294,7 +292,7 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Units:** Integer count
 
-**Calculation:** Sum of all snp_count + mnp_count + del_count + ins_count + complex_count + other_count
+**Calculation:** Sum of all `*_count` columns (snv_count + indel_count + del_count + ins_count + any additional type counts)
 
 **Variant Classification Logic:**
 
@@ -315,11 +313,13 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 ---
 
-#### snp_count
+#### snv_count
 
-**Definition:** Number of single nucleotide polymorphisms (SNPs)
+**Definition:** Number of single nucleotide variants (SNVs)
 
-**Definition of SNP:**
+**Note:** Pipeline outputs use `SNP` internally; the R loading function renames to `snv_count`.
+
+**Definition of SNV:**
 
 - Single base substitution
 - Reference length = 1 bp, Alternate length = 1 bp
@@ -327,47 +327,37 @@ If variant_density_per_mb = 9310 for HP in small variants:
 
 **Classification:**
 
-- Classified when REF_len == ALT_len == 1
+- Classified by Truvari's `VariantRecord.var_type()` as `SV.SNP`
 - Applied to all benchmarks (small variants and structural variants)
 
 **Interpretation:**
 
-- SNPs are most common variant type
+- SNVs are most common variant type
 - Generally easiest to genotype accurately
 - Usually comprise 30-50% of total variants in benchmarks
 
 **Context:**
 
-- Small variants: 180,000-700,000 SNPs per benchmark-genomic context
-- Structural variants: fewer SNPs (focus is on larger variants ≥50bp)
+- Small variants: 180,000-700,000 SNVs per benchmark-genomic context
+- Structural variants: fewer SNVs (focus is on larger variants ≥50bp)
 
 ---
 
-#### mnp_count
+#### indel_count
 
-**Definition:** Number of multi-nucleotide polymorphisms (MNPs)
+**Definition:** Number of insertion/deletion variants (INDELs) in small variant benchmarks
 
-**Definition of MNP:**
+**Definition of INDEL:**
 
-- Multiple adjacent base substitutions
-- Reference length = Alternate length > 1 bp
-- Example: ATG → GCA (3bp substitution)
-
-**Classification:**
-
-- Classified when REF_len == ALT_len > 1
-- Applied to all benchmarks
+- Variant where reference and alternate alleles differ in length
+- For small variant benchmarks: variants < 50bp
+- Classified by Truvari's `VariantRecord.var_type()` and reclassified as INDEL for smvar benchmarks
 
 **Interpretation:**
 
-- Less common than SNPs but more common than complex variants
-- Occur when multiple adjacent bases are substituted simultaneously
-- Often arise from localized mutation processes or sequencing artifacts
-
-**Context:**
-
-- Typically 1-10% of total small variants
-- Can be challenging to distinguish from nearby SNPs in noisy data
+- Represents combined insertions and deletions in small variant benchmarks
+- Heavily concentrated in homopolymer regions (HP) and tandem repeats (TR)
+- Usually 40-65% of total small variants
 
 ---
 
@@ -577,8 +567,8 @@ total_variants = 851,471
 **Definition:** Segmental duplications (>1kb, ≥90% sequence identity)
 
 **Biological Significance:**
->
-- >90% similar sequences elsewhere in genome
+
+- &gt;90% similar sequences elsewhere in genome
 - Impossible to uniquely map short reads
 - Classic "copy-number variation" regions
 - High false-positive and false-negative rate

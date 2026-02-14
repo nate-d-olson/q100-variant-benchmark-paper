@@ -15,7 +15,7 @@ rule index_vcf:
     output:
         temp("{prefix}.vcf.gz.tbi"),
     log:
-        "logs/vcf_processing/{prefix}_index.log",
+        "logs/index_vcf/{prefix}.log",
     resources:
         mem_mb=2048,
     conda:
@@ -31,8 +31,8 @@ rule split_multiallelics:
     input:
         vcf="resources/benchmarksets/{benchmark}_benchmark.vcf.gz",
         vcfidx="resources/benchmarksets/{benchmark}_benchmark.vcf.gz.tbi",
-        ref=lambda w: f"resources/references/{config["benchmarksets"][w.benchmark].get("ref")}.fa.gz",
-        refidx=lambda w: f"resources/references/{config["benchmarksets"][w.benchmark].get("ref")}.fa.gz.fai",
+        ref=lambda w: f"resources/references/{config['benchmarksets'][w.benchmark]['ref']}.fa.gz",
+        refidx=lambda w: f"resources/references/{config['benchmarksets'][w.benchmark]['ref']}.fa.gz.fai",
     output:
         vcf=temp("results/split_multiallelics/{benchmark}/split.vcf.gz"),
     params:

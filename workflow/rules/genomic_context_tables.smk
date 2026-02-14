@@ -6,7 +6,7 @@ rule genomic_context_coverage:
     output:
         cov_bed="results/genomic_context/{bench_version}_{ref}_{bench_type}/coverage/{genomic_context}_cov.bed",
     log:
-        "logs/genomic_context/{bench_version}_{ref}_{bench_type}/{genomic_context}_coverage.log",
+        "logs/genomic_context_coverage/{bench_version}_{ref}_{bench_type}_{genomic_context}.log",
     conda:
         "../envs/bedtools.yaml"
     shell:
