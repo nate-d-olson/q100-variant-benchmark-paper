@@ -25,8 +25,8 @@ workflow/
     ├── combine_beds_with_id.py
     ├── count_variants_by_type.py
     ├── expand_annotations.py
-    ├── extract_info_fields.py
-    └── generate_header_lines.py
+    ├── generate_header_lines.py
+    └── generate_variant_parquet.py
 ```
 
 ## Rule Modules
@@ -91,8 +91,7 @@ Rules for variant annotation and table generation:
 | `generate_annotation_headers`  | Generate VCF header lines                  | `results/generate_annotation_headers/{benchmark}/annotation_headers.txt`  |
 | `annotate_vcf_stratifications` | Annotate VCF with stratification IDs       | `results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz` |
 | `annotate_vcf_regions`         | Annotate VCF with region IDs               | `results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz`         |
-| `extract_info_fields`          | Extract INFO field names from VCF          | `results/extract_info_fields/{benchmark}/info_fields.txt`                 |
-| `generate_var_table`           | Generate TSV table with all annotations    | `results/variant_tables/{benchmark}/variants.tsv`                         |
+| `generate_variant_parquet`     | Generate Parquet table using Truvari       | `results/variant_tables/{benchmark}/variants.parquet`                     |
 
 ### exclusions.smk
 
@@ -134,15 +133,15 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 
 | Script                     | Description                                       |
 | -------------------------- | ------------------------------------------------- |
-| `extract_info_fields.py`   | Extract INFO field names from VCF header          |
 | `generate_header_lines.py` | Generate VCF header lines for custom annotations  |
 | `expand_annotations.py`    | Expand annotation ID lists to binary flag columns |
 
 ### Variant Analysis
 
-| Script                       | Description                                      |
-| ---------------------------- | ------------------------------------------------ |
-| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF |
+| Script                       | Description                                         |
+| ---------------------------- | --------------------------------------------------- |
+| `generate_variant_parquet.py` | Generate Parquet variant tables using Truvari       |
+| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF   |
 | `count_variants_by_strat.py` | Count variants per stratification region         |
 | `stratify_comparison.py`     | Compare variants across stratifications          |
 
@@ -175,7 +174,7 @@ snakemake -n --quiet
 snakemake --cores 4 --sdm conda
 
 # Run specific target
-snakemake results/variant_tables/v5q_grch38_smvar/variants.tsv --cores 4 --sdm conda
+snakemake results/variant_tables/v5q_grch38_smvar/variants.parquet --cores 4 --sdm conda
 ```
 
 ## Configuration
