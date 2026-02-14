@@ -17,7 +17,9 @@ Invoke with an optional argument specifying the changed file path. If no argumen
 Use these known dependency chains to determine what to clear:
 
 ### Header/Annotation scripts
+
 If `generate_header_lines.py`, `combine_beds_with_id.py`, or annotation-related scripts changed:
+
 ```
 rm -rf results/generate_annotation_headers/
 rm -rf results/annotate_vcf_genomic_contexts/
@@ -27,32 +29,42 @@ rm -rf results/variant_tables/
 ```
 
 ### Variant table scripts
+
 If `generate_variant_parquet.py` or variant classification scripts changed:
+
 ```
 rm -rf results/variant_tables/
 rm -rf results/var_counts/
 ```
 
 ### Variant count scripts
+
 If `count_variants_by_genomic_context.py` changed:
+
 ```
 rm -rf results/var_counts/
 ```
 
 ### Metrics scripts
+
 If `compute_bed_metrics.py` or metrics scripts changed:
+
 ```
 rm -rf results/genomic_context_metrics/
 ```
 
 ### Exclusion scripts
+
 If exclusion-related scripts changed:
+
 ```
 rm -rf results/exclusions/
 ```
 
 ### R cache
+
 If `R/schemas.R`, `R/cache.R`, or `R/data_loading.R` changed:
+
 ```
 rm -rf analysis/cache/
 ```

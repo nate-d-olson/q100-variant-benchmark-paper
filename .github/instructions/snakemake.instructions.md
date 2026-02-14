@@ -11,31 +11,37 @@ When writing or modifying Snakemake rules, follow these mandatory standards:
 Every rule MUST include:
 
 1. **log directive**: Capture stdout/stderr for debugging
+
    ```python
    log: "logs/{rule_name}/{wildcards}.log"
    ```
 
 2. **ensure() validation**: Validate output file properties
+
    ```python
    output:
        tsv=ensure("results/{sample}.tsv", non_empty=True)
    ```
+
    - Use `non_empty=True` for all output files
    - Add `sha256="..."` for deterministic outputs
    - Use `size_gt=1000` for minimum file size requirements
 
 3. **threads directive**: Specify computational resources
+
    ```python
    threads: 2
    ```
 
 4. **resources directive**: Define memory and other resources
+
    ```python
    resources:
        mem_mb=4096
    ```
 
 5. **conda directive**: Specify conda environment
+
    ```python
    conda: "../envs/bcftools.yaml"
    ```
@@ -55,6 +61,7 @@ For rules downloading external files:
 4. Log all download activities
 
 Example:
+
 ```python
 rule download_file:
     output:
@@ -75,11 +82,13 @@ rule download_file:
 ## Conda Environments
 
 All `workflow/envs/*.yaml` files MUST:
+
 - Use `channels: [conda-forge, bioconda]` (NO `defaults` channel)
 - Set `channel_priority: strict`
 - Pin specific tool versions (e.g., `bcftools=1.19`)
 
 Example:
+
 ```yaml
 channels:
   - conda-forge
@@ -92,6 +101,7 @@ dependencies:
 ## Wrapper Usage
 
 When using Snakemake wrappers:
+
 - Always use versioned `wrapper_prefix` (set globally in Snakefile)
 - Reference wrappers as: `wrapper: f"{wrapper_prefix}/bio/bcftools/query"`
 - Check wrapper documentation: https://snakemake-wrappers.readthedocs.io/
@@ -128,7 +138,7 @@ Copy this template when creating new rules. Fill in placeholders and choose the 
 rule rule_name:
     """
     Brief description of what this rule does.
-    
+
     Detailed explanation of the processing logic, tools used,
     and any important considerations.
     """
@@ -157,13 +167,13 @@ rule rule_name:
         """
         # Log execution start
         echo "Processing {wildcards.wildcard}" > {log}
-        
+
         # Main command
         tool_command --option {params.param1} \
             --input {input.file1} \
             --output {output.result} \
             2>> {log}
-        
+
         # Validate output
         if [ ! -s {output.result} ]; then
             echo "ERROR: Output validation failed" >> {log}
@@ -177,6 +187,7 @@ rule rule_name:
 **Choose ONE of these execution methods:**
 
 1. **Shell commands** (default, shown above):
+
    ```python
    shell:
        """
@@ -185,23 +196,28 @@ rule rule_name:
    ```
 
 2. **Python/R script**:
+
    ```python
    script:
        "../scripts/script_name.py"  # or .R, .jl, etc.
    ```
+
    - Script receives: `snakemake.input`, `snakemake.output`, `snakemake.params`, `snakemake.log`, `snakemake.threads`, `snakemake.resources`, `snakemake.wildcards`
 
 3. **Snakemake wrapper**:
+
    ```python
    wrapper:
        f"{wrapper_prefix}/bio/tool/command"  # Use global wrapper_prefix
    ```
+
    - Browse available wrappers: https://snakemake-wrappers.readthedocs.io/
    - Example: `f"{wrapper_prefix}/bio/bcftools/stats"`
 
 ### Common Customizations
 
 **Multiple outputs:**
+
 ```python
 output:
     result1=ensure("results/{sample}_output1.tsv", non_empty=True),
@@ -210,6 +226,7 @@ output:
 ```
 
 **Conditional parameters:**
+
 ```python
 params:
     extra=lambda wildcards: "--flag" if wildcards.ref == "GRCh38" else "",
@@ -217,6 +234,7 @@ params:
 ```
 
 **Dynamic resources:**
+
 ```python
 resources:
     mem_mb=lambda wildcards, attempt: 4096 * attempt,  # Increase on retry
@@ -224,12 +242,13 @@ resources:
 ```
 
 **Advanced logging:**
+
 ```python
 shell:
     """
     exec 2> {log}  # Redirect all stderr to log
     set -euo pipefail  # Bash strict mode
-    
+
     echo "Started: $(date)" | tee -a {log}
     command {input} > {output}
     echo "Completed: $(date)" | tee -a {log}
@@ -239,6 +258,7 @@ shell:
 ## Linting
 
 Before committing, always run:
+
 ```bash
 snakemake --lint
 snakefmt workflow/
