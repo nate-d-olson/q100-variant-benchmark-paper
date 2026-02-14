@@ -69,3 +69,8 @@ __pycache__/
 _bookdown_files/
 **/*.quarto_ipynb
 .claude/settings.local.json
+
+# GitHub Pages site build artifacts
+site/_site/
+site/.quarto/
+site/_freeze/

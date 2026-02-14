@@ -283,6 +283,60 @@ Line: 523
 
 ---
 
+#### Issue: Empty variant counts with malformed context IDs
+
+```
+INFO - Contexts: ["'MAP'", "'MAP')", "'SD'", "'SD')", "('HP'", "('MAP'", ')']
+```
+
+**Causes:**
+
+- Truvari's `vcf_to_df()` converts multi-value VCF INFO fields into Python tuples/lists
+- When written to Parquet without conversion, these become string representations: `"('HP', 'MAP')"`
+- Downstream scripts splitting by comma produce malformed values
+
+**Fixed in:** February 2026 (commit XXXXXXX)
+
+**Solution (if using older version):**
+
+The fix is in `workflow/scripts/generate_variant_parquet.py`. If you see this issue:
+
+1. Update the script to convert tuple/list objects to comma-separated strings:
+
+   ```python
+   # In generate_variant_parquet.py, around line 226
+   for col in ["context_ids", "region_ids"]:
+       if col in df.columns:
+           # Convert tuple/list to comma-separated string
+           df[col] = df[col].apply(
+               lambda x: (
+                   ",".join(str(item) for item in x)
+                   if isinstance(x, (tuple, list))
+                   else x
+               )
+           )
+           df[col] = df[col].replace({".": pd.NA, "": pd.NA}).astype("string")
+   ```
+
+2. Regenerate all variant tables:
+
+   ```bash
+   rm -rf results/variant_tables/*/variants.parquet
+   rm -rf results/genomic_context/*/variants_by_genomic_context.parquet
+   snakemake --cores 4
+   ```
+
+3. Verify the fix in the log:
+
+   ```bash
+   tail logs/genomic_context/*/count_by_genomic_context.log
+   # Should show: Contexts: ['HP', 'MAP', 'SD', ...]
+   ```
+
+**Impact:** This bug caused empty variant count tables for genomic contexts and exclusions in all benchmarks.
+
+---
+
 ### Pipeline Execution Errors
 
 #### Issue: Missing input files

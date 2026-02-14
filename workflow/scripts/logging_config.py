@@ -42,19 +42,18 @@ def setup_logger(
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # Always log to stderr (Snakemake captures this)
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(level)
-    stderr_handler.setFormatter(formatter)
-    logger.addHandler(stderr_handler)
-
     # Optional file logging
     if log_file:
         log_file.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(level)
+        file_handler.setLevel("DEBUG")
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
+    else:
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        stderr_handler.setLevel(level)
+        stderr_handler.setFormatter(formatter)
+        logger.addHandler(stderr_handler)
 
     return logger
 

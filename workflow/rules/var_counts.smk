@@ -29,7 +29,7 @@ rule count_variants_by_genomic_context:
         parquet="results/variant_tables/{benchmark}/variants.parquet",
     output:
         parquet=ensure(
-            "results/var_counts/{benchmark}/variants_by_genomic_context.parquet",
+            "results/genomic_context/{benchmark}/variants_by_genomic_context.parquet",
             non_empty=True,
         ),
     log:

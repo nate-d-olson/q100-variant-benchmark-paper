@@ -47,7 +47,8 @@ lint: lint-smk lint-r
 format:
 	@echo "==> Formatting Snakemake files..."
 	snakefmt workflow/
-
+	@echo "==> Checking R formatting..."
+	Rscript -e 'paths <- c("R","scripts","analysis"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }'
 
 format-check:
 	@echo "==> Checking Snakefile formatting..."
@@ -73,7 +74,7 @@ dag:
 # Run the pipeline
 run:
 	@echo "==> Running pipeline with conda environments..."
-	snakemake --cores 12 --sdm conda --conda-frontend conda
+	snakemake --cores 14 --sdm conda --conda-frontend conda
 	@echo "==> Pipeline execution complete"
 
 # Clean logs and temporary files

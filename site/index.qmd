@@ -1,0 +1,29 @@
+---
+title: "GIAB Q100 HG002 Variant Benchmark"
+---
+
+This site shares analysis notebooks, documentation, and R reference materials
+for the GIAB Q100 HG002 variant benchmark project.
+
+## Analysis Notebooks
+
+- [Benchmarkset Characterization](analysis/benchmarkset_characterization.qmd) -- Primary analysis of benchmark sets
+- [Benchmark Difficult Regions](analysis/benchmark_difficult.qmd) -- Coverage analysis in difficult genomic regions
+- [Genomic Context Analysis](analysis/genomic_context_analysis.qmd) -- Detailed genomic context overlap analysis
+- [Benchmark Exclusions](analysis/benchmark_exclusions.qmd) -- Exclusion analysis for v5.0q benchmarks
+- [Interval Size Distributions](analysis/benchmark_interval_size_distributions.qmd) -- Size distribution analysis
+- [External Evaluation](analysis/external_evaluation.qmd) -- External benchmark comparisons
+
+## Documentation
+
+- [Architecture](docs/architecture.md) -- System architecture overview
+- [Data Dictionary](docs/data-dictionary.md) -- Metric definitions and data structures
+- [API Reference](docs/api-reference.md) -- Python script API reference
+- [Pipeline Outputs](docs/pipeline-outputs.md) -- Complete output file catalog
+- [Plot Themes Guide](docs/plot_themes_guide.md) -- Visualization theming guide
+- [Troubleshooting](docs/troubleshooting.md) -- Common issues and solutions
+
+## Reference
+
+- [R Functions Reference](r-reference.qmd) -- Documentation for R helper scripts
+- [Pipeline README](README.md) -- Snakemake pipeline overview and usage
