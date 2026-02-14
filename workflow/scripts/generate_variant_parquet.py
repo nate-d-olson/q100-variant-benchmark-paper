@@ -151,7 +151,7 @@ def generate_variant_parquet(
                 )
                 continue
             alt_len = len(alt_allele)
-            
+
             # Apply sign convention: positive for INS, negative for DEL
             if var_type == "DEL":
                 var_size = -abs_size
@@ -177,10 +177,10 @@ def generate_variant_parquet(
 
                 # Size filtering based on bench_type
                 abs_size = abs(var_size)
-                if bench_type == "smvar" and abs_size >= size_threshold:
+                if bench_type == "smvar" and abs_size <= size_threshold:
                     filtered_size += 1
                     continue
-                if bench_type == "stvar" and abs_size < size_threshold:
+                if bench_type == "stvar" and abs_size > size_threshold:
                     filtered_size += 1
                     continue
 
