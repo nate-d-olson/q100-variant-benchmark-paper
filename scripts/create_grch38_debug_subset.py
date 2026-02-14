@@ -445,10 +445,21 @@ def main() -> None:
     )
 
     stvar_stats = next(
-        stat
-        for stat in vcf_stats
-        if Path(stat["input"]).name == "v5.0q_GRCh38_stvar_benchmark.vcf.gz"
+        (
+            stat
+            for stat in vcf_stats
+            if Path(stat["input"]).name == "v5.0q_GRCh38_stvar_benchmark.vcf.gz"
+        ),
+        None,
     )
+    if stvar_stats is None:
+        available_inputs = ", ".join(
+            Path(s.get("input", "<missing>")).name for s in vcf_stats
+        )
+        raise RuntimeError(
+            "Expected stvar VCF stats for 'v5.0q_GRCh38_stvar_benchmark.vcf.gz' "
+            f"not found in vcf_stats. Available inputs: {available_inputs}"
+        )
 
     summary = {
         "dataset_name": "grch38_debug_subset_v5.0q",
