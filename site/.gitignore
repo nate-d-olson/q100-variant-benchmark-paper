@@ -21,5 +21,4 @@ styles.css
 # Snakemake reports
 report*.html
 
-/.quarto/
 **/*.quarto_ipynb
