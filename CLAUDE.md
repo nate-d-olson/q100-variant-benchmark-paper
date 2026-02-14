@@ -28,17 +28,16 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Key Rules by Layer:**
 
-1. **Metrics** (`workflow/rules/strat_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
-   - Outputs: `results/genomic_context_metrics/{benchmark}/genomic_context_coverage_table.csv`
-2. **Variant Tables** (`workflow/rules/var_tables.smk`): Generate Parquet variant tables with column-wise BED annotations
-   - Key rule: `generate_variant_parquet` → reads raw VCF with Truvari, annotates against BED files using Python interval queries, classifies types, writes Parquet
-   - Uses `IntervalIndex` class for O(log n) point-in-interval overlap queries
-   - Each genomic context and region BED produces a boolean column (e.g., `HP`, `TR`, `in_benchmark`, `excl_flanks`)
+1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
+   - Outputs: `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
+2. **Variant Tables** (`workflow/rules/var_tables.smk`): Annotate VCFs with genomic context IDs and generate Parquet
+   - Key rule: `annotate_vcf_genomic_contexts` → adds INFO/CONTEXT_IDS to VCF
+   - `generate_variant_parquet` → reads annotated VCF with Truvari, classifies types, writes Parquet
    - Outputs: `results/variant_tables/{benchmark}/variants.parquet`
 3. **Variant Counts** (`workflow/rules/var_counts.smk`): Count variants per genomic context
-   - Reads Parquet variant table, melts boolean context columns to long format, groups by (context_name, var_type, szbin)
-   - Outputs: `results/genomic_context/{benchmark}/variants_by_genomic_context.parquet`
-4. **Comparisons** (`workflow/rules/comparisons.smk`): Truvari comparison between benchmark versions
+   - Reads Parquet variant table, explodes context_ids, groups by (context_name, var_type, szbin)
+   - Outputs: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
+4. **Comparisons** (`workflow/rules/benchmark_comparisons.smk`): Truvari comparison between benchmark versions
    - Uses "stratification" terminology (not genomic_context) for GIAB comparison analysis
 5. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
    - `materialize_exclusion`: Downloads/merges exclusion BED files
@@ -51,7 +50,11 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Output File Patterns:**
 
-- Genomic context files: `results/genomic_context_*/{benchmark}/*.csv`
+- Genomic context files: `results/genomic_context/{benchmark}/`
+  - `coverage/` - BED files (symlinked `.bed.gz` and bedtools `_cov.bed`)
+  - `metrics/` - Per-context metrics TSV files
+  - `genomic_context_coverage_table.csv` - Aggregated coverage metrics
+  - `sizes/` - Temporary size calculation files (auto-deleted by Snakemake)
 - Variant tables: `results/variant_tables/{benchmark}/variants.parquet`
 - Variant counts: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`
@@ -147,7 +150,7 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 
 **Quarto notebooks:**
 
-- `analysis/benchmarkset_characterization.qmd` — Primary analysis; loads `stratification_metrics_df`
+- `analysis/benchmarkset_characterization.qmd` — Primary analysis; loads `variants_df` and `genomic_context_metrics_df`
 - `analysis/benchmark_difficult.qmd` — Coverage analysis; loads `diff_cov_df`
 - `analysis/external_evaluation.qmd` — External benchmark comparisons
 
@@ -184,7 +187,7 @@ Examples:
 File paths encode this pattern:
 
 ```
-results/genomic_context_metrics/v5.0q_GRCh38_smvar/
+results/genomic_context/v5.0q_GRCh38_smvar/
 results/variant_tables/v5.0q_GRCh38_smvar/variants.parquet
 results/var_counts/v5.0q_GRCh38_smvar/variants_by_genomic_context.parquet
 results/exclusions/v5.0q_GRCh38_smvar/  # only if exclusions configured
