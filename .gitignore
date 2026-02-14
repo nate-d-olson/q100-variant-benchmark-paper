@@ -39,6 +39,9 @@ Thumbs.db
 analysis/*_files/**
 /etc/**
 
+# Git worktrees
+.worktrees/
+
 # Snakemake
 logs/
 .snakemake/

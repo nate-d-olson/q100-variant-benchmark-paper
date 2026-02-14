@@ -13,7 +13,7 @@ vcf_to_df() with correct variant type classification and size filtering.
 rule combine_genomic_context_beds:
     """Combine genomic context BEDs with IDs for bcftools annotation."""
     input:
-        beds=lambda w: [b.split(":")[0] for b in get_genomic_context_beds(w)],
+        beds=lambda w: [b.split(":")[0] for b in get_genomic_context_bed_specs(w)],
     output:
         bed=temp(
             "results/combine_genomic_context_beds/{benchmark}/context_combined.bed"
@@ -28,7 +28,7 @@ rule combine_genomic_context_beds:
             "results/combine_genomic_context_beds/{benchmark}/context_combined.bed.gz.tbi"
         ),
     params:
-        bed_specs=lambda w: get_genomic_context_beds(w),
+        bed_specs=lambda w: get_genomic_context_bed_specs(w),
     log:
         "logs/combine_genomic_context_beds/{benchmark}.log",
     conda:

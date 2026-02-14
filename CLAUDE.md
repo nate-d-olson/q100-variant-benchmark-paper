@@ -28,7 +28,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Key Rules by Layer:**
 
-1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
+1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Single-rule computation of overlap statistics between genomic contexts and benchmarks
+   - Rule: `compute_genomic_context_coverage_table` — uses `compute_coverage_table.py` to process all contexts in one pass
    - Outputs: `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
 2. **Variant Tables** (`workflow/rules/var_tables.smk`): Annotate VCFs with genomic context IDs and generate Parquet
    - Key rule: `annotate_vcf_genomic_contexts` → adds INFO/CONTEXT_IDS to VCF
@@ -51,10 +52,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 **Output File Patterns:**
 
 - Genomic context files: `results/genomic_context/{benchmark}/`
-  - `coverage/` - BED files (symlinked `.bed.gz` and bedtools `_cov.bed`)
-  - `metrics/` - Per-context metrics TSV files
-  - `genomic_context_coverage_table.csv` - Aggregated coverage metrics
-  - `sizes/` - Temporary size calculation files (auto-deleted by Snakemake)
+  - `coverage/` - bedtools coverage output (`_cov.bed`) from `genomic_context_tables.smk`
+  - `genomic_context_coverage_table.csv` - Coverage metrics (from `compute_coverage_table.py`)
 - Variant tables: `results/variant_tables/{benchmark}/variants.parquet`
 - Variant counts: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`

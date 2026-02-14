@@ -24,6 +24,7 @@ select = ["F"]
 "workflow/scripts/aggregate_stratified_bench.py" = ["F821"]  # snakemake object
 "workflow/scripts/annotate_old_benchmark_status.py" = ["F821"]  # snakemake object
 "workflow/scripts/compute_bed_metrics.py" = ["F821"]  # snakemake object
+"workflow/scripts/compute_coverage_table.py" = ["F821"]  # snakemake object
 "workflow/scripts/compute_exclusion_interactions.py" = ["F821"]  # snakemake object
 "workflow/scripts/count_exclusion_variants.py" = ["F821"]  # snakemake object
 "workflow/scripts/count_variants_by_genomic_context.py" = ["F821"]  # snakemake object

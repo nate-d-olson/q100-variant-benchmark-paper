@@ -259,7 +259,7 @@ The pipeline consists of 13 modular rule files totaling 2,080 lines of Snakemake
 | `common.smk`                  | 523   | Helper functions and config parsing      | `get_region_beds()`, `get_exclusion_inputs()`, `get_genomic_context_ids()` |
 | `downloads.smk`               | 329   | File downloads with SHA256 validation    | `download_benchmark_vcf`, `download_reference`                             |
 | `var_tables.smk`              | 237   | Variant annotation and table generation  | `combine_genomic_context_beds`, `annotate_vcf_genomic_contexts`            |
-| `genomic_context_metrics.smk` | 155   | Genomic context coverage metrics         | `compute_genomic_context_metrics`, `aggregate_genomic_context_metrics`     |
+| `genomic_context_metrics.smk` | 44    | Genomic context coverage metrics         | `compute_genomic_context_coverage_table`                                   |
 | `exclusions.smk`              | 166   | Exclusion region analysis                | `materialize_exclusion`, `compute_exclusion_metrics`                       |
 | `benchmark_comparisons.smk`   | 137   | Benchmark set comparisons                | `run_truvari_compare`, `stratify_comparison`                               |
 | `stratify_bench.smk`          | 112   | Truvari stratification analysis          | `truvari_stratify`                                                         |
@@ -286,6 +286,7 @@ The pipeline includes 15 Python scripts organized by function:
 | **BED Processing**                     |                                        |                                        |
 | `combine_beds_with_id.py`              | Merge BED files with unique IDs        | Adds ID column for tracking            |
 | `compute_bed_metrics.py`               | Compute coverage metrics from BEDs     | Intersect and percentage calculations  |
+| `compute_coverage_table.py`            | Genomic context coverage table         | Single-pass metrics for all contexts   |
 | **VCF Annotation**                     |                                        |                                        |
 | `extract_info_fields.py`               | Extract VCF INFO field names           | Dynamic header generation              |
 | `generate_header_lines.py`             | Create VCF annotation headers          | For bcftools annotate                  |
