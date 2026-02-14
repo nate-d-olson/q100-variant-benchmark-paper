@@ -34,7 +34,8 @@ difficult_cov_benchmarks <- c(
   set_names()
 
 analysis_bench_order <- rev(BENCH_VERSION_LEVELS)
-variants_df <- load_all_variant_tables()
+variants_df <- load_all_variant_tables() %>% 
+  filter(region_ids == "BMKREGIONS")
 
 diff_cov_df <- difficult_cov_benchmarks %>%
   map_dfr(

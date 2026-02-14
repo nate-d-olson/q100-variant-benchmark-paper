@@ -17,6 +17,14 @@
 - Validate summary outputs against old_only status CSVs
 - Add compact figure for v5-only vs previous-only base/variant deltas
 
+### benchmark_interval_size_distributions.qmd
+
+- fix legend collect code
+
+### benchmark_difficult.qmd
+
+- Appears as though the interval level coverage files are not present, maybe temp?
+
 ### Low priority
 
 - more sensible results and log directory structures
