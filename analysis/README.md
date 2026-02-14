@@ -12,7 +12,7 @@ Comprehensive characterization of the v5q benchmark set variants and regions, in
 
 | File | Source | Description |
 |------|--------|-------------|
-| `results/variant_tables/{benchmark}/variants.tsv` | Snakemake pipeline | Annotated variant tables for each benchmark set |
+| `results/variant_tables/{benchmark}/variants.parquet` | Snakemake pipeline | Annotated variant tables for each benchmark set |
 | `resources/benchmarksets/{benchmark}_benchmark.bed` | Snakemake pipeline | Benchmark region BED files |
 | `results/context_coverage/all_context_coverage.tsv` | Snakemake pipeline | Context coverage summary |
 | `data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/*/exclusion_intersection_summary.csv` | DeFrABB run | Exclusion intersection summaries |
@@ -52,7 +52,7 @@ Focused comparison of benchmark regions and variants unique to v5 or previous be
 | `resources/benchmarksets/{benchmark}_dip.bed` | Snakemake pipeline | v5 diploid regions |
 | `resources/exclusions/{benchmark}/*.bed` | Snakemake pipeline | v5 exclusion BED files |
 | `results/exclusions/{comp_id}/old_only_variants.tsv` | Snakemake pipeline | Old-only variant status with exclusion overlap |
-| `results/variant_tables/{benchmark}/variants.tsv` | Snakemake pipeline | Variant tables for v5-only region variant summaries |
+| `results/variant_tables/{benchmark}/variants.parquet` | Snakemake pipeline | Variant tables for v5-only region variant summaries |
 | `resources/stratifications/{ref}_{context}.bed.gz` | Snakemake pipeline | Genomic context BED files |
 
 **Key Analyses:**
@@ -211,9 +211,9 @@ The analysis notebooks depend on outputs from the Snakemake pipeline:
 ```
 results/
 ├── variant_tables/           # Per-benchmark variant tables
-│   ├── v5q_chm13_smvar/variants.tsv
-│   ├── v5q_grch38_smvar/variants.tsv
-│   ├── v421_grch38_smvar/variants.tsv
+│   ├── v5q_chm13_smvar/variants.parquet
+│   ├── v5q_grch38_smvar/variants.parquet
+│   ├── v421_grch38_smvar/variants.parquet
 │   └── ...
 ├── context_coverage/         # Context coverage summaries
 │   └── all_context_coverage.tsv

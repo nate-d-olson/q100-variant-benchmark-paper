@@ -380,9 +380,9 @@ Generate list of variant table files for all benchmarks.
 ```python
 files = get_var_table_inputs(wildcards)
 # Returns: [
-#     "results/variant_tables/v5.0q_GRCh38/variants.tsv",
-#     "results/variant_tables/v5.0q_GRCh37/variants.tsv",
-#     "results/variant_tables/v4.2.1_GRCh38/variants.tsv",
+#     "results/variant_tables/v5.0q_GRCh38/variants.parquet",
+#     "results/variant_tables/v5.0q_GRCh37/variants.parquet",
+#     "results/variant_tables/v4.2.1_GRCh38/variants.parquet",
 #     ...
 # ]
 ```
