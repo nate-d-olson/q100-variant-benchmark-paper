@@ -24,6 +24,7 @@
       "Bash(gh pr create:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr diff:*)",
+      "WebFetch(domain:api.github.com)"
       "Bash(micromamba list:*)",
       "Bash(micromamba run:*)",
       "Bash(ls:*)",
