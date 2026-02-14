@@ -33,6 +33,6 @@ rule compute_genomic_context_coverage_table:
     message:
         "Computing genomic context coverage table for {wildcards.benchmark}"
     conda:
-        "../envs/python.yaml"
+        "../envs/bedtools.yaml"
     script:
         "../scripts/compute_coverage_table.py"
