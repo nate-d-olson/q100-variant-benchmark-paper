@@ -6,7 +6,7 @@ graph TD
     end
 
     subgraph DetailedFiles["🟡 Detailed Data Files (Large, Optional)"]
-        VARIANTS["variant_tables/*/variants.tsv<br/>(~MB-GB per benchmark)<br/>Full variant-level annotations"]
+        VARIANTS["variant_tables/*/variants.parquet<br/>(~MB-GB per benchmark)<br/>Full variant-level annotations"]
         COVERAGE["diff_region_coverage/*/*.bed<br/>Base-level coverage data<br/>from bedtools coverage"]
     end
 

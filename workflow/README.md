@@ -92,7 +92,7 @@ Rules for variant annotation and table generation:
 | `annotate_vcf_stratifications` | Annotate VCF with stratification IDs       | `results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz` |
 | `annotate_vcf_regions`         | Annotate VCF with region IDs               | `results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz`         |
 | `extract_info_fields`          | Extract INFO field names from VCF          | `results/extract_info_fields/{benchmark}/info_fields.txt`                 |
-| `generate_var_table`           | Generate TSV table with all annotations    | `results/variant_tables/{benchmark}/variants.tsv`                         |
+| `generate_var_table`           | Generate Parquet table with all annotations | `results/variant_tables/{benchmark}/variants.parquet`                     |
 
 ### exclusions.smk
 
@@ -175,7 +175,7 @@ snakemake -n --quiet
 snakemake --cores 4 --sdm conda
 
 # Run specific target
-snakemake results/variant_tables/v5q_grch38_smvar/variants.tsv --cores 4 --sdm conda
+snakemake results/variant_tables/v5q_grch38_smvar/variants.parquet --cores 4 --sdm conda
 ```
 
 ## Configuration
