@@ -141,8 +141,8 @@ def generate_variant_parquet(
 
             # Get reference and alternate allele lengths
             ref_len = len(vr.get_ref())
-            alt_len = len(vr.get_alt())
-            if alt_len is None:
+            alt_allele = vr.get_alt()
+            if alt_allele is None:
                 logging.warning(
                     "Skipping %s variant with missing ALT at %s:%d",
                     var_type,
@@ -150,6 +150,8 @@ def generate_variant_parquet(
                     record.pos,
                 )
                 continue
+            alt_len = len(alt_allele)
+            
             # Apply sign convention: positive for INS, negative for DEL
             if var_type == "DEL":
                 var_size = -abs_size
