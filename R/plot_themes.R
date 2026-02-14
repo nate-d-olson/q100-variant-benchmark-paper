@@ -222,31 +222,6 @@ scale_benchmark_version <- function(
 #'
 #' @return A ggplot2 scale object
 #'
-#' @keywords internal
-#'
-#' @export
-scale_reference_genome <- function(
-  aesthetic = "color",
-  name = "Reference",
-  guide = "legend"
-) {
-  palettes <- get_color_palettes()
-
-  switch(aesthetic,
-    color = scale_color_manual(
-      name = name,
-      values = palettes$ref,
-      guide = guide
-    ),
-    fill = scale_fill_manual(
-      name = name,
-      values = palettes$ref,
-      guide = guide
-    ),
-    stop("Unknown aesthetic: ", aesthetic)
-  )
-}
-
 #' Scale for Benchmark Set Types
 #'
 #' @param aesthetic The ggplot aesthetic to apply (color, fill, etc.)
@@ -411,33 +386,6 @@ theme_gt_manuscript <- function(gt_object, striped = TRUE) {
   }
 
   return(gt_object)
-}
-
-#' Format Numeric Columns for Publication
-#'
-#' @param gt_object A gt table object
-#' @param columns Column names to format
-#' @param decimals Number of decimal places to show
-#' @param sep_mark Thousands separator ("," or ".")
-#'
-#' @return A gt table object with formatted columns
-#'
-#' @keywords internal
-#'
-#' @export
-fmt_publication <- function(
-  gt_object,
-  columns,
-  decimals = 2,
-  sep_mark = ","
-) {
-  gt_object %>%
-    gt::fmt_number(
-      columns = all_of(columns),
-      decimals = decimals,
-      sep_mark = sep_mark,
-      use_seps = TRUE
-    )
 }
 
 #' Helper: Add context labels to legend

@@ -23,10 +23,10 @@ workflow/
 │   └── truvari.yaml
 └── scripts/            # Custom Python scripts
     ├── combine_beds_with_id.py
-    ├── count_variants_by_type.py
-    ├── expand_annotations.py
-    ├── extract_info_fields.py
-    └── generate_header_lines.py
+    ├── count_variants_by_genomic_context.py
+    ├── count_exclusion_variants.py
+    ├── generate_header_lines.py
+    └── generate_variant_parquet.py
 ```
 
 ## Rule Modules
@@ -61,49 +61,49 @@ Helper functions used across the pipeline:
 
 Rules for downloading and validating remote input files:
 
-| Rule | Description | Output |
-|------|-------------|--------|
-| `download_benchmark_vcf` | Download benchmark VCF with SHA256 validation | `resources/benchmarksets/{benchmark}_benchmark.vcf.gz` |
-| `download_benchmark_bed` | Download benchmark BED with SHA256 validation | `resources/benchmarksets/{benchmark}_benchmark.bed` |
-| `download_benchmark_dip_bed` | Download dipcall BED files | `resources/benchmarksets/{benchmark}_dip.bed` |
-| `prepare_reference` | Download reference genome, convert to bgzip, create indices | `resources/references/{ref_name}.fa.gz`, `.fai`, `.gzi` |
-| `download_stratification` | Download stratification BED files | `resources/stratifications/{ref}_{strat_name}.bed.gz` |
-| `download_exclusion` | Download exclusion BED files | `resources/exclusions/{benchmark}/{exclusion_name}_{file_idx}.bed` |
+| Rule                         | Description                                                 | Output                                                             |
+| ---------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| `download_benchmark_vcf`     | Download benchmark VCF with SHA256 validation               | `resources/benchmarksets/{benchmark}_benchmark.vcf.gz`             |
+| `download_benchmark_bed`     | Download benchmark BED with SHA256 validation               | `resources/benchmarksets/{benchmark}_benchmark.bed`                |
+| `download_benchmark_dip_bed` | Download dipcall BED files                                  | `resources/benchmarksets/{benchmark}_dip.bed`                      |
+| `prepare_reference`          | Download reference genome, convert to bgzip, create indices | `resources/references/{ref_name}.fa.gz`, `.fai`, `.gzi`            |
+| `download_stratification`    | Download stratification BED files                           | `resources/stratifications/{ref}_{strat_name}.bed.gz`              |
+| `download_exclusion`         | Download exclusion BED files                                | `resources/exclusions/{benchmark}/{exclusion_name}_{file_idx}.bed` |
 
 ### vcf_processing.smk
 
 Rules for VCF processing and normalization:
 
-| Rule | Description | Output |
-|------|-------------|--------|
-| `index_vcf` | Create tabix index for VCF files | `{prefix}.vcf.gz.tbi` |
+| Rule                  | Description                                     | Output                                                 |
+| --------------------- | ----------------------------------------------- | ------------------------------------------------------ |
+| `index_vcf`           | Create tabix index for VCF files                | `{prefix}.vcf.gz.tbi`                                  |
 | `split_multiallelics` | Split multiallelic variants using bcftools norm | `results/split_multiallelics/{benchmark}/split.vcf.gz` |
 
 ### var_tables.smk
 
 Rules for variant annotation and table generation:
 
-| Rule | Description | Output |
-|------|-------------|--------|
-| `combine_stratification_beds` | Merge stratification BEDs with IDs | `results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz` |
-| `combine_region_beds` | Merge region BEDs (benchmark + exclusions) | `results/combine_region_beds/{benchmark}/region_combined.bed.gz` |
-| `run_truvari_anno_svinfo` | Add SV annotations using truvari | `results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz` |
-| `generate_annotation_headers` | Generate VCF header lines | `results/generate_annotation_headers/{benchmark}/annotation_headers.txt` |
-| `annotate_vcf_stratifications` | Annotate VCF with stratification IDs | `results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz` |
-| `annotate_vcf_regions` | Annotate VCF with region IDs | `results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz` |
-| `extract_info_fields` | Extract INFO field names from VCF | `results/extract_info_fields/{benchmark}/info_fields.txt` |
-| `generate_var_table` | Generate TSV table with all annotations | `results/variant_tables/{benchmark}/variants.tsv` |
+| Rule                           | Description                                | Output                                                                    |
+| ------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------- |
+| `combine_stratification_beds`  | Merge stratification BEDs with IDs         | `results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz`   |
+| `combine_region_beds`          | Merge region BEDs (benchmark + exclusions) | `results/combine_region_beds/{benchmark}/region_combined.bed.gz`          |
+| `run_truvari_anno_svinfo`      | Add SV annotations using truvari           | `results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz`               |
+| `generate_annotation_headers`  | Generate VCF header lines                  | `results/generate_annotation_headers/{benchmark}/annotation_headers.txt`  |
+| `annotate_vcf_stratifications` | Annotate VCF with stratification IDs       | `results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz` |
+| `annotate_vcf_regions`         | Annotate VCF with region IDs               | `results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz`         |
+| `extract_info_fields`          | Extract INFO field names from VCF          | `results/extract_info_fields/{benchmark}/info_fields.txt`                 |
+| `generate_var_table`           | Generate Parquet table with all annotations | `results/variant_tables/{benchmark}/variants.parquet`                     |
 
 ### exclusions.smk
 
 Rules for exclusion region analysis:
 
-| Rule | Description | Output |
-|------|-------------|--------|
-| `materialize_exclusion` | Process exclusion BED (merge pairs if needed) | `results/exclusions/{benchmark}/exclusions/{exclusion}.bed` |
-| `compute_dip_size` | Calculate total benchmark region size | `results/exclusions/{benchmark}/dip_size.txt` |
-| `compute_exclusion_metrics` | Calculate overlap metrics for exclusions | `results/exclusions/{benchmark}/metrics/{exclusion}.tsv` |
-| `aggregate_exclusion_table` | Combine all exclusion metrics into CSV | `results/exclusions/{benchmark}/exclusions_intersection_table.csv` |
+| Rule                        | Description                                   | Output                                                             |
+| --------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| `materialize_exclusion`     | Process exclusion BED (merge pairs if needed) | `results/exclusions/{benchmark}/exclusions/{exclusion}.bed`        |
+| `compute_dip_size`          | Calculate total benchmark region size         | `results/exclusions/{benchmark}/dip_size.txt`                      |
+| `compute_exclusion_metrics` | Calculate overlap metrics for exclusions      | `results/exclusions/{benchmark}/metrics/{exclusion}.tsv`           |
+| `aggregate_exclusion_table` | Combine all exclusion metrics into CSV        | `results/exclusions/{benchmark}/exclusions_intersection_table.csv` |
 
 ## Python Scripts
 
@@ -111,59 +111,59 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 
 ### Core Infrastructure
 
-| Script | Description |
-|--------|-------------|
-| `logging_config.py` | Centralized logging configuration with structured output |
-| `exceptions.py` | Custom exception classes (ValidationError, DataFormatError, etc.) |
-| `validators.py` | VCF/BED/TSV format validation utilities |
+| Script              | Description                                                       |
+| ------------------- | ----------------------------------------------------------------- |
+| `logging_config.py` | Centralized logging configuration with structured output          |
+| `exceptions.py`     | Custom exception classes (ValidationError, DataFormatError, etc.) |
+| `validators.py`     | VCF/BED/TSV format validation utilities                           |
 
 ### Data Validation
 
-| Script | Description |
-|--------|-------------|
-| `validate_vcf.py` | Validate VCF file format and structure |
+| Script            | Description                              |
+| ----------------- | ---------------------------------------- |
+| `validate_vcf.py` | Validate VCF file format and structure   |
 | `validate_bed.py` | Validate BED file format and coordinates |
 
 ### BED File Processing
 
-| Script | Description |
-|--------|-------------|
+| Script                    | Description                                        |
+| ------------------------- | -------------------------------------------------- |
 | `combine_beds_with_id.py` | Combine multiple BED files with unique identifiers |
 
 ### VCF Annotation & Querying
 
-| Script | Description |
-|--------|-------------|
-| `extract_info_fields.py` | Extract INFO field names from VCF header |
-| `generate_header_lines.py` | Generate VCF header lines for custom annotations |
-| `expand_annotations.py` | Expand annotation ID lists to binary flag columns |
+| Script                     | Description                                       |
+| -------------------------- | ------------------------------------------------- |
+| `generate_header_lines.py` | Generate VCF header lines for custom annotations  |
+| `expand_annotations.py`    | Expand annotation ID lists to binary flag columns |
 
 ### Variant Analysis
 
-| Script | Description |
-|--------|-------------|
-| `count_variants_by_type.py` | Count variants by type (SNV, INDEL, SV) from VCF |
-| `count_variants_by_strat.py` | Count variants per stratification region |
-| `stratify_comparison.py` | Compare variants across stratifications |
+| Script                       | Description                                         |
+| ---------------------------- | --------------------------------------------------- |
+| `generate_variant_parquet.py` | Generate Parquet variant tables using Truvari       |
+| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF   |
+| `count_variants_by_strat.py` | Count variants per stratification region         |
+| `stratify_comparison.py`     | Compare variants across stratifications          |
 
 ### Metrics Aggregation
 
-| Script | Description |
-|--------|-------------|
-| `summarize_var_counts.py` | Aggregate variant count summaries |
+| Script                      | Description                                  |
+| --------------------------- | -------------------------------------------- |
+| `summarize_var_counts.py`   | Aggregate variant count summaries            |
 | `combine_metrics_counts.py` | Combine coverage metrics with variant counts |
 
 ## Conda Environments
 
-| Environment | Primary Tools |
-|-------------|---------------|
-| `bcftools.yaml` | bcftools for VCF manipulation |
-| `bedtools.yaml` | bedtools for BED file operations |
-| `downloads.yaml` | wget for file downloads |
-| `python.yaml` | Python with pysam for script execution |
-| `rtg-tools.yaml` | RTG Tools for VCF statistics |
-| `samtools.yaml` | samtools for reference genome indexing |
-| `truvari.yaml` | truvari for SV annotation |
+| Environment      | Primary Tools                          |
+| ---------------- | -------------------------------------- |
+| `bcftools.yaml`  | bcftools for VCF manipulation          |
+| `bedtools.yaml`  | bedtools for BED file operations       |
+| `downloads.yaml` | wget for file downloads                |
+| `python.yaml`    | Python with pysam for script execution |
+| `rtg-tools.yaml` | RTG Tools for VCF statistics           |
+| `samtools.yaml`  | samtools for reference genome indexing |
+| `truvari.yaml`   | truvari for SV annotation              |
 
 ## Running the Pipeline
 
@@ -175,7 +175,7 @@ snakemake -n --quiet
 snakemake --cores 4 --sdm conda
 
 # Run specific target
-snakemake results/variant_tables/v5q_grch38_smvar/variants.tsv --cores 4 --sdm conda
+snakemake results/variant_tables/v5q_grch38_smvar/variants.parquet --cores 4 --sdm conda
 ```
 
 ## Configuration

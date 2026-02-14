@@ -1,0 +1,213 @@
+# Test configuration for GRCh38 debug subset fixtures
+# Generated from tests/fixtures/grch38_debug_subset
+# Use with: snakemake --replace-workflow-config --configfile config/config.test_grch38_debug.yaml
+
+benchmarksets:
+  v5q_GRCh38_smvar:
+    ref: "GRCh38"
+    vcf:
+      url: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/v5.0q_GRCh38_smvar_benchmark.vcf.gz"
+      sha256: "b6ad3c3956ec1270a159e1f3bb3ca0d589c3c5b6d0338ab207947cf5e70628bf"
+    bed:
+      url: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/v5.0q_GRCh38_smvar_benchmark.bed"
+      sha256: "226ceaac05c817f0e3fe3c299b1f1d2bfba1ab45cbe86ed7e25142b2a3c6bc75"
+    dip_bed:
+      url: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/v5.0q_GRCh38_smvar_dip.bed"
+      sha256: "82d7356165d691f987303625935ae69bab4c5250e8a8e66cf960dc2ec40a2e47"
+    exclusions:
+      - name: "HG002-mosaic"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/HG002-mosaic_0.bed"
+            sha256: "bb0d79855faa63ef87e90082a49bf78b783b01f7108896b8192c57974d3f5b68"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/HG002Q100-errors_0.bed"
+            sha256: "6e56d889812f9843222825c0f0baac57fef8984934f5688ca1dbb676bd080c2d"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/TSPY2-segdups_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/VDJ_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/consecutive-svs_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/dipcall-bugs-T2TACE_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "dipcall-pav_discrep-smvar"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/dipcall-pav_discrep-smvar_0.bed"
+            sha256: "479466a4cec8c78ee16340b2cf898828556f857dcc139e357189fae4e3d4d360"
+      - name: "dipcall-pav_discrep-stvar"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/dipcall-pav_discrep-stvar_0.bed"
+            sha256: "8cdb3a5b9d35b4109c3513246b36a59ae45be465ef37bb1f9c351f64ee92417c"
+      - name: "flanks"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/flanks_0.bed"
+            sha256: "98e121949e3753c8669362649865dce8428a2cc0af444fea051a576ae6ee0a5c"
+      - name: "gaps"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/gaps_0.bed"
+            sha256: "bd6b50910d23cbc3e665d098ed3a81af0b0e4443cdc6ef6c1b9af38a3e87cb13"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/pav-inversions_0.bed"
+            sha256: "7053936b2b151d98cb56b0c29c36102c0d884cd26870cbc4cf09d5bd6152cb28"
+      - name: "satellites"
+        type: "pair"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/satellites_0.bed"
+            sha256: "dd818c962c1fcf5a45b5446b5a8d25ddb4f9ff7b7354669c4ef3f18160e582ee"
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/satellites_1.bed"
+            sha256: "636f9dba0a270f0ab746fa1ca44e1444e4f4a8d86487fc0d260630038f234ffc"
+      - name: "segdups"
+        type: "pair"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/segdups_0.bed"
+            sha256: "43eb237070c78822869d93ab85834fa34dcf92fdf404a95acae462ee6b83ed36"
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/segdups_1.bed"
+            sha256: "0cda23111684c3cca0a4e8ea3a18a196c4246cc9052e664dcc39ae1598b4f272"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/tandem-repeats_0.bed"
+            sha256: "6c9cc41ad3f554b0b529d54f6f38efb9bb17877e6cb95ba8cb42fcd75a73dbbb"
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/tandem-repeats_1.bed"
+            sha256: "09f9f35785b4bba980eb238e764f09750f57ac437a282ccab0d196e3739d9b0f"
+  v5q_GRCh38_stvar:
+    ref: "GRCh38"
+    vcf:
+      url: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/v5.0q_GRCh38_stvar_benchmark.vcf.gz"
+      sha256: "210e2c9164f424d6d22d4939258396bea7c76e478552ef59a600daa4a3e4db4f"
+    bed:
+      url: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/v5.0q_GRCh38_stvar_benchmark.bed"
+      sha256: "e7faa838843e013e9ca9d943c1477d99c41d2f487a683d2a0f4d697a28bf044a"
+    dip_bed:
+      url: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/v5.0q_GRCh38_stvar_dip.bed"
+      sha256: "82d7356165d691f987303625935ae69bab4c5250e8a8e66cf960dc2ec40a2e47"
+    exclusions:
+      - name: "HG002-mosaic"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/HG002-mosaic_0.bed"
+            sha256: "bb0d79855faa63ef87e90082a49bf78b783b01f7108896b8192c57974d3f5b68"
+      - name: "HG002Q100-errors"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/HG002Q100-errors_0.bed"
+            sha256: "6e56d889812f9843222825c0f0baac57fef8984934f5688ca1dbb676bd080c2d"
+      - name: "TSPY2-segdups"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/TSPY2-segdups_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "VDJ"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/VDJ_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "consecutive-svs"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/consecutive-svs_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "dipcall-bugs-T2TACE"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/dipcall-bugs-T2TACE_0.bed"
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      - name: "dipcall-pav_discrep-smvar"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/dipcall-pav_discrep-smvar_0.bed"
+            sha256: "479466a4cec8c78ee16340b2cf898828556f857dcc139e357189fae4e3d4d360"
+      - name: "dipcall-pav_discrep-stvar"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/dipcall-pav_discrep-stvar_0.bed"
+            sha256: "8cdb3a5b9d35b4109c3513246b36a59ae45be465ef37bb1f9c351f64ee92417c"
+      - name: "flanks"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/flanks_0.bed"
+            sha256: "98e121949e3753c8669362649865dce8428a2cc0af444fea051a576ae6ee0a5c"
+      - name: "gaps"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/gaps_0.bed"
+            sha256: "bd6b50910d23cbc3e665d098ed3a81af0b0e4443cdc6ef6c1b9af38a3e87cb13"
+      - name: "pav-inversions"
+        type: "single"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/pav-inversions_0.bed"
+            sha256: "7053936b2b151d98cb56b0c29c36102c0d884cd26870cbc4cf09d5bd6152cb28"
+      - name: "satellites"
+        type: "pair"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/satellites_0.bed"
+            sha256: "dd818c962c1fcf5a45b5446b5a8d25ddb4f9ff7b7354669c4ef3f18160e582ee"
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/satellites_1.bed"
+            sha256: "636f9dba0a270f0ab746fa1ca44e1444e4f4a8d86487fc0d260630038f234ffc"
+      - name: "segdups"
+        type: "pair"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/segdups_0.bed"
+            sha256: "43eb237070c78822869d93ab85834fa34dcf92fdf404a95acae462ee6b83ed36"
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/segdups_1.bed"
+            sha256: "0cda23111684c3cca0a4e8ea3a18a196c4246cc9052e664dcc39ae1598b4f272"
+      - name: "tandem-repeats"
+        type: "pair"
+        files:
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/tandem-repeats_0.bed"
+            sha256: "6c9cc41ad3f554b0b529d54f6f38efb9bb17877e6cb95ba8cb42fcd75a73dbbb"
+          - url: "file://$PWD/tests/fixtures/grch38_debug_subset/exclusions/v5.0q_GRCh38_stvar/tandem-repeats_1.bed"
+            sha256: "09f9f35785b4bba980eb238e764f09750f57ac437a282ccab0d196e3739d9b0f"
+
+references:
+  GRCh37:
+    url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh37/hs37d5.fa.gz"
+    md5: "d10eebe06c0dbbcb04253e3294d63efc"
+  GRCh38:
+    url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz"
+    md5: "939ce19062d1462c09b88c55faca4d76"
+    stratifications:
+      TR:
+        url: "file://$PWD/tests/fixtures/grch38_debug_subset/stratifications/GRCh38_TR.bed.gz"
+        sha256: "e7a3f6e3f1f4a31afef048c52ac98e1afaaa1e9b27f731ab61e12da41dcaaf26"
+      TR10kb:
+        url: "file://$PWD/tests/fixtures/grch38_debug_subset/stratifications/GRCh38_TR10kb.bed.gz"
+        sha256: "62016648b1e113c8a752c39a64e2bc0179fd8328b8089ed040a0ddaf7627ce83"
+      HP:
+        url: "file://$PWD/tests/fixtures/grch38_debug_subset/stratifications/GRCh38_HP.bed.gz"
+        sha256: "566419bbffc728ac8ffa203577b5aaf51e6e8043b83a6c432cf89fd8e7f9b0db"
+      SD:
+        url: "file://$PWD/tests/fixtures/grch38_debug_subset/stratifications/GRCh38_SD.bed.gz"
+        sha256: "9fa56aba8daf3ba7110d44f8b588ef43a11b0e3a0e0d683a9b024a553a08f1cb"
+      SD10kb:
+        url: "file://$PWD/tests/fixtures/grch38_debug_subset/stratifications/GRCh38_SD10kb.bed.gz"
+        sha256: "29c0bd17300391cd32e73f69eef04a1c0bd1c75d56a734170d751416ec30262b"
+      MAP:
+        url: "file://$PWD/tests/fixtures/grch38_debug_subset/stratifications/GRCh38_MAP.bed.gz"
+        sha256: "dca9e0293151a03000ea1ee84932a849421924a28bd49a189220ccdbb345bc7e"
+  CHM13v2.0:
+    url: "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz"
+    sha256: "f274b0ee8bc1bca18d231d0eb80d764650d7f02d1fe07c43819e21168224304d"
+
+comparisons: {}

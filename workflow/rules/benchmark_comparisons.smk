@@ -67,7 +67,7 @@ rule run_truvari_bench:
     params:
         outdir=directory("results/comparisons/stvar/{comp_id}/"),
     log:
-        "logs/compare_stvar_bench/{comp_id}.log",
+        "logs/run_truvari_bench/{comp_id}.log",
     resources:
         mem_mb=16384,
         runtime=240,  # 4 hours
@@ -106,7 +106,7 @@ rule run_truvari_refine:
     params:
         bench_dir=lambda w, output: os.path.dirname(output[0]),
     log:
-        "logs/compare_stvar_refine/{comp_id}.log",
+        "logs/run_truvari_refine/{comp_id}.log",
     threads: 16
     conda:
         "../envs/truvari.yaml"
@@ -130,7 +130,7 @@ rule stratify_comparison:
         variants_csv="results/stats/{comp_id}_variants.csv",
         regions_csv="results/stats/{comp_id}_regions.csv",
     log:
-        "logs/stratify/{comp_id}.log",
+        "logs/stratify_comparison/{comp_id}.log",
     conda:
         "../envs/truvari.yaml"
     script:

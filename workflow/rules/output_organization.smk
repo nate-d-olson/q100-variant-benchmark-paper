@@ -21,7 +21,7 @@ rule organize_exclusion_table:
     output:
         "results/benchmarksets/{benchmark}/exclusions.csv",
     log:
-        "logs/output_organization/{benchmark}/exclusions_symlink.log",
+        "logs/organize_exclusion_table/{benchmark}.log",
     shell:
         """
         echo "Creating symlink for exclusions table" > {log}
@@ -44,7 +44,7 @@ rule organize_strat_table:
     output:
         "results/benchmarksets/{benchmark}/stratifications.csv",
     log:
-        "logs/output_organization/{benchmark}/strat_symlink.log",
+        "logs/organize_strat_table/{benchmark}.log",
     shell:
         """
         echo "Creating symlink for stratifications table" > {log}
@@ -67,7 +67,7 @@ rule organize_variant_table:
     output:
         "results/benchmarksets/{benchmark}/variants.parquet",
     log:
-        "logs/output_organization/{benchmark}/variants_symlink.log",
+        "logs/organize_variant_table/{benchmark}.log",
     shell:
         """
         echo "Creating symlink for variant table" > {log}
@@ -93,7 +93,7 @@ rule organize_benchmark_outputs:
     output:
         touch("results/benchmarksets/{benchmark}/.organized"),
     log:
-        "logs/output_organization/{benchmark}/aggregate.log",
+        "logs/organize_benchmark_outputs/{benchmark}.log",
     shell:
         """
         echo "All output aliases created for {wildcards.benchmark}" > {log}
