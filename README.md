@@ -217,6 +217,18 @@ make test
 make format
 ```
 
+### GitHub Copilot Support
+
+This repository is configured for optimal use with GitHub Copilot Coding Agent:
+
+- **Comprehensive Instructions**: Custom instructions in `.github/copilot-instructions.md` and `.github/AGENTS.md`
+- **Path-Specific Guidance**: Specialized instructions for Snakemake rules, Python scripts, and R analysis code
+- **Automated Setup**: Environment setup workflow in `.github/workflows/copilot-setup-steps.yml`
+
+For details, see:
+- **[Copilot Setup Verification](.github/COPILOT_SETUP_VERIFICATION.md)** - Complete setup documentation
+- **[Instructions Directory](.github/instructions/)** - Path-specific coding guidelines
+
 ### Commit Conventions
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/):
