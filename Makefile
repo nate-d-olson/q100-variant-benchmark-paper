@@ -92,7 +92,7 @@ dag:
 # Run the pipeline
 run:
 	@echo "==> Running pipeline with conda environments..."
-	snakemake --cores 14 --sdm conda --conda-frontend conda
+	snakemake --cores 14 --sdm conda --conda-frontend conda --report pipeline_run.html --report-after-run
 	@echo "==> Pipeline execution complete"
 
 # Clean logs and temporary files
@@ -101,7 +101,7 @@ clean:
 	rm -rf logs/
 	rm -rf .snakemake/
 	rm -rf results/
-	rm -rf resources/
+# 	rm -rf resources/
 	rm -rf analysis/cache
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@echo "==> Clean complete"
