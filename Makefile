@@ -92,7 +92,7 @@ dag:
 # Run the pipeline
 run:
 	@echo "==> Running pipeline with conda environments..."
-	snakemake --cores 14 --sdm conda --conda-frontend conda --report pipeline_run.html --report-after-run
+	time snakemake --cores 14 --sdm conda --conda-frontend conda --report pipeline_run.html --report-after-run
 	@echo "==> Pipeline execution complete"
 
 # Clean logs and temporary files
