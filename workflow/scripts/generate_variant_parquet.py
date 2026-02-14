@@ -216,7 +216,6 @@ def generate_variant_parquet(
                     "region_ids": region_ids,
                 }
             )
-    vcf.close()
 
     logging.info("Collected %d variants", len(variants))
     if filtered_non > 0:
