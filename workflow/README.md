@@ -23,8 +23,8 @@ workflow/
 │   └── truvari.yaml
 └── scripts/            # Custom Python scripts
     ├── combine_beds_with_id.py
-    ├── count_variants_by_type.py
-    ├── expand_annotations.py
+    ├── count_variants_by_genomic_context.py
+    ├── count_exclusion_variants.py
     ├── generate_header_lines.py
     └── generate_variant_parquet.py
 ```
