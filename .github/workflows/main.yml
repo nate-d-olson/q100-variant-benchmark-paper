@@ -57,6 +57,7 @@ jobs:
       - name: run workflow
         uses: snakemake/snakemake-github-action@v2
         with:
+          directory: "."
           args: >-
             --conda-cleanup-pkgs cache
             --software-deployment-method conda
