@@ -37,7 +37,7 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 3. **Variant Counts** (`workflow/rules/var_counts.smk`): Count variants per genomic context
    - Reads Parquet variant table, explodes context_ids, groups by (context_name, var_type, szbin)
    - Outputs: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
-4. **Comparisons** (`workflow/rules/comparisons.smk`): Truvari comparison between benchmark versions
+4. **Comparisons** (`workflow/rules/benchmark_comparisons.smk`): Truvari comparison between benchmark versions
    - Uses "stratification" terminology (not genomic_context) for GIAB comparison analysis
 5. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
    - `materialize_exclusion`: Downloads/merges exclusion BED files
@@ -50,7 +50,11 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Output File Patterns:**
 
-- Genomic context files: `results/genomic_context/{benchmark}/*.csv`
+- Genomic context files: `results/genomic_context/{benchmark}/`
+  - `coverage/` - BED files (symlinked `.bed.gz` and bedtools `_cov.bed`)
+  - `metrics/` - Per-context metrics TSV files
+  - `genomic_context_coverage_table.csv` - Aggregated coverage metrics
+  - `sizes/` - Temporary size calculation files (auto-deleted by Snakemake)
 - Variant tables: `results/variant_tables/{benchmark}/variants.parquet`
 - Variant counts: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`
@@ -163,7 +167,7 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 
 **Quarto notebooks:**
 
-- `analysis/benchmarkset_characterization.qmd` — Primary analysis; loads `stratification_metrics_df`
+- `analysis/benchmarkset_characterization.qmd` — Primary analysis; loads `variants_df` and `genomic_context_metrics_df`
 - `analysis/benchmark_difficult.qmd` — Coverage analysis; loads `diff_cov_df`
 - `analysis/external_evaluation.qmd` — External benchmark comparisons
 

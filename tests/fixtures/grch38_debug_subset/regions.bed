@@ -1,0 +1,7 @@
+chr1	125000000	125200000	overlap_rich_1
+chr4	131600000	131800000	overlap_rich_2
+chr7	62400000	62600000	overlap_rich_3
+chr9	134832420	134842674	no_overlap_control
+chr17	26800000	27000000	overlap_rich_4
+chrX	200000	400000	overlap_rich_X
+chrY	10200000	10400000	overlap_rich_Y
