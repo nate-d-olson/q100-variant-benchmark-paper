@@ -27,7 +27,10 @@
       "Bash(micromamba list:*)",
       "Bash(micromamba run:*)",
       "Bash(ls:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:api.github.com)"
     ]
   },
   "enabledMcpjsonServers": [
