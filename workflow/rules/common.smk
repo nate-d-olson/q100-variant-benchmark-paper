@@ -1,9 +1,10 @@
 # AI Disclosure: This file was modified with assistance from Claude (Anthropic)
-# to add exclusion analysis helper functions.
+# to add exclusion analysis helper functions and local file support.
 """
 Common helper functions for the Q100 variant benchmark pipeline
 """
 
+import os
 from typing import List, Dict, Any, Tuple
 
 # ============================================================================
@@ -25,6 +26,79 @@ wildcard_constraints:
     genomic_context="|".join(sorted(_all_genomic_context_names)),
     region_type="regions|inverse",
     mode="complement|within",
+
+
+# ============================================================================
+# Local File Support Helpers
+# ============================================================================
+
+
+def is_local_file(url: str) -> bool:
+    """
+    Check if a URL refers to a local file.
+
+    Supports:
+    - file:// URLs (e.g., file:///path/to/file or file://$PWD/path)
+    - Absolute paths (e.g., /path/to/file)
+    - Relative paths (e.g., path/to/file)
+
+    Args:
+        url: URL or path string
+
+    Returns:
+        True if local file, False if remote URL
+    """
+    if not url:
+        return False
+
+        # Check for file:// protocol
+    if url.startswith("file://"):
+        return True
+
+        # Check for absolute path
+    if url.startswith("/"):
+        return True
+
+        # Check for relative path (not http://, https://, ftp://)
+    if not any(url.startswith(proto) for proto in ["http://", "https://", "ftp://"]):
+        return True
+
+    return False
+
+
+def resolve_file_url(url: str) -> str:
+    """
+    Convert a file URL or local path to an absolute filesystem path.
+
+    Handles:
+    - file:// URLs with environment variable expansion (e.g., file://$PWD/path)
+    - file:// URLs with absolute paths (e.g., file:///path/to/file)
+    - Absolute paths (returned as-is)
+    - Relative paths (converted to absolute)
+
+    Args:
+        url: URL or path string
+
+    Returns:
+        Absolute filesystem path
+    """
+    if not url:
+        return url
+
+        # Remove file:// prefix if present
+    if url.startswith("file://"):
+        path = url[7:]  # Remove "file://"
+    else:
+        path = url
+
+        # Expand environment variables (e.g., $PWD, $HOME)
+    path = os.path.expandvars(path)
+
+    # Convert to absolute path if relative
+    if not os.path.isabs(path):
+        path = os.path.abspath(path)
+
+    return path
 
 
 # ============================================================================
@@ -243,8 +317,7 @@ def get_genomic_context_cov_beds(wildcards) -> List[str]:
     ref = config["benchmarksets"][benchmark]["ref"]
     contexts = get_stratifications_for_ref(ref)
     return [
-        f"results/genomic_context/{benchmark}/coverage/{ctx}_cov.bed"
-        for ctx in contexts
+        f"results/genomic_context/{benchmark}/coverage/{ctx}_cov.bed" for ctx in contexts
     ]
 
 

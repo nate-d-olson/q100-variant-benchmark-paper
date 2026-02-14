@@ -6,12 +6,16 @@ This module implements robust download rules following Snakemake 8+ best practic
 - Validates checksums (SHA256 or MD5) from config
 - Outputs to resources/ directory for consistent local paths
 - Proper logging for debugging failed downloads
+- Supports local file paths for test fixtures (file:// URLs, absolute/relative paths)
 
 Download types handled:
 - Benchmark VCF and BED files
 - Reference genome files
 - Stratification BED files
 - Exclusion BED files
+
+For local fixture testing, use file:// URLs or absolute/relative paths in config.
+Example: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/..."
 """
 
 import os
@@ -28,6 +32,8 @@ rule download_benchmark_vcf:
 
     Downloads VCF files from URLs specified in config["benchmarksets"][benchmark]["vcf"]
     and validates against SHA256 checksum using Snakemake's ensure() function.
+    
+    Supports both remote URLs and local file paths (including file:// URLs).
     """
     output:
         vcf=ensure(
@@ -37,6 +43,14 @@ rule download_benchmark_vcf:
         ),
     params:
         url=lambda w: config["benchmarksets"][w.benchmark]["vcf"]["url"],
+        is_local=lambda w: is_local_file(
+            config["benchmarksets"][w.benchmark]["vcf"]["url"]
+        ),
+        local_path=lambda w: (
+            resolve_file_url(config["benchmarksets"][w.benchmark]["vcf"]["url"])
+            if is_local_file(config["benchmarksets"][w.benchmark]["vcf"]["url"])
+            else ""
+        ),
     log:
         "logs/download_benchmark_vcf/{benchmark}.log",
     retries: 3
@@ -53,8 +67,13 @@ rule download_benchmark_vcf:
         echo "[$(date)] Downloading benchmark VCF for {wildcards.benchmark}" | tee -a {log}
         echo "URL: {params.url}" | tee -a {log}
 
-        # Download with wget (checksum validated by Snakemake ensure())
-        wget --no-verbose -O {output.vcf} "{params.url}" 2>&1 | tee -a {log}
+        if [ "{params.is_local}" = "True" ]; then
+            echo "Local file detected: {params.local_path}" | tee -a {log}
+            cp "{params.local_path}" {output.vcf} 2>&1 | tee -a {log}
+        else
+            echo "Remote URL detected, using wget" | tee -a {log}
+            wget --no-verbose -O {output.vcf} "{params.url}" 2>&1 | tee -a {log}
+        fi
 
         echo "[$(date)] Download completed successfully" | tee -a {log}
         """
@@ -66,6 +85,8 @@ rule download_benchmark_bed:
 
     Downloads BED files from URLs specified in config["benchmarksets"][benchmark]["bed"]
     and validates against SHA256 checksum using Snakemake's ensure() function.
+    
+    Supports both remote URLs and local file paths (including file:// URLs).
     """
     output:
         bed=ensure(
@@ -75,6 +96,14 @@ rule download_benchmark_bed:
         ),
     params:
         url=lambda w: config["benchmarksets"][w.benchmark]["bed"]["url"],
+        is_local=lambda w: is_local_file(
+            config["benchmarksets"][w.benchmark]["bed"]["url"]
+        ),
+        local_path=lambda w: (
+            resolve_file_url(config["benchmarksets"][w.benchmark]["bed"]["url"])
+            if is_local_file(config["benchmarksets"][w.benchmark]["bed"]["url"])
+            else ""
+        ),
     log:
         "logs/download_benchmark_bed/{benchmark}.log",
     retries: 3
@@ -91,8 +120,13 @@ rule download_benchmark_bed:
         echo "[$(date)] Downloading benchmark BED for {wildcards.benchmark}" | tee -a {log}
         echo "URL: {params.url}" | tee -a {log}
 
-        # Download with wget (checksum validated by Snakemake ensure())
-        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+        if [ "{params.is_local}" = "True" ]; then
+            echo "Local file detected: {params.local_path}" | tee -a {log}
+            cp "{params.local_path}" {output.bed} 2>&1 | tee -a {log}
+        else
+            echo "Remote URL detected, using wget" | tee -a {log}
+            wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+        fi
 
         echo "[$(date)] Download completed successfully" | tee -a {log}
         """
@@ -107,6 +141,8 @@ rule download_benchmark_dip_bed:
     using Snakemake's ensure() function.
 
     Only applies to benchmarks that have dip_bed configured (v5q benchmarks).
+    
+    Supports both remote URLs and local file paths (including file:// URLs).
     """
     output:
         bed=ensure(
@@ -120,6 +156,18 @@ rule download_benchmark_dip_bed:
         sha256=lambda w: config["benchmarksets"][w.benchmark]
         .get("dip_bed", {})
         .get("sha256", ""),
+        is_local=lambda w: is_local_file(
+            config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("url", "")
+        ),
+        local_path=lambda w: (
+            resolve_file_url(
+                config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("url", "")
+            )
+            if is_local_file(
+                config["benchmarksets"][w.benchmark].get("dip_bed", {}).get("url", "")
+            )
+            else ""
+        ),
     log:
         "logs/download_benchmark_dip_bed/{benchmark}.log",
     retries: 3
@@ -137,8 +185,15 @@ rule download_benchmark_dip_bed:
         echo "URL: {params.url}" | tee -a {log}
         echo "Expected SHA256: {params.sha256}" | tee -a {log}
 
-        # Download to temporary location
-        wget --no-verbose -O {output.bed}.tmp "{params.url}" 2>&1 | tee -a {log}
+        if [ "{params.is_local}" = "True" ]; then
+            echo "Local file detected: {params.local_path}" | tee -a {log}
+            # Copy to temporary location first
+            cp "{params.local_path}" {output.bed}.tmp 2>&1 | tee -a {log}
+        else
+            echo "Remote URL detected, using wget" | tee -a {log}
+            # Download to temporary location
+            wget --no-verbose -O {output.bed}.tmp "{params.url}" 2>&1 | tee -a {log}
+        fi
 
         # Validate SHA256 checksum
         echo "[$(date)] Validating checksum..." | tee -a {log}
@@ -166,6 +221,8 @@ rule prepare_reference:
     Note: Checksum validation is done in shell (not via ensure()) because
     the checksum in config is for the original downloaded gzip file, not the
     final bgzip-converted output. The file is validated before conversion.
+    
+    Supports both remote URLs and local file paths (including file:// URLs).
     """
     output:
         ref=ensure("resources/references/{ref_name}.fa.gz", non_empty=True),
@@ -175,6 +232,12 @@ rule prepare_reference:
         url=lambda w: config["references"][w.ref_name]["url"],
         checksum=lambda w: get_reference_checksum(w.ref_name),
         checksum_type="sha256",  ## hardcoded using sha256 in config
+        is_local=lambda w: is_local_file(config["references"][w.ref_name]["url"]),
+        local_path=lambda w: (
+            resolve_file_url(config["references"][w.ref_name]["url"])
+            if is_local_file(config["references"][w.ref_name]["url"])
+            else ""
+        ),
     log:
         "logs/prepare_reference/{ref_name}.log",
     retries: 3
@@ -195,8 +258,13 @@ rule prepare_reference:
         TMPFILE=$(mktemp)
         trap "rm -f $TMPFILE" EXIT
 
-        # Download with wget
-        wget --no-verbose -O "$TMPFILE" "{params.url}" 2>&1 | tee -a {log}
+        if [ "{params.is_local}" = "True" ]; then
+            echo "Local file detected: {params.local_path}" | tee -a {log}
+            cp "{params.local_path}" "$TMPFILE" 2>&1 | tee -a {log}
+        else
+            echo "Remote URL detected, using wget" | tee -a {log}
+            wget --no-verbose -O "$TMPFILE" "{params.url}" 2>&1 | tee -a {log}
+        fi
 
         # Validate checksum
         echo "[$(date)] Validating {params.checksum_type} checksum..." | tee -a {log}
@@ -240,6 +308,8 @@ rule download_stratification:
 
     Note: GIAB stratifications URL format uses {ref}@all pattern which needs
     special handling.
+    
+    Supports both remote URLs and local file paths (including file:// URLs).
     """
     output:
         bed=ensure(
@@ -249,6 +319,12 @@ rule download_stratification:
         ),
     params:
         url=lambda w: get_stratification_url(w),
+        is_local=lambda w: is_local_file(get_stratification_url(w)),
+        local_path=lambda w: (
+            resolve_file_url(get_stratification_url(w))
+            if is_local_file(get_stratification_url(w))
+            else ""
+        ),
     log:
         "logs/download_stratification/{ref}_{strat_name}.log",
     wildcard_constraints:
@@ -268,10 +344,15 @@ rule download_stratification:
         echo "[$(date)] Downloading stratification {wildcards.strat_name} for {wildcards.ref}" | tee -a {log}
         echo "URL: {params.url}" | tee -a {log}
 
-        # Download with wget
-        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+        if [ "{params.is_local}" = "True" ]; then
+            echo "Local file detected: {params.local_path}" | tee -a {log}
+            cp "{params.local_path}" {output.bed} 2>&1 | tee -a {log}
+        else
+            echo "Remote URL detected, using wget" | tee -a {log}
+            wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+        fi
 
-        # Verify non-empty (stratifications don't have checksums in config)
+        # Verify non-empty
         if [ ! -s {output.bed} ]; then
             echo "ERROR: Downloaded file is empty" | tee -a {log}
             exit 1
@@ -293,6 +374,8 @@ rule download_exclusion:
     Downloads exclusion BED files specified in
     config["benchmarksets"][benchmark]["exclusions"][exclusion_name]["files"]
     and validates against SHA256 checksum using Snakemake's ensure() function.
+    
+    Supports both remote URLs and local file paths (including file:// URLs).
     """
     output:
         bed=ensure(
@@ -305,6 +388,18 @@ rule download_exclusion:
     params:
         url=lambda w: get_exclusion_file_url(
             w.benchmark, w.exclusion_name, int(w.file_idx)
+        ),
+        is_local=lambda w: is_local_file(
+            get_exclusion_file_url(w.benchmark, w.exclusion_name, int(w.file_idx))
+        ),
+        local_path=lambda w: (
+            resolve_file_url(
+                get_exclusion_file_url(w.benchmark, w.exclusion_name, int(w.file_idx))
+            )
+            if is_local_file(
+                get_exclusion_file_url(w.benchmark, w.exclusion_name, int(w.file_idx))
+            )
+            else ""
         ),
     log:
         "logs/download_exclusion/{benchmark}_{exclusion_name}_{file_idx}.log",
@@ -322,8 +417,13 @@ rule download_exclusion:
         echo "[$(date)] Downloading exclusion {wildcards.exclusion_name} file {wildcards.file_idx} for {wildcards.benchmark}" | tee -a {log}
         echo "URL: {params.url}" | tee -a {log}
 
-        # Download with wget (checksum validated by Snakemake ensure())
-        wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+        if [ "{params.is_local}" = "True" ]; then
+            echo "Local file detected: {params.local_path}" | tee -a {log}
+            cp "{params.local_path}" {output.bed} 2>&1 | tee -a {log}
+        else
+            echo "Remote URL detected, using wget" | tee -a {log}
+            wget --no-verbose -O {output.bed} "{params.url}" 2>&1 | tee -a {log}
+        fi
 
         echo "[$(date)] Download completed successfully" | tee -a {log}
         """
