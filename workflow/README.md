@@ -23,10 +23,10 @@ workflow/
 │   └── truvari.yaml
 └── scripts/            # Custom Python scripts
     ├── combine_beds_with_id.py
-    ├── count_variants_by_type.py
-    ├── expand_annotations.py
-    ├── extract_info_fields.py
-    └── generate_header_lines.py
+    ├── count_variants_by_genomic_context.py
+    ├── count_exclusion_variants.py
+    ├── generate_header_lines.py
+    └── generate_variant_parquet.py
 ```
 
 ## Rule Modules
@@ -134,15 +134,15 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 
 | Script                     | Description                                       |
 | -------------------------- | ------------------------------------------------- |
-| `extract_info_fields.py`   | Extract INFO field names from VCF header          |
 | `generate_header_lines.py` | Generate VCF header lines for custom annotations  |
 | `expand_annotations.py`    | Expand annotation ID lists to binary flag columns |
 
 ### Variant Analysis
 
-| Script                       | Description                                      |
-| ---------------------------- | ------------------------------------------------ |
-| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF |
+| Script                       | Description                                         |
+| ---------------------------- | --------------------------------------------------- |
+| `generate_variant_parquet.py` | Generate Parquet variant tables using Truvari       |
+| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF   |
 | `count_variants_by_strat.py` | Count variants per stratification region         |
 | `stratify_comparison.py`     | Compare variants across stratifications          |
 
