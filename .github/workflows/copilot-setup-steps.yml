@@ -1,0 +1,77 @@
+name: Copilot Agent Setup
+
+# This workflow prepares the environment for GitHub Copilot Coding Agent
+# It installs dependencies, tools, and validates the environment setup
+# Reference: https://github.blog/changelog/2025-07-30-copilot-coding-agent-custom-setup-steps-are-more-reliable-and-easier-to-debug/
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  setup-environment:
+    name: Setup Copilot Environment
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          micromamba-version: 'latest'
+          environment-file: environment.yaml
+          environment-name: q100-smk
+          cache-environment: true
+          cache-downloads: true
+      
+      - name: Verify Snakemake installation
+        shell: bash -el {0}
+        run: |
+          micromamba activate q100-smk
+          echo "==> Verifying Snakemake installation..."
+          snakemake --version
+          echo "==> Verifying snakefmt installation..."
+          snakefmt --version
+          echo "==> Snakemake environment ready!"
+      
+      - name: Validate workflow
+        shell: bash -el {0}
+        run: |
+          micromamba activate q100-smk
+          echo "==> Running workflow validation (dry-run)..."
+          snakemake -n --quiet
+          echo "==> Workflow validation successful!"
+      
+      - name: Lint workflow
+        shell: bash -el {0}
+        run: |
+          micromamba activate q100-smk
+          echo "==> Linting Snakemake workflow..."
+          snakemake --lint
+          echo "==> Linting successful!"
+      
+      - name: Setup summary
+        if: success()
+        run: |
+          echo "### ✅ Copilot Environment Setup Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The following tools are ready:" >> $GITHUB_STEP_SUMMARY
+          echo "- Snakemake workflow engine" >> $GITHUB_STEP_SUMMARY
+          echo "- snakefmt formatter" >> $GITHUB_STEP_SUMMARY
+          echo "- All conda dependencies from environment.yaml" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The workflow validation and linting passed successfully." >> $GITHUB_STEP_SUMMARY
+      
+      - name: Setup failure summary
+        if: failure()
+        run: |
+          echo "### ❌ Copilot Environment Setup Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          echo "Common issues:" >> $GITHUB_STEP_SUMMARY
+          echo "- Missing dependencies in environment.yaml" >> $GITHUB_STEP_SUMMARY
+          echo "- Conda package conflicts" >> $GITHUB_STEP_SUMMARY
+          echo "- Workflow configuration errors" >> $GITHUB_STEP_SUMMARY

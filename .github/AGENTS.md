@@ -1,4 +1,4 @@
-# AGENT.md — Quick rules for AI agents
+# AGENTS.md — Quick rules for AI agents
 
 Purpose: give short, prescriptive steps so an agent can make safe, minimal-code changes.
 
