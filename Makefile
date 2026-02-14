@@ -54,7 +54,7 @@ format:
 	@echo "==> Formatting Snakemake files..."
 	snakefmt workflow/
 	@echo "==> Formatting Markdown files..."
-	prettier --write --prose-wrap preserve "docs/**/*.md" "CLAUDE.md" "workflow/README.md"
+	pre-commit run prettier --all-files || true
 	@echo "==> Formatting R files..."
 	Rscript -e 'paths <- c("R","scripts","analysis"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE)) }' || echo "(R/styler not available, skipping)"
 
@@ -64,7 +64,7 @@ format-check:
 	@echo "==> Checking Snakefile formatting..."
 	snakefmt --check workflow/
 	@echo "==> Checking Markdown formatting..."
-	prettier --check --prose-wrap preserve "docs/**/*.md" "CLAUDE.md" "workflow/README.md"
+	pre-commit run prettier --all-files
 	@echo "==> Checking R formatting..."
 	Rscript -e 'paths <- c("R","scripts"); paths <- paths[dir.exists(paths)]; if (length(paths) > 0) { lapply(paths, function(p) styler::style_dir(p, recursive = TRUE, dry = "fail")) }' || echo "(R/styler not available, skipping)"
 

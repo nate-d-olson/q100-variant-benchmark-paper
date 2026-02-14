@@ -10,21 +10,21 @@ Comprehensive characterization of the v5q benchmark set variants and regions, in
 
 **Input Files:**
 
-| File | Source | Description |
-|------|--------|-------------|
-| `results/variant_tables/{benchmark}/variants.tsv` | Snakemake pipeline | Annotated variant tables for each benchmark set |
-| `resources/benchmarksets/{benchmark}_benchmark.bed` | Snakemake pipeline | Benchmark region BED files |
-| `results/context_coverage/all_context_coverage.tsv` | Snakemake pipeline | Context coverage summary |
-| `data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/*/exclusion_intersection_summary.csv` | DeFrABB run | Exclusion intersection summaries |
-| `config/config.yaml` | Repository | Pipeline configuration with genome sizes |
+| File                                                                                          | Source             | Description                                     |
+| --------------------------------------------------------------------------------------------- | ------------------ | ----------------------------------------------- |
+| `results/variant_tables/{benchmark}/variants.tsv`                                             | Snakemake pipeline | Annotated variant tables for each benchmark set |
+| `resources/benchmarksets/{benchmark}_benchmark.bed`                                           | Snakemake pipeline | Benchmark region BED files                      |
+| `results/context_coverage/all_context_coverage.tsv`                                           | Snakemake pipeline | Context coverage summary                        |
+| `data/20250117_v0.020_HG002Q100v1.1/draft_benchmarksets/*/exclusion_intersection_summary.csv` | DeFrABB run        | Exclusion intersection summaries                |
+| `config/config.yaml`                                                                          | Repository         | Pipeline configuration with genome sizes        |
 
 **Output Files:**
 
-| File | Description |
-|------|-------------|
-| `manuscript/figs/sv_length_distribution.png` | SV length distribution histogram |
-| `manuscript/figs/diff_variant_counts.png` | Variant counts in difficult genomic contexts |
-| `manuscript/figs/benchmark_region_size_change.png` | Coverage change between benchmark versions |
+| File                                               | Description                                  |
+| -------------------------------------------------- | -------------------------------------------- |
+| `manuscript/figs/sv_length_distribution.png`       | SV length distribution histogram             |
+| `manuscript/figs/diff_variant_counts.png`          | Variant counts in difficult genomic contexts |
+| `manuscript/figs/benchmark_region_size_change.png` | Coverage change between benchmark versions   |
 
 **Key Analyses:**
 
@@ -46,14 +46,14 @@ Focused comparison of benchmark regions and variants unique to v5 or previous be
 
 **Input Files:**
 
-| File | Source | Description |
-|------|--------|-------------|
-| `resources/benchmarksets/{benchmark}_benchmark.bed` | Snakemake pipeline | Benchmark region BED files |
-| `resources/benchmarksets/{benchmark}_dip.bed` | Snakemake pipeline | v5 diploid regions |
-| `resources/exclusions/{benchmark}/*.bed` | Snakemake pipeline | v5 exclusion BED files |
-| `results/exclusions/{comp_id}/old_only_variants.tsv` | Snakemake pipeline | Old-only variant status with exclusion overlap |
-| `results/variant_tables/{benchmark}/variants.tsv` | Snakemake pipeline | Variant tables for v5-only region variant summaries |
-| `resources/stratifications/{ref}_{context}.bed.gz` | Snakemake pipeline | Genomic context BED files |
+| File                                                 | Source             | Description                                         |
+| ---------------------------------------------------- | ------------------ | --------------------------------------------------- |
+| `resources/benchmarksets/{benchmark}_benchmark.bed`  | Snakemake pipeline | Benchmark region BED files                          |
+| `resources/benchmarksets/{benchmark}_dip.bed`        | Snakemake pipeline | v5 diploid regions                                  |
+| `resources/exclusions/{benchmark}/*.bed`             | Snakemake pipeline | v5 exclusion BED files                              |
+| `results/exclusions/{comp_id}/old_only_variants.tsv` | Snakemake pipeline | Old-only variant status with exclusion overlap      |
+| `results/variant_tables/{benchmark}/variants.tsv`    | Snakemake pipeline | Variant tables for v5-only region variant summaries |
+| `resources/stratifications/{ref}_{context}.bed.gz`   | Snakemake pipeline | Genomic context BED files                           |
 
 **Key Analyses:**
 
@@ -70,16 +70,16 @@ Benchmark interval size distribution analysis, combining benchmark BED regions w
 
 **Input Files:**
 
-| File | Source | Description |
-|------|--------|-------------|
-| `resources/benchmarksets/{benchmark}_benchmark.bed` | Snakemake pipeline | Benchmark region BED files |
+| File                                                                             | Source                                           | Description                             |
+| -------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------- |
+| `resources/benchmarksets/{benchmark}_benchmark.bed`                              | Snakemake pipeline                               | Benchmark region BED files              |
 | `resources/platinum-pedigree-data/truthset_v1.2/NA12878_hq_v1.2.smallvar.bed.gz` | Public S3 via `load_platinum_pedigree_regions()` | Platinum Pedigree small variant regions |
-| `resources/platinum-pedigree-data/truthset_v1.2/NA12878_hq_v1.2.svs.bed.gz` | Public S3 via `load_platinum_pedigree_regions()` | Platinum Pedigree SV regions |
+| `resources/platinum-pedigree-data/truthset_v1.2/NA12878_hq_v1.2.svs.bed.gz`      | Public S3 via `load_platinum_pedigree_regions()` | Platinum Pedigree SV regions            |
 
 **Output Files:**
 
-| File | Description |
-|------|-------------|
+| File                                      | Description                           |
+| ----------------------------------------- | ------------------------------------- |
 | `manuscript/figs/benchmark_intervals.png` | Benchmark interval size distributions |
 
 **Key Analyses:**
@@ -96,18 +96,18 @@ Analysis of external evaluations from variant calling pipelines compared against
 
 **Input Files:**
 
-| File | Source | Description |
-|------|--------|-------------|
-| `data/external-evaluations/evaluator-curations/*Miqa.csv` | External evaluators | Curation results from evaluators |
-| NA | `https://docs.google.com/spreadsheets/d/1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-\_vcV6t0/edit?usp=sharing` | JZ re-curations and notes for external evaluations |
+| File                                                      | Source                                                                                                  | Description                                        |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `data/external-evaluations/evaluator-curations/*Miqa.csv` | External evaluators                                                                                     | Curation results from evaluators                   |
+| NA                                                        | `https://docs.google.com/spreadsheets/d/1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-\_vcV6t0/edit?usp=sharing` | JZ re-curations and notes for external evaluations |
 
 **Output Files:**
 
-| File | Description |
-|------|-------------|
-| `manuscript/figs/smvar_eval_strata_supplemental.png` | Small variant evaluations by strata |
+| File                                                 | Description                              |
+| ---------------------------------------------------- | ---------------------------------------- |
+| `manuscript/figs/smvar_eval_strata_supplemental.png` | Small variant evaluations by strata      |
 | `manuscript/figs/stvar_eval_strata_supplemental.png` | Structural variant evaluations by strata |
-| `manuscript/figs/combined_eval_callset.png` | Combined evaluation summary by callset |
+| `manuscript/figs/combined_eval_callset.png`          | Combined evaluation summary by callset   |
 
 **Key Analyses:**
 
