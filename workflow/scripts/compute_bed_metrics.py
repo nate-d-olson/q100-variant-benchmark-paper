@@ -4,12 +4,17 @@
 """
 Compute overlap metrics between two BED files.
 
+Used by the exclusions pipeline to calculate per-exclusion overlap with dip.bed.
+
 Uses bedtools to calculate:
 - size_a: Total bases in BED A (after merge)
 - size_b: Total bases in BED B (after merge)
 - intersect_bp: Bases overlapping between A and B
 - pct_of_a: Percent of A covered by B
 - pct_of_b: Percent of B covered by A
+
+Note: After PR #37 (genomic context refactor), this script is only used by
+the exclusions pipeline. Genomic context metrics use compute_coverage_table.py.
 """
 
 import subprocess
@@ -112,10 +117,8 @@ def main():
     pct_of_a = (intersect / size_a * 100) if size_a > 0 else 0.0
     pct_of_b = (intersect / size_b * 100) if size_b > 0 else 0.0
 
-    # Get region name from wildcards (different field names in different rules)
-    region_name = snakemake.wildcards.get("exclusion") or snakemake.wildcards.get(
-        "genomic_context"
-    )
+    # Get exclusion name from wildcards (only used by exclusions pipeline)
+    region_name = snakemake.wildcards.exclusion
 
     with open(snakemake.output[0], "w") as f:
         f.write(

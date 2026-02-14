@@ -41,13 +41,14 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 4. **Comparisons** (`workflow/rules/benchmark_comparisons.smk`): Truvari comparison between benchmark versions
    - Uses "stratification" terminology (not genomic_context) for GIAB comparison analysis
 5. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
-   - `materialize_exclusion`: Downloads/merges exclusion BED files
+   - `materialize_exclusion`: Sort/merge exclusion BED files (NOT symlinks—performs data processing)
    - `compute_exclusion_metrics`: Per-exclusion BED overlap with dip.bed (uses `compute_bed_metrics.py`)
    - `compute_exclusion_impact`: Per-exclusion variant counts + BED metrics (Q1)
    - `compute_exclusion_interactions`: Upset-style exclusion combination analysis (Q2)
    - `annotate_old_benchmark_status`: Cross-version comparison of old vs v5.0q benchmarks (Q3)
    - Outputs: `results/exclusions/{benchmark}/exclusion_impact.csv`, `exclusion_interactions.csv`
    - Cross-version outputs: `results/exclusions/{comp_id}/old_only_*.csv`
+   - **Note:** Exclusions pipeline has different architecture than genomic contexts (see `docs/exclusions-pipeline-evaluation.md`)
 
 **Output File Patterns:**
 
