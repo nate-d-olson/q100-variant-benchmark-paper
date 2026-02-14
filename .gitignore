@@ -74,3 +74,6 @@ _bookdown_files/
 site/_site/
 site/.quarto/
 site/_freeze/
+
+# Node.js (pre-commit)
+node_modules/

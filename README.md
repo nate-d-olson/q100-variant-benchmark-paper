@@ -171,29 +171,29 @@ project-root/
 
 # Benchmark Sets Analyzed
 
-| Benchmark ID | Reference | Variant Type | Description |
-|--------------|-----------|--------------|-------------|
-| v5.0q_CHM13v2.0_smvar | CHM13v2.0 | Small variants | T2T Q100 benchmark (SNVs + indels <50bp) |
-| v5.0q_CHM13v2.0_stvar | CHM13v2.0 | Structural variants | T2T Q100 benchmark (SVs ≥50bp) |
-| v5.0q_GRCh38_smvar | GRCh38 | Small variants | T2T Q100 liftover |
-| v5.0q_GRCh38_stvar | GRCh38 | Structural variants | T2T Q100 liftover |
-| v5.0q_GRCh37_smvar | GRCh37 | Small variants | T2T Q100 liftover |
-| v5.0q_GRCh37_stvar | GRCh37 | Structural variants | T2T Q100 liftover |
-| v4.2.1_GRCh38_smvar | GRCh38 | Small variants | Historical GIAB v4.2.1 |
-| v0.6_GRCh37_stvar | GRCh37 | Structural variants | Historical SV v0.6 |
+| Benchmark ID          | Reference | Variant Type        | Description                              |
+| --------------------- | --------- | ------------------- | ---------------------------------------- |
+| v5.0q_CHM13v2.0_smvar | CHM13v2.0 | Small variants      | T2T Q100 benchmark (SNVs + indels <50bp) |
+| v5.0q_CHM13v2.0_stvar | CHM13v2.0 | Structural variants | T2T Q100 benchmark (SVs ≥50bp)           |
+| v5.0q_GRCh38_smvar    | GRCh38    | Small variants      | T2T Q100 liftover                        |
+| v5.0q_GRCh38_stvar    | GRCh38    | Structural variants | T2T Q100 liftover                        |
+| v5.0q_GRCh37_smvar    | GRCh37    | Small variants      | T2T Q100 liftover                        |
+| v5.0q_GRCh37_stvar    | GRCh37    | Structural variants | T2T Q100 liftover                        |
+| v4.2.1_GRCh38_smvar   | GRCh38    | Small variants      | Historical GIAB v4.2.1                   |
+| v0.6_GRCh37_stvar     | GRCh37    | Structural variants | Historical SV v0.6                       |
 
 # Genomic Stratification Contexts
 
 The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
 
-| Context | Description |
-|---------|-------------|
-| TR | All tandem repeats |
-| TR10kb | Tandem repeats ≥10001bp with 5bp slop |
-| HP | Homopolymers ≥7bp (perfect) or ≥11bp (imperfect) |
-| SD | All segmental duplications |
-| SD10kb | Segmental duplications >10kb |
-| MAP | Low mappability regions |
+| Context | Description                                      |
+| ------- | ------------------------------------------------ |
+| TR      | All tandem repeats                               |
+| TR10kb  | Tandem repeats ≥10001bp with 5bp slop            |
+| HP      | Homopolymers ≥7bp (perfect) or ≥11bp (imperfect) |
+| SD      | All segmental duplications                       |
+| SD10kb  | Segmental duplications >10kb                     |
+| MAP     | Low mappability regions                          |
 
 # Pipeline Improvements (2026-01)
 
