@@ -35,7 +35,7 @@ def main():
     logger.info(f"Benchmark size: {bench_size} bp")
 
     rows = []
-    for context_name, context_bed in zip(context_names, context_beds):
+    for context_name, context_bed in zip(context_names, context_beds, strict=True):
         is_gzipped = context_bed.endswith(".gz")
 
         context_size = compute_bed_size(context_bed, is_gzipped)

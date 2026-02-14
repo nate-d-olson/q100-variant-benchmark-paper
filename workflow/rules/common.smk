@@ -226,7 +226,7 @@ def get_genomic_context_ids(wildcards) -> List[str]:
     return get_stratifications_for_ref(ref)
 
 
-def get_genomic_context_beds(wildcards) -> list[str]:
+def get_genomic_context_beds(wildcards) -> List[str]:
     """
     Get list of genomic context BED file paths for a benchmark.
 
