@@ -6,7 +6,7 @@ repos:
       - id: ruff-format
         files: ^workflow/scripts/
       - id: ruff
-        args: [--select=F, --ignore=F821, --fix]
+        args: [--fix]
         files: ^workflow/scripts/
 
   # Snakemake formatting

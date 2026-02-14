@@ -85,12 +85,14 @@ make lint
 ### Common Issues
 
 **Conda solver taking too long:**
+
 ```bash
 # Use mamba instead of conda
 snakemake --cores 4 --sdm mamba
 ```
 
 **Logs not visible:**
+
 ```bash
 # Check log directory exists
 ls -la logs/
@@ -100,6 +102,7 @@ cat logs/vcf_processing/sv_len.log
 ```
 
 **Output files not generated:**
+
 ```bash
 # Check if input files exist
 snakemake --summary
@@ -135,6 +138,7 @@ git push -u origin feat/add-rtg-stats
 Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 
 **Types:**
+
 - `feat:` - New feature or analysis
 - `fix:` - Bug fix
 - `docs:` - Documentation updates
@@ -143,6 +147,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 - `test:` - Adding/updating tests
 
 **Examples:**
+
 ```bash
 # New feature
 git commit -m "feat: add bedtools stratification intersect rule"
@@ -191,6 +196,7 @@ git commit -m "type: description"
 **Documentation:** [https://samtools.github.io/bcftools/](https://samtools.github.io/bcftools/)
 
 **Common commands:**
+
 ```bash
 # Query variant fields
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' input.vcf.gz
@@ -210,6 +216,7 @@ bcftools index input.vcf.gz
 **Documentation:** [https://bedtools.readthedocs.io/](https://bedtools.readthedocs.io/)
 
 **Common commands:**
+
 ```bash
 # Intersect regions
 bedtools intersect -a regions.bed -b features.bed
@@ -229,6 +236,7 @@ bedtools merge -i regions.bed
 **Documentation:** [https://github.com/lh3/seqtk](https://github.com/lh3/seqtk)
 
 **Common commands:**
+
 ```bash
 # Compute sequence composition
 seqtk comp genome.fa
@@ -247,6 +255,7 @@ seqtk sample -s100 reads.fq 10000 > subset.fq
 **Wrapper Catalog:** [https://snakemake-wrappers.readthedocs.io/](https://snakemake-wrappers.readthedocs.io/)
 
 **Key concepts:**
+
 - **Rules:** Define workflow steps
 - **Wildcards:** Generalize patterns (`{sample}`, `{ref}`)
 - **Config:** External configuration via YAML

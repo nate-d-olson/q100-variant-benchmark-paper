@@ -91,7 +91,8 @@ Rules for variant annotation and table generation:
 | `generate_annotation_headers`  | Generate VCF header lines                  | `results/generate_annotation_headers/{benchmark}/annotation_headers.txt`  |
 | `annotate_vcf_stratifications` | Annotate VCF with stratification IDs       | `results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz` |
 | `annotate_vcf_regions`         | Annotate VCF with region IDs               | `results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz`         |
-| `generate_variant_parquet`     | Generate Parquet table using Truvari       | `results/variant_tables/{benchmark}/variants.parquet`                     |
+| `extract_info_fields`          | Extract INFO field names from VCF          | `results/extract_info_fields/{benchmark}/info_fields.txt`                 |
+| `generate_var_table`           | Generate Parquet table with all annotations | `results/variant_tables/{benchmark}/variants.parquet`                     |
 
 ### exclusions.smk
 

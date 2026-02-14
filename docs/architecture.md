@@ -164,7 +164,7 @@ results/
 │       └── exclusions_intersection_table.csv ✓ Use first
 ├── variant_tables/           # Full variant data (DETAILED)
 │   └── {benchmark}/{ref}/
-│       └── variants.tsv ⚠️ Large, use filters
+│       └── variants.parquet ⚠️ Large, use filters
 ├── diff_region_coverage/     # Base-level coverage (DETAILED)
 │   └── {benchmark}/{ref}/
 │       ├── HP_cov.bed ⚠️ Large
@@ -211,7 +211,7 @@ The pipeline generates two tiers of outputs optimized for different use cases:
 
 #### 2. Detailed Data Files (Large, ~MB-GB per file)
 
-- `variant_tables/*/variants.tsv` - Full variant-level annotations
+- `variant_tables/*/variants.parquet` - Full variant-level annotations
 - `diff_region_coverage/*/*.bed` - Base-level coverage data
 
 **Characteristics:**
@@ -463,11 +463,11 @@ Parquet-only caching with automatic invalidation:
 
 Three functions support caching via `use_cache` and `force_refresh` parameters:
 
-| Function                          | Dataset             | Source Files            |
-| --------------------------------- | ------------------- | ----------------------- |
-| `load_variant_table()`            | `variant_table`     | `variants.tsv`          |
-| `load_genomic_context_coverage()` | `diff_coverage`     | `*_cov.bed` files       |
-| `load_benchmark_regions()`        | `benchmark_regions` | `*_benchmark.bed` files |
+| Function                          | Dataset             | Source Files               |
+| --------------------------------- | ------------------- | -------------------------- |
+| `load_variant_table()`            | `variant_table`     | `variants.parquet`         |
+| `load_genomic_context_coverage()` | `diff_coverage`     | `*_cov.bed` files          |
+| `load_benchmark_regions()`        | `benchmark_regions` | `*_benchmark.bed` files    |
 
 Functions NOT cached (small datasets, load directly from pipeline output):
 

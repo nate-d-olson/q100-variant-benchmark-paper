@@ -568,9 +568,7 @@ total_variants = 851,471
 
 **Biological Significance:**
 
->
-
-- > 90% similar sequences elsewhere in genome
+- &gt;90% similar sequences elsewhere in genome
 - Impossible to uniquely map short reads
 - Classic "copy-number variation" regions
 - High false-positive and false-negative rate
