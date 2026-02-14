@@ -58,6 +58,7 @@ jobs:
         uses: snakemake/snakemake-github-action@v2
         with:
           directory: "."
+          snakefile: "workflow/Snakefile"
           args: >-
             --conda-cleanup-pkgs cache
             --software-deployment-method conda
