@@ -81,8 +81,8 @@ def get_chromosomes(wildcards) -> str:
 # ============================================================================
 
 
-def get_genomic_context_beds(wildcards) -> List[str]:
-    """Get list of genomic context BED files with IDs."""
+def get_genomic_context_bed_specs(wildcards) -> List[str]:
+    """Get list of genomic context BED files with IDs (path:name format)."""
     ref = config["benchmarksets"][wildcards.benchmark].get("ref")
     contexts = config["references"][ref].get("stratifications", {})
     beds = []
@@ -224,6 +224,25 @@ def get_genomic_context_ids(wildcards) -> List[str]:
     benchmark = wildcards.benchmark
     ref = config["benchmarksets"][benchmark]["ref"]
     return get_stratifications_for_ref(ref)
+
+
+def get_genomic_context_beds(wildcards) -> list[str]:
+    """
+    Get list of genomic context BED file paths for a benchmark.
+
+    Resolves paths directly from resources/stratifications/ using
+    the benchmark's reference genome.
+
+    Args:
+        wildcards: Snakemake wildcards with benchmark attribute
+
+    Returns:
+        List of paths to genomic context BED files
+    """
+    benchmark = wildcards.benchmark
+    ref = config["benchmarksets"][benchmark]["ref"]
+    contexts = get_stratifications_for_ref(ref)
+    return [f"resources/stratifications/{ref}_{ctx}.bed.gz" for ctx in contexts]
 
 
 def get_stratify_inputs(wildcards):
