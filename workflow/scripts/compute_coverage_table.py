@@ -1,66 +1,88 @@
 #!/usr/bin/env python3
 # AI Disclosure: This script was developed with assistance from Claude (Anthropic).
 """
-Compute genomic context coverage metrics for all contexts in a benchmark.
+Summarize bedtools coverage output into a genomic context coverage table.
 
-For each genomic context BED file, computes:
-- context_name: Name of the genomic context region
-- context_bp: Total bases in the context (after merging overlaps)
-- intersect_bp: Bases overlapping between context and benchmark regions
+Reads _cov.bed files (from bedtools coverage) and a benchmark BED to produce
+a CSV with per-context overlap metrics:
+- context_name: Genomic context identifier (HP, TR, SD, MAP, etc.)
+- context_bp: Total bases in the genomic context
+- intersect_bp: Bases of context covered by benchmark regions
 - pct_of_context: Percent of context covered by benchmark
 - pct_of_bench: Percent of benchmark covered by context
-
-Output: Single CSV file with all context metrics.
 """
 
 import csv
 
-from compute_bed_metrics import compute_bed_size, compute_intersection
 from logging_config import setup_logger
 
 logger = setup_logger(__name__)
 
 
-def main():
+def compute_bed_total(bed_path: str) -> int:
+    """Sum interval lengths from a BED file (end - start per row)."""
+    total = 0
+    with open(bed_path) as f:
+        for line in f:
+            if line.startswith("#") or not line.strip():
+                continue
+            fields = line.split("\t")
+            total += int(fields[2]) - int(fields[1])
+    return total
+
+
+def summarize_coverage_bed(cov_bed_path: str) -> tuple[int, int]:
+    """
+    Summarize a bedtools coverage output file.
+
+    Bedtools coverage columns: chrom, start, end, n_overlap, bases_cov, ivl_len, frac_cov
+
+    Returns:
+        Tuple of (context_bp, intersect_bp)
+    """
+    context_bp = 0
+    intersect_bp = 0
+    with open(cov_bed_path) as f:
+        for line in f:
+            if line.startswith("#") or not line.strip():
+                continue
+            fields = line.split("\t")
+            intersect_bp += int(fields[4])
+            context_bp += int(fields[5])
+    return context_bp, intersect_bp
+
+
+def main() -> None:
     """Main entry point for Snakemake script execution."""
-    context_beds = snakemake.input.context_beds
+    cov_beds = snakemake.input.cov_beds
     bench_bed = snakemake.input.bench_bed
     output_csv = snakemake.output.csv
     context_names = snakemake.params.context_names
 
-    logger.info(f"Computing coverage table for {len(context_beds)} contexts")
-    logger.info(f"Benchmark BED: {bench_bed}")
+    logger.info(f"Summarizing {len(cov_beds)} coverage files")
 
-    bench_size = compute_bed_size(bench_bed, bench_bed.endswith(".gz"))
+    bench_size = compute_bed_total(bench_bed)
     logger.info(f"Benchmark size: {bench_size} bp")
 
     rows = []
-    for context_name, context_bed in zip(context_names, context_beds, strict=True):
-        is_gzipped = context_bed.endswith(".gz")
+    for context_name, cov_bed in zip(context_names, cov_beds, strict=True):
+        context_bp, intersect_bp = summarize_coverage_bed(cov_bed)
 
-        context_size = compute_bed_size(context_bed, is_gzipped)
-        intersect = compute_intersection(
-            context_bed,
-            bench_bed,
-            a_gzipped=is_gzipped,
-            b_gzipped=bench_bed.endswith(".gz"),
-        )
-
-        pct_of_context = (intersect / context_size * 100) if context_size > 0 else 0.0
-        pct_of_bench = (intersect / bench_size * 100) if bench_size > 0 else 0.0
+        pct_of_context = (intersect_bp / context_bp * 100) if context_bp > 0 else 0.0
+        pct_of_bench = (intersect_bp / bench_size * 100) if bench_size > 0 else 0.0
 
         rows.append(
             {
                 "context_name": context_name,
-                "context_bp": context_size,
-                "intersect_bp": intersect,
+                "context_bp": context_bp,
+                "intersect_bp": intersect_bp,
                 "pct_of_context": f"{pct_of_context:.6f}",
                 "pct_of_bench": f"{pct_of_bench:.6f}",
             }
         )
 
         logger.info(
-            f"  {context_name}: size={context_size}, intersect={intersect}, "
+            f"  {context_name}: context={context_bp}, intersect={intersect_bp}, "
             f"pct_of_context={pct_of_context:.2f}%, pct_of_bench={pct_of_bench:.2f}%"
         )
 
