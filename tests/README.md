@@ -130,6 +130,32 @@ snakemake -s workflow/Snakefile \
   -n results/variant_tables/v5q_GRCh38_smvar/variants.parquet
 ```
 
+### Local File Support
+
+The pipeline now supports local file paths in configuration files for test fixtures:
+
+**Supported formats:**
+- `file://` URLs: `file:///absolute/path/to/file.vcf.gz` or `file://$PWD/relative/path/file.bed`
+- Absolute paths: `/absolute/path/to/file.vcf.gz`
+- Relative paths: `tests/fixtures/file.bed` (converted to absolute internally)
+
+**How it works:**
+- Download rules automatically detect local file paths vs. remote URLs
+- Local files are copied using `cp` instead of `wget`
+- Checksum validation still performed (SHA256/MD5 as configured)
+- Environment variable expansion supported (e.g., `$PWD`, `$HOME`)
+
+**Example test config:**
+```yaml
+benchmarksets:
+  v5q_GRCh38_smvar:
+    vcf:
+      url: "file://$PWD/tests/fixtures/grch38_debug_subset/benchmarksets/v5.0q_GRCh38_smvar_benchmark.vcf.gz"
+      sha256: "b6ad3c3956ec1270a159e1f3bb3ca0d589c3c5b6d0338ab207947cf5e70628bf"
+```
+
+See `config/config.test_grch38_debug.yaml` for a complete example.
+
 ## Continuous Integration
 
 Tests run automatically on:

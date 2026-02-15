@@ -86,6 +86,29 @@ make test      # Run all validation tests
 make run       # Execute the pipeline
 ```
 
+## Testing with Local Fixtures
+
+For fast, deterministic testing without downloading full datasets, the pipeline supports local file paths in configuration:
+
+```bash
+# Generate test fixtures (small subset of real data)
+python scripts/create_grch38_debug_subset.py --force
+
+# Run pipeline with test config using local fixtures
+snakemake --configfile config/config.test_grch38_debug.yaml \
+  --cores 4 --sdm conda \
+  -- results/variant_tables/v5q_GRCh38_smvar/variants.parquet
+```
+
+**Local file support:**
+- File paths with `file://` URLs (e.g., `file://$PWD/tests/fixtures/file.vcf.gz`)
+- Absolute paths (e.g., `/path/to/file.vcf.gz`)
+- Relative paths (e.g., `tests/fixtures/file.bed`)
+- Environment variable expansion (e.g., `$PWD`, `$HOME`)
+- All checksums still validated (SHA256/MD5)
+
+See `config/config.test_grch38_debug.yaml` for a complete example using local fixtures.
+
 ## Repository Structure
 
 ```
