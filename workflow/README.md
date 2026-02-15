@@ -96,14 +96,19 @@ Rules for variant annotation and table generation:
 
 ### exclusions.smk
 
-Rules for exclusion region analysis:
+Rules for exclusion region analysis (v5.0q benchmarks only):
 
-| Rule                        | Description                                   | Output                                                             |
-| --------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
-| `materialize_exclusion`     | Process exclusion BED (merge pairs if needed) | `results/exclusions/{benchmark}/exclusions/{exclusion}.bed`        |
-| `compute_dip_size`          | Calculate total benchmark region size         | `results/exclusions/{benchmark}/dip_size.txt`                      |
-| `compute_exclusion_metrics` | Calculate overlap metrics for exclusions      | `results/exclusions/{benchmark}/metrics/{exclusion}.tsv`           |
-| `aggregate_exclusion_table` | Combine all exclusion metrics into CSV        | `results/exclusions/{benchmark}/exclusions_intersection_table.csv` |
+| Rule                         | Description                                       | Output                                                         |
+| ---------------------------- | ------------------------------------------------- | -------------------------------------------------------------- |
+| `materialize_exclusion`      | Sort and merge exclusion BED files                | `results/exclusions/{benchmark}/{exclusion}.bed`               |
+| `compute_dip_size`           | Calculate total dip.bed size                      | `results/exclusions/{benchmark}/dip_size.txt`                  |
+| `compute_exclusion_metrics`  | Calculate per-exclusion overlap with dip.bed      | `results/exclusions/{benchmark}/coverage/{exclusion}.tsv`      |
+| `compute_exclusion_impact`   | Merge BED metrics with variant counts             | `results/exclusions/{benchmark}/exclusion_impact.csv`          |
+| `compute_exclusion_interactions` | Upset-style exclusion overlap analysis        | `results/exclusions/{benchmark}/exclusion_interactions.csv`    |
+| `annotate_old_benchmark_status` | Cross-version comparison (old vs v5.0q)       | `results/exclusions/{comp_id}/old_only_*.csv`                  |
+
+**Note:** The exclusions pipeline has a different architecture than genomic context metrics.
+See `docs/exclusions-pipeline-evaluation.md` for details on why they differ.
 
 ## Python Scripts
 
@@ -126,9 +131,14 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 
 ### BED File Processing
 
-| Script                    | Description                                        |
-| ------------------------- | -------------------------------------------------- |
-| `combine_beds_with_id.py` | Combine multiple BED files with unique identifiers |
+| Script                     | Description                                                  |
+| -------------------------- | ------------------------------------------------------------ |
+| `combine_beds_with_id.py`  | Combine multiple BED files with unique identifiers           |
+| `compute_bed_metrics.py`   | Compute overlap metrics between two BED files (exclusions)   |
+| `compute_coverage_table.py` | Summarize bedtools coverage output (genomic contexts)       |
+
+**Note:** `compute_bed_metrics.py` (exclusions) and `compute_coverage_table.py` (genomic contexts)
+serve different purposes. See `docs/exclusions-pipeline-evaluation.md` for details.
 
 ### VCF Annotation & Querying
 
@@ -139,17 +149,20 @@ The pipeline includes 14 Python scripts in `workflow/scripts/`:
 
 ### Variant Analysis
 
-| Script                       | Description                                         |
-| ---------------------------- | --------------------------------------------------- |
-| `generate_variant_parquet.py` | Generate Parquet variant tables using Truvari       |
-| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF   |
-| `count_variants_by_strat.py` | Count variants per stratification region         |
-| `stratify_comparison.py`     | Compare variants across stratifications          |
+| Script                              | Description                                            |
+| ----------------------------------- | ------------------------------------------------------ |
+| `generate_variant_parquet.py`       | Generate Parquet variant tables using Truvari          |
+| `count_variants_by_genomic_context.py` | Count variants per genomic context from Parquet     |
+| `count_exclusion_variants.py`       | Count variants per exclusion from Parquet              |
+| `compute_exclusion_interactions.py` | Compute upset-style exclusion overlap (bases + vars)   |
 
-### Metrics Aggregation
+### Metrics Aggregation (Legacy)
 
 | Script                      | Description                                  |
 | --------------------------- | -------------------------------------------- |
+| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF   |
+| `count_variants_by_strat.py` | Count variants per stratification region         |
+| `stratify_comparison.py`     | Compare variants across stratifications          |
 | `summarize_var_counts.py`   | Aggregate variant count summaries            |
 | `combine_metrics_counts.py` | Combine coverage metrics with variant counts |
 
