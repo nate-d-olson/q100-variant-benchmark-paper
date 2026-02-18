@@ -41,8 +41,7 @@ def main(snakemake):
             f.write("Status: PASS\n")
             f.write("\n")
             f.write("Statistics:\n")
-            for key, value in stats.items():
-                f.write(f"  {key}: {value}\n")
+            f.writelines(f"  {key}: {value}\n" for key, value in stats.items())
             f.write("\n")
             f.write("All validation checks passed.\n")
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # AI Disclosure: This script was developed with assistance from Claude (Anthropic).
+
+# Disable FIPS mode for OpenSSL to avoid conflicts on FIPS-enabled systems
+import os
+os.environ["OPENSSL_FIPS"] = "0"
+
 """
 Generate variant Parquet table from annotated VCF using Truvari VariantRecord API.
 
@@ -139,6 +144,19 @@ def generate_variant_parquet(
             # Get variant size (Truvari returns unsigned/absolute value)
             abs_size = vr.var_size()
 
+            # Get reference and alternate allele lengths
+            ref_len = len(vr.get_ref())
+            alt_allele = vr.get_alt()
+            if alt_allele is None:
+                logging.warning(
+                    "Skipping %s variant with missing ALT at %s:%d",
+                    var_type,
+                    record.chrom,
+                    record.pos,
+                )
+                continue
+            alt_len = len(alt_allele)
+
             # Apply sign convention: positive for INS, negative for DEL
             if var_type == "DEL":
                 var_size = -abs_size
@@ -152,17 +170,6 @@ def generate_variant_parquet(
                     record.chrom,
                     record.pos,
                 )
-                ref_len = len(vr.get_ref())
-                alt = vr.get_alt()
-                if alt is None:
-                    logging.warning(
-                        "Skipping %s variant with missing ALT at %s:%d",
-                        var_type,
-                        record.chrom,
-                        record.pos,
-                    )
-                    continue
-                alt_len = len(alt)
                 var_size = alt_len - ref_len  # Positive for INS, negative for DEL
                 var_type = "INS" if var_size > 0 else "DEL"
             else:
@@ -174,21 +181,20 @@ def generate_variant_parquet(
                 var_type = "INDEL"
 
                 # Size filtering based on bench_type
-                abs_size = abs(var_size)
-                if bench_type == "smvar" and abs_size >= size_threshold:
-                    filtered_size += 1
-                    continue
-                if bench_type == "stvar" and abs_size < size_threshold:
-                    filtered_size += 1
-                    continue
+                # abs_size = abs(var_size)
+            if bench_type == "smvar" and abs_size > size_threshold:
+                filtered_size += 1
+                continue
+            if bench_type == "stvar" and abs_size <= size_threshold:
+                filtered_size += 1
+                continue
 
             # Get size bin (convert to string for R schema compatibility)
-            szbin = str(get_size_bin(var_size))
+            szbin = truvari.get_sizebin(abs_size)
 
             # Extract INFO annotations (handle tuple/list → string)
             context_ids = normalize_annotation(record.info.get("CONTEXT_IDS"))
             region_ids = normalize_annotation(record.info.get("REGION_IDS"))
-
 
             # Extract genotype: gt() returns tuple, convert to GT enum, then extract name
             gt = truvari.get_gt(vr.gt()).name  # "HET", "HOM", "REF", "NON", "UNK"
@@ -217,8 +223,6 @@ def generate_variant_parquet(
                     "region_ids": region_ids,
                 }
             )
-    vcf.close()
-
 
     logging.info("Collected %d variants", len(variants))
     if filtered_non > 0:

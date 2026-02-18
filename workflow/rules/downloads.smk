@@ -38,7 +38,7 @@ rule download_benchmark_vcf:
     params:
         url=lambda w: config["benchmarksets"][w.benchmark]["vcf"]["url"],
     log:
-        "logs/downloads/{benchmark}_vcf.log",
+        "logs/download_benchmark_vcf/{benchmark}.log",
     retries: 3
     resources:
         mem_mb=512,
@@ -76,7 +76,7 @@ rule download_benchmark_bed:
     params:
         url=lambda w: config["benchmarksets"][w.benchmark]["bed"]["url"],
     log:
-        "logs/downloads/{benchmark}_bed.log",
+        "logs/download_benchmark_bed/{benchmark}.log",
     retries: 3
     resources:
         mem_mb=512,
@@ -121,7 +121,7 @@ rule download_benchmark_dip_bed:
         .get("dip_bed", {})
         .get("sha256", ""),
     log:
-        "logs/downloads/{benchmark}_dip_bed.log",
+        "logs/download_benchmark_dip_bed/{benchmark}.log",
     retries: 3
     resources:
         mem_mb=512,
@@ -176,7 +176,7 @@ rule prepare_reference:
         checksum=lambda w: get_reference_checksum(w.ref_name),
         checksum_type="sha256",  ## hardcoded using sha256 in config
     log:
-        "logs/references/{ref_name}_prepare.log",
+        "logs/prepare_reference/{ref_name}.log",
     retries: 3
     resources:
         mem_mb=2048,
@@ -254,7 +254,7 @@ rule download_stratification:
     params:
         url=lambda w: get_stratification_url(w),
     log:
-        "logs/downloads/stratifications/{ref}_{strat_name}.log",
+        "logs/download_stratification/{ref}_{strat_name}.log",
     wildcard_constraints:
         ref="GRCh37|GRCh38|CHM13v2.0",
         strat_name="TR|TR10kb|HP|SD|SD10kb|MAP",
@@ -311,7 +311,7 @@ rule download_exclusion:
             w.benchmark, w.exclusion_name, int(w.file_idx)
         ),
     log:
-        "logs/downloads/exclusions/{benchmark}_{exclusion_name}_{file_idx}.log",
+        "logs/download_exclusion/{benchmark}_{exclusion_name}_{file_idx}.log",
     retries: 3
     resources:
         mem_mb=256,

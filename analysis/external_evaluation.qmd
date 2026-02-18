@@ -17,50 +17,28 @@ Update curations with JZ notes https://docs.google.com/spreadsheets/d/1evd6q8jqF
 library(tidyverse)
 library(here)
 library(patchwork)
-library(googlesheets4)
-googlesheets4::gs4_auth(email = "nathanael.olson@nist.gov")
 ```
 
 ## Data Loading
 
 ### External Evaluation Data
 
+The external evaluation data with JZ curations is loaded from local TSV files
+(previously sourced from Google Sheets).
+
 ```{r message=FALSE}
-eval_csvs <- list.files(
-  path = here("data/external-evaluations"),
-  pattern = "Miqa.csv",
-  full.names = TRUE,
-  recursive = TRUE,
-  include.dirs = TRUE
-) %>%
-  {
-    set_names(., str_extract(., "(?<=evaluations/).*(?= On)"))
-  }
+## Load pre-combined evaluation data with JZ curations from local TSV files
+smvar_evals <- read_tsv(
+  here("data/external-evaluations/Q100-ext-evals-2025-04-11_smvars.tsv"),
+  show_col_types = FALSE,
+  name_repair = "universal"
+)
 
-## Subsetting small and structural variant tables based on number of rows
-## - small variants expect 71, structural variants 41
-## a few files have less as less than 5 variants per strata to subset
-nlines <- eval_csvs %>% map_int(~ length(read_lines(.x)))
-
-smvar_evals <- eval_csvs[nlines > 50] %>%
-  map_dfr(read_csv,
-    name_repair = "universal",
-    show_col_types = FALSE,
-    .id = "callset"
-  )
-
-stvar_evals <- eval_csvs[nlines < 50] %>%
-  map_dfr(read_csv,
-    name_repair = "universal",
-    show_col_types = FALSE,
-    .id = "callset"
-  )
-
-## Justin Zook's re-curations of no and unsure variants
-
-jz_curation_ss <- "1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-_vcV6t0"
-recurations_smvar <- read_sheet(jz_curation_ss, sheet = "smvars")
-recurations_stvar <- read_sheet(jz_curation_ss, sheet = "stvars")
+stvar_evals <- read_tsv(
+  here("data/external-evaluations/Q100-ext-evals-2025-04-11_stvars.tsv"),
+  show_col_types = FALSE,
+  name_repair = "universal"
+)
 
 ## Manually Revising callset names for figures
 stvar_callsets <- c(
@@ -85,8 +63,8 @@ smvar_callsets <- c(
 
 
 ## Cleaned up tables with updated curations
+## Note: TSV files already contain JZ curations, no join needed
 smvar_curations <- smvar_evals %>%
-  left_join(recurations_smvar) %>%
   rename(unique_to = label) %>%
   select(
     callset,
@@ -106,10 +84,9 @@ smvar_curations <- smvar_evals %>%
   mutate(callset = smvar_callsets[callset])
 
 stvar_curations <- stvar_evals %>%
-  left_join(recurations_stvar) %>%
   rename(var_type = SVTYPE) %>%
   mutate(
-    unique_to = if_else(unique_to == "bnechmark", "bench", "query"),
+    unique_to = if_else(unique_to == "benchmark", "bench", "query"),
     strata = str_glue("{TR_anno}\n{sv_cat}\n{unique_to}")
   ) %>%
   select(
@@ -568,8 +545,7 @@ ggsave(
 
 ```{r}
 stvars_no_or_unsure <- stvar_evals %>%
-  filter(correct.in.benchmark != "yes") %>%
-  select(-Select, -annot, -comment)
+  filter(correct.in.benchmark != "yes")
 
 DT::datatable(stvars_no_or_unsure,
   rownames = FALSE,

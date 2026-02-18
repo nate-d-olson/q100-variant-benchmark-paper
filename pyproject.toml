@@ -1,0 +1,36 @@
+[tool.ruff]
+# Target Python 3.10+
+target-version = "py310"
+
+# Exclude common non-source directories
+extend-exclude = [
+    ".snakemake",
+    "results",
+    "logs",
+    "resources",
+    "site",
+    "analysis/*_cache",
+    "analysis/*_files",
+]
+
+[tool.ruff.lint]
+# Enable pyflakes error detection (F)
+select = ["F"]
+
+# Per-file configuration:
+# - Snakemake scripts inject the 'snakemake' object at runtime, so we ignore F821 (undefined name) for those
+# - Utility modules (exceptions.py, validators.py, logging_config.py) should detect undefined names
+[tool.ruff.lint.per-file-ignores]
+"workflow/scripts/aggregate_stratified_bench.py" = ["F821"]  # snakemake object
+"workflow/scripts/annotate_old_benchmark_status.py" = ["F821"]  # snakemake object
+"workflow/scripts/compute_bed_metrics.py" = ["F821"]  # snakemake object
+"workflow/scripts/compute_coverage_table.py" = ["F821"]  # snakemake object
+"workflow/scripts/compute_exclusion_interactions.py" = ["F821"]  # snakemake object
+"workflow/scripts/count_exclusion_variants.py" = ["F821"]  # snakemake object
+"workflow/scripts/count_variants_by_genomic_context.py" = ["F821"]  # snakemake object
+"workflow/scripts/generate_variant_parquet.py" = ["F821"]  # snakemake object
+"workflow/scripts/stratify_comparison.py" = ["F821"]  # snakemake object
+"workflow/scripts/validate_bed.py" = ["F821"]  # snakemake object
+"workflow/scripts/validate_vcf.py" = ["F821"]  # snakemake object
+# Note: exceptions.py, validators.py, logging_config.py, combine_beds_with_id.py,
+# and generate_header_lines.py are NOT in this list - they should catch undefined names

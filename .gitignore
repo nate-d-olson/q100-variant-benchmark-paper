@@ -39,6 +39,9 @@ Thumbs.db
 analysis/*_files/**
 /etc/**
 
+# Git worktrees
+.worktrees/
+
 # Snakemake
 logs/
 .snakemake/
@@ -74,3 +77,6 @@ _bookdown_files/
 site/_site/
 site/.quarto/
 site/_freeze/
+
+# Node.js (pre-commit)
+node_modules/

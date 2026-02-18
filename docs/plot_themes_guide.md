@@ -44,10 +44,6 @@ All color scales follow the same pattern and are designed to be:
 scale_benchmark_version(aesthetic = "color", name = "Benchmark")
 scale_benchmark_version(aesthetic = "fill", name = "Benchmark")
 
-# For reference genomes
-scale_reference_genome(aesthetic = "color", name = "Reference")
-scale_reference_genome(aesthetic = "fill")
-
 # For benchmark set types
 scale_bench_type(aesthetic = "color", name = "Benchmark Type")
 scale_bench_type(aesthetic = "fill")
@@ -280,7 +276,7 @@ ggsave(
 - **v4.2.1** (#D95F02): Orange - intermediate version
 - **v5.0q** (#7570B3): Purple - newest version
 
-*Progression suggests upgrade path from old (teal) → new (purple)*
+_Progression suggests upgrade path from old (teal) → new (purple)_
 
 ### Reference Genomes
 
@@ -288,7 +284,7 @@ ggsave(
 - **GRCh38** (#377EB8): Blue - current human reference
 - **CHM13v2.0** (#4DAF4A): Green - telomere-to-telomere assembly
 
-*Colors chosen for maximum contrast and colorblind compatibility*
+_Colors chosen for maximum contrast and colorblind compatibility_
 
 ### Genomic Contexts
 
@@ -299,7 +295,7 @@ ggsave(
 - **TR** (#FF7F00): Orange - Tandem Repeats
 - **TR10kb** (#A65628): Brown - Large Tandem Repeats
 
-*All six colors are easily distinguishable and colorblind-friendly*
+_All six colors are easily distinguishable and colorblind-friendly_
 
 ## Cell Genomics Requirements Compliance
 

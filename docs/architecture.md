@@ -164,7 +164,7 @@ results/
 │       └── exclusions_intersection_table.csv ✓ Use first
 ├── variant_tables/           # Full variant data (DETAILED)
 │   └── {benchmark}/{ref}/
-│       └── variants.tsv ⚠️ Large, use filters
+│       └── variants.parquet ⚠️ Large, use filters
 ├── diff_region_coverage/     # Base-level coverage (DETAILED)
 │   └── {benchmark}/{ref}/
 │       ├── HP_cov.bed ⚠️ Large
@@ -211,7 +211,7 @@ The pipeline generates two tiers of outputs optimized for different use cases:
 
 #### 2. Detailed Data Files (Large, ~MB-GB per file)
 
-- `variant_tables/*/variants.tsv` - Full variant-level annotations
+- `variant_tables/*/variants.parquet` - Full variant-level annotations
 - `diff_region_coverage/*/*.bed` - Base-level coverage data
 
 **Characteristics:**
@@ -254,48 +254,49 @@ The pipeline generates two tiers of outputs optimized for different use cases:
 
 The pipeline consists of 13 modular rule files totaling 2,080 lines of Snakemake code:
 
-| Module | Lines | Purpose | Key Rules |
-|--------|-------|---------|-----------|
-| `common.smk` | 523 | Helper functions and config parsing | `get_region_beds()`, `get_exclusion_inputs()`, `get_genomic_context_ids()` |
-| `downloads.smk` | 329 | File downloads with SHA256 validation | `download_benchmark_vcf`, `download_reference` |
-| `var_tables.smk` | 237 | Variant annotation and table generation | `combine_genomic_context_beds`, `annotate_vcf_genomic_contexts` |
-| `genomic_context_metrics.smk` | 155 | Genomic context coverage metrics | `compute_genomic_context_metrics`, `aggregate_genomic_context_metrics` |
-| `exclusions.smk` | 166 | Exclusion region analysis | `materialize_exclusion`, `compute_exclusion_metrics` |
-| `benchmark_comparisons.smk` | 137 | Benchmark set comparisons | `run_truvari_compare`, `stratify_comparison` |
-| `stratify_bench.smk` | 112 | Truvari stratification analysis | `truvari_stratify` |
-| `var_counts.smk` | 107 | Variant counting by type/genomic context | `count_variants_by_genomic_context`, `combine_metrics_and_counts` |
-| `output_organization.smk` | 102 | Organize outputs into final structure | `organize_outputs` |
-| `validation.smk` | 87 | Data validation | `validate_benchmark_vcf`, `validate_benchmark_bed` |
-| `vcf_processing.smk` | 79 | VCF indexing and normalization | `index_vcf`, `split_multiallelics` |
-| `genomic_context_tables.smk` | 15 | Aggregate genomic context tables | `aggregate_genomic_context_tables` |
-| `ref_processing.smk` | 31 | Reference genome indexing | `index_reference` |
+| Module                        | Lines | Purpose                                  | Key Rules                                                                  |
+| ----------------------------- | ----- | ---------------------------------------- | -------------------------------------------------------------------------- |
+| `common.smk`                  | 523   | Helper functions and config parsing      | `get_region_beds()`, `get_exclusion_inputs()`, `get_genomic_context_ids()` |
+| `downloads.smk`               | 329   | File downloads with SHA256 validation    | `download_benchmark_vcf`, `download_reference`                             |
+| `var_tables.smk`              | 237   | Variant annotation and table generation  | `combine_genomic_context_beds`, `annotate_vcf_genomic_contexts`            |
+| `genomic_context_metrics.smk` | 44    | Genomic context coverage metrics         | `compute_genomic_context_coverage_table`                                   |
+| `exclusions.smk`              | 166   | Exclusion region analysis                | `materialize_exclusion`, `compute_exclusion_metrics`                       |
+| `benchmark_comparisons.smk`   | 137   | Benchmark set comparisons                | `run_truvari_compare`, `stratify_comparison`                               |
+| `stratify_bench.smk`          | 112   | Truvari stratification analysis          | `truvari_stratify`                                                         |
+| `var_counts.smk`              | 107   | Variant counting by type/genomic context | `count_variants_by_genomic_context`, `combine_metrics_and_counts`          |
+| `output_organization.smk`     | 102   | Organize outputs into final structure    | `organize_outputs`                                                         |
+| `validation.smk`              | 87    | Data validation                          | `validate_benchmark_vcf`, `validate_benchmark_bed`                         |
+| `vcf_processing.smk`          | 79    | VCF indexing and normalization           | `index_vcf`, `split_multiallelics`                                         |
+| `genomic_context_tables.smk`  | 15    | Aggregate genomic context tables         | `aggregate_genomic_context_tables`                                         |
+| `ref_processing.smk`          | 31    | Reference genome indexing                | `index_reference`                                                          |
 
 ### Python Data Processing Scripts
 
 The pipeline includes 15 Python scripts organized by function:
 
-| Script | Purpose | Key Features |
-|--------|---------|--------------|
-| **Core Infrastructure** | | |
-| `logging_config.py` | Centralized logging setup | Structured logs, multi-handler support |
-| `exceptions.py` | Custom exception classes | Context-rich error messages |
-| `validators.py` | Data validation utilities | VCF/BED/TSV format checking |
-| **Data Validation** | | |
-| `validate_vcf.py` | VCF format validation | Pre-flight format checks |
-| `validate_bed.py` | BED format validation | Coordinate and structure checks |
-| **BED Processing** | | |
-| `combine_beds_with_id.py` | Merge BED files with unique IDs | Adds ID column for tracking |
-| `compute_bed_metrics.py` | Compute coverage metrics from BEDs | Intersect and percentage calculations |
-| **VCF Annotation** | | |
-| `extract_info_fields.py` | Extract VCF INFO field names | Dynamic header generation |
-| `generate_header_lines.py` | Create VCF annotation headers | For bcftools annotate |
-| **Variant Analysis** | | |
-| `count_variants_by_genomic_context.py` | Count variants per genomic context | Aggregates variant types |
-| `aggregate_stratified_bench.py` | Aggregate stratified benchmark results | Cross-context summaries |
-| `stratify_comparison.py` | Compare variants across benchmarks | Benchmark comparison analysis |
-| **Metrics Aggregation** | | |
-| `summarize_var_counts.py` | Aggregate variant count tables | Cross-benchmark summaries |
-| `combine_metrics_counts.py` | Combine metrics into final tables | Merges coverage + counts |
+| Script                                 | Purpose                                | Key Features                           |
+| -------------------------------------- | -------------------------------------- | -------------------------------------- |
+| **Core Infrastructure**                |                                        |                                        |
+| `logging_config.py`                    | Centralized logging setup              | Structured logs, multi-handler support |
+| `exceptions.py`                        | Custom exception classes               | Context-rich error messages            |
+| `validators.py`                        | Data validation utilities              | VCF/BED/TSV format checking            |
+| **Data Validation**                    |                                        |                                        |
+| `validate_vcf.py`                      | VCF format validation                  | Pre-flight format checks               |
+| `validate_bed.py`                      | BED format validation                  | Coordinate and structure checks        |
+| **BED Processing**                     |                                        |                                        |
+| `combine_beds_with_id.py`              | Merge BED files with unique IDs        | Adds ID column for tracking            |
+| `compute_bed_metrics.py`               | Compute coverage metrics from BEDs     | Intersect and percentage calculations  |
+| `compute_coverage_table.py`            | Genomic context coverage table         | Single-pass metrics for all contexts   |
+| **VCF Annotation**                     |                                        |                                        |
+| `extract_info_fields.py`               | Extract VCF INFO field names           | Dynamic header generation              |
+| `generate_header_lines.py`             | Create VCF annotation headers          | For bcftools annotate                  |
+| **Variant Analysis**                   |                                        |                                        |
+| `count_variants_by_genomic_context.py` | Count variants per genomic context     | Aggregates variant types               |
+| `aggregate_stratified_bench.py`        | Aggregate stratified benchmark results | Cross-context summaries                |
+| `stratify_comparison.py`               | Compare variants across benchmarks     | Benchmark comparison analysis          |
+| **Metrics Aggregation**                |                                        |                                        |
+| `summarize_var_counts.py`              | Aggregate variant count tables         | Cross-benchmark summaries              |
+| `combine_metrics_counts.py`            | Combine metrics into final tables      | Merges coverage + counts               |
 
 ## Key Design Patterns
 
@@ -427,12 +428,12 @@ R/
 
 Centralized definitions used by both writing and reading:
 
-| Component | Purpose |
-|-----------|---------|
-| `get_arrow_schema(dataset)` | Arrow type definitions for Parquet write |
-| `get_factor_levels(dataset)` | Factor level restoration after Parquet read |
+| Component                       | Purpose                                             |
+| ------------------------------- | --------------------------------------------------- |
+| `get_arrow_schema(dataset)`     | Arrow type definitions for Parquet write            |
+| `get_factor_levels(dataset)`    | Factor level restoration after Parquet read         |
 | `get_validation_rules(dataset)` | Column predicate functions for fail-fast validation |
-| `validate_data(df, dataset)` | Run all validations on a data frame |
+| `validate_data(df, dataset)`    | Run all validations on a data frame                 |
 
 Supported datasets: `variant_table`, `diff_coverage`, `benchmark_regions`
 
@@ -440,15 +441,15 @@ Supported datasets: `variant_table`, `diff_coverage`, `benchmark_regions`
 
 Parquet-only caching with automatic invalidation:
 
-| Function | Purpose |
-|----------|---------|
-| `write_cache()` | Validate, strip factors, embed metadata, write Parquet |
-| `read_cache()` | Read Parquet, restore factors, return tibble (or NULL) |
-| `cache_is_valid()` | Check if valid cache exists for given inputs |
-| `invalidate_cache(dataset)` | Remove all cache files for a dataset |
-| `clear_cache()` | Remove entire cache directory |
-| `cache_info()` | List cached files with size, age, dataset name |
-| `collect_pipeline_metadata()` | Gather R version, package versions, config summary |
+| Function                      | Purpose                                                |
+| ----------------------------- | ------------------------------------------------------ |
+| `write_cache()`               | Validate, strip factors, embed metadata, write Parquet |
+| `read_cache()`                | Read Parquet, restore factors, return tibble (or NULL) |
+| `cache_is_valid()`            | Check if valid cache exists for given inputs           |
+| `invalidate_cache(dataset)`   | Remove all cache files for a dataset                   |
+| `clear_cache()`               | Remove entire cache directory                          |
+| `cache_info()`                | List cached files with size, age, dataset name         |
+| `collect_pipeline_metadata()` | Gather R version, package versions, config summary     |
 
 **Design decisions:**
 
@@ -463,11 +464,11 @@ Parquet-only caching with automatic invalidation:
 
 Three functions support caching via `use_cache` and `force_refresh` parameters:
 
-| Function | Dataset | Source Files |
-|----------|---------|--------------|
-| `load_variant_table()` | `variant_table` | `variants.tsv` |
-| `load_genomic_context_coverage()` | `diff_coverage` | `*_cov.bed` files |
-| `load_benchmark_regions()` | `benchmark_regions` | `*_benchmark.bed` files |
+| Function                          | Dataset             | Source Files               |
+| --------------------------------- | ------------------- | -------------------------- |
+| `load_variant_table()`            | `variant_table`     | `variants.parquet`         |
+| `load_genomic_context_coverage()` | `diff_coverage`     | `*_cov.bed` files          |
+| `load_benchmark_regions()`        | `benchmark_regions` | `*_benchmark.bed` files    |
 
 Functions NOT cached (small datasets, load directly from pipeline output):
 
@@ -482,18 +483,18 @@ No changes needed in `R/cache.R` -- it is dataset-agnostic.
 
 ## Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Workflow | Snakemake 8.0+ | DAG execution, rule management |
-| Environment | Conda/Mamba | Reproducible package management |
-| VCF | bcftools | VCF query, annotation, manipulation |
-| BED | bedtools | Genomic region operations |
-| Indexing | samtools | FASTA indexing |
-| Data Processing | Python 3.x | Custom scripts with logging (NEW) |
-| Analysis | R 4.5 + Quarto | Statistical analysis and reporting |
-| Data Caching | Arrow/Parquet | Schema-validated Parquet caching for large datasets |
-| Code Quality | air + lintr | R code formatting and linting |
-| Validation | Custom Python (NEW) | Format checking, integrity validation |
+| Layer           | Technology          | Purpose                                             |
+| --------------- | ------------------- | --------------------------------------------------- |
+| Workflow        | Snakemake 8.0+      | DAG execution, rule management                      |
+| Environment     | Conda/Mamba         | Reproducible package management                     |
+| VCF             | bcftools            | VCF query, annotation, manipulation                 |
+| BED             | bedtools            | Genomic region operations                           |
+| Indexing        | samtools            | FASTA indexing                                      |
+| Data Processing | Python 3.x          | Custom scripts with logging (NEW)                   |
+| Analysis        | R 4.5 + Quarto      | Statistical analysis and reporting                  |
+| Data Caching    | Arrow/Parquet       | Schema-validated Parquet caching for large datasets |
+| Code Quality    | air + lintr         | R code formatting and linting                       |
+| Validation      | Custom Python (NEW) | Format checking, integrity validation               |
 
 ## Error Handling (NEW)
 
@@ -516,14 +517,14 @@ The pipeline now includes comprehensive error handling:
 
 ## Performance Characteristics
 
-| Phase | Bottleneck | Typical Runtime | Memory |
-|-------|-----------|-----------------|--------|
-| Download | Network bandwidth | Varies | Low |
-| Validation (NEW) | I/O | 1-5 min | Low |
-| VCF Indexing | I/O | 5-10 min | Low |
-| BED Combination | I/O | 1-2 min | Moderate |
-| VCF Annotation | bcftools | 10-30 min | Moderate |
-| Metrics Calculation | bedtools | 5-15 min | Low-Moderate |
+| Phase               | Bottleneck        | Typical Runtime | Memory       |
+| ------------------- | ----------------- | --------------- | ------------ |
+| Download            | Network bandwidth | Varies          | Low          |
+| Validation (NEW)    | I/O               | 1-5 min         | Low          |
+| VCF Indexing        | I/O               | 5-10 min        | Low          |
+| BED Combination     | I/O               | 1-2 min         | Moderate     |
+| VCF Annotation      | bcftools          | 10-30 min       | Moderate     |
+| Metrics Calculation | bedtools          | 5-15 min        | Low-Moderate |
 
 **Parallelization**: Pipeline supports `-j N` for parallel rule execution.
 
@@ -565,5 +566,5 @@ See `IMPROVEMENT_SUGGESTIONS.md` for:
 
 ---
 
-*Last Updated: 2026-02-07*
-*Documentation synchronized with codebase (common.smk duplicate functions removed)*
+_Last Updated: 2026-02-07_
+_Documentation synchronized with codebase (common.smk duplicate functions removed)_

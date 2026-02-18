@@ -76,31 +76,13 @@ def get_chromosomes(wildcards) -> str:
     return " ".join([f"chr{c}" for c in chroms])
 
 
-def get_reference_checksum(ref_name: str) -> str:
-    """
-    Get checksum value for a reference genome.
-
-    Args:
-        ref_name: Name of the reference in config["references"]
-
-    Returns:
-        Checksum string (MD5 or SHA256)
-    """
-    ref_config = config["references"].get(ref_name, {})
-    if "sha256" in ref_config:
-        return ref_config["sha256"]
-    if "md5" in ref_config:
-        return ref_config["md5"]
-    raise ValueError(f"No checksum found for reference: {ref_name}")
-
-
 # ============================================================================
 # Variant Table Helpers
 # ============================================================================
 
 
-def get_genomic_context_beds(wildcards) -> List[str]:
-    """Get list of genomic context BED files with IDs."""
+def get_genomic_context_bed_specs(wildcards) -> List[str]:
+    """Get list of genomic context BED files with IDs (path:name format)."""
     ref = config["benchmarksets"][wildcards.benchmark].get("ref")
     contexts = config["references"][ref].get("stratifications", {})
     beds = []
@@ -242,6 +224,28 @@ def get_genomic_context_ids(wildcards) -> List[str]:
     benchmark = wildcards.benchmark
     ref = config["benchmarksets"][benchmark]["ref"]
     return get_stratifications_for_ref(ref)
+
+
+def get_genomic_context_cov_beds(wildcards) -> List[str]:
+    """
+    Get list of bedtools coverage BED file paths for a benchmark.
+
+    Returns paths to _cov.bed files produced by the genomic_context_coverage
+    rule in genomic_context_tables.smk.
+
+    Args:
+        wildcards: Snakemake wildcards with benchmark attribute
+
+    Returns:
+        List of paths to coverage BED files
+    """
+    benchmark = wildcards.benchmark
+    ref = config["benchmarksets"][benchmark]["ref"]
+    contexts = get_stratifications_for_ref(ref)
+    return [
+        f"results/genomic_context/{benchmark}/coverage/{ctx}_cov.bed"
+        for ctx in contexts
+    ]
 
 
 def get_stratify_inputs(wildcards):
@@ -523,12 +527,6 @@ def get_reference_checksum(ref_name: str) -> str:
     """Get checksum value for reference."""
     checksum, _ = get_reference_checksum_info(ref_name)
     return checksum
-
-
-def get_reference_checksum_type(ref_name: str) -> str:
-    """Get checksum type for reference."""
-    _, checksum_type = get_reference_checksum_info(ref_name)
-    return checksum_type
 
 
 def get_chromosomes(wildcards) -> str:

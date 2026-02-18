@@ -207,7 +207,7 @@ Conflicts: bcftools-1.18 requires libdeflate>=1.10
 
    ```yaml
    dependencies:
-     - bcftools=1.17  # Pin specific version
+     - bcftools=1.17 # Pin specific version
    ```
 
 ---
@@ -836,16 +836,16 @@ snakemake --dag 2>&1 | grep -i "cycle"
 
 ## Quick Reference
 
-| Symptom | Likely Cause | Quick Fix |
-|---------|-------------|-----------|
-| "Checksum mismatch" | Incomplete download | Delete file, re-run |
-| "Killed" | Out of memory | Reduce `--cores` |
-| "Missing input" | Download failed | Check logs, re-run downloads |
-| "Locked directory" | Crashed run | `snakemake --unlock` |
-| "Invalid YAML" | Syntax error | Check indentation, quotes |
-| Slow execution | Single-threaded | Increase `--cores` |
-| Disk full | Temp files | `--delete-temp-output` |
-| Conda error | Corrupted env | `rm -rf .snakemake/conda` |
+| Symptom             | Likely Cause        | Quick Fix                    |
+| ------------------- | ------------------- | ---------------------------- |
+| "Checksum mismatch" | Incomplete download | Delete file, re-run          |
+| "Killed"            | Out of memory       | Reduce `--cores`             |
+| "Missing input"     | Download failed     | Check logs, re-run downloads |
+| "Locked directory"  | Crashed run         | `snakemake --unlock`         |
+| "Invalid YAML"      | Syntax error        | Check indentation, quotes    |
+| Slow execution      | Single-threaded     | Increase `--cores`           |
+| Disk full           | Temp files          | `--delete-temp-output`       |
+| Conda error         | Corrupted env       | `rm -rf .snakemake/conda`    |
 
 ---
 

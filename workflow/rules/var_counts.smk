@@ -33,7 +33,7 @@ rule count_variants_by_genomic_context:
             non_empty=True,
         ),
     log:
-        "logs/genomic_context/{benchmark}/count_by_genomic_context.log",
+        "logs/count_variants_by_genomic_context/{benchmark}.log",
     message:
         "Counting variants by genomic context for {wildcards.benchmark}"
     resources:

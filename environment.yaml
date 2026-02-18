@@ -4,13 +4,64 @@ channels:
   - bioconda
 channel_priority: strict
 dependencies:
+  # Workflow management
   - snakemake>=8.0
   - snakefmt
   - mamba
   - conda
   - graphviz
+
+  # Documentation
   - quarto
-  - r-base
+
+  # Python linting/formatting
+  - ruff
+
+  # Markdown linting
+  - markdownlint-cli
+
+  # R base and development tools
+  - r-base>=4.3
   - r-lintr
   - r-styler
-  - markdownlint-cli
+
+  # R tidyverse ecosystem
+  - r-tidyverse
+  - r-dplyr
+  - r-ggplot2
+  - r-stringr
+  - r-tidyr
+  - r-purrr
+  - r-readr
+
+  # R data loading and caching
+  - r-arrow
+  - r-here
+  - r-fs
+  - r-glue
+  - r-rlang
+  - r-yaml
+  - r-data.table
+  - r-vroom
+  - r-magrittr
+
+  # R visualization
+  - r-patchwork
+  - r-gt
+  - r-ggupset
+  - r-ggalluvial
+  - r-ggflowchart
+
+  # R Google integration (optional - for external data)
+  - r-googlesheets4
+
+  # R testing
+  - r-testthat
+  - r-withr
+
+  # R session info
+  - r-sessioninfo
+
+  # R documentation
+  - r-knitr
+  - r-rmarkdown

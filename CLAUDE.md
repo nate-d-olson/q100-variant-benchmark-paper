@@ -10,6 +10,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 - `analysis/` - Quarto notebooks and cached data
 - `config/` - Pipeline configuration (config.yaml)
 - `docs/` - Architecture docs, data dictionary, troubleshooting
+- `manuscript/` - Quarto manuscript chapters (introduction, methods, results, discussion)
+- `scripts/` - Utility scripts (create_grch38_debug_subset.py, happy_giab.R)
 - `tests/` - R tests (testthat) and Python tests (pytest)
 - `workflow/` - Snakemake rules and Python scripts
 - `results/` - Pipeline outputs (gitignored, must be generated)
@@ -28,7 +30,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Key Rules by Layer:**
 
-1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Compute overlap statistics between genomic contexts and benchmarks
+1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Single-rule computation of overlap statistics between genomic contexts and benchmarks
+   - Rule: `compute_genomic_context_coverage_table` — uses `compute_coverage_table.py` to process all contexts in one pass
    - Outputs: `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
 2. **Variant Tables** (`workflow/rules/var_tables.smk`): Annotate VCFs with genomic context IDs and generate Parquet
    - Key rule: `annotate_vcf_genomic_contexts` → adds INFO/CONTEXT_IDS to VCF
@@ -51,10 +54,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 **Output File Patterns:**
 
 - Genomic context files: `results/genomic_context/{benchmark}/`
-  - `coverage/` - BED files (symlinked `.bed.gz` and bedtools `_cov.bed`)
-  - `metrics/` - Per-context metrics TSV files
-  - `genomic_context_coverage_table.csv` - Aggregated coverage metrics
-  - `sizes/` - Temporary size calculation files (auto-deleted by Snakemake)
+  - `coverage/` - bedtools coverage output (`_cov.bed`) from `genomic_context_tables.smk`
+  - `genomic_context_coverage_table.csv` - Coverage metrics (from `compute_coverage_table.py`)
 - Variant tables: `results/variant_tables/{benchmark}/variants.parquet`
 - Variant counts: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`
@@ -64,7 +65,20 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 - Activate with: `micromamba activate q100-smk`
 - Dry-run: `snakemake -n <target>`
-- Snakemake version: 9.x (uses `--` before positional targets with flags like `-n`)
+- Snakemake version: 8.x (`min_version("8.0")` in Snakefile)
+
+**Makefile Shortcuts** (preferred over raw snakemake commands):
+
+```bash
+make dry-run       # Validate workflow (snakemake -n --quiet)
+make lint          # Snakemake + Python (ruff) + R (lintr) linting
+make format        # Format Python (ruff), Snakemake (snakefmt), Markdown, R (styler)
+make format-check  # Check formatting without modifying files
+make test          # lint + format-check + dry-run
+make run           # Execute pipeline (--cores 14 --sdm conda)
+make dag           # Generate pipeline DAG PDF (results/dag/pipeline.pdf)
+make clean         # Remove logs/, .snakemake/, results/, analysis/cache/
+```
 
 **Conda Channel Configuration:**
 
@@ -144,7 +158,7 @@ inversion. It is configured under `chr8_synteny:` in `config/config.yaml`.
 
 - **Cause**: Truvari's `vcf_to_df()` converts multi-value VCF INFO fields into Python tuples/lists
 - **Root cause**: When written to Parquet, these become string representations like `"('HP', 'MAP')"`
-- **Fix**: Added tuple-to-string conversion in `generate_variant_parquet.py` (lines 226-236)
+- **Fix**: Added `normalize_annotation()` function in `generate_variant_parquet.py` (line 66) for tuple-to-string conversion
 - **Fixed**: February 2026
 - **Verification**: Check logs show clean context names: `Contexts: ['HP', 'MAP', 'SD', ...]`
 - **Impact**: Affected all variant count tables (genomic contexts and exclusions) across all benchmarks
@@ -205,8 +219,11 @@ Source order: `data_loading.R` sources `schemas.R` and `cache.R` at the top. Use
 ### Testing
 
 ```bash
-Rscript -e 'testthat::test_file("tests/test_cache.R")'      # Schema + cache tests (45 tests)
-Rscript -e 'testthat::test_file("tests/test_data_loading.R")'  # Data loading tests (has pre-existing failures)
+Rscript -e 'testthat::test_file("tests/test_cache.R")'           # Schema + cache tests (45 tests)
+Rscript -e 'testthat::test_file("tests/test_data_loading.R")'    # Data loading tests (has pre-existing failures)
+Rscript -e 'testthat::test_file("tests/test_exclusion_loading.R")'  # Exclusion loading tests
+Rscript -e 'testthat::test_file("tests/test_schema_update.R")'   # Schema update tests
+pytest tests/unit/  # Python unit tests (validators, common helpers, stratify_comparison)
 ```
 
 Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
@@ -233,7 +250,12 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 
 - `analysis/benchmarkset_characterization.qmd` — Primary analysis; loads `variants_df` and `genomic_context_metrics_df`
 - `analysis/benchmark_difficult.qmd` — Coverage analysis; loads `diff_cov_df`
+- `analysis/benchmark_exclusions.qmd` — Exclusion region analysis (v5.0q only)
+- `analysis/genomic_context_analysis.qmd` — Genomic context overlap analysis
+- `analysis/benchmark_interval_size_distributions.qmd` — Interval size distributions
+- `analysis/benchmark_unique_regions.qmd` — Unique region analysis across benchmark versions
 - `analysis/external_evaluation.qmd` — External benchmark comparisons
+- `analysis/_notebook_setup.R` — `analysis_setup()` helper: loads tidyverse/patchwork, sources `R/data_loading.R` and `R/plot_themes.R`; call at top of each notebook
 
 ## Column Naming Conventions
 
