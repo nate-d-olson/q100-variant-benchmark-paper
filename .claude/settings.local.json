@@ -25,9 +25,21 @@
       "Bash(tee:*)",
       "Bash(gh pr view:*)",
       "Bash(gh api:*)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(source:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(bcftools view:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(pip install:*)",
+      "Bash(quarto render:*)",
+      "Bash(micromamba env:*)",
+      "Bash(micromamba search:*)",
+      "Bash(micromamba update:*)",
+      "Bash(micromamba install:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7",
     "github"
