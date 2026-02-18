@@ -1,15 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 calculate_genome_sizes.py)",
-      "Bash(micromamba run -n q100-smk python calculate_genome_sizes.py)",
-      "Bash(/Users/nolson/micromamba/envs/q100-smk/bin/python calculate_genome_sizes.py)",
       "Bash(wc:*)",
       "Bash(tree:*)",
-      "Bash(git checkout:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git log:*)",
+      "Bash(git:*)",
       "Skill(ralph-loop:cancel-ralph)",
       "Skill(ralph-loop:cancel-ralph:*)",
       "WebFetch(domain:github.com)",
@@ -29,22 +23,28 @@
       "Bash(micromamba run:*)",
       "Bash(ls:*)",
       "Bash(tee:*)",
-      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/snakefmt:*)",
-      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/black:*)",
-      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/snakemake:*)",
-      "Bash(echo:*)",
-      "Bash(dot -Tpdf:*)",
-      "Bash(git push:*)",
-      "Bash(/Users/nolson/.local/share/mamba/bin/micromamba config list:*)",
-      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/conda config:*)",
-      "Bash(env:*)",
-      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/mamba search:*)",
-      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/mamba info:*)",
-      "Bash(mamba run -n q100-smk snakemake --cores 16 --use-conda results/chr8_synteny/chr8_figure.pdf)",
-      "Bash(mamba:*)",
-      "Bash(/opt/homebrew/bin/mamba run:*)"
+      "Bash(gh pr view:*)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(source:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(bcftools view:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(pip install:*)",
+      "Bash(quarto render:*)",
+      "Bash(micromamba env:*)",
+      "Bash(micromamba search:*)",
+      "Bash(micromamba update:*)",
+      "Bash(micromamba install:*)",
+      "Bash(conda run:*)",
+      "Bash(~/.local/bin/snakemake --version)",
+      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/snakemake --lint)",
+      "Bash(ruff:*)",
+      "Bash(pytest:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7",
     "github"
@@ -57,6 +57,14 @@
           {
             "type": "command",
             "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.R || \"$filepath\" == *.r ]]; then air format \"$filepath\" 2>/dev/null; fi"
+          },
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.py ]]; then ruff format \"$filepath\" 2>/dev/null; fi"
+          },
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.smk || \"$filepath\" == */Snakefile ]]; then micromamba run -n q100-smk snakefmt \"$filepath\" 2>/dev/null; fi"
           }
         ]
       }

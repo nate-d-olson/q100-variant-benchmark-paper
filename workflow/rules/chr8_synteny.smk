@@ -46,6 +46,7 @@ rule chr8_extract_contig:
         sample="ref|mat|pat",
     shell:
         """
+        set -euo pipefail
         echo "Extracting {params.contig} → {params.target_chrom} ({wildcards.sample})" > {log}
         echo "Input: {input.fasta}" >> {log}
         echo "Started at $(date)" >> {log}
@@ -106,6 +107,7 @@ rule chr8_align:
         qry_samp="mat|pat",
     shell:
         """
+        set -euo pipefail
         echo "Aligning {wildcards.qry_samp} chr8 to {wildcards.ref_samp} chr8" > {log}
         echo "Started at $(date)" >> {log}
 
