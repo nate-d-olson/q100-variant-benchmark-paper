@@ -5,11 +5,10 @@ on:
     branches:
       - main
   pull_request:
-    branches_ignore: []
 
 jobs:
   r-format-suggest:
-    name: format-suggest
+    name: R Format Suggest
     runs-on: ubuntu-latest
 
     permissions:
@@ -21,13 +20,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Install
+      - name: R Air Install
         uses: posit-dev/setup-air@v1
 
-      - name: Format
+      - name: R Air Format
         run: air format .
 
-      - name: Suggest
+      - name: R AirSuggest
         uses: reviewdog/action-suggester@v1
         with:
           level: error
@@ -35,7 +34,7 @@ jobs:
           tool_name: air
 
   py-format:
-    name: format-suggest
+    name: Python Format
     runs-on: ubuntu-latest
     permissions:
       # Required to push suggestion comments to the PR
@@ -43,24 +42,20 @@ jobs:
     steps:
       - uses: astral-sh/ruff-action@v3
 
-  snk-linting:
+  smk-linting:
     runs-on: ubuntu-latest
     steps:
-      - name: Linting
+      - name: Snakemake Linting
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: .
-          snakefile: workflow/Snakefile
           args: "--lint"
 
-  snk-testing:
+  smk-testing:
     runs-on: ubuntu-latest
     steps:
-      - name: run workflow
+      - name: Run Snakemake Workflow
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: .
-          snakefile: workflow/Snakefile
           args: >-
             --conda-cleanup-pkgs cache
             --software-deployment-method conda
