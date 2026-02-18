@@ -4,30 +4,22 @@ make_chr8_figure.py — multi-panel Chr8 synteny figure using plotsr
 =============================================================
 
 Panel A  Full Chr8: REF <-> MAT <-> PAT synteny (plotsr)
-Panel B  Zoomed view of the large inversion on the PAT haplotype
+Panel B  Zoomed view of the largest inversion on the PAT haplotype
 Panel C  Structural-annotation colour legend
 
 Dependencies (install via conda/bioconda):
   conda install -c bioconda plotsr syri minimap2
   conda install matplotlib Pillow
 
-Standalone usage
-----------------
-  python make_chr8_figure.py \\
-      --ref  ref_chr8.cl  --mat  mat_chr8.cl  --pat  pat_chr8.cl \\
-      --rm   syri/ref_matsyri.out  --mp  syri/mat_patsyri.out \\
-      --chrom chr8 \\
-      --inv-start 50000000  --inv-end 58000000 \\
-      --out  results/chr8_figure
-
 Snakemake usage
 ---------------
-  Called by workflow/rules/chr8_synteny.smk via the make_figure rule.
-  Configure paths and inversion coordinates in config/config.yaml under
-  the `chr8_synteny` key.
+  Called by workflow/rules/chr8_synteny.smk via the chr8_make_figure rule.
+  Inversion coordinates are pre-computed by the chr8_find_inversion rule and
+  passed via --coords (JSON file written by find_chr8_inversion.py).
 """
 
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -48,46 +40,42 @@ def parse_args():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--ref", required=True, help="REF chromosome-length (.cl) or FASTA file")
-    p.add_argument("--mat", required=True, help="MAT chromosome-length (.cl) or FASTA file")
-    p.add_argument("--pat", required=True, help="PAT chromosome-length (.cl) or FASTA file")
+    p.add_argument(
+        "--ref", required=True, help="REF chromosome-length (.cl) or FASTA file"
+    )
+    p.add_argument(
+        "--mat", required=True, help="MAT chromosome-length (.cl) or FASTA file"
+    )
+    p.add_argument(
+        "--pat", required=True, help="PAT chromosome-length (.cl) or FASTA file"
+    )
     p.add_argument(
         "--rm",
         required=True,
         dest="syri_rm",
-        help="SyRI output: REF vs MAT  (ref_matsyri.out)",
+        help="SyRI output: REF vs MAT (ref_matsyri.out)",
     )
     p.add_argument(
-        "--mp",
+        "--rp",
         required=True,
-        dest="syri_mp",
-        help="SyRI output: MAT vs PAT  (mat_patsyri.out)",
+        dest="syri_rp",
+        help="SyRI output: REF vs PAT (ref_patsyri.out)",
+    )
+    p.add_argument(
+        "--coords",
+        required=True,
+        metavar="FILE",
+        help="JSON file with pre-computed inversion coordinates (from find_chr8_inversion.py)",
     )
     p.add_argument("--chrom", default="chr8", help="Chromosome name (default: chr8)")
-    p.add_argument(
-        "--inv-start",
-        type=int,
-        default=50_000_000,
-        help="Inversion start on PAT haplotype, bp (default: 50000000)",
-    )
-    p.add_argument(
-        "--inv-end",
-        type=int,
-        default=58_000_000,
-        help="Inversion end on PAT haplotype, bp (default: 58000000)",
-    )
-    p.add_argument(
-        "--zoom-padding",
-        type=int,
-        default=2_000_000,
-        help="Flanking bp around inversion in zoom panel (default: 2000000)",
-    )
     p.add_argument(
         "--out",
         default="chr8_figure",
         help="Output basename (.pdf and .png appended, default: chr8_figure)",
     )
-    p.add_argument("--dpi", type=int, default=300, help="DPI for PNG output (default: 300)")
+    p.add_argument(
+        "--dpi", type=int, default=300, help="DPI for PNG output (default: 300)"
+    )
     return p.parse_args()
 
 
@@ -196,6 +184,8 @@ def assemble_figure(
     inv_start: int,
     inv_end: int,
     chrom: str,
+    ref_start: int,
+    ref_end: int,
     dpi: int = 300,
 ) -> None:
 
@@ -231,9 +221,9 @@ def assemble_figure(
     ax_b.axis("off")
     _panel_label(ax_b, "B")
     ax_b.set_title(
-        f"Zoomed: PAT large inversion ({chrom})\n"
-        f"{inv_start / 1e6:.1f} – {inv_end / 1e6:.1f} Mb  "
-        f"({(inv_end - inv_start) / 1e6:.1f} Mb)",
+        f"Zoomed around largest inversion ({chrom})\n"
+        f"REF {ref_start / 1e6:.1f} – {ref_end / 1e6:.1f} Mb | "
+        f"PAT {inv_start / 1e6:.1f} – {inv_end / 1e6:.1f} Mb",
         fontsize=10,
         pad=7,
     )
@@ -273,25 +263,36 @@ def assemble_figure(
         0.38,
         f"[v]  PAT large inversion\n"
         f"   {chrom}:{inv_start / 1e6:.2f} – {inv_end / 1e6:.2f} Mb\n"
+        f"   REF zoom: {chrom}:{ref_start / 1e6:.2f} – {ref_end / 1e6:.2f} Mb\n"
         f"   Size approx {size_mb:.1f} Mb",
         transform=ax_c.transAxes,
         fontsize=9,
         va="top",
         color="#d62728",
-        bbox=dict(boxstyle="round,pad=0.5", fc="#fff5f5", ec="#d62728", lw=1.2, alpha=0.85),
+        bbox=dict(
+            boxstyle="round,pad=0.5", fc="#fff5f5", ec="#d62728", lw=1.2, alpha=0.85
+        ),
     )
 
     # Genome-track colour swatches
-    for i, (label, color) in enumerate([
-        ("REF", "#1f77b4"),
-        ("MAT", "#2ca02c"),
-        ("PAT", "#d62728"),
-    ]):
+    for i, (label, color) in enumerate(
+        [
+            ("REF", "#1f77b4"),
+            ("MAT", "#2ca02c"),
+            ("PAT", "#d62728"),
+        ]
+    ):
         y = 0.12 - i * 0.05
         ax_c.plot([0.05, 0.15], [y, y], color=color, lw=3, transform=ax_c.transAxes)
         ax_c.text(
-            0.18, y, label, transform=ax_c.transAxes, fontsize=9, va="center",
-            color=color, fontweight="bold",
+            0.18,
+            y,
+            label,
+            transform=ax_c.transAxes,
+            fontsize=9,
+            va="center",
+            color=color,
+            fontweight="bold",
         )
 
     # -- Save -----------------------------------------------------------------
@@ -315,7 +316,7 @@ def main():
     # Validate inputs
     missing = [
         f
-        for f in [args.ref, args.mat, args.pat, args.syri_rm, args.syri_mp]
+        for f in [args.ref, args.mat, args.pat, args.syri_rm, args.syri_rp, args.coords]
         if not Path(f).exists()
     ]
     if missing:
@@ -324,7 +325,24 @@ def main():
             print(f"  {m}")
         sys.exit(1)
 
-    sr_files = [args.syri_rm, args.syri_mp]
+    with open(args.coords) as fh:
+        coords = json.load(fh)
+
+    inv_start = coords["qry_start"]
+    inv_end = coords["qry_end"]
+    ref_inv_start = coords["ref_start"]
+    ref_inv_end = coords["ref_end"]
+    z_start = coords["zoom_ref_start"]
+    z_end = coords["zoom_ref_end"]
+
+    print(
+        "[INFO] Inversion coordinates from coords file: "
+        f"REF {args.chrom}:{ref_inv_start}-{ref_inv_end}, "
+        f"PAT {args.chrom}:{inv_start}-{inv_end}, "
+        f"size {coords['size']:,} bp"
+    )
+
+    sr_files = [args.syri_rm, args.syri_rp]
 
     # Determine working directory for intermediate plotsr files
     out_dir = Path(args.out).parent
@@ -338,7 +356,7 @@ def main():
     # 1. Write plotsr support files
     print("\n[1/4] Writing plotsr input files ...")
     write_genomes(genomes_path, args.ref, args.mat, args.pat)
-    write_markers(markers_path, args.chrom, args.inv_start, args.inv_end)
+    write_markers(markers_path, args.chrom, inv_start, inv_end)
 
     # 2. Panel A: full chr8 synteny
     print(f"\n[2/4] Generating full {args.chrom} synteny panel ...")
@@ -354,8 +372,6 @@ def main():
     )
 
     # 3. Panel B: zoomed inversion
-    z_start = max(0, args.inv_start - args.zoom_padding)
-    z_end = args.inv_end + args.zoom_padding
     print(f"\n[3/4] Generating zoomed inversion panel ({z_start} – {z_end} bp) ...")
     run_plotsr(
         genomes=genomes_path,
@@ -374,9 +390,11 @@ def main():
         full_png=full_png,
         zoom_png=zoom_png,
         out_base=args.out,
-        inv_start=args.inv_start,
-        inv_end=args.inv_end,
+        inv_start=inv_start,
+        inv_end=inv_end,
         chrom=args.chrom,
+        ref_start=ref_inv_start,
+        ref_end=ref_inv_end,
         dpi=args.dpi,
     )
     print("\nDone.")

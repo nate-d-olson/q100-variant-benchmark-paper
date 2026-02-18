@@ -100,3 +100,5 @@ rule all:
             "results/exclusions/{comp_id}/old_only_summary.csv",
             comp_id=config.get("comparisons", {}).keys(),
         ),
+        ## Chr8 synteny figure (optional, enabled when chr8_synteny is in config)
+        get_chr8_synteny_targets,

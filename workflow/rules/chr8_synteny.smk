@@ -1,201 +1,230 @@
 """
-chr8_synteny.smk — Rules for the Chr8 multi-panel synteny figure
+Chr8 synteny figure rules.
 
-Produces:
-  results/chr8_synteny/chr8_figure.pdf   <- publication-quality 3-panel figure
-  results/chr8_synteny/chr8_figure.png
+ref/mat/pat must be keys from config.references; the existing prepare_reference
+rule handles downloading, bgzip conversion, and indexing automatically.
 
-Pipeline
---------
-1. Index FASTAs (samtools faidx) and extract .cl chromosome-length files
-2. Pairwise alignment: minimap2 (REF vs MAT, MAT vs PAT)
-3. Structural annotation: syri
-4. make_chr8_figure.py: run plotsr and assemble 3-panel figure
-
-Configuration
--------------
-Set file paths and inversion coordinates in config/config.yaml under
-the `chr8_synteny` key. Example:
-
-  chr8_synteny:
-    ref: "assemblies/hg002_ref_chr8.fa"
-    mat: "assemblies/hg002_mat_chr8.fa"
-    pat: "assemblies/hg002_pat_chr8.fa"
-    chrom: "chr8"
-    inv_start: 50000000
-    inv_end: 58000000
-    zoom_padding: 2000000
-    threads: 16
+Pipeline steps:
+  1. (prepare_reference)  — download + index ref/mat/pat FASTAs [downloads.smk]
+  2. chr8_extract_contig  — extract the chr8 contig from each FASTA
+  3. chr8_index_fasta     — samtools index + write chromosome-length (.cl) file
+  4. chr8_align           — align mat/pat chr8 to reference chr8 (minimap2)
+  5. chr8_syri            — structural rearrangement identification (SyRI)
+  6. chr8_find_inversion  — detect inversion coordinates for the zoom panel
+  7. chr8_make_figure     — assemble multi-panel synteny figure (plotsr)
 """
 
-from pathlib import Path
-
-# ---------------------------------------------------------------------------
-# Config helpers
-# ---------------------------------------------------------------------------
-
 _CHR8_CFG = config.get("chr8_synteny", {})
-
-_CHR8_REF = _CHR8_CFG.get("ref", "")
-_CHR8_MAT = _CHR8_CFG.get("mat", "")
-_CHR8_PAT = _CHR8_CFG.get("pat", "")
 _CHR8_CHROM = _CHR8_CFG.get("chrom", "chr8")
-_CHR8_INV_START = _CHR8_CFG.get("inv_start", 50_000_000)
-_CHR8_INV_END = _CHR8_CFG.get("inv_end", 58_000_000)
-_CHR8_ZOOM_PAD = _CHR8_CFG.get("zoom_padding", 2_000_000)
-_CHR8_THREADS = _CHR8_CFG.get("threads", 8)
+_CHR8_CONTIG = {
+    "ref": _CHR8_CFG.get("ref_contig", _CHR8_CHROM),
+    "mat": _CHR8_CFG.get("mat_contig", f"{_CHR8_CHROM}_MATERNAL"),
+    "pat": _CHR8_CFG.get("pat_contig", f"{_CHR8_CHROM}_PATERNAL"),
+}
+_CHR8_THREADS = int(_CHR8_CFG.get("threads", 8))
+_CHR8_ZOOM_PADDING = int(_CHR8_CFG.get("zoom_padding", 2_000_000))
+_CHR8_MIN_INV_SIZE = int(_CHR8_CFG.get("min_inversion_size", 0))
 
 
-# ---------------------------------------------------------------------------
-# Chromosome-length files (.cl) — faster than re-parsing FASTA in plotsr
-# ---------------------------------------------------------------------------
-
-
-rule chr8_faidx:
-    """Index a FASTA assembly."""
+rule chr8_extract_contig:
+    """Extract chr8 contig from each configured full-assembly FASTA."""
     input:
-        "{sample}.fa",
+        fasta=lambda w: f"resources/references/{_CHR8_CFG[w.sample]}.fa.gz",
+        fai=lambda w: f"resources/references/{_CHR8_CFG[w.sample]}.fa.gz.fai",
     output:
-        "{sample}.fa.fai",
+        fa="results/chr8_synteny/fasta/{sample}_chr8.fa",
+    params:
+        contig=lambda wildcards: _CHR8_CONTIG[wildcards.sample],
+        target_chrom=_CHR8_CHROM,
+    log:
+        "logs/chr8_synteny/extract_{sample}.log",
+    resources:
+        mem_mb=4096,
     conda:
         "../envs/samtools.yaml"
+    wildcard_constraints:
+        sample="ref|mat|pat",
     shell:
-        "samtools faidx {input}"
+        """
+        echo "Extracting {params.contig} → {params.target_chrom} ({wildcards.sample})" > {log}
+        echo "Input: {input.fasta}" >> {log}
+        echo "Started at $(date)" >> {log}
+
+        samtools faidx {input.fasta} {params.contig} 2>> {log} \
+            | sed "1s/^>.*/>{params.target_chrom}/" > {output.fa}
+
+        echo "Completed at $(date)" >> {log}
+        """
 
 
-rule chr8_make_cl:
-    """Convert .fai to 2-col chromosome-length file for plotsr (ft:cl)."""
+rule chr8_index_fasta:
+    """Index extracted chr8 FASTA and write chromosome-length (.cl) file for plotsr."""
     input:
-        "{sample}.fa.fai",
+        fa="results/chr8_synteny/fasta/{sample}_chr8.fa",
     output:
-        "{sample}.cl",
+        fai="results/chr8_synteny/fasta/{sample}_chr8.fa.fai",
+        cl="results/chr8_synteny/fasta/{sample}_chr8.cl",
+    log:
+        "logs/chr8_synteny/index_{sample}.log",
+    resources:
+        mem_mb=2048,
+    conda:
+        "../envs/samtools.yaml"
+    wildcard_constraints:
+        sample="ref|mat|pat",
     shell:
-        "cut -f1,2 {input} > {output}"
+        """
+        echo "Indexing {input.fa}" > {log}
+        samtools faidx {input.fa} 2>> {log}
+        cut -f1,2 {output.fai} > {output.cl} 2>> {log}
+        echo "Completed at $(date)" >> {log}
+        """
 
 
-# ---------------------------------------------------------------------------
-# Minimap2 pairwise alignments
-# ---------------------------------------------------------------------------
-
-
-rule chr8_align_ref_mat:
-    """Align REF vs MAT chromosome assemblies."""
+rule chr8_align:
+    """Align haplotype chr8 to reference chr8 with minimap2 (asm5 preset)."""
     input:
-        ref=_CHR8_REF,
-        qry=_CHR8_MAT,
+        ref="results/chr8_synteny/fasta/ref_chr8.fa",
+        qry="results/chr8_synteny/fasta/{hap}_chr8.fa",
     output:
-        bam="results/chr8_synteny/alignments/ref_mat.bam",
-        bai="results/chr8_synteny/alignments/ref_mat.bam.bai",
+        bam="results/chr8_synteny/alignments/ref_{hap}.bam",
+        bai="results/chr8_synteny/alignments/ref_{hap}.bam.bai",
+    log:
+        "logs/chr8_synteny/align_{hap}.log",
     threads: _CHR8_THREADS
+    resources:
+        mem_mb=16384,
     conda:
         "../envs/plotsr.yaml"
+    wildcard_constraints:
+        hap="mat|pat",
     shell:
         """
-        minimap2 -ax asm5 -t {threads} --eqx {input.ref} {input.qry} \
-          | samtools sort -O BAM - > {output.bam}
-        samtools index {output.bam}
+        echo "Aligning {wildcards.hap} chr8 to reference chr8" > {log}
+        echo "Started at $(date)" >> {log}
+
+        minimap2 -ax asm5 --eqx -t {threads} {input.ref} {input.qry} 2>> {log} \
+            | samtools sort -@ {threads} -O BAM -o {output.bam} - 2>> {log}
+        samtools index -@ {threads} {output.bam} {output.bai} 2>> {log}
+
+        echo "Completed at $(date)" >> {log}
         """
 
 
-rule chr8_align_mat_pat:
-    """Align MAT vs PAT chromosome assemblies."""
+rule chr8_syri:
+    """Run SyRI structural rearrangement identification on ref vs haplotype alignment."""
     input:
-        ref=_CHR8_MAT,
-        qry=_CHR8_PAT,
+        bam="results/chr8_synteny/alignments/ref_{hap}.bam",
+        ref="results/chr8_synteny/fasta/ref_chr8.fa",
+        qry="results/chr8_synteny/fasta/{hap}_chr8.fa",
     output:
-        bam="results/chr8_synteny/alignments/mat_pat.bam",
-        bai="results/chr8_synteny/alignments/mat_pat.bam.bai",
+        syri="results/chr8_synteny/syri/ref_{hap}syri.out",
+        summary="results/chr8_synteny/syri/ref_{hap}syri.summary",
+    params:
+        prefix="results/chr8_synteny/syri/ref_{hap}",
+    log:
+        "logs/chr8_synteny/syri_{hap}.log",
     threads: _CHR8_THREADS
+    resources:
+        mem_mb=8192,
     conda:
         "../envs/plotsr.yaml"
+    wildcard_constraints:
+        hap="mat|pat",
     shell:
         """
-        minimap2 -ax asm5 -t {threads} --eqx {input.ref} {input.qry} \
-          | samtools sort -O BAM - > {output.bam}
-        samtools index {output.bam}
+        echo "Running SyRI: ref vs {wildcards.hap}" > {log}
+        echo "Started at $(date)" >> {log}
+
+        syri -c {input.bam} -r {input.ref} -q {input.qry} -F B \
+            --prefix {params.prefix} --nc {threads} >> {log} 2>&1
+
+        echo "Completed at $(date)" >> {log}
         """
 
 
-# ---------------------------------------------------------------------------
-# SyRI structural variant annotation
-# ---------------------------------------------------------------------------
+rule chr8_find_inversion:
+    """Detect largest inversion coordinates from SyRI output for the zoom panel.
 
-
-rule chr8_syri_ref_mat:
-    """Run SyRI on REF vs MAT alignment."""
+    Parses the ref-vs-pat SyRI output to find the largest inversion on the
+    target chromosome and writes reference/query coordinates plus zoom region
+    boundaries to a JSON file.  This file drives the zoom region in the figure.
+    """
     input:
-        bam=rules.chr8_align_ref_mat.output.bam,
-        ref=_CHR8_REF,
-        qry=_CHR8_MAT,
+        syri_rp="results/chr8_synteny/syri/ref_patsyri.out",
     output:
-        syri="results/chr8_synteny/syri/ref_matsyri.out",
-        summary="results/chr8_synteny/syri/ref_matsyri.summary",
+        coords="results/chr8_synteny/inversion_coords.json",
     params:
-        prefix="results/chr8_synteny/syri/ref_mat",
+        chrom=_CHR8_CHROM,
+        min_inv_size=_CHR8_MIN_INV_SIZE,
+        zoom_padding=_CHR8_ZOOM_PADDING,
+    log:
+        "logs/chr8_synteny/find_inversion.log",
+    resources:
+        mem_mb=2048,
     conda:
         "../envs/plotsr.yaml"
     shell:
         """
-        syri -c {input.bam} -r {input.ref} -q {input.qry} \
-             -F B --prefix {params.prefix} --nc 8
+        echo "Detecting largest inversion on {params.chrom}" > {log}
+        echo "Min inversion size: {params.min_inv_size} bp" >> {log}
+        echo "Zoom padding: {params.zoom_padding} bp" >> {log}
+        echo "Started at $(date)" >> {log}
+
+        python workflow/scripts/find_chr8_inversion.py \
+            --syri-rp {input.syri_rp} \
+            --chrom {params.chrom} \
+            --min-inv-size {params.min_inv_size} \
+            --zoom-padding {params.zoom_padding} \
+            --output {output.coords} >> {log} 2>&1
+
+        echo "Inversion coords: $(cat {output.coords})" >> {log}
+        echo "Completed at $(date)" >> {log}
         """
-
-
-rule chr8_syri_mat_pat:
-    """Run SyRI on MAT vs PAT alignment."""
-    input:
-        bam=rules.chr8_align_mat_pat.output.bam,
-        ref=_CHR8_MAT,
-        qry=_CHR8_PAT,
-    output:
-        syri="results/chr8_synteny/syri/mat_patsyri.out",
-        summary="results/chr8_synteny/syri/mat_patsyri.summary",
-    params:
-        prefix="results/chr8_synteny/syri/mat_pat",
-    conda:
-        "../envs/plotsr.yaml"
-    shell:
-        """
-        syri -c {input.bam} -r {input.ref} -q {input.qry} \
-             -F B --prefix {params.prefix} --nc 8
-        """
-
-
-# ---------------------------------------------------------------------------
-# Figure generation
-# ---------------------------------------------------------------------------
 
 
 rule chr8_make_figure:
-    """Generate 3-panel Chr8 synteny figure (Panel A: full, B: zoom, C: legend)."""
+    """Generate the chr8 multi-panel synteny figure (full view + zoomed inversion)."""
     input:
-        ref_cl=_CHR8_REF.replace(".fa", ".cl") if _CHR8_REF.endswith(".fa") else _CHR8_REF,
-        mat_cl=_CHR8_MAT.replace(".fa", ".cl") if _CHR8_MAT.endswith(".fa") else _CHR8_MAT,
-        pat_cl=_CHR8_PAT.replace(".fa", ".cl") if _CHR8_PAT.endswith(".fa") else _CHR8_PAT,
-        syri_rm=rules.chr8_syri_ref_mat.output.syri,
-        syri_mp=rules.chr8_syri_mat_pat.output.syri,
+        ref_cl="results/chr8_synteny/fasta/ref_chr8.cl",
+        mat_cl="results/chr8_synteny/fasta/mat_chr8.cl",
+        pat_cl="results/chr8_synteny/fasta/pat_chr8.cl",
+        syri_rm="results/chr8_synteny/syri/ref_matsyri.out",
+        syri_rp="results/chr8_synteny/syri/ref_patsyri.out",
+        coords="results/chr8_synteny/inversion_coords.json",
     output:
         pdf="results/chr8_synteny/chr8_figure.pdf",
         png="results/chr8_synteny/chr8_figure.png",
     params:
-        inv_start=_CHR8_INV_START,
-        inv_end=_CHR8_INV_END,
-        zoom_padding=_CHR8_ZOOM_PAD,
         chrom=_CHR8_CHROM,
-        out_base="results/chr8_synteny/chr8_figure",
+        out_base=lambda w, output: os.path.splitext(output.pdf)[0],
+    log:
+        "logs/chr8_synteny/figure.log",
+    resources:
+        mem_mb=8192,
     conda:
         "../envs/plotsr.yaml"
     shell:
         """
+        echo "Generating chr8 synteny figure" > {log}
+        echo "Started at $(date)" >> {log}
+
         python workflow/scripts/make_chr8_figure.py \
-            --ref   {input.ref_cl} \
-            --mat   {input.mat_cl} \
-            --pat   {input.pat_cl} \
-            --rm    {input.syri_rm} \
-            --mp    {input.syri_mp} \
+            --ref {input.ref_cl} \
+            --mat {input.mat_cl} \
+            --pat {input.pat_cl} \
+            --rm {input.syri_rm} \
+            --rp {input.syri_rp} \
+            --coords {input.coords} \
             --chrom {params.chrom} \
-            --inv-start    {params.inv_start} \
-            --inv-end      {params.inv_end} \
-            --zoom-padding {params.zoom_padding} \
-            --out   {params.out_base}
+            --out {params.out_base} >> {log} 2>&1
+
+        echo "Completed at $(date)" >> {log}
         """
+
+
+rule chr8_synteny:
+    """Convenience target: generate all chr8 synteny outputs."""
+    input:
+        "results/chr8_synteny/chr8_figure.pdf",
+        "results/chr8_synteny/chr8_figure.png",

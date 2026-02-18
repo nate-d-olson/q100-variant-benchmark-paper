@@ -486,16 +486,26 @@ def get_exclusion_interaction_targets(wildcards) -> List[str]:
     return targets
 
 
+def get_chr8_synteny_targets(wildcards) -> List[str]:
+    """Return chr8 synteny figure targets if chr8_synteny is configured."""
+    if not config.get("chr8_synteny"):
+        return []
+    return [
+        "results/chr8_synteny/chr8_figure.pdf",
+        "results/chr8_synteny/chr8_figure.png",
+    ]
+
+
 def get_reference_checksum_info(ref_name: str) -> Tuple[str, str]:
     """
     Get checksum value and type for a reference.
     Args:
         ref_name: Name of the reference in config["references"]
     Returns:
-        Tuple of checksum_value and checksum_type
+        Tuple of (checksum_value, checksum_type); returns ("", "none") when no
+        checksum is configured — callers should skip validation in that case.
     Raises:
         KeyError: If reference not found
-        ValueError: If no checksum found
     """
     ref_config = config["references"].get(ref_name)
     if ref_config is None:
@@ -506,7 +516,7 @@ def get_reference_checksum_info(ref_name: str) -> Tuple[str, str]:
     if "md5" in ref_config:
         return ref_config["md5"], "md5"
 
-    raise ValueError(f"No checksum (md5 or sha256) found for reference: {ref_name}")
+    return "", "none"
 
 
 def get_reference_checksum(ref_name: str) -> str:
