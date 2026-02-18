@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# AI Disclosure: This script was developed with assistance from Claude (Anthropic)
 """
 find_chr8_inversion.py — detect the largest inversion from SyRI output.
 

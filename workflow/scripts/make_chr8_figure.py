@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# AI Disclosure: This script was developed with assistance from Claude (Anthropic)
 """
 make_chr8_figure.py — multi-panel Chr8 synteny figure using plotsr
 =============================================================
