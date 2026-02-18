@@ -1,0 +1,12 @@
+channels:
+  - conda-forge
+  - bioconda
+channel_priority: strict
+dependencies:
+  - python>=3.11
+  - minimap2
+  - samtools
+  - syri
+  - plotsr
+  - matplotlib
+  - pillow

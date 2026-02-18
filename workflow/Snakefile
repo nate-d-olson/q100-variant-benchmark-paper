@@ -68,6 +68,7 @@ include: "rules/vcf_processing.smk"
 # - results/stratified_bench/v5_vs_v0.6_stvar/TR_inverse_complement.tsv
 include: "rules/var_counts.smk"
 include: "rules/var_tables.smk"
+include: "rules/chr8_synteny.smk"
 
 
 rule all:

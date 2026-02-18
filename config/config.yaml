@@ -676,3 +676,25 @@ references:
         url: "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.6/CHM13@all/Mappability/CHM13_lowmappabilityall.bed.gz"
         description: "Low mappability regions"
         sha256: "50ab57270e9d11e939c0c90fdde538fa048ef6b0751d5cb55f5b74cdd9c4800c"
+
+# ---------------------------------------------------------------------------
+# Chr8 multi-panel synteny figure (plotsr / syri)
+# ---------------------------------------------------------------------------
+# Set paths to your FASTA or chromosome-length (.cl) files and adjust the
+# inversion coordinates after inspecting syri output:
+#
+#   awk '$11=="INV" && $1=="chr8"' results/chr8_synteny/syri/mat_patsyri.out | sort -k2 -n
+#
+# The large PAT inversion coordinates are in columns 6-7 (query coords).
+# Leave this section commented out or remove it if the chr8 synteny figure
+# is not needed for this analysis run.
+
+# chr8_synteny:
+#   ref: "assemblies/hg002_ref_chr8.fa"
+#   mat: "assemblies/hg002_mat_chr8.fa"
+#   pat: "assemblies/hg002_pat_chr8.fa"
+#   chrom: "chr8"
+#   inv_start: 50000000
+#   inv_end: 58000000
+#   zoom_padding: 2000000
+#   threads: 16
