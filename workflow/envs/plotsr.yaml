@@ -10,3 +10,4 @@ dependencies:
   - plotsr
   - matplotlib
   - pillow
+  - pandas<2.0  # pandas 2.0+ CoW causes SyRI crash (read-only array in Cython)

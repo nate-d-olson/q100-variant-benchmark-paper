@@ -121,7 +121,8 @@ rule chr8_syri:
         syri="results/chr8_synteny/syri/ref_{hap}syri.out",
         summary="results/chr8_synteny/syri/ref_{hap}syri.summary",
     params:
-        prefix="results/chr8_synteny/syri/ref_{hap}",
+        outdir="results/chr8_synteny/syri",
+        prefix="ref_{hap}",
     log:
         "logs/chr8_synteny/syri_{hap}.log",
     threads: _CHR8_THREADS
@@ -137,7 +138,7 @@ rule chr8_syri:
         echo "Started at $(date)" >> {log}
 
         syri -c {input.bam} -r {input.ref} -q {input.qry} -F B \
-            --prefix {params.prefix} --nc {threads} >> {log} 2>&1
+            --dir {params.outdir} --prefix {params.prefix} --nc {threads} >> {log} 2>&1
 
         echo "Completed at $(date)" >> {log}
         """

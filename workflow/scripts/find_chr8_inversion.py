@@ -67,7 +67,7 @@ def find_largest_inversion(syri_path: str, chrom: str, min_size: int = 0) -> dic
     SyRI column layout (1-based):
       1:  ref chromosome
       2-3: ref interval (start, end)
-      6-7: query interval (start, end)
+      7-8: query interval (start, end)
       11:  annotation type (INV, SYN, ...)
 
     Parameters
@@ -101,7 +101,7 @@ def find_largest_inversion(syri_path: str, chrom: str, min_size: int = 0) -> dic
 
             try:
                 ref_start, ref_end = sorted((int(fields[1]), int(fields[2])))
-                qry_start, qry_end = sorted((int(fields[5]), int(fields[6])))
+                qry_start, qry_end = sorted((int(fields[6]), int(fields[7])))
             except ValueError as exc:
                 raise ValueError(
                     f"Invalid SyRI coordinates in {syri_path} at line {line_no}"
