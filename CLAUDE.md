@@ -10,6 +10,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 - `analysis/` - Quarto notebooks and cached data
 - `config/` - Pipeline configuration (config.yaml)
 - `docs/` - Architecture docs, data dictionary, troubleshooting
+- `manuscript/` - Quarto manuscript chapters (introduction, methods, results, discussion)
+- `scripts/` - Utility scripts (create_grch38_debug_subset.py, happy_giab.R)
 - `tests/` - R tests (testthat) and Python tests (pytest)
 - `workflow/` - Snakemake rules and Python scripts
 - `results/` - Pipeline outputs (gitignored, must be generated)
@@ -63,7 +65,20 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 - Activate with: `micromamba activate q100-smk`
 - Dry-run: `snakemake -n <target>`
-- Snakemake version: 9.x (uses `--` before positional targets with flags like `-n`)
+- Snakemake version: 8.x (`min_version("8.0")` in Snakefile)
+
+**Makefile Shortcuts** (preferred over raw snakemake commands):
+
+```bash
+make dry-run       # Validate workflow (snakemake -n --quiet)
+make lint          # Snakemake + Python (ruff) + R (lintr) linting
+make format        # Format Python (ruff), Snakemake (snakefmt), Markdown, R (styler)
+make format-check  # Check formatting without modifying files
+make test          # lint + format-check + dry-run
+make run           # Execute pipeline (--cores 14 --sdm conda)
+make dag           # Generate pipeline DAG PDF (results/dag/pipeline.pdf)
+make clean         # Remove logs/, .snakemake/, results/, analysis/cache/
+```
 
 ## Common Debugging Patterns
 
@@ -140,8 +155,11 @@ Source order: `data_loading.R` sources `schemas.R` and `cache.R` at the top. Use
 ### Testing
 
 ```bash
-Rscript -e 'testthat::test_file("tests/test_cache.R")'      # Schema + cache tests (45 tests)
-Rscript -e 'testthat::test_file("tests/test_data_loading.R")'  # Data loading tests (has pre-existing failures)
+Rscript -e 'testthat::test_file("tests/test_cache.R")'           # Schema + cache tests (45 tests)
+Rscript -e 'testthat::test_file("tests/test_data_loading.R")'    # Data loading tests (has pre-existing failures)
+Rscript -e 'testthat::test_file("tests/test_exclusion_loading.R")'  # Exclusion loading tests
+Rscript -e 'testthat::test_file("tests/test_schema_update.R")'   # Schema update tests
+pytest tests/unit/  # Python unit tests (validators, common helpers, stratify_comparison)
 ```
 
 Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
@@ -168,7 +186,12 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 
 - `analysis/benchmarkset_characterization.qmd` — Primary analysis; loads `variants_df` and `genomic_context_metrics_df`
 - `analysis/benchmark_difficult.qmd` — Coverage analysis; loads `diff_cov_df`
+- `analysis/benchmark_exclusions.qmd` — Exclusion region analysis (v5.0q only)
+- `analysis/genomic_context_analysis.qmd` — Genomic context overlap analysis
+- `analysis/benchmark_interval_size_distributions.qmd` — Interval size distributions
+- `analysis/benchmark_unique_regions.qmd` — Unique region analysis across benchmark versions
 - `analysis/external_evaluation.qmd` — External benchmark comparisons
+- `analysis/_notebook_setup.R` — `analysis_setup()` helper: loads tidyverse/patchwork, sources `R/data_loading.R` and `R/plot_themes.R`; call at top of each notebook
 
 ## Column Naming Conventions
 
