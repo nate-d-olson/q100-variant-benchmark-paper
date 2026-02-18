@@ -174,7 +174,6 @@ rule chr8_make_figure:
         pat_cl=_CHR8_PAT.replace(".fa", ".cl") if _CHR8_PAT.endswith(".fa") else _CHR8_PAT,
         syri_rm=rules.chr8_syri_ref_mat.output.syri,
         syri_mp=rules.chr8_syri_mat_pat.output.syri,
-        script=workflow.source_path("../scripts/make_chr8_figure.py"),
     output:
         pdf="results/chr8_synteny/chr8_figure.pdf",
         png="results/chr8_synteny/chr8_figure.png",
@@ -188,7 +187,7 @@ rule chr8_make_figure:
         "../envs/plotsr.yaml"
     shell:
         """
-        python {input.script} \
+        python workflow/scripts/make_chr8_figure.py \
             --ref   {input.ref_cl} \
             --mat   {input.mat_cl} \
             --pat   {input.pat_cl} \

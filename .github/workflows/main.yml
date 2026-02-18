@@ -49,6 +49,7 @@ jobs:
       - name: Linting
         uses: snakemake/snakemake-github-action@v2
         with:
+          directory: .
           snakefile: workflow/Snakefile
           args: "--lint"
 
@@ -58,6 +59,7 @@ jobs:
       - name: run workflow
         uses: snakemake/snakemake-github-action@v2
         with:
+          directory: .
           snakefile: workflow/Snakefile
           args: >-
             --conda-cleanup-pkgs cache
