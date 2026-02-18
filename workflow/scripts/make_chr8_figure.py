@@ -365,7 +365,7 @@ def main():
         sr_files=sr_files,
         output=full_png,
         markers=markers_path,
-        region=args.chrom,
+        region=None,  # FASTAs contain only chr8; no --reg needed
         width=8,
         height=7,
         fontsize=8,
@@ -378,7 +378,7 @@ def main():
         sr_files=sr_files,
         output=zoom_png,
         markers=markers_path,
-        region=f"REF:{args.chrom}:{z_start}:{z_end}",
+        region=f"REF:{args.chrom}:{z_start}-{z_end}",
         width=7,
         height=5,
         fontsize=8,
