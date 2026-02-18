@@ -137,6 +137,38 @@ Warning: v5_grch38_strat.tsv is 650MB
 
 ---
 
+### Anaconda URLs Blocked by Firewall
+
+**Symptom**: `mamba` or `conda` fails to download packages with connection errors to `conda.anaconda.org`
+or `repo.anaconda.com`.
+
+**Cause**: The organization firewall blocks Anaconda CDN URLs to prevent unlicensed commercial use.
+
+**Fix**: Configure `~/.condarc` to remap `conda-forge` and `bioconda` channel names to prefix.dev:
+
+```yaml
+custom_multichannels:
+  conda-forge:
+    - https://prefix.dev/conda-forge
+  bioconda:
+    - https://prefix.dev/bioconda
+default_channels: []
+```
+
+**Why `custom_multichannels` not `channel_alias`**: prefix.dev serves channels at
+`https://prefix.dev/conda-forge` (no `/channels/` component). The `channel_alias` setting prepends
+the alias to the channel name (`alias/conda-forge`), which produces the wrong URL. `custom_multichannels`
+remaps the name to an explicit URL directly.
+
+**Verification**:
+
+```bash
+conda config --show custom_multichannels
+mamba search --channel bioconda samtools  # should show "prefix.dev" in output
+```
+
+---
+
 ### Conda Environment Conflicts
 
 #### Issue: Package version conflicts
@@ -334,6 +366,58 @@ The fix is in `workflow/scripts/generate_variant_parquet.py`. If you see this is
    ```
 
 **Impact:** This bug caused empty variant count tables for genomic contexts and exclusions in all benchmarks.
+
+---
+
+### Chr8 Synteny Pipeline Errors
+
+#### Issue: SyRI crash — `ValueError: buffer source array is read-only`
+
+```
+ValueError: buffer source array is read-only
+  File "syri/pyxFiles/synsearchFunctions.pyx", line 534, in syri.synsearchFunctions.syri
+```
+
+**Cause**: pandas 2.0 introduced Copy-on-Write semantics. DataFrame slice arrays become non-writeable,
+causing SyRI's Cython code to fail when creating a writable memoryview.
+
+**Fix**: Pin `pandas<2.0` in `workflow/envs/plotsr.yaml`:
+
+```yaml
+dependencies:
+  - pandas<2.0  # pandas 2.0+ CoW causes SyRI crash (read-only array in Cython)
+```
+
+Then force the conda env to rebuild and clear failed SyRI outputs:
+
+```bash
+rm -rf results/chr8_synteny/syri/
+# Snakemake will rebuild the plotsr env automatically due to the yaml change
+snakemake chr8_synteny
+```
+
+---
+
+#### Issue: SyRI deprecation warning about `--prefix`
+
+```
+Warning: For specifying output folder use --dir, use --prefix for modifying the output
+file names. Current --prefix (results/chr8_synteny/syri/ref_pat) may result in crashes.
+```
+
+**Fix**: The `chr8_syri` rule already uses `--dir {params.outdir} --prefix {params.prefix}`
+(basename only). If you see this warning in older outputs it is from before the fix.
+
+---
+
+#### Issue: plotsr produces wrong figure or fails with 3 genomes
+
+**Cause**: plotsr requires *consecutive-genome* SyRI files. For layout [REF, MAT, PAT] it needs
+REF↔MAT and MAT↔PAT comparisons — not REF↔MAT and REF↔PAT.
+
+**Fix**: The pipeline runs a `mat_pat` alignment and SyRI run. `chr8_make_figure` takes
+`mat_patsyri.out` (via `--mp`). `chr8_find_inversion` still uses `ref_patsyri.out` since it
+detects PAT inversions in REF coordinate space.
 
 ---
 
@@ -765,5 +849,4 @@ snakemake --dag 2>&1 | grep -i "cycle"
 
 ---
 
-*Last Updated: 2026-02-07*
-*Branch: copilot/improve-data-loading-methods*
+*Last Updated: 2026-02-18*

@@ -56,10 +56,10 @@ def parse_args():
         help="SyRI output: REF vs MAT (ref_matsyri.out)",
     )
     p.add_argument(
-        "--rp",
+        "--mp",
         required=True,
-        dest="syri_rp",
-        help="SyRI output: REF vs PAT (ref_patsyri.out)",
+        dest="syri_mp",
+        help="SyRI output: MAT vs PAT (mat_patsyri.out)",
     )
     p.add_argument(
         "--coords",
@@ -316,7 +316,7 @@ def main():
     # Validate inputs
     missing = [
         f
-        for f in [args.ref, args.mat, args.pat, args.syri_rm, args.syri_rp, args.coords]
+        for f in [args.ref, args.mat, args.pat, args.syri_rm, args.syri_mp, args.coords]
         if not Path(f).exists()
     ]
     if missing:
@@ -342,7 +342,7 @@ def main():
         f"size {coords['size']:,} bp"
     )
 
-    sr_files = [args.syri_rm, args.syri_rp]
+    sr_files = [args.syri_rm, args.syri_mp]
 
     # Determine working directory for intermediate plotsr files
     out_dir = Path(args.out).parent

@@ -82,25 +82,31 @@ rule chr8_index_fasta:
 
 
 rule chr8_align:
-    """Align haplotype chr8 to reference chr8 with minimap2 (asm5 preset)."""
+    """Align query chr8 to reference chr8 with minimap2 (asm5 preset).
+
+    Supports any ref/query pair: ref_mat, ref_pat, mat_pat.
+    mat_pat is needed so plotsr receives consecutive-genome SyRI files
+    (REF↔MAT, MAT↔PAT) rather than two REF-anchored files.
+    """
     input:
-        ref="results/chr8_synteny/fasta/ref_chr8.fa",
-        qry="results/chr8_synteny/fasta/{hap}_chr8.fa",
+        ref="results/chr8_synteny/fasta/{ref_samp}_chr8.fa",
+        qry="results/chr8_synteny/fasta/{qry_samp}_chr8.fa",
     output:
-        bam="results/chr8_synteny/alignments/ref_{hap}.bam",
-        bai="results/chr8_synteny/alignments/ref_{hap}.bam.bai",
+        bam="results/chr8_synteny/alignments/{ref_samp}_{qry_samp}.bam",
+        bai="results/chr8_synteny/alignments/{ref_samp}_{qry_samp}.bam.bai",
     log:
-        "logs/chr8_synteny/align_{hap}.log",
+        "logs/chr8_synteny/align_{ref_samp}_{qry_samp}.log",
     threads: _CHR8_THREADS
     resources:
         mem_mb=16384,
     conda:
         "../envs/plotsr.yaml"
     wildcard_constraints:
-        hap="mat|pat",
+        ref_samp="ref|mat",
+        qry_samp="mat|pat",
     shell:
         """
-        echo "Aligning {wildcards.hap} chr8 to reference chr8" > {log}
+        echo "Aligning {wildcards.qry_samp} chr8 to {wildcards.ref_samp} chr8" > {log}
         echo "Started at $(date)" >> {log}
 
         minimap2 -ax asm5 --eqx -t {threads} {input.ref} {input.qry} 2>> {log} \
@@ -112,29 +118,33 @@ rule chr8_align:
 
 
 rule chr8_syri:
-    """Run SyRI structural rearrangement identification on ref vs haplotype alignment."""
+    """Run SyRI structural rearrangement identification.
+
+    Supports any ref/query pair matching chr8_align: ref_mat, ref_pat, mat_pat.
+    """
     input:
-        bam="results/chr8_synteny/alignments/ref_{hap}.bam",
-        ref="results/chr8_synteny/fasta/ref_chr8.fa",
-        qry="results/chr8_synteny/fasta/{hap}_chr8.fa",
+        bam="results/chr8_synteny/alignments/{ref_samp}_{qry_samp}.bam",
+        ref="results/chr8_synteny/fasta/{ref_samp}_chr8.fa",
+        qry="results/chr8_synteny/fasta/{qry_samp}_chr8.fa",
     output:
-        syri="results/chr8_synteny/syri/ref_{hap}syri.out",
-        summary="results/chr8_synteny/syri/ref_{hap}syri.summary",
+        syri="results/chr8_synteny/syri/{ref_samp}_{qry_samp}syri.out",
+        summary="results/chr8_synteny/syri/{ref_samp}_{qry_samp}syri.summary",
     params:
         outdir="results/chr8_synteny/syri",
-        prefix="ref_{hap}",
+        prefix="{ref_samp}_{qry_samp}",
     log:
-        "logs/chr8_synteny/syri_{hap}.log",
+        "logs/chr8_synteny/syri_{ref_samp}_{qry_samp}.log",
     threads: _CHR8_THREADS
     resources:
         mem_mb=8192,
     conda:
         "../envs/plotsr.yaml"
     wildcard_constraints:
-        hap="mat|pat",
+        ref_samp="ref|mat",
+        qry_samp="mat|pat",
     shell:
         """
-        echo "Running SyRI: ref vs {wildcards.hap}" > {log}
+        echo "Running SyRI: {wildcards.ref_samp} vs {wildcards.qry_samp}" > {log}
         echo "Started at $(date)" >> {log}
 
         syri -c {input.bam} -r {input.ref} -q {input.qry} -F B \
@@ -191,7 +201,7 @@ rule chr8_make_figure:
         mat_cl="results/chr8_synteny/fasta/mat_chr8.cl",
         pat_cl="results/chr8_synteny/fasta/pat_chr8.cl",
         syri_rm="results/chr8_synteny/syri/ref_matsyri.out",
-        syri_rp="results/chr8_synteny/syri/ref_patsyri.out",
+        syri_mp="results/chr8_synteny/syri/mat_patsyri.out",
         coords="results/chr8_synteny/inversion_coords.json",
     output:
         pdf="results/chr8_synteny/chr8_figure.pdf",
@@ -215,7 +225,7 @@ rule chr8_make_figure:
             --mat {input.mat_cl} \
             --pat {input.pat_cl} \
             --rm {input.syri_rm} \
-            --rp {input.syri_rp} \
+            --mp {input.syri_mp} \
             --coords {input.coords} \
             --chrom {params.chrom} \
             --out {params.out_base} >> {log} 2>&1

@@ -34,7 +34,12 @@
       "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/snakemake:*)",
       "Bash(echo:*)",
       "Bash(dot -Tpdf:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(/Users/nolson/.local/share/mamba/bin/micromamba config list:*)",
+      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/conda config:*)",
+      "Bash(env:*)",
+      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/mamba search:*)",
+      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/mamba info:*)"
     ]
   },
   "enabledMcpjsonServers": [
