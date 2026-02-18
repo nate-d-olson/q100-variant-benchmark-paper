@@ -36,7 +36,12 @@
       "Bash(micromamba env:*)",
       "Bash(micromamba search:*)",
       "Bash(micromamba update:*)",
-      "Bash(micromamba install:*)"
+      "Bash(micromamba install:*)",
+      "Bash(conda run:*)",
+      "Bash(~/.local/bin/snakemake --version)",
+      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/snakemake --lint)",
+      "Bash(ruff:*)",
+      "Bash(pytest:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
@@ -52,6 +57,14 @@
           {
             "type": "command",
             "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.R || \"$filepath\" == *.r ]]; then air format \"$filepath\" 2>/dev/null; fi"
+          },
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.py ]]; then ruff format \"$filepath\" 2>/dev/null; fi"
+          },
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.smk || \"$filepath\" == */Snakefile ]]; then micromamba run -n q100-smk snakefmt \"$filepath\" 2>/dev/null; fi"
           }
         ]
       }

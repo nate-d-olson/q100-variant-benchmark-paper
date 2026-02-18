@@ -35,17 +35,19 @@ jobs:
           tool_name: air
 
   py-format:
-    name: format-suggest
+    name: py-format-suggest
     runs-on: ubuntu-latest
     permissions:
       # Required to push suggestion comments to the PR
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
 
   snk-linting:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Linting
         uses: snakemake/snakemake-github-action@v2
         with:
@@ -54,6 +56,7 @@ jobs:
   snk-testing:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: run workflow
         uses: snakemake/snakemake-github-action@v2
         with:
