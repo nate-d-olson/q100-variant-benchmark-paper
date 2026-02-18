@@ -22,3 +22,5 @@ styles.css
 report*.html
 
 **/*.quarto_ipynb
+
+/.quarto/

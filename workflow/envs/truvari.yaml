@@ -1,13 +1,14 @@
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
 dependencies:
-  - python=3.11
-  - pandas
-  - pyarrow
-  - bcftools=1.22
+  - python>=3.10,<3.12
+  - bcftools=1.19
+  - htslib=1.19
   - mafft
-  - bedtools=2.31.1
+  - bedtools>=2.31
+  - pandas
+  - pyarrow=14.0
   - pip
   - pip:
     - Truvari==5.4.0

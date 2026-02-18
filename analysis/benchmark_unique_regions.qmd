@@ -25,6 +25,7 @@ analysis_setup(
 
 library(data.table)
 library(yaml)
+library(arrow)
 ```
 
 ## Scope
@@ -347,82 +348,47 @@ subset_variants_by_regions <- function(variants_dt, regions_dt) {
   variants_dt[sort(unique(hits$idx))]
 }
 
-read_variant_table_tsv <- function(path, bench_type, benchmark_only = TRUE) {
+read_variant_table_parquet <- function(path, bench_type, benchmark_only = TRUE) {
   if (!file.exists(path)) {
     stop(glue::glue("Variant table not found: {path}"), call. = FALSE)
   }
 
-  header <- names(fread(path, nrows = 0, sep = "\t", check.names = FALSE))
-  wanted <- c(
-    1L,
-    2L,
-    3L,
-    match(
-      c(
-        "TYPE",
-        "STRLEN(REF)",
-        "STRLEN(ALT)",
-        "CONTEXT_IDS",
-        "REGION_IDS",
-        "SVTYPE",
-        "SVLEN"
-      ),
-      header
-    )
-  )
-  wanted <- sort(unique(wanted[!is.na(wanted)]))
+  # Read Parquet file - columns are already properly named
+  df <- arrow::read_parquet(path)
+  dt <- as.data.table(df)
 
-  dt <- fread(
-    path,
-    sep = "\t",
-    select = wanted,
-    check.names = FALSE,
-    quote = "",
-    showProgress = FALSE
-  )
-
-  setnames(dt, names(dt)[1:3], c("chrom", "pos", "end"))
-
-  if (!"CONTEXT_IDS" %in% names(dt)) dt[, CONTEXT_IDS := "."]
-  if (!"REGION_IDS" %in% names(dt)) dt[, REGION_IDS := "."]
-  if (!"SVTYPE" %in% names(dt)) dt[, SVTYPE := NA_character_]
-  if (!"SVLEN" %in% names(dt)) dt[, SVLEN := NA_character_]
-
+  # Normalize chromosome names
   dt[, chrom := normalize_chrom(chrom)]
   dt[, pos := as.integer(pos)]
   dt[, end := as.integer(end)]
 
-  dt[, type_raw := as.character(TYPE)]
-  dt[, ref_len := suppressWarnings(as.integer(`STRLEN(REF)`))]
-  dt[, alt_len := suppressWarnings(as.integer(`STRLEN(ALT)`))]
-  dt[, svtype := as.character(SVTYPE)]
-  dt[, svlen_num := suppressWarnings(as.numeric(SVLEN))]
-  dt[, context_ids := as.character(CONTEXT_IDS)]
-  dt[, region_ids := as.character(REGION_IDS)]
+  # Ensure context_ids and region_ids are character
+  if (!"context_ids" %in% names(dt)) dt[, context_ids := "."]
+  if (!"region_ids" %in% names(dt)) dt[, region_ids := "."]
+  dt[, context_ids := as.character(context_ids)]
+  dt[, region_ids := as.character(region_ids)]
 
-  dt[, size_len := abs(alt_len - ref_len)]
-  dt[, size_coord := pmax(end - pos + 1L, 0L)]
-  dt[, var_size := ifelse(!is.na(svlen_num), abs(as.integer(round(svlen_num))), size_len)]
-  dt[is.na(var_size) | var_size == 0L, var_size := size_coord]
-
+  # Map var_type to variant_type with appropriate prefixes
   if (bench_type == "smvar") {
     dt[, variant_type := dplyr::case_when(
-      type_raw %in% c("SNP", "SNV") ~ "SNV",
-      type_raw == "INDEL" & alt_len > ref_len ~ "INS",
-      type_raw == "INDEL" & alt_len < ref_len ~ "DEL",
-      type_raw == "INDEL" ~ "INDEL",
+      var_type %in% c("SNP", "SNV") ~ "SNV",
+      var_type == "INS" ~ "INS",
+      var_type == "DEL" ~ "DEL",
+      var_type == "INDEL" & alt_len > ref_len ~ "INS",
+      var_type == "INDEL" & alt_len < ref_len ~ "DEL",
+      var_type == "INDEL" ~ "INDEL",
       TRUE ~ "OTHER"
     )]
-    dt <- dt[var_size < 50]
+    dt <- dt[abs(var_size) < 50]
   } else {
     dt[, variant_type := dplyr::case_when(
-      grepl("INS", svtype, ignore.case = TRUE) ~ "SV_INS",
-      grepl("DEL", svtype, ignore.case = TRUE) ~ "SV_DEL",
+      var_type == "INS" ~ "SV_INS",
+      var_type == "DEL" ~ "SV_DEL",
       alt_len > ref_len ~ "SV_INS",
       alt_len < ref_len ~ "SV_DEL",
       TRUE ~ "SV_OTHER"
     )]
-    dt <- dt[var_size >= 50]
+    dt <- dt[abs(var_size) >= 50]
   }
 
   dt[, in_benchmark := grepl("(^|,)BMKREGIONS(,|$)", region_ids)]
@@ -435,7 +401,7 @@ read_variant_table_tsv <- function(path, bench_type, benchmark_only = TRUE) {
     pos,
     end,
     variant_type,
-    var_size,
+    var_size = abs(var_size),
     context_ids,
     region_ids
   )]
@@ -694,8 +660,8 @@ analyze_comparison <- function(comp, results_dir, resources_dir, config_path, co
     ) %>%
     arrange(comparison_label, desc(variant_count))
 
-  new_variant_dt <- read_variant_table_tsv(
-    file.path(results_dir, "variant_tables", comp$new_benchmark, "variants.tsv"),
+  new_variant_dt <- read_variant_table_parquet(
+    file.path(results_dir, "variant_tables", comp$new_benchmark, "variants.parquet"),
     bench_type = comp$bench_type,
     benchmark_only = TRUE
   )

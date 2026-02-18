@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # AI Disclosure: This script was developed with assistance from Claude (Anthropic).
+
+# Disable FIPS mode for OpenSSL to avoid conflicts on FIPS-enabled systems
+import os
+os.environ["OPENSSL_FIPS"] = "0"
+
 """
 Generate variant Parquet table from annotated VCF using Truvari VariantRecord API.
 
