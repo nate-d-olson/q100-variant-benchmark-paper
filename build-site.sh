@@ -30,8 +30,8 @@ rsync -a --delete --exclude='agent_work' \
 cp "$REPO_ROOT/README.md" "$SITE_DIR/README.md"
 
 # Snakemake report (if present)
-if ls "$REPO_ROOT"/report*.html 2>/dev/null 1>&2; then
-  cp "$REPO_ROOT"/report*.html "$SITE_DIR/"
+if ls "$REPO_ROOT"/pipeline_run.html 2>/dev/null 1>&2; then
+  cp "$REPO_ROOT"/pipeline_run.html "$SITE_DIR/"
   echo "    Copied Snakemake report."
 else
   echo "    No Snakemake report found (skipping)."

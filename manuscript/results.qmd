@@ -29,20 +29,32 @@ editor:
   - small variants
   - structural variants
 
-## Display items
-<!--  -->
-[Figure 1](manuscript/figs/giab_development_cycle.pdf)
-**Figure 1**: Schematic of DeFrABB workflow
+## Display Items
 
+See `docs/figure_table_numbering.md` for the complete numbering scheme.
 
-[Figure 2A](manuscript/figs/q100_v4_comp.pdf)
-[Figure 2B](manuscript/figs/bench_cov_comparison.pdf)
-[Figure 2C](manuscript/figs/q100_v0.6_comp.pdf)
-[Figure 2D](manuscript/figs/med_gene_coverage.pdf)
-[Figure 2E](exclusion.pdf)
-**Figure 2**: Small and structural variant counts, coverage, and comparison to previous benchmark sets. %%TODO%% Stratified, annotation based???
+### Main Figures
 
-[Figure 3](manuscript/figs/external_evaluation_process.png)
-**Figure 3**: External evaluation summary
+- **Figure 1**: DeFrABB pipeline workflow overview (file needed)
+- **Figure 2**: Variant size distributions — `figs/var_len_dist.png`
+- **Figure 3**: Variant counts by genomic context — `figs/genomic_context_variant_counts.png`
+- **Figure 4**: Benchmark region coverage change by chromosome — `figs/benchmark_region_size_change.png`
+- **Figure 5**: External evaluation summary — `figs/combined_eval.png`
+- **Figure 6**: Benchmark region interval comparison — `figs/benchmark_intervals.png`
 
-- **Table 1**: Summary statistics of Q100 benchmark content and comparisons (related to Figure 2/3)
+### Supplemental Figures
+
+- **Figure S1**: Chr8 paternal inversion (file needed)
+- **Figure S2**: Small variant stratification flow — `figs/smvar_strat_flow.png`
+- **Figure S3**: SV evaluation strata — `figs/stvar_eval_strata_supplemental.png`
+
+### Main Tables
+
+- **Table 1**: Benchmark summary (variant counts + region sizes)
+- **Table 2**: Exclusion categories and sizes
+- **Table 3**: External callsets for benchmark evaluation
+
+### Supplemental Tables
+
+- **Table S1**: Exclusion descriptions and rationale
+- **Table S2**: Curation strata for manual evaluation

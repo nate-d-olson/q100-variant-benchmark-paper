@@ -79,7 +79,7 @@ diff_cov_total_df <- diff_cov_df %>%
   ) %>%
   separate(
     bench_context,
-    into = c("bench_version", "ref", "bench_type"),
+    into = c("bench_version", "ref", "bench_type", "context"),
     sep = "_"
   ) %>%
   select(-context_name)
@@ -178,9 +178,13 @@ genomic_context_var_df <- variants_df %>%
   count(bench_version, ref, bench_type, var_type, context_ids, name = "count")
 ```
 
+```{r}
+genomic_context_var_df
+```
+
 ```{r variant_counts_by_context_plot}
 (genomic_context_smvar_plt <- genomic_context_var_df %>%
-  filter(bench_type == "smvar") %>%
+  filter(bench_type == "smvar", ref == "GRCh38") %>%
   mutate(
     bench_version = factor(
       bench_version,
@@ -205,14 +209,13 @@ genomic_context_var_df <- variants_df %>%
   labs(x = "Variant Type", y = "Variant Count") +
   theme_manuscript() +
   theme(
-    legend.position = "bottom",
-    axis.text.x = element_text(angle = -45, vjust = 1)
+    legend.position = "bottom"
   ))
 ```
 
 ```{r structural_variant_counts_by_context_plot}
 (genomic_context_stvar_plt <- genomic_context_var_df %>%
-  filter(bench_type == "stvar", .preserve = TRUE) %>%
+  filter(bench_type == "stvar", ref == "GRCh37", .preserve = TRUE) %>%
   mutate(
     bench_version = factor(
       bench_version,

@@ -11,7 +11,7 @@
 
 ### DeFrABB
 
-The Snakemake-based DeFrABB pipeline (commit `0.019`;
+The Snakemake-based DeFrABB pipeline (commit `0.020`;
 https://github.com/usnistgov/giab-defrabb) orchestrates four major stages
 (Figure 1) [@giabOutline2024; @defrabb2024]:
 

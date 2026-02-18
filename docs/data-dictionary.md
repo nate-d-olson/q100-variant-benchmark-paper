@@ -9,6 +9,45 @@ This document is the single reference for all data structures in the Q100 varian
 
 ---
 
+## Key Data Frames for Analysis
+
+These data frames are the primary inputs for downstream analyses:
+
+**genomic_context_metrics_df** - Aggregated metrics with variant counts
+- One row per genomic context per benchmark
+- Contains: variant counts by type, coverage metrics, variant density
+- Use for: variant count comparisons, density calculations, coverage analysis
+- Columns: `bench_version`, `ref`, `bench_type`, `context_name`, `total_variants`, `snv_count`, `indel_count`, `del_count`, `ins_count`, `complex_count`, `variant_density_per_mb`
+- **Variables are pre-factored** with standard levels (no manual factoring needed)
+
+**bench_regions_df** - Benchmark region intervals
+- All intervals from benchmark BED files with standardized format
+- Use for: coverage calculations, interval size distributions, spatial analysis
+- Columns: `chrom`, `start`, `end`, `interval_size`, `bench_version`, `ref`, `bench_type`
+- **Variables are pre-factored** with standard levels (chromosomes, benchmark versions, references)
+
+**ref_sizes_df** - Reference genome sizes
+- Chromosome-level sizes and N-content
+- Use for: percentage calculations, normalization, completeness assessment
+- Columns: `ref`, `chrom`, `length`, `ns`, `asm_bp`
+
+### Note on Full Variant Data
+
+If variant-level detail is required (analyzing specific variant properties, edge cases, etc.), full variant tables can be loaded using:
+
+```r
+variants <- load_variant_table(
+  "v5.0q_GRCh38_smvar",
+  filters = list(
+    chromosomes = c("chr1", "chr2"),  # Reduce memory usage
+    variant_types = c("SNV", "INDEL"),
+    in_benchmark_only = TRUE
+  )
+)
+```
+
+However, this is significantly slower (minutes) and memory-intensive (~1 GB), so use only when aggregate metrics are insufficient.
+
 ## R Loading Function Schemas
 
 The functions in `R/data_loading.R` load and standardize pipeline outputs. This section documents the data frames they return. The pipeline output files (CSVs, TSVs, BEDs) are documented in [Pipeline Outputs Reference](pipeline-outputs.md).

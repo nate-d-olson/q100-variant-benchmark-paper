@@ -1,6 +1,47 @@
 # Codebase Review Findings (Feb 2026)
+Remove genome context worktree and local branch
 
-## Snakemake Workflow Improvements
+# Manuscript Preparation
+
+## Completed (2026-02-17)
+
+- [x] Verified all placeholder numbers from pipeline results
+      → see `docs/manuscript_number_verification.md`
+- [x] Drafted co-author email → see `docs/coauthor_email_draft.md`
+- [x] Wrote full Discussion section → `manuscript/discussion.qmd`
+- [x] Created docx cleanup checklist → `docs/docx_cleanup_checklist.md`
+- [x] Created figure/table numbering scheme → `docs/figure_table_numbering.md`
+- [x] Fixed FTP version mismatch (V0.019 → V0.020 in data.qmd, methods.qmd)
+- [x] Reconciled stvar callset count discrepancy (updated number_verification.md)
+- [x] Updated results.qmd display items to match numbering scheme
+- [x] Removed pipeline-internal section from data.qmd
+- [x] Deleted stale diff_variant_counts.png
+
+## Remaining — Docx Edits (manual)
+
+- [ ] Fill all placeholder values (##, ??, XYZ, xx) per cleanup checklist
+- [ ] Remove Sina's embedded email (paras 352–366)
+- [ ] Remove informal notes and outline fragments (18 items in checklist)
+- [ ] Apply figure/table numbering scheme (cross-reference map in numbering doc)
+- [ ] Address Word comments from JZ (14 comments)
+- [ ] Replace Discussion section with content from discussion.qmd
+- [ ] Create/locate Figure 1 (DeFrABB workflow diagram)
+- [ ] Create Figure S1 (chr8 inversion visualization)
+- [ ] Finalize author list
+- [ ] Fill iPSC cell line identifiers (check GIAB/Coriell docs)
+- [ ] Decide: add UCLA stvar callsets to Table 1 or keep at 6?
+- [ ] Verify "Snakemake provenance archive: data.nist.gov" has actual URL/DOI
+
+## Remaining — Qmd Files
+
+- [ ] Introduction (manuscript/introduction.qmd) — still outline, docx has prose
+- [ ] Methods (manuscript/methods.qmd) — still outline, docx has prose
+
+# Analysis
+
+- v0.6 size distribution compared to v5 the bars don't look quite right, v0.6
+  has more variants than expected compared to v5 based on previous plots and
+  expectations. Need to verify.
 
 - [ ] **Remove dead code**: remove rule, functions, and variables not used in current codebase.
 - [ ] **Re-organize** snakemake modules to have a more logical structure grouping of rules. Consolidate rule files when appropriate.

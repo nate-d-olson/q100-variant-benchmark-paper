@@ -125,7 +125,7 @@ interval_count_plt
 ```{r combined-interval-figure}
 interval_plt <- interval_count_plt / interval_size_dist_plt +
   patchwork::plot_layout(heights = c(1, 1.4), guides = "collect") +
-  plot_annotation(tag_levels = "A")
+  plot_annotation(tag_levels = "A") & theme(legend.position = "bottom")
 interval_plt
 ```
 
