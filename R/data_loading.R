@@ -569,6 +569,54 @@ load_genomic_context_metrics <- function(
       count_cols <- grep("_count$", names(wide_df), value = TRUE)
       wide_df$total_variants <- rowSums(wide_df[count_cols])
 
+      # Load coverage table from same directory
+      coverage_file <- fs::path(
+        fs::path_dir(file),
+        "genomic_context_coverage_table.csv"
+      )
+      if (fs::file_exists(coverage_file)) {
+        coverage_df <- vroom::vroom(
+          coverage_file,
+          col_types = vroom::cols(
+            context_name = "c",
+            context_bp = "d",
+            intersect_bp = "d",
+            pct_of_context = "d",
+            pct_of_bench = "d"
+          ),
+          show_col_types = FALSE
+        )
+        # Join coverage metrics with variant counts
+        wide_df <- wide_df %>%
+          dplyr::left_join(coverage_df, by = "context_name")
+      } else {
+        # Add NA columns if coverage file not found
+        wide_df <- wide_df %>%
+          dplyr::mutate(
+            context_bp = NA_real_,
+            intersect_bp = NA_real_,
+            pct_of_context = NA_real_,
+            pct_of_bench = NA_real_
+          )
+        warning(
+          glue::glue(
+            "Coverage table not found: {coverage_file}. ",
+            "Coverage columns will be NA."
+          ),
+          call. = FALSE
+        )
+      }
+
+      # Compute variant density (variants per Mb of benchmark-covered context)
+      wide_df <- wide_df %>%
+        dplyr::mutate(
+          variant_density_per_mb = dplyr::if_else(
+            intersect_bp > 0,
+            total_variants / (intersect_bp / 1e6),
+            NA_real_
+          )
+        )
+
       .add_benchmark_metadata(wide_df, .benchmark_id_from_file(file))
     })
 
