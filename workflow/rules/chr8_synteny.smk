@@ -146,11 +146,15 @@ rule chr8_syri:
         qry_samp="mat|pat",
     shell:
         """
+        set -euo pipefail
         echo "Running SyRI: {wildcards.ref_samp} vs {wildcards.qry_samp}" > {log}
         echo "Started at $(date)" >> {log}
 
         syri -c {input.bam} -r {input.ref} -q {input.qry} -F B \
-            --dir {params.outdir} --prefix {params.prefix} --nc {threads} >> {log} 2>&1
+            --dir {params.outdir} --prefix {params.prefix} --nc {threads} 2>> {log} || {{
+            echo "ERROR: syri failed with exit code $?" >> {log}
+            exit 1
+        }}
 
         echo "Completed at $(date)" >> {log}
         """
