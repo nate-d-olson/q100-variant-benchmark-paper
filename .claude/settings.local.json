@@ -39,7 +39,10 @@
       "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/conda config:*)",
       "Bash(env:*)",
       "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/mamba search:*)",
-      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/mamba info:*)"
+      "Bash(/Users/nolson/.local/share/mamba/envs/q100-smk/bin/mamba info:*)",
+      "Bash(mamba run -n q100-smk snakemake --cores 16 --use-conda results/chr8_synteny/chr8_figure.pdf)",
+      "Bash(mamba:*)",
+      "Bash(/opt/homebrew/bin/mamba run:*)"
     ]
   },
   "enabledMcpjsonServers": [
