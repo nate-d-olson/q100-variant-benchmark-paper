@@ -131,9 +131,6 @@ properties:
         type: object
         required:
           - url
-        anyOf:
-          - required: [md5]
-          - required: [sha256]
         properties:
           url:
             type: string
@@ -172,6 +169,47 @@ properties:
                     type: string
                     pattern: "^[a-f0-9]{64}$"
                     description: SHA256 checksum
+  chr8_synteny:
+    type: object
+    description: Optional configuration for chr8 synteny figure generation
+    required:
+      - ref
+      - mat
+      - pat
+    properties:
+      ref:
+        type: string
+        description: Path to full reference FASTA
+      mat:
+        type: string
+        description: Path to full maternal FASTA
+      pat:
+        type: string
+        description: Path to full paternal FASTA
+      chrom:
+        type: string
+        description: Chromosome name to extract and display (default chr8)
+      ref_contig:
+        type: string
+        description: Optional reference FASTA contig override
+      mat_contig:
+        type: string
+        description: Optional maternal FASTA contig override
+      pat_contig:
+        type: string
+        description: Optional paternal FASTA contig override
+      zoom_padding:
+        type: integer
+        minimum: 0
+        description: Flanking bp for zoom panel around detected inversion
+      min_inversion_size:
+        type: integer
+        minimum: 0
+        description: Minimum inversion size (bp) for automatic selection
+      threads:
+        type: integer
+        minimum: 1
+        description: Threads for minimap2 and SyRI
   comparisons:
     type: object
     description: Benchmark comparison configurations

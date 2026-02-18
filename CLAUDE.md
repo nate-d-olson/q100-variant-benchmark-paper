@@ -80,6 +80,50 @@ make dag           # Generate pipeline DAG PDF (results/dag/pipeline.pdf)
 make clean         # Remove logs/, .snakemake/, results/, analysis/cache/
 ```
 
+**Conda Channel Configuration:**
+
+Anaconda CDN (`conda.anaconda.org`, `repo.anaconda.com`) is blocked by the organization firewall.
+Channels are redirected to prefix.dev via `~/.condarc`:
+
+```yaml
+custom_multichannels:
+  conda-forge:
+    - https://prefix.dev/conda-forge
+  bioconda:
+    - https://prefix.dev/bioconda
+default_channels: []
+```
+
+This remaps `conda-forge` and `bioconda` channel names used in all `workflow/envs/*.yaml` files.
+**Note**: `channel_alias` does not work for prefix.dev because its URL path (`/conda-forge`) differs
+from the conda channel alias convention (`/channels/conda-forge`). Use `custom_multichannels` instead.
+
+## Chr8 Synteny Figure Pipeline
+
+The chr8 synteny pipeline (`workflow/rules/chr8_synteny.smk`) produces a multi-panel PDF/PNG figure
+showing GRCh38 chr8 vs HG002 maternal and paternal haplotypes, with a zoom panel on the largest
+inversion. It is configured under `chr8_synteny:` in `config/config.yaml`.
+
+**Pipeline steps:**
+1. `chr8_extract_contig` — extract chr8 from each full-assembly FASTA (samtools faidx)
+2. `chr8_index_fasta` — index extracted FASTA and write `.cl` (chromosome-length) file for plotsr
+3. `chr8_align` — minimap2 asm5 alignment; wildcards `{ref_samp}_{qry_samp}` (e.g. `ref_mat`, `mat_pat`)
+4. `chr8_syri` — SyRI structural rearrangement; same wildcard pattern as align
+5. `chr8_find_inversion` — parse `ref_patsyri.out` for largest PAT inversion, write `inversion_coords.json`
+6. `chr8_make_figure` — plotsr + matplotlib multi-panel figure
+
+**Required SyRI runs** (plotsr needs consecutive-genome pairs for a 3-genome [REF, MAT, PAT] layout):
+- `ref_matsyri.out` — REF↔MAT (first pair)
+- `mat_patsyri.out` — MAT↔PAT (second pair; **not** `ref_patsyri.out`)
+- `ref_patsyri.out` — REF↔PAT (used only by `chr8_find_inversion` to detect PAT inversions in REF coords)
+
+**Key outputs:**
+- `results/chr8_synteny/syri/{ref_samp}_{qry_samp}syri.out`
+- `results/chr8_synteny/inversion_coords.json`
+- `results/chr8_synteny/chr8_figure.{pdf,png}`
+
+**Convenience target:** `snakemake chr8_synteny`
+
 ## Common Debugging Patterns
 
 **bcftools annotation error**: "The INFO tag 'CONTEXT_IDS' is not defined"
@@ -118,6 +162,26 @@ make clean         # Remove logs/, .snakemake/, results/, analysis/cache/
 - **Fixed**: February 2026
 - **Verification**: Check logs show clean context names: `Contexts: ['HP', 'MAP', 'SD', ...]`
 - **Impact**: Affected all variant count tables (genomic contexts and exclusions) across all benchmarks
+
+**SyRI crash**: `ValueError: buffer source array is read-only` in `synsearchFunctions.pyx`
+
+- **Cause**: pandas 2.0 Copy-on-Write makes DataFrame slice arrays non-writeable; SyRI's Cython code
+  tries to create a writable memoryview from them
+- **Fix**: Pin `pandas<2.0` in `workflow/envs/plotsr.yaml`; delete `.snakemake/conda/<hash>/` to force
+  env rebuild, or delete `results/chr8_synteny/syri/` so the rule re-runs in the rebuilt env
+
+**SyRI `--prefix` deprecation warning** (may cause crashes with some SyRI versions):
+
+- **Symptom**: "For specifying output folder use --dir, use --prefix for modifying the output file names"
+- **Fix**: Use `--dir <directory> --prefix <basename>` instead of `--prefix <full/path>`
+- Already fixed in `chr8_syri` rule (uses `params.outdir` + `params.prefix`)
+
+**SyRI `.out` column indices** (`find_chr8_inversion.py`):
+
+- 0-indexed columns: `[0]`=refChr, `[1]`=refStart, `[2]`=refEnd, `[5]`=**qryChr (string)**, `[6]`=qryStart, `[7]`=qryEnd, `[10]`=type
+- Query coordinates are **cols 6–7**, not 5–6. Reading col 5 as int raises `ValueError: int("chr8")`
+
+## Data Loading (R/Quarto)
 
 ## R Data Loading Infrastructure
 

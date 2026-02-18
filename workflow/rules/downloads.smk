@@ -198,12 +198,16 @@ rule prepare_reference:
         # Download with wget
         wget --no-verbose -O "$TMPFILE" "{params.url}" 2>&1 | tee -a {log}
 
-        # Validate checksum
-        echo "[$(date)] Validating {params.checksum_type} checksum..." | tee -a {log}
-        if [ "{params.checksum_type}" = "md5" ]; then
-            echo "{params.checksum}  $TMPFILE" | md5sum -c - 2>&1 | tee -a {log}
+        # Validate checksum if configured (skipped when no checksum is provided)
+        if [ -n "{params.checksum}" ]; then
+            echo "[$(date)] Validating {params.checksum_type} checksum..." | tee -a {log}
+            if [ "{params.checksum_type}" = "md5" ]; then
+                echo "{params.checksum}  $TMPFILE" | md5sum -c - 2>&1 | tee -a {log}
+            else
+                echo "{params.checksum}  $TMPFILE" | sha256sum -c - 2>&1 | tee -a {log}
+            fi
         else
-            echo "{params.checksum}  $TMPFILE" | sha256sum -c - 2>&1 | tee -a {log}
+            echo "[$(date)] No checksum configured; skipping validation" | tee -a {log}
         fi
 
         # Convert gzip to bgzip
