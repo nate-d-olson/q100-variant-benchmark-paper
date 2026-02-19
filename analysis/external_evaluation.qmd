@@ -29,13 +29,13 @@ The external evaluation data with JZ curations is loaded from local TSV files
 ```{r message=FALSE}
 ## Load pre-combined evaluation data with JZ curations from local TSV files
 smvar_evals <- read_tsv(
-  here("data/external-evaluations/Q100-ext-evals-2025-04-11_smvars.tsv"),
+  here("data/external-evaluations/Q100-ext-evals-2025-04-11-smvars.tsv"),
   show_col_types = FALSE,
   name_repair = "universal"
 )
 
 stvar_evals <- read_tsv(
-  here("data/external-evaluations/Q100-ext-evals-2025-04-11_stvars.tsv"),
+  here("data/external-evaluations/Q100-ext-evals-2025-04-11-stvars.tsv"),
   show_col_types = FALSE,
   name_repair = "universal"
 )

@@ -32,22 +32,11 @@ Remove genome context worktree and local branch
 - [ ] Decide: add UCLA stvar callsets to Table 1 or keep at 6?
 - [ ] Verify "Snakemake provenance archive: data.nist.gov" has actual URL/DOI
 
-## Remaining — Qmd Files
-
-- [ ] Introduction (manuscript/introduction.qmd) — still outline, docx has prose
-- [ ] Methods (manuscript/methods.qmd) — still outline, docx has prose
-
 # Analysis
 
 - v0.6 size distribution compared to v5 the bars don't look quite right, v0.6
   has more variants than expected compared to v5 based on previous plots and
   expectations. Need to verify.
-
-- [ ] **Remove dead code**: remove rule, functions, and variables not used in current codebase.
-- [ ] **Re-organize** snakemake modules to have a more logical structure grouping of rules. Consolidate rule files when appropriate.
-- [ ] **Decouple from Human-Specific Logic**: Move hardcoded chromosome lists (`1-22, X, Y`) from `common.smk` to `config.yaml` for better portability.
-- [ ] **Streamline Rules**: Evaluate custom Python scripts (e.g., `extract_info_fields.py`) for potential replacement with standard tools like `bcftools query`.
-- [ ] **Refactor `common.smk`**: Split the large helper file into separate modules for configuration, path generation, and functional logic.
 
 ### R Analysis & Data Loading
 

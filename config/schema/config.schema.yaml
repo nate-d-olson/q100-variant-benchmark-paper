@@ -188,6 +188,7 @@ properties:
                     type: string
                     pattern: "^[a-f0-9]{64}$"
                     description: SHA256 checksum
+  
   chr8_synteny:
     type: object
     description: Optional configuration for chr8 synteny figure generation
