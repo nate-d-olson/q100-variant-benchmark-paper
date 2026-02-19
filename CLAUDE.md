@@ -100,6 +100,10 @@ This remaps `conda-forge` and `bioconda` channel names used in all `workflow/env
 **Note**: `channel_alias` does not work for prefix.dev because its URL path (`/conda-forge`) differs
 from the conda channel alias convention (`/channels/conda-forge`). Use `custom_multichannels` instead.
 
+**GitHub CLI TLS issue:**
+
+The `gh` CLI intermittently fails with `tls: failed to verify certificate: x509: OSStatus -26276` due to the organization network proxy. When this occurs, use the MCP GitHub tools (e.g., `mcp__plugin_github_github__merge_pull_request`) as a fallback for PR operations. Git push/pull over SSH is unaffected.
+
 ## Chr8 Synteny Figure Pipeline
 
 The chr8 synteny pipeline (`workflow/rules/chr8_synteny.smk`) produces a multi-panel PDF/PNG figure
