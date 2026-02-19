@@ -99,35 +99,54 @@ Integration tests should:
 
 ## Test Data
 
-Test fixtures are stored in `tests/fixtures/`. Keep test data:
+Test fixtures are hosted on S3 to avoid bloating the repository with large binary
+files. Fixture locations are configured in `config/config.test_grch38_debug.yaml`.
 
-- Small (prefer <1KB files when possible)
-- Representative (cover edge cases)
-- Well-documented (add comments explaining what each file tests)
+### Fixture Location
+
+**S3 Bucket:** `s3://giab-data/v5-paper-data/tests/fixtures/`
+
+**Public URL:** `https://giab-data.s3.amazonaws.com/v5-paper-data/tests/fixtures/`
+
+All fixture files are publicly readable (no authentication required).
 
 ### GRCh38 debug subset fixture
 
-For integration-style debugging against realistic benchmark content, use:
+For integration-style testing against realistic benchmark content:
 
-- `tests/fixtures/grch38_debug_subset/`
+- **S3 Path:** `s3://giab-data/v5-paper-data/tests/fixtures/grch38_debug_subset/`
 
 This fixture includes clipped benchmark VCF/BED files, exclusion BEDs, genomic
-context BEDs, and a selected region set (5 autosomes + X/Y) with both
+context stratifications, and a selected region set (5 autosomes + X/Y) with both
 overlap-rich regions and a no-overlap control region.
 
-Regenerate it with:
+### Running Tests with S3 Fixtures
 
-```bash
-python scripts/create_grch38_debug_subset.py --force
-```
-
-Run Snakemake against the subset fixture config with workflow replacement:
+The test config automatically downloads from S3 when needed:
 
 ```bash
 snakemake -s workflow/Snakefile \
   --replace-workflow-config \
   --configfile config/config.test_grch38_debug.yaml \
   -n results/variant_tables/v5q_GRCh38_smvar/variants.parquet
+```
+
+Files are cached in `.snakemake/downloads/` to avoid re-downloading on subsequent runs.
+
+### Regenerating Fixtures (for maintainers only)
+
+If fixtures need to be updated:
+
+```bash
+# Generate new fixture subset locally
+python scripts/create_grch38_debug_subset.py --force
+
+# Upload to S3
+aws s3 sync tests/fixtures/grch38_debug_subset \
+  s3://giab-data/v5-paper-data/tests/fixtures/grch38_debug_subset \
+  --acl public-read
+
+# Update SHA256 hashes in config/config.test_grch38_debug.yaml
 ```
 
 ## Continuous Integration
