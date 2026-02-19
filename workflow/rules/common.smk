@@ -243,8 +243,7 @@ def get_genomic_context_cov_beds(wildcards) -> List[str]:
     ref = config["benchmarksets"][benchmark]["ref"]
     contexts = get_stratifications_for_ref(ref)
     return [
-        f"results/genomic_context/{benchmark}/coverage/{ctx}_cov.bed"
-        for ctx in contexts
+        f"results/genomic_context/{benchmark}/coverage/{ctx}_cov.bed" for ctx in contexts
     ]
 
 

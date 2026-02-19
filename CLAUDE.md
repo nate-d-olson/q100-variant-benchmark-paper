@@ -125,6 +125,13 @@ inversion. It is configured under `chr8_synteny:` in `config/config.yaml`.
 
 **Convenience target:** `snakemake chr8_synteny`
 
+## CI / GitHub Actions
+
+- **Workflow file:** `.github/workflows/main.yml` — runs on push to `main` and on PRs; also supports `workflow_dispatch` for manual triggering from the Actions UI
+- **Jobs:** `r-format-suggest` (air formatter), `py-format` (ruff), `snk-linting` (snakemake --lint), `snk-dry-run` (snakemake --dry-run)
+- **snakemake-github-action@v2 defaults:** This action defaults `directory` to `.test` and `snakefile` to `Snakefile`. This repo requires explicit `directory: .` and `snakefile: workflow/Snakefile`.
+- **Workflow disabling:** GitHub silently disables workflows after repeated consecutive failures. Re-enable with `gh workflow enable main.yml`. The `workflow_dispatch` trigger allows manual runs as a workaround.
+
 ## Common Debugging Patterns
 
 **bcftools annotation error**: "The INFO tag 'CONTEXT_IDS' is not defined"
@@ -238,8 +245,14 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 ## Code Quality
 
 - **Formatter:** `air` (config in `air.toml`: 100-char lines, 2-space indent)
-- **Linter:** `lintr` (config in `.lintr`: allows `dotted.case` for internal helpers)
+- **Linter:** `lintr` (config in `.lintr`: allows `dotted.case` for internal helpers; excludes `R/data_loading.R` line 7 for `%>%` assignment false positive)
+- **lintr/styler in renv:** Both are recorded in `renv.lock` and available when renv is active
 - **Pipe Operator:** Use `%>%` (magrittr pipe) instead of `|>` (native pipe) for consistency with existing codebase
+
+### renv Package Management
+
+- **Adding dev-only packages:** Use `renv::record("pkg")` to add packages to `renv.lock` without disturbing existing entries. **Do NOT use `renv::snapshot()`** — its implicit mode strips packages not imported in project code, which will remove most of the lockfile (lintr, styler, and other dev tools are not imported).
+- **renv vs conda:** `.Rprofile` activates renv which isolates R library paths. Packages installed via conda are not visible when renv is active. Dev tools (lintr, styler) must be added to renv directly.
 
 ## Important Patterns
 
