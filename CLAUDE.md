@@ -30,21 +30,22 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Key Rules by Layer:**
 
-1. **Metrics** (`workflow/rules/genomic_context_metrics.smk`): Single-rule computation of overlap statistics between genomic contexts and benchmarks
-   - Rule: `compute_genomic_context_coverage_table` — uses `compute_coverage_table.py` to process all contexts in one pass
-   - Outputs: `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
-2. **Variant Tables** (`workflow/rules/var_tables.smk`): Annotate VCFs with genomic context IDs and generate Parquet
-   - Key rule: `annotate_vcf_genomic_contexts` → adds INFO/CONTEXT_IDS to VCF
-   - `generate_variant_parquet` → reads annotated VCF with Truvari, classifies types, writes Parquet
-   - Outputs: `results/variant_tables/{benchmark}/variants.parquet`
-3. **Variant Counts** (`workflow/rules/var_counts.smk`): Count variants per genomic context
-   - Reads Parquet variant table, explodes context_ids, groups by (context_name, var_type, szbin)
-   - Outputs: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
-4. **Comparisons** (`workflow/rules/benchmark_comparisons.smk`): Truvari comparison between benchmark versions
+1. **Genomic Context Analysis** (`workflow/rules/genomic_context_analysis.smk`): Coverage computation, metrics, variant table generation, and variant counting
+   - `genomic_context_coverage`: bedtools coverage per context
+   - `compute_genomic_context_coverage_table`: uses `compute_coverage_table.py` to process all contexts
+   - `generate_variant_parquet`: reads annotated VCF with Truvari, classifies types, writes Parquet
+   - `count_variants_by_genomic_context`: counts by (context_name, var_type, szbin)
+   - Outputs: `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`, `results/variant_tables/{benchmark}/variants.parquet`, `results/genomic_context/{benchmark}/variants_by_genomic_context.parquet`
+2. **Annotation** (`workflow/rules/annotation.smk`): Annotate VCFs with genomic context and region IDs
+   - `combine_genomic_context_beds` / `combine_region_beds`: merge BEDs for bcftools
+   - `generate_annotation_headers`: inline heredoc for VCF INFO headers
+   - `annotate_vcf_genomic_contexts` → adds INFO/CONTEXT_IDS to VCF
+   - `annotate_vcf_regions` → adds INFO/REGION_IDS to VCF
+3. **Comparisons** (`workflow/rules/benchmark_comparisons.smk`): Truvari comparison between benchmark versions
    - Uses "stratification" terminology (not genomic_context) for GIAB comparison analysis
-5. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
+4. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
    - `materialize_exclusion`: Sort/merge exclusion BED files (NOT symlinks—performs data processing)
-   - `compute_exclusion_metrics`: Per-exclusion BED overlap with dip.bed (uses `compute_bed_metrics.py`)
+   - `compute_exclusion_metrics`: Per-exclusion BED overlap with dip.bed (inline bedtools shell commands)
    - `compute_exclusion_impact`: Per-exclusion variant counts + BED metrics (Q1)
    - `compute_exclusion_interactions`: Upset-style exclusion combination analysis (Q2)
    - `annotate_old_benchmark_status`: Cross-version comparison of old vs v5.0q benchmarks (Q3)
@@ -55,10 +56,10 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 **Output File Patterns:**
 
 - Genomic context files: `results/genomic_context/{benchmark}/`
-  - `coverage/` - bedtools coverage output (`_cov.bed`) from `genomic_context_tables.smk`
+  - `coverage/` - bedtools coverage output (`_cov.bed`) from `genomic_context_analysis.smk`
   - `genomic_context_coverage_table.csv` - Coverage metrics (from `compute_coverage_table.py`)
 - Variant tables: `results/variant_tables/{benchmark}/variants.parquet`
-- Variant counts: `results/var_counts/{benchmark}/variants_by_genomic_context.parquet`
+- Variant counts: `results/genomic_context/{benchmark}/variants_by_genomic_context.parquet`
 - Exclusions (v5.0q only): `results/exclusions/{benchmark}/*.csv`
 - Cross-version exclusion analysis: `results/exclusions/{comp_id}/*.csv`
 
@@ -136,8 +137,8 @@ inversion. It is configured under `chr8_synteny:` in `config/config.yaml`.
 
 **bcftools annotation error**: "The INFO tag 'CONTEXT_IDS' is not defined"
 
-- **Cause**: Header file was cached with old definitions before script changes
-- **Root cause**: `generate_header_lines.py` was updated but `results/generate_annotation_headers/` had stale cache
+- **Cause**: Header file was cached with old definitions before rule changes
+- **Root cause**: `generate_annotation_headers` rule (inline heredoc in `annotation.smk`) was updated but `results/generate_annotation_headers/` had stale cache
 - **Fix**: Delete affected output directories to force regeneration
 
   ```bash
@@ -154,7 +155,13 @@ inversion. It is configured under `chr8_synteny:` in `config/config.yaml`.
 
 - Must match all wildcards used in affected rules
 - Format: `strat_name="|".join(sorted(_all_strat_names))`
-- For new genomic context rules: use `get_genomic_context_ids()` helper function
+- For new genomic context rules: use `get_stratifications_for_ref()` helper function
+- Internal helper functions use underscore prefix convention (e.g., `_get_exclusion_config`)
+- `BENCHMARKS_WITH_EXCLUSIONS` top-level variable filters benchmarks with exclusions configured
+
+**Chromosome configuration**: Chromosome lists are defined in `config.yaml` under `chromosomes:`, not hardcoded
+
+- `get_chromosomes()` reads from config and applies ref-specific prefixes (GRCh37 vs GRCh38)
 
 **Script changes not taking effect**:
 
@@ -231,7 +238,7 @@ Rscript -e 'testthat::test_file("tests/test_cache.R")'           # Schema + cach
 Rscript -e 'testthat::test_file("tests/test_data_loading.R")'    # Data loading tests (has pre-existing failures)
 Rscript -e 'testthat::test_file("tests/test_exclusion_loading.R")'  # Exclusion loading tests
 Rscript -e 'testthat::test_file("tests/test_schema_update.R")'   # Schema update tests
-pytest tests/unit/  # Python unit tests (validators, common helpers, stratify_comparison)
+pytest tests/unit/  # Python unit tests (common helpers)
 ```
 
 Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
@@ -308,7 +315,7 @@ File paths encode this pattern:
 ```
 results/genomic_context/v5.0q_GRCh38_smvar/
 results/variant_tables/v5.0q_GRCh38_smvar/variants.parquet
-results/var_counts/v5.0q_GRCh38_smvar/variants_by_genomic_context.parquet
+results/genomic_context/v5.0q_GRCh38_smvar/variants_by_genomic_context.parquet
 results/exclusions/v5.0q_GRCh38_smvar/  # only if exclusions configured
 ```
 
