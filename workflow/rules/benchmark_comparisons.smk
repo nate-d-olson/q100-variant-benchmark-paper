@@ -121,17 +121,3 @@ rule run_truvari_refine:
             {params.bench_dir} \
             > {log} 2>&1
         """
-
-
-rule stratify_comparison:
-    input:
-        unpack(get_strat_inputs),
-    output:
-        variants_csv="results/stats/{comp_id}_variants.csv",
-        regions_csv="results/stats/{comp_id}_regions.csv",
-    log:
-        "logs/stratify_comparison/{comp_id}.log",
-    conda:
-        "../envs/truvari.yaml"
-    script:
-        "../scripts/stratify_comparison.py"

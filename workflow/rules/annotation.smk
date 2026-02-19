@@ -1,13 +1,13 @@
 """
-Rules for generating variant tables via bcftools annotate and Truvari.
+Rules for VCF annotation with genomic context and region BED overlaps.
 
-This module annotates VCFs with genomic context and region BED overlaps via
-bcftools, then generates comprehensive Parquet variant tables using Truvari's
-vcf_to_df() with correct variant type classification and size filtering.
+This module prepares BED files and annotates VCFs using bcftools annotate:
+1. combine_genomic_context_beds: merge context BEDs into one indexed file
+2. combine_region_beds: merge benchmark region + exclusion BEDs
+3. generate_annotation_headers: create VCF INFO header lines
+4. annotate_vcf_genomic_contexts: add CONTEXT_IDS to VCF
+5. annotate_vcf_regions: add REGION_IDS to VCF
 """
-
-# Note: Stratification BEDs are downloaded using storage.http()
-# The combine_stratification_beds rule accepts URLs directly
 
 
 rule combine_genomic_context_beds:
@@ -94,8 +94,11 @@ rule generate_annotation_headers:
         "../envs/python.yaml"
     shell:
         """
-        python workflow/scripts/generate_header_lines.py \
-            --output {output.headers} 2> {log}
+        cat > {output.headers} <<'EOF'
+##INFO=<ID=CONTEXT_IDS,Number=.,Type=String,Description="Comma-separated list of genomic context region IDs overlapping variant">
+##INFO=<ID=REGION_IDS,Number=.,Type=String,Description="Comma-separated list of region IDs (Benchmark, Exclusions) overlapping variant">
+EOF
+        echo "Generated annotation headers" > {log}
         """
 
 
@@ -168,38 +171,3 @@ rule annotate_vcf_regions:
 
         echo "Completed at $(date)" >> {log}
         """
-
-
-rule generate_variant_parquet:
-    """
-    Generate variant Parquet table from annotated VCF using Truvari.
-
-    Reads fully annotated VCF (with CONTEXT_IDS, REGION_IDS) and produces
-    a Parquet table with:
-    - Correct variant type classification (SNV/INDEL for smvar, INS/DEL for stvar)
-    - Size filtering (smvar <50bp, stvar >=50bp)
-    - Truvari size bins (SZBINS)
-    - All INFO fields included automatically
-
-    Replaces: extract_info_fields + generate_var_table rules.
-    """
-    input:
-        vcf="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz",
-        vcfidx="results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz.tbi",
-    output:
-        parquet=ensure(
-            "results/variant_tables/{benchmark}/variants.parquet",
-            non_empty=True,
-        ),
-    params:
-        bench_type=lambda w: "stvar" if "stvar" in w.benchmark else "smvar",
-    log:
-        "logs/generate_variant_parquet/{benchmark}.log",
-    message:
-        "Generating variant Parquet for {wildcards.benchmark}"
-    resources:
-        mem_mb=16384,
-    conda:
-        "../envs/truvari.yaml"
-    script:
-        "../scripts/generate_variant_parquet.py"

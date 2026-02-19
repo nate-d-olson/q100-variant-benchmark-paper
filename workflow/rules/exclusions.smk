@@ -103,6 +103,9 @@ rule compute_dip_size:
 rule compute_exclusion_metrics:
     """
     Compute intersection metrics for exclusion against benchmark regions.
+
+    Output TSV columns (no header):
+        exclusion_name, exclusion_bp, dip_intersect_bp, pct_of_exclusion, pct_of_dip
     """
     input:
         exclusion="results/exclusions/{benchmark}/{exclusion}.bed",
@@ -118,8 +121,37 @@ rule compute_exclusion_metrics:
     threads: 1
     conda:
         "../envs/bedtools.yaml"
-    script:
-        "../scripts/compute_bed_metrics.py"
+    shell:
+        """
+        echo "Computing metrics for {wildcards.exclusion}" > {log}
+
+        EXCL_BP=$(bedtools sort -i {input.exclusion} | bedtools merge -i - | \
+                  awk '{{sum+=$3-$2}} END {{print sum+0}}')
+        DIP_BP=$(bedtools sort -i {input.dip_bed} | bedtools merge -i - | \
+                 awk '{{sum+=$3-$2}} END {{print sum+0}}')
+        INTERSECT_BP=$(bedtools intersect \
+                         -a <(bedtools sort -i {input.exclusion}) \
+                         -b <(bedtools sort -i {input.dip_bed}) | \
+                       bedtools sort -i - | bedtools merge -i - | \
+                       awk '{{sum+=$3-$2}} END {{print sum+0}}')
+
+        if [ "$EXCL_BP" -gt 0 ]; then
+            PCT_EXCL=$(awk "BEGIN {{printf \\"%.6f\\", $INTERSECT_BP / $EXCL_BP * 100}}")
+        else
+            PCT_EXCL="0.000000"
+        fi
+        if [ "$DIP_BP" -gt 0 ]; then
+            PCT_DIP=$(awk "BEGIN {{printf \\"%.6f\\", $INTERSECT_BP / $DIP_BP * 100}}")
+        else
+            PCT_DIP="0.000000"
+        fi
+
+        printf '%s\\t%s\\t%s\\t%s\\t%s\\n' \
+            "{wildcards.exclusion}" "$EXCL_BP" "$INTERSECT_BP" "$PCT_EXCL" "$PCT_DIP" \
+            > {output.tsv}
+
+        echo "Metrics: excl_bp=$EXCL_BP, intersect=$INTERSECT_BP, pct_excl=$PCT_EXCL, pct_dip=$PCT_DIP" >> {log}
+        """
 
 
 rule compute_exclusion_impact:
@@ -209,7 +241,7 @@ rule annotate_old_benchmark_status:
         comp_type=lambda wc: config["comparisons"][wc.comp_id]["type"],
         excl_names=lambda wc: [
             e["name"]
-            for e in get_exclusion_config(
+            for e in _get_exclusion_config(
                 config["comparisons"][wc.comp_id]["new_benchmark"]
             )
         ],

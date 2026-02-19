@@ -5,10 +5,29 @@ description: Configuration schema for Q100 variant benchmark pipeline
 type: object
 
 required:
+  - chromosomes
   - benchmarksets
   - references
 
 properties:
+  chromosomes:
+    type: object
+    description: Chromosome sets for analysis
+    required:
+      - autosomes
+      - sex
+    properties:
+      autosomes:
+        type: array
+        items:
+          type: integer
+        description: Autosome numbers
+      sex:
+        type: array
+        items:
+          type: string
+        description: Sex chromosome names
+
   benchmarksets:
     type: object
     description: Benchmark sets for analysis
