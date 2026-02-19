@@ -132,7 +132,7 @@ rule chr8_syri:
         syri="results/chr8_synteny/syri/{ref_samp}_{qry_samp}syri.out",
         summary="results/chr8_synteny/syri/{ref_samp}_{qry_samp}syri.summary",
     params:
-        outdir="results/chr8_synteny/syri",
+        outdir=lambda w, output: os.path.dirname(output.syri),
         prefix="{ref_samp}_{qry_samp}",
     log:
         "logs/chr8_synteny/syri_{ref_samp}_{qry_samp}.log",

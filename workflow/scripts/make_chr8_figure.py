@@ -211,7 +211,7 @@ def assemble_figure(
     ax_a.axis("off")
     _panel_label(ax_a, "A")
     ax_a.set_title(
-        f"Chromosome 8 synteny  —  REF  ·  MAT  ·  PAT",
+        "Chromosome 8 synteny  —  REF  ·  MAT  ·  PAT",
         fontsize=11,
         pad=7,
     )

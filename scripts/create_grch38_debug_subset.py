@@ -11,7 +11,7 @@ import shutil
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, TextIO
+from typing import Dict, Iterable, TextIO
 
 
 @dataclass(frozen=True)

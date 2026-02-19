@@ -3,9 +3,7 @@ Unit tests for workflow/scripts/stratify_comparison.py
 """
 
 import pytest
-import tempfile
 import gzip
-from pathlib import Path
 
 
 class TestVCFCounting:

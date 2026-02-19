@@ -9,7 +9,7 @@ on:
 
 jobs:
   r-format-suggest:
-    name: format-suggest
+    name: r-format-suggest
     runs-on: ubuntu-latest
 
     permissions:
@@ -35,7 +35,7 @@ jobs:
           tool_name: air
 
   py-format:
-    name: py-format-suggest
+    name: py-format
     runs-on: ubuntu-latest
     permissions:
       # Required to push suggestion comments to the PR
@@ -45,22 +45,26 @@ jobs:
       - uses: astral-sh/ruff-action@v3
 
   snk-linting:
+    name: snk-linting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Linting
         uses: snakemake/snakemake-github-action@v2
         with:
+          directory: .
+          snakefile: workflow/Snakefile
           args: "--lint"
 
   snk-testing:
+    name: snk-dry-run
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: run workflow
+      - name: Dry-run workflow
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: .test
+          directory: .
           snakefile: workflow/Snakefile
           args: >-
             --conda-cleanup-pkgs cache
