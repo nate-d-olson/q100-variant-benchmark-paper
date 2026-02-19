@@ -233,6 +233,30 @@
       "Maintainer": "Martin Maechler <mmaechler+Matrix@gmail.com>",
       "Repository": "CRAN"
     },
+    "R.cache": {
+      "Package": "R.cache",
+      "Version": "0.17.0",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "R.methodsS3": {
+      "Package": "R.methodsS3",
+      "Version": "1.8.2",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "R.oo": {
+      "Package": "R.oo",
+      "Version": "1.27.1",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "R.utils": {
+      "Package": "R.utils",
+      "Version": "2.13.0",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
     "R6": {
       "Package": "R6",
       "Version": "2.6.1",
@@ -503,22 +527,6 @@
       "Package": "backports",
       "Version": "1.5.0",
       "Source": "Repository",
-      "Type": "Package",
-      "Title": "Reimplementations of Functions Introduced Since R-3.0.0",
-      "Authors@R": "c( person(\"Michel\", \"Lang\", NULL, \"michellang@gmail.com\", role = c(\"cre\", \"aut\"), comment = c(ORCID = \"0000-0001-9754-0393\")), person(\"Duncan\", \"Murdoch\", NULL, \"murdoch.duncan@gmail.com\", role = c(\"aut\")), person(\"R Core Team\", role = \"aut\"))",
-      "Maintainer": "Michel Lang <michellang@gmail.com>",
-      "Description": "Functions introduced or changed since R v3.0.0 are re-implemented in this package. The backports are conditionally exported in order to let R resolve the function name to either the implemented backport, or the respective base version, if available. Package developers can make use of new functions or arguments by selectively importing specific backports to support older installations.",
-      "URL": "https://github.com/r-lib/backports",
-      "BugReports": "https://github.com/r-lib/backports/issues",
-      "License": "GPL-2 | GPL-3",
-      "NeedsCompilation": "yes",
-      "ByteCompile": "yes",
-      "Depends": [
-        "R (>= 3.0.0)"
-      ],
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.1",
-      "Author": "Michel Lang [cre, aut] (<https://orcid.org/0000-0001-9754-0393>), Duncan Murdoch [aut], R Core Team [aut]",
       "Repository": "CRAN"
     },
     "base64enc": {
@@ -1408,6 +1416,12 @@
       "NeedsCompilation": "yes",
       "Author": "Jeroen Ooms [aut, cre] (ORCID: <https://orcid.org/0000-0002-4035-0289>), Hadley Wickham [ctb], Posit Software, PBC [cph]",
       "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
+      "Repository": "CRAN"
+    },
+    "cyclocomp": {
+      "Package": "cyclocomp",
+      "Version": "1.1.1",
+      "Source": "Repository",
       "Repository": "CRAN"
     },
     "data.table": {
@@ -3240,6 +3254,12 @@
       "Maintainer": "Lionel Henry <lionel@posit.co>",
       "Repository": "CRAN"
     },
+    "lintr": {
+      "Package": "lintr",
+      "Version": "3.3.0-1",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
     "litedown": {
       "Package": "litedown",
       "Version": "0.9",
@@ -4315,6 +4335,12 @@
       "Maintainer": "Gábor Csárdi <csardi.gabor@gmail.com>",
       "Repository": "CRAN"
     },
+    "remotes": {
+      "Package": "remotes",
+      "Version": "2.5.0",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
     "renv": {
       "Package": "renv",
       "Version": "1.1.7",
@@ -4420,6 +4446,12 @@
       "NeedsCompilation": "no",
       "Author": "Jennifer Bryan [aut, cre] (<https://orcid.org/0000-0002-6983-2759>), Jim Hester [aut] (<https://orcid.org/0000-0002-2739-7082>), David Robinson [aut], Hadley Wickham [aut] (<https://orcid.org/0000-0003-4757-117X>), Christophe Dervieux [aut] (<https://orcid.org/0000-0003-4474-2498>), Posit Software, PBC [cph, fnd]",
       "Maintainer": "Jennifer Bryan <jenny@posit.co>",
+      "Repository": "CRAN"
+    },
+    "rex": {
+      "Package": "rex",
+      "Version": "1.2.1",
+      "Source": "Repository",
       "Repository": "CRAN"
     },
     "rlang": {
@@ -4561,34 +4593,6 @@
       "Package": "rprojroot",
       "Version": "2.1.1",
       "Source": "Repository",
-      "Title": "Finding Files in Project Subdirectories",
-      "Authors@R": "person(given = \"Kirill\", family = \"M\\u00fcller\", role = c(\"aut\", \"cre\"), email = \"kirill@cynkra.com\", comment = c(ORCID = \"0000-0002-1416-3412\"))",
-      "Description": "Robust, reliable and flexible paths to files below a project root. The 'root' of a project is defined as a directory that matches a certain criterion, e.g., it contains a certain regular file.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://rprojroot.r-lib.org/, https://github.com/r-lib/rprojroot",
-      "BugReports": "https://github.com/r-lib/rprojroot/issues",
-      "Depends": [
-        "R (>= 3.0.0)"
-      ],
-      "Suggests": [
-        "covr",
-        "knitr",
-        "lifecycle",
-        "rlang",
-        "rmarkdown",
-        "testthat (>= 3.2.0)",
-        "withr"
-      ],
-      "VignetteBuilder": "knitr",
-      "Config/testthat/edition": "3",
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.2.9000",
-      "Config/autostyle/scope": "line_breaks",
-      "Config/autostyle/strict": "true",
-      "Config/Needs/website": "tidyverse/tidytemplate",
-      "NeedsCompilation": "no",
-      "Author": "Kirill Müller [aut, cre] (ORCID: <https://orcid.org/0000-0002-1416-3412>)",
-      "Maintainer": "Kirill Müller <kirill@cynkra.com>",
       "Repository": "CRAN"
     },
     "rstudioapi": {
@@ -4889,6 +4893,12 @@
       "NeedsCompilation": "no",
       "Author": "Hadley Wickham [aut, cre, cph], Posit Software, PBC [cph, fnd]",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
+      "Repository": "CRAN"
+    },
+    "styler": {
+      "Package": "styler",
+      "Version": "1.11.0",
+      "Source": "Repository",
       "Repository": "CRAN"
     },
     "sys": {
@@ -5734,6 +5744,12 @@
       "NeedsCompilation": "yes",
       "Author": "Hadley Wickham [aut], Jim Hester [aut], Jeroen Ooms [aut, cre], Posit Software, PBC [cph, fnd], R Foundation [ctb] (Copy of R-project homepage cached as example)",
       "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
+      "Repository": "CRAN"
+    },
+    "xmlparsedata": {
+      "Package": "xmlparsedata",
+      "Version": "1.0.5",
+      "Source": "Repository",
       "Repository": "CRAN"
     },
     "yaml": {

@@ -83,7 +83,7 @@ The following sections analyze how exclusions overlap with each other, showing w
 ```{r}
 # Load exclusion interaction data
 exclusion_interaction_tbl <- load_exclusion_interactions() %>%
-  dplyr::filter(ref == "GRCh38") 
+  dplyr::filter(ref == "GRCh38")
 
 if (nrow(exclusion_interaction_tbl) == 0) {
   stop("No v5.0q exclusion interaction data found in results/exclusions.")
@@ -130,7 +130,7 @@ single_exclusion_summary <- interaction_filtered_tbl %>%
   tidyr::pivot_wider(
     names_from = ref,
     values_from = c(bases_bp, variant_count)
-  ) 
+  )
 
 if (nrow(single_exclusion_summary) > 0) {
   single_exclusion_summary %>%

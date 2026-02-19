@@ -9,5 +9,6 @@ linters: linters_with_defaults(
     return_linter = NULL
   )
 exclusions: list(
-    "tests/"
+    "tests/",
+    "R/data_loading.R" = list(7)
   )

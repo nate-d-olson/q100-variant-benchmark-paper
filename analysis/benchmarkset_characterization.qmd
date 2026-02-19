@@ -118,7 +118,7 @@ stvar_len_df <- variants_df %>%
     bench_type == "stvar"
   ) %>%
   mutate(ref = std_references(ref)) %>%
-  select(bench_version, bench_type, ref, chrom, pos, var_size) %>% 
+  select(bench_version, bench_type, ref, chrom, pos, var_size) %>%
   filter(abs(var_size) < 20000)
 
 (stvar_len_dist_plt <- ggplot(
