@@ -88,6 +88,10 @@ get_color_palettes <- function() {
 
 #' ggplot2 Theme for Manuscript Figures
 #'
+#' @param ... Additional theme elements to override defaults. Any named arguments
+#'   matching ggplot2 theme elements will override the corresponding default
+#'   (e.g., `axis.title = element_text(size = 12)`)
+#'
 #' @return A ggplot2 theme object for use in figures
 #'
 #' @details
@@ -100,85 +104,92 @@ get_color_palettes <- function() {
 #'
 #' @examples
 #' \dontrun{
+#' # Use default theme
 #' ggplot(data) +
 #'   geom_point() +
 #'   theme_manuscript()
+#'
+#' # Override axis title styling
+#' ggplot(data) +
+#'   geom_point() +
+#'   theme_manuscript(axis.title = element_text(size = 12, face = "italic"))
 #' }
 #'
 #' @export
-theme_manuscript <- function() {
-  theme_minimal() +
-    theme(
-      # Font sizing for journal (assumes ~100mm figure width)
-      text = element_text(
-        family = "sans",
-        size = 9,
-        color = "black"
-      ),
-      plot.title = element_text(
-        size = 11,
-        face = "bold",
-        hjust = 0,
-        margin = margin(b = 6)
-      ),
-      plot.subtitle = element_text(
-        size = 9,
-        hjust = 0,
-        margin = margin(b = 6)
-      ),
-      axis.title = element_text(
-        size = 9,
-        face = "bold",
-        color = "black"
-      ),
-      axis.text = element_text(
-        size = 8,
-        color = "black"
-      ),
-      legend.title = element_text(
-        size = 9,
-        face = "bold"
-      ),
-      legend.text = element_text(
-        size = 8
-      ),
-      legend.position = "bottom",
-      legend.box = "horizontal",
-      legend.margin = margin(t = 8),
-      legend.key.width = unit(0.8, "cm"),
-      legend.key.height = unit(0.3, "cm"),
+theme_manuscript <- function(...) {
+  base_theme <- theme(
+    # Font sizing for journal (assumes ~100mm figure width)
+    text = element_text(
+      family = "sans",
+      size = 9,
+      color = "black"
+    ),
+    plot.title = element_text(
+      size = 11,
+      face = "bold",
+      hjust = 0,
+      margin = margin(b = 6)
+    ),
+    plot.subtitle = element_text(
+      size = 9,
+      hjust = 0,
+      margin = margin(b = 6)
+    ),
+    axis.title = element_text(
+      size = 9,
+      face = "bold",
+      color = "black"
+    ),
+    axis.text = element_text(
+      size = 8,
+      color = "black"
+    ),
+    legend.title = element_text(
+      size = 9,
+      face = "bold"
+    ),
+    legend.text = element_text(
+      size = 8
+    ),
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    legend.margin = margin(t = 8),
+    legend.key.width = unit(0.8, "cm"),
+    legend.key.height = unit(0.3, "cm"),
 
-      # Panel and axis styling
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.border = element_rect(
-        color = "black",
-        fill = NA,
-        linewidth = 0.3
-      ),
-      axis.line = element_blank(),
-      axis.ticks = element_line(
-        color = "black",
-        linewidth = 0.25
-      ),
-      axis.ticks.length = unit(0.2, "cm"),
+    # Panel and axis styling
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      color = "black",
+      fill = NA,
+      linewidth = 0.3
+    ),
+    axis.line = element_blank(),
+    axis.ticks = element_line(
+      color = "black",
+      linewidth = 0.25
+    ),
+    axis.ticks.length = unit(0.2, "cm"),
 
-      # Facet styling
-      strip.text = element_text(
-        size = 8,
-        face = "bold",
-        color = "black",
-        margin = margin(5, 5, 5, 5)
-      ),
-      strip.background = element_rect(
-        color = "gray90",
-        fill = "gray95",
-        linewidth = 0.3
-      ),
+    # Facet styling
+    strip.text = element_text(
+      size = 8,
+      face = "bold",
+      color = "black",
+      margin = margin(5, 5, 5, 5)
+    ),
+    strip.background = element_rect(
+      color = "gray90",
+      fill = "gray95",
+      linewidth = 0.3
+    ),
 
-      # Plot spacing
-      plot.margin = margin(t = 5, r = 5, b = 5, l = 5, unit = "mm")
-    )
+    # Plot spacing
+    plot.margin = margin(t = 5, r = 5, b = 5, l = 5, unit = "mm")
+  )
+
+  theme_minimal() + base_theme + theme(...)
 }
 
 #' Scale for Benchmark Versions
@@ -195,20 +206,24 @@ theme_manuscript <- function() {
 scale_benchmark_version <- function(
   aesthetic = "color",
   name = "Benchmark",
-  guide = "legend"
+  guide = "legend",
+  ...
 ) {
   palettes <- get_color_palettes()
 
-  switch(aesthetic,
+  switch(
+    aesthetic,
     color = scale_color_manual(
       name = name,
       values = palettes$bench_version,
-      guide = guide
+      guide = guide,
+      ...
     ),
     fill = scale_fill_manual(
       name = name,
       values = palettes$bench_version,
-      guide = guide
+      guide = guide,
+      ...
     ),
     stop("Unknown aesthetic: ", aesthetic)
   )
@@ -236,11 +251,13 @@ scale_benchmark_version <- function(
 scale_bench_type <- function(
   aesthetic = "color",
   name = "Benchmark Type",
-  guide = "legend"
+  guide = "legend",
+  ...
 ) {
   palettes <- get_color_palettes()
 
-  switch(aesthetic,
+  switch(
+    aesthetic,
     color = scale_color_manual(
       name = name,
       values = palettes$bench_type,
@@ -248,7 +265,8 @@ scale_bench_type <- function(
         "smvar" = "Small Variants",
         "stvar" = "Structural Variants"
       ),
-      guide = guide
+      guide = guide,
+      ...
     ),
     fill = scale_fill_manual(
       name = name,
@@ -257,7 +275,8 @@ scale_bench_type <- function(
         "smvar" = "Small Variants",
         "stvar" = "Structural Variants"
       ),
-      guide = guide
+      guide = guide,
+      ...
     ),
     stop("Unknown aesthetic: ", aesthetic)
   )
@@ -268,6 +287,8 @@ scale_bench_type <- function(
 #' @param aesthetic The ggplot aesthetic to apply (color, fill, etc.)
 #' @param name Display name for the scale (default: "Genomic Context")
 #' @param guide Guide type ("legend" or "none")
+#' @param ... Additional arguments passed to the underlying scale function
+#'   (e.g., `limits`, `breaks`, `labels`, `na.value`)
 #'
 #' @return A ggplot2 scale object
 #'
@@ -277,7 +298,8 @@ scale_bench_type <- function(
 scale_genomic_context <- function(
   aesthetic = "color",
   name = "Genomic Context",
-  guide = "legend"
+  guide = "legend",
+  ...
 ) {
   palettes <- get_color_palettes()
 
@@ -291,18 +313,21 @@ scale_genomic_context <- function(
     "TR10kb" = "Large TRs (>10kb)"
   )
 
-  switch(aesthetic,
+  switch(
+    aesthetic,
     color = scale_color_manual(
       name = name,
       values = palettes$context_name,
       labels = context_labels,
-      guide = guide
+      guide = guide,
+      ...
     ),
     fill = scale_fill_manual(
       name = name,
       values = palettes$context_name,
       labels = context_labels,
-      guide = guide
+      guide = guide,
+      ...
     ),
     stop("Unknown aesthetic: ", aesthetic)
   )
@@ -312,6 +337,9 @@ scale_genomic_context <- function(
 #'
 #' @param gt_object A gt table object
 #' @param striped Logical: add striped rows for readability (default: TRUE)
+#' @param ... Additional gt table options to override or extend defaults.
+#'   Any named arguments matching `gt::tab_options()` parameters will be applied
+#'   (e.g., `table.font.size = "10pt"`)
 #'
 #' @return A gt table object with styling applied
 #'
@@ -325,13 +353,61 @@ scale_genomic_context <- function(
 #'
 #' @examples
 #' \dontrun{
+#' # Use default theme
 #' data %>%
 #'   gt() %>%
 #'   theme_gt_manuscript()
+#'
+#' # Override font size
+#' data %>%
+#'   gt() %>%
+#'   theme_gt_manuscript(table.font.size = "10pt")
 #' }
 #'
 #' @export
-theme_gt_manuscript <- function(gt_object, striped = TRUE) {
+theme_gt_manuscript <- function(gt_object, striped = TRUE, ...) {
+  # Base styling options
+  base_options <- list(
+    # Font sizing
+    table.font.size = "9pt",
+    heading.title.font.size = "10pt",
+    stub.font.size = "9pt",
+    summary_row.text_transform = "uppercase",
+
+    # Table structure
+    table.border.top.style = "solid",
+    table.border.top.width = px(2),
+    table.border.top.color = "black",
+    table.border.bottom.style = "solid",
+    table.border.bottom.width = px(2),
+    table.border.bottom.color = "black",
+    heading.border.bottom.style = "solid",
+    heading.border.bottom.width = px(1),
+    heading.border.bottom.color = "black",
+
+    # Column labels
+    column_labels.background.color = "#F5F5F5",
+    column_labels.text_transform = "capitalize",
+    column_labels.padding = px(10),
+    column_labels.border.top.style = "solid",
+    column_labels.border.top.width = px(1),
+    column_labels.border.top.color = "black",
+    column_labels.border.bottom.style = "solid",
+    column_labels.border.bottom.width = px(1),
+    column_labels.border.bottom.color = "black",
+
+    # Data cells
+    data_row.padding = px(8),
+    table.width = pct(100),
+
+    # Borders and spacing
+    table.margin.left = "auto",
+    table.margin.right = "auto"
+  )
+
+  # Merge user-provided options with base options (user options take precedence)
+  merged_options <- utils::modifyList(base_options, list(...))
+
   # Base styling
   gt_object <- gt_object %>%
     gt::opt_table_font(
@@ -341,43 +417,7 @@ theme_gt_manuscript <- function(gt_object, striped = TRUE) {
         "sans-serif"
       )
     ) %>%
-    gt::tab_options(
-      # Font sizing
-      table.font.size = "9pt",
-      heading.title.font.size = "10pt",
-      stub.font.size = "9pt",
-      summary_row.text_transform = "uppercase",
-
-      # Table structure
-      table.border.top.style = "solid",
-      table.border.top.width = px(2),
-      table.border.top.color = "black",
-      table.border.bottom.style = "solid",
-      table.border.bottom.width = px(2),
-      table.border.bottom.color = "black",
-      heading.border.bottom.style = "solid",
-      heading.border.bottom.width = px(1),
-      heading.border.bottom.color = "black",
-
-      # Column labels
-      column_labels.background.color = "#F5F5F5",
-      column_labels.text_transform = "capitalize",
-      column_labels.padding = px(10),
-      column_labels.border.top.style = "solid",
-      column_labels.border.top.width = px(1),
-      column_labels.border.top.color = "black",
-      column_labels.border.bottom.style = "solid",
-      column_labels.border.bottom.width = px(1),
-      column_labels.border.bottom.color = "black",
-
-      # Data cells
-      data_row.padding = px(8),
-      table.width = pct(100),
-
-      # Borders and spacing
-      table.margin.left = "auto",
-      table.margin.right = "auto"
-    )
+    do.call(gt::tab_options, c(list(.), merged_options))
 
   # Add striped rows if requested
   if (striped) {
