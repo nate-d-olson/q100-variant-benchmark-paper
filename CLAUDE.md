@@ -265,6 +265,52 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 - **Adding dev-only packages:** Use `renv::record("pkg")` to add packages to `renv.lock` without disturbing existing entries. **Do NOT use `renv::snapshot()`** — its implicit mode strips packages not imported in project code, which will remove most of the lockfile (lintr, styler, and other dev tools are not imported).
 - **renv vs conda:** `.Rprofile` activates renv which isolates R library paths. Packages installed via conda are not visible when renv is active. Dev tools (lintr, styler) must be added to renv directly.
 
+## Plot Themes & Styling
+
+The `R/plot_themes.R` module provides consistent ggplot2 and gt table styling for all manuscript figures and tables (Cell Genomics submission requirements). Key functions support flexible parameter overrides via `...`:
+
+### Theme Functions
+
+**`theme_manuscript(...)`**
+- Base manuscript theme with journal-appropriate sizing (8-11pt fonts, 85-180mm figure width)
+- Accepts `...` to override any theme element
+- Example: `theme_manuscript(axis.title = element_text(size = 12, face = "italic"))`
+- Returns composition: `theme_minimal() + base_theme + theme(...)`
+
+**`theme_gt_manuscript(gt_object, striped = TRUE, ...)`**
+- gt table styling with consistent fonts, borders, and spacing
+- Accepts `...` to override any gt table option via `utils::modifyList()`
+- Example: `theme_gt_manuscript(gt_table, table.font.size = "10pt")`
+- User options take precedence over defaults
+
+### Scale Functions
+
+All scale functions accept `...` to pass additional parameters to underlying ggplot2 functions:
+
+**`scale_benchmark_version(aesthetic, name, guide, ...)`**
+- Colors for benchmark versions (v0.6, v4.2.1, v5.0q, PP)
+- Example: `scale_benchmark_version(fill = "color", limits = c("v5.0q"))`
+
+**`scale_bench_type(aesthetic, name, guide, ...)`**
+- Colors for small variants (smvar) vs structural variants (stvar)
+- Auto-applies readable labels: "Small Variants", "Structural Variants"
+
+**`scale_genomic_context(aesthetic, name, guide, ...)`**
+- Colors for genomic context types (HP, MAP, SD, SD10kb, TR, TR10kb)
+- Auto-applies readable labels: "Homopolymers", "Low Mappability", etc.
+
+### Color Palettes
+
+`get_color_palettes()` returns all available palettes:
+- `bench_version` — distinct colors for benchmark versions
+- `ref` — colors for reference genomes (GRCh37, GRCh38, CHM13v2.0)
+- `bench_type` — colors for smvar/stvar
+- `context_name` — colors for genomic contexts
+- `chrom_type` — colors for autosomes vs sex chromosomes
+- `binary` — colors for TRUE/FALSE and Yes/No
+
+All palettes are colorblind-friendly and print-friendly.
+
 ## Important Patterns
 
 - `fs::dir_ls` glob matches against **full path** via `glob2rx` -- use `grepl()` on `fs::path_file()` for filename-only matching
