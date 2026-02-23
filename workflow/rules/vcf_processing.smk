@@ -19,7 +19,7 @@ rule index_vcf:
     resources:
         mem_mb=2048,
     conda:
-        "../envs/bcftools.yaml"
+        "../envs/biotools.yaml"
     params:
         extra="-t",
     shell:
@@ -40,7 +40,7 @@ rule split_multiallelics:
     log:
         "logs/split_multiallelics/{benchmark}.log",
     conda:
-        "../envs/bcftools.yaml"
+        "../envs/biotools.yaml"
     shell:
         """
         echo "Splitting multiallelics for {wildcards.benchmark}" > {log}

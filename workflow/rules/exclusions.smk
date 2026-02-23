@@ -46,7 +46,7 @@ rule materialize_exclusion:
         mem_mb=2048,
     threads: 1
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/python-biotools.yaml"
     shell:
         """
         echo "Materializing {wildcards.exclusion} ({params.exclusion_type})" > {log}
@@ -85,7 +85,7 @@ rule compute_dip_size:
         mem_mb=2048,
     threads: 1
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/python-biotools.yaml"
     shell:
         """
         echo "Computing dip.bed size for {wildcards.benchmark}" > {log}
@@ -120,7 +120,7 @@ rule compute_exclusion_metrics:
         mem_mb=4096,
     threads: 1
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/python-biotools.yaml"
     shell:
         """
         echo "Computing metrics for {wildcards.exclusion}" > {log}
@@ -253,6 +253,6 @@ rule annotate_old_benchmark_status:
         mem_mb=8192,
     threads: 2
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/python-biotools.yaml"
     script:
         "../scripts/annotate_old_benchmark_status.py"

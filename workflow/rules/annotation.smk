@@ -32,7 +32,7 @@ rule combine_genomic_context_beds:
     log:
         "logs/combine_genomic_context_beds/{benchmark}.log",
     conda:
-        "../envs/python.yaml"
+        "../envs/python-biotools.yaml"
     shell:
         """
         echo "Combining genomic context BEDs for {wildcards.benchmark}" > {log}
@@ -66,7 +66,7 @@ rule combine_region_beds:
     log:
         "logs/combine_region_beds/{benchmark}.log",
     conda:
-        "../envs/python.yaml"
+        "../envs/python-biotools.yaml"
     shell:
         """
         echo "Combining region BEDs for {wildcards.benchmark}" > {log}
@@ -91,7 +91,7 @@ rule generate_annotation_headers:
     log:
         "logs/generate_annotation_headers/{benchmark}.log",
     conda:
-        "../envs/python.yaml"
+        "../envs/python-biotools.yaml"
     shell:
         """
         cat > {output.headers} <<'EOF'
@@ -127,7 +127,7 @@ rule annotate_vcf_genomic_contexts:
     log:
         "logs/annotate_vcf_genomic_contexts/{benchmark}.log",
     conda:
-        "../envs/bcftools.yaml"
+        "../envs/biotools.yaml"
     shell:
         """
         echo "Annotating {wildcards.benchmark} with genomic contexts" > {log}
@@ -159,7 +159,7 @@ rule annotate_vcf_regions:
     log:
         "logs/annotate_vcf_regions/{benchmark}.log",
     conda:
-        "../envs/bcftools.yaml"
+        "../envs/biotools.yaml"
     shell:
         """
         echo "Annotating {wildcards.benchmark} with regions" > {log}

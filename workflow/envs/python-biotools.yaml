@@ -1,0 +1,11 @@
+channels:
+  - conda-forge
+  - bioconda
+channel_priority: strict
+dependencies:
+  - python=3.11
+  - pandas
+  - pyarrow
+  - bcftools=1.22
+  - bedtools=2.31.1
+  - tabix

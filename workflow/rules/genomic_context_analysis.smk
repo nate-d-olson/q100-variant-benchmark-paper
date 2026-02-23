@@ -27,7 +27,7 @@ rule genomic_context_coverage:
     log:
         "logs/genomic_context_coverage/{bench_version}_{ref}_{bench_type}_{genomic_context}.log",
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/python-biotools.yaml"
     shell:
         """
         bedtools coverage -a {input.strat_bed} -b {input.bench_bed} 1> {output.cov_bed} 2> {log}
@@ -56,7 +56,7 @@ rule compute_genomic_context_coverage_table:
     message:
         "Computing genomic context coverage table for {wildcards.benchmark}"
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/python-biotools.yaml"
     script:
         "../scripts/compute_coverage_table.py"
 

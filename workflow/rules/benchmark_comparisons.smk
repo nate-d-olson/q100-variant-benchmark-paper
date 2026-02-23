@@ -9,7 +9,7 @@ rule rtg_format:
     log:
         "logs/rtg_format/{ref_name}.log",
     conda:
-        "../envs/rtg-tools.yaml"
+        "../envs/biotools.yaml"
     shell:
         "rtg format -o {output} {input.ref} > {log} 2>&1"
 
@@ -31,7 +31,7 @@ rule compare_smvar:
         mem_mb=8192,
         runtime=120,  # 2 hours
     conda:
-        "../envs/rtg-tools.yaml"
+        "../envs/biotools.yaml"
     shell:
         """
         rm -rf {params.outdir}
