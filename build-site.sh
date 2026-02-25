@@ -38,7 +38,7 @@ else
 fi
 
 # Create symlinks for data dependencies so notebooks can render
-for dir in R config results resources manuscript; do
+for dir in R config results resources manuscript data; do
   target="$REPO_ROOT/$dir"
   link="$SITE_DIR/$dir"
   if [ -d "$target" ]; then
