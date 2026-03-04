@@ -20,6 +20,7 @@ rsync -a --delete \
   --include='_notebook_setup.R' \
   --exclude='*' \
   "$REPO_ROOT/analysis/" "$SITE_DIR/analysis/"
+# cp -f renv.lock "$SITE_DIR/renv.lock"
 
 # Docs (excluding agent_work)
 mkdir -p "$SITE_DIR/docs/diagrams"
@@ -38,7 +39,7 @@ else
 fi
 
 # Create symlinks for data dependencies so notebooks can render
-for dir in R config results resources manuscript data; do
+for dir in R config results resources manuscript data renv; do
   target="$REPO_ROOT/$dir"
   link="$SITE_DIR/$dir"
   if [ -d "$target" ]; then
