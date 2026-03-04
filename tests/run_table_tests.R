@@ -43,14 +43,14 @@ notebooks <- c(
 
 for (notebook in notebooks) {
   notebook_path <- here::here(notebook)
-  
+
   if (!file.exists(notebook_path)) {
     cat(sprintf("  ⚠️  Skipping %s (not found)\n", notebook))
     next
   }
-  
+
   cat(sprintf("  📄 Rendering %s...\n", notebook))
-  
+
   tryCatch({
     quarto::quarto_render(notebook_path, quiet = TRUE)
     cat(sprintf("     ✓ Success\n"))

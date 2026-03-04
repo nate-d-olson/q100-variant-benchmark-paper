@@ -19,8 +19,7 @@ execute:
 source(here::here("analysis/_notebook_setup.R"))
 analysis_setup(
   load_plot_themes = TRUE,
-  load_sessioninfo = TRUE,
-  load_gt = TRUE
+  load_sessioninfo = TRUE
 )
 ```
 
@@ -77,20 +76,10 @@ genomic_context_metrics_df %>%
     pct_of_context, pct_of_bench
   ) %>%
   arrange(context_label, ref, bench_type) %>%
-  group_by(context_label) %>%
-  gt::gt() %>%
-  gt::fmt_number(
-    columns = c(context_bp, intersect_bp),
-    use_seps = TRUE,
-    decimals = 0
-  ) %>%
-  gt::fmt_percent(
-    columns = c(pct_of_context, pct_of_bench),
-    scale_values = FALSE,
-    decimals = 1
-  ) %>%
-  gt::cols_label(
-    context_label = "Genomic Context",
+  as_grouped_flextable(groupname_col = "context_label") %>%
+  fmt_integer_flextable(columns = c("context_bp", "intersect_bp")) %>%
+  fmt_percent_flextable(columns = c("pct_of_context", "pct_of_bench"), decimals = 1) %>%
+  cols_label_flextable(
     ref = "Reference",
     bench_type = "Bench Type",
     context_bp = "Context Size (bp)",
@@ -98,7 +87,7 @@ genomic_context_metrics_df %>%
     pct_of_context = "% Context Covered",
     pct_of_bench = "% Bench in Context"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ## Benchmark Coverage of Genomic Contexts
@@ -283,17 +272,12 @@ genomic_context_metrics_df %>%
     del_count, ins_count, complex_count
   ) %>%
   arrange(context_label, ref, bench_type) %>%
-  group_by(context_label) %>%
-  gt::gt() %>%
-  gt::fmt_integer(
-    columns = c(
-      total_variants, snv_count, indel_count,
-      del_count, ins_count, complex_count
-    )
-  ) %>%
-  gt::sub_missing(missing_text = "0") %>%
-  gt::cols_label(
-    context_label = "Genomic Context",
+  mutate(across(c(total_variants, snv_count, indel_count,
+    del_count, ins_count, complex_count), ~ replace_na(., 0L))) %>%
+  as_grouped_flextable(groupname_col = "context_label") %>%
+  fmt_integer_flextable(columns = c("total_variants", "snv_count", "indel_count",
+    "del_count", "ins_count", "complex_count")) %>%
+  cols_label_flextable(
     ref = "Reference",
     bench_type = "Bench Type",
     total_variants = "Total",
@@ -303,7 +287,7 @@ genomic_context_metrics_df %>%
     ins_count = "INS",
     complex_count = "Complex"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ### Variant counts by type and context across benchmark versions
@@ -576,17 +560,12 @@ genomic_context_metrics_df %>%
     total_variants, variant_density_per_mb
   ) %>%
   arrange(context_label, ref, bench_type) %>%
-  group_by(context_label) %>%
-  gt::gt() %>%
-  gt::fmt_percent(
-    columns = c(pct_of_context, pct_of_bench),
-    scale_values = TRUE,
-    decimals = 1
-  ) %>%
-  gt::fmt_integer(columns = total_variants) %>%
-  gt::fmt_number(columns = variant_density_per_mb, decimals = 1) %>%
-  gt::cols_label(
-    context_label = "Genomic Context",
+  as_grouped_flextable(groupname_col = "context_label") %>%
+  fmt_percent_flextable(columns = c("pct_of_context", "pct_of_bench"),
+    decimals = 1, scale_values = TRUE) %>%
+  fmt_integer_flextable(columns = "total_variants") %>%
+  fmt_number_flextable(columns = "variant_density_per_mb", decimals = 1) %>%
+  cols_label_flextable(
     ref = "Reference",
     bench_type = "Bench Type",
     context_mb = "Context (Mb)",
@@ -596,7 +575,7 @@ genomic_context_metrics_df %>%
     total_variants = "Total Variants",
     variant_density_per_mb = "Density (var/Mb)"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ## Session Info

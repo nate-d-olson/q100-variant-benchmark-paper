@@ -93,6 +93,22 @@ The following validations were executed successfully:
   - ensure flextable code is DOCX-safe,
   - gate HTML-only chunks with `knitr::is_html_output()`.
 
-## Follow-up (optional)
+## Migration Status
 
-- Convert one production analysis notebook as a pilot and compare rendered HTML vs DOCX outputs side-by-side before full migration.
+All analysis notebooks have been migrated from gt to flextable:
+
+| Notebook | Tables | Status |
+|---|---|---|
+| `benchmarkset_characterization.qmd` | 1 | Migrated (phase 1) |
+| `benchmark_interval_size_distributions.qmd` | 1 | Migrated (phase 1) |
+| `benchmark_unique_regions.qmd` | 8 | Migrated (phase 2) |
+| `genomic_context_analysis.qmd` | 3 | Migrated (phase 2) |
+| `benchmark_exclusions.qmd` | 3 | Migrated (phase 2) |
+
+**Total: 16 tables migrated across 5 notebooks.**
+
+Notable conversions in phase 2:
+- `cols_merge` (gt) → pre-computed `sprintf()` strings in R data pipeline
+- `tab_spanner` (gt) → `add_header_row()` + `merge_h()` in flextable
+- `sub_missing` (gt) → `replace_na()` before flextable creation
+- `group_by() %>% gt::gt()` → `as_grouped_flextable()`

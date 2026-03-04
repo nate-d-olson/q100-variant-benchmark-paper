@@ -22,6 +22,8 @@
 #' - File formats: PDF, EPS (scalable), or high-res PNG
 
 library(tidyverse)
+library(flextable)
+library(officer)
 library(gt)
 
 #' Color Palettes for Variables
@@ -463,12 +465,6 @@ theme_flextable_manuscript <- function(
   stripe_color = "#FAFAFA",
   ...
 ) {
-  if (!requireNamespace("flextable", quietly = TRUE)) {
-    stop("Package 'flextable' is required. Install with: renv::install('flextable')")
-  }
-  if (!requireNamespace("officer", quietly = TRUE)) {
-    stop("Package 'officer' is required. Install with: renv::install('officer')")
-  }
 
   n_rows <- nrow(ft$body$dataset)
 
@@ -557,6 +553,58 @@ fmt_number_flextable <- function(ft, columns, decimals = 2) {
 cols_label_flextable <- function(ft, ...) {
   labels <- list(...)
   ft %>% flextable::set_header_labels(values = labels)
+}
+
+#' Format Percent Columns in flextable
+#'
+#' Formats numeric columns as percentages with a "%" suffix.
+#'
+#' @param ft A flextable object
+#' @param columns Character vector of column names to format
+#' @param decimals Numeric. Number of decimal places (default: 1)
+#' @param scale_values Logical. If TRUE, multiply values by 100 first
+#'   (for values stored as fractions like 0.853). If FALSE (default),
+#'   values are already in percent form (like 85.3).
+#'
+#' @return A flextable object with formatted columns
+#' @export
+fmt_percent_flextable <- function(ft, columns, decimals = 1, scale_values = FALSE) {
+  fmt_string <- paste0("%.", decimals, "f%%")
+  fmt_fn <- if (scale_values) {
+    function(x) sprintf(fmt_string, x * 100)
+  } else {
+    function(x) sprintf(fmt_string, x)
+  }
+
+  # Build named list of formatter functions for set_formatter
+  formatters <- setNames(rep(list(fmt_fn), length(columns)), columns)
+  do.call(flextable::set_formatter, c(list(x = ft), formatters))
+}
+
+#' Create a Grouped flextable from a Data Frame
+#'
+#' Replaces `gt::gt(groupname_col = ...)` by wrapping `as_grouped_data()` +
+#' `as_flextable()`. Group labels appear as full-width spanning row headers.
+#'
+#' @param df A data frame (or tibble) to display
+#' @param groupname_col Character. Column name to use for grouping.
+#'
+#' @return A flextable object with grouped row headers
+#' @export
+as_grouped_flextable <- function(df, groupname_col) {
+  # Build formula dynamically — flextable formulas evaluate against the dataset
+  # directly, so .data pronoun doesn't work here
+  group_filter <- as.formula(paste0("~ !is.na(", groupname_col, ")"))
+
+  df %>%
+    flextable::as_grouped_data(groups = groupname_col) %>%
+    flextable::as_flextable(hide_grouplabel = TRUE) %>%
+    flextable::bold(j = 1, i = group_filter, bold = TRUE) %>%
+    flextable::padding(
+      i = group_filter,
+      padding.top = 8,
+      padding.bottom = 4
+    )
 }
 
 #' Helper: Add context labels to legend

@@ -17,10 +17,7 @@ execute:
 ```{r setup}
 #| include: false
 source(here::here("analysis/_notebook_setup.R"))
-analysis_setup(
-  load_plot_themes = TRUE,
-  load_gt = TRUE
-)
+analysis_setup(load_plot_themes = TRUE)
 ```
 
 ## Data Loading
@@ -154,13 +151,14 @@ interval_counts_tbl <- interval_regions_df %>%
   dplyr::arrange(bench_type, bench_version, ref)
 
 interval_counts_tbl %>%
-  gt::gt(caption = "Number of intervals in benchmark regions") %>%
-  gt::fmt_integer(columns = n_intervals) %>%
-  gt::cols_label(
+  flextable() %>%
+  set_caption("Number of intervals in benchmark regions") %>%
+  fmt_integer_flextable(columns = "n_intervals") %>%
+  cols_label_flextable(
     bench_type = "Variant Type",
     ref = "Reference",
     bench_version = "Benchmark",
     n_intervals = "Number of Intervals"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```

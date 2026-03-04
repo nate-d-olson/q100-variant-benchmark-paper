@@ -19,8 +19,7 @@ execute:
 source(here::here("analysis/_notebook_setup.R"))
 analysis_setup(
   load_plot_themes = TRUE,
-  load_sessioninfo = TRUE,
-  load_gt = TRUE
+  load_sessioninfo = TRUE
 )
 ```
 
@@ -76,32 +75,23 @@ bench_var_cnt_df <- variants_df %>%
 full_join(bench_var_cnt_df, bench_region_stats_df) %>%
   select(-bench_version) %>%
   ungroup() %>%
-  mutate(ref = std_references(ref)) %>%
+  mutate(
+    ref = std_references(ref),
+    bench_type = get_bench_type_labels()[as.character(bench_type)],
+    across(c(SNV, INDEL, INS, DEL), ~ replace_na(., 0L))
+  ) %>%
   arrange(bench_type, ref) %>%
-  group_by(bench_type) %>%
-  gt::gt() %>%
-  gt::fmt_integer(
-    columns = c(SNV, INDEL, INS, DEL, total_bp)
-  ) %>%
-  gt::sub_missing(
-    missing_text = ""
-  ) %>%
-  gt::cols_align(
-    columns = c("ref", "bench_type"),
-    align = "right"
-  ) %>%
-  gt::cols_label(
+  select(bench_type, ref, SNV, INDEL, INS, DEL, total_bp, pct_ref_cvg, pct_q100_cvg)  %>%
+  as_grouped_flextable(groupname_col = "bench_type") %>%
+  fmt_integer_flextable(columns = c("SNV", "INDEL", "INS", "DEL", "total_bp")) %>%
+  flextable::align(j = "ref", align = "right", part = "body") %>%
+  cols_label_flextable(
     ref = "Reference",
-    bench_type = "Benchmark Type",
     total_bp = "Benchmark Bases",
     pct_ref_cvg = "% Ref. Cov.",
     pct_q100_cvg = "% Asm. Cov."
   ) %>%
-  gt::cols_move(
-    columns = c("SNV", "INDEL", "INS", "DEL"),
-    after = "ref"
-  ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ## Variant Size Distributions

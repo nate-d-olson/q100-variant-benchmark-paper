@@ -128,7 +128,7 @@ R modules:
 
 ```r
 source(here::here("analysis/_notebook_setup.R"))
-analysis_setup(load_plot_themes = TRUE, load_gt = TRUE)
+analysis_setup(load_plot_themes = TRUE)
 ```
 
 The data-loading layer also includes `load_primary_analysis_data()` to load
