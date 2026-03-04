@@ -1,0 +1,431 @@
+---
+title: "Table Compatibility Test: Word & Google Docs"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    self-contained: true
+  docx: default
+editor: visual
+---
+
+# Overview
+
+This notebook tests R table packages for compatibility with Word and Google Docs.
+The goal is to find the best replacement for `gt` tables that preserves formatting 
+when exported to Word (.docx) or copied to Google Docs.
+
+## Test Requirements
+
+1. **Formatting preservation**: Fonts, colors, borders, alignment
+2. **Number formatting**: Integers, decimals, percentages
+3. **Grouped tables**: Multiple grouping levels
+4. **Styling flexibility**: Custom themes similar to `theme_gt_manuscript()`
+5. **Markdown/Quarto integration**: Works in both Rmarkdown and Quarto
+
+## Packages Tested
+
+- **flextable**: Best Office integration, direct Word support
+- **kableExtra**: Popular, good HTML/PDF, limited Word support
+- **huxtable**: Cross-format tables with consistent API
+- **officer + flextable**: Direct Word document manipulation
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(gt)  # For comparison
+
+# Install test packages if needed (run once)
+# install.packages(c("flextable", "kableExtra", "huxtable", "officer"))
+
+library(flextable)
+library(kableExtra)
+library(huxtable)
+library(officer)
+```
+
+```{r sample-data}
+# Create sample data mimicking project tables
+sample_data <- tibble::tribble(
+  ~benchmark, ~ref, ~bench_type, ~total_bp, ~variant_count, ~density,
+  "v4.2.1", "GRCh38", "smvar", 2857433814, 3486393, 1.22,
+  "v5.0q", "GRCh38", "smvar", 2863320957, 3512847, 1.23,
+  "v5.0q", "CHM13v2.0", "smvar", 2910837291, 3548921, 1.22,
+  "v4.2.1", "GRCh38", "stvar", 2857433814, 11234, 0.0039,
+  "v5.0q", "GRCh38", "stvar", 2863320957, 12456, 0.0044,
+  "v5.0q", "CHM13v2.0", "stvar", 2910837291, 13102, 0.0045
+)
+
+# Create grouped data
+grouped_data <- sample_data %>%
+  group_by(ref) %>%
+  slice_head(n = 3) %>%
+  ungroup()
+
+print(sample_data)
+```
+
+---
+
+# 1. flextable (RECOMMENDED)
+
+**Pros:**
+
+- Excellent Word/Office integration via `officer` package
+- Native .docx export with preserved formatting
+- Flexible styling API similar to `gt`
+- Good HTML output for web viewing
+- Active development and maintenance
+
+**Cons:**
+
+- Different API from `gt` (requires code refactoring)
+- Slightly verbose syntax compared to `gt`
+
+## Basic flextable
+
+```{r flextable-basic}
+ft_basic <- sample_data %>%
+  flextable() %>%
+  set_caption("Basic flextable Example")
+
+ft_basic
+```
+
+## Styled flextable (Manuscript Theme)
+
+```{r flextable-styled}
+# Custom theme mimicking theme_gt_manuscript
+theme_flextable_manuscript <- function(ft) {
+  ft %>%
+    # Font styling
+    font(fontname = "Roboto", part = "all") %>%
+    fontsize(size = 9, part = "body") %>%
+    fontsize(size = 10, part = "header") %>%
+    
+    # Borders
+    border_remove() %>%
+    hline_top(border = fp_border(width = 2, color = "black"), part = "all") %>%
+    hline_bottom(border = fp_border(width = 2, color = "black"), part = "all") %>%
+    hline(i = 1, border = fp_border(width = 1, color = "black"), part = "header") %>%
+    
+    # Alignment
+    align(align = "center", part = "header") %>%
+    align(j = c("benchmark", "ref", "bench_type"), align = "left", part = "body") %>%
+    align(j = c("total_bp", "variant_count", "density"), align = "right", part = "body") %>%
+    
+    # Background colors
+    bg(bg = "#F5F5F5", part = "header") %>%
+    
+    # Striped rows
+    bg(i = seq(1, nrow(ft$body$dataset), by = 2), bg = "#FAFAFA", part = "body") %>%
+    
+    # Padding
+    padding(padding = 8, part = "all") %>%
+    
+    # Column width
+    autofit()
+}
+
+ft_styled <- sample_data %>%
+  flextable() %>%
+  set_caption("Styled flextable with Manuscript Theme") %>%
+  
+  # Format numbers
+  colformat_int(j = c("total_bp", "variant_count"), big.mark = ",") %>%
+  colformat_double(j = "density", digits = 4) %>%
+  
+  # Readable column labels
+  set_header_labels(
+    benchmark = "Benchmark",
+    ref = "Reference",
+    bench_type = "Type",
+    total_bp = "Total Bases",
+    variant_count = "Variants",
+    density = "Density (var/Mb)"
+  ) %>%
+  
+  # Apply custom theme
+  theme_flextable_manuscript()
+
+ft_styled
+```
+
+## Grouped flextable
+
+```{r flextable-grouped}
+ft_grouped <- grouped_data %>%
+  arrange(ref, bench_type) %>%
+  flextable() %>%
+  
+  # Format numbers
+  colformat_int(j = c("total_bp", "variant_count"), big.mark = ",") %>%
+  colformat_double(j = "density", digits = 4) %>%
+  
+  # Column labels
+  set_header_labels(
+    benchmark = "Benchmark",
+    ref = "Reference",
+    bench_type = "Type",
+    total_bp = "Total Bases",
+    variant_count = "Variants",
+    density = "Density (var/Mb)"
+  ) %>%
+  
+  # Group by reference
+  theme_flextable_manuscript() %>%
+  merge_v(j = "ref") %>%
+  fix_border_issues()
+
+ft_grouped
+```
+
+---
+
+# 2. kableExtra
+
+**Pros:**
+
+- Simple API, works with base `kable()`
+- Good HTML output with Bootstrap styling
+- Many styling options
+
+**Cons:**
+
+- **Limited Word support**: Many styles lost in .docx export
+- Primarily designed for HTML and LaTeX/PDF
+- Not ideal for Word/Google Docs workflow
+
+## Basic kableExtra
+
+```{r kableExtra-basic}
+sample_data %>%
+  kable(
+    format = "html",
+    caption = "Basic kableExtra Example",
+    col.names = c("Benchmark", "Reference", "Type", "Total Bases", "Variants", "Density")
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE
+  )
+```
+
+## Styled kableExtra
+
+```{r kableExtra-styled}
+sample_data %>%
+  kable(
+    format = "html",
+    caption = "Styled kableExtra (Note: Limited Word Export)",
+    col.names = c("Benchmark", "Reference", "Type", "Total Bases", "Variants", "Density"),
+    digits = c(0, 0, 0, 0, 0, 4)
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "condensed"),
+    full_width = FALSE,
+    font_size = 12
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#F5F5F5") %>%
+  column_spec(1:3, width = "8em") %>%
+  column_spec(4:6, width = "10em")
+```
+
+**Note:** When this renders to Word, most Bootstrap styling is lost. kableExtra is best for HTML/PDF outputs, not Word/Google Docs.
+
+---
+
+# 3. huxtable
+
+**Pros:**
+
+- Unified API for HTML, LaTeX, Word, and screen output
+- Good Word compatibility via `officer`
+- Consistent appearance across output formats
+
+**Cons:**
+
+- More verbose than `gt` or `flextable`
+- Smaller user community
+- Occasional formatting quirks
+
+## Basic huxtable
+
+```{r huxtable-basic}
+hux_basic <- sample_data %>%
+  as_hux(add_colnames = TRUE) %>%
+  set_caption("Basic huxtable Example")
+
+hux_basic
+```
+
+## Styled huxtable
+
+```{r huxtable-styled}
+hux_styled <- sample_data %>%
+  as_hux(add_colnames = TRUE) %>%
+  set_caption("Styled huxtable with Manuscript Theme") %>%
+  
+  # Header styling
+  set_bold(1, everywhere, TRUE) %>%
+  set_background_color(1, everywhere, "#F5F5F5") %>%
+  set_all_borders(1, everywhere, 1) %>%
+  set_top_border(1, everywhere, 2) %>%
+  set_bottom_border(1, everywhere, 1) %>%
+  
+  # Body styling
+  set_all_padding(everywhere, everywhere, 4) %>%
+  set_font_size(everywhere, everywhere, 9) %>%
+  set_valign(everywhere, everywhere, "middle") %>%
+  
+  # Striped rows
+  set_background_color(evens, everywhere, "#FAFAFA") %>%
+  
+  # Bottom border
+  set_bottom_border(final(1), everywhere, 2) %>%
+  
+  # Column alignment
+  set_align(everywhere, 4:6, "right") %>%
+  
+  # Number formatting
+  set_number_format(everywhere, 4:5, 0) %>%
+  set_number_format(everywhere, 6, 4) %>%
+  
+  # Column width
+  set_width(0.9)
+
+hux_styled
+```
+
+---
+
+# 4. gt Table (Current Approach)
+
+For comparison, here's how tables currently look with `gt`:
+
+```{r gt-example}
+# Source the theme function
+source(here::here("R/plot_themes.R"))
+
+gt_table <- sample_data %>%
+  gt() %>%
+  fmt_integer(columns = c(total_bp, variant_count)) %>%
+  fmt_number(columns = density, decimals = 4) %>%
+  cols_label(
+    benchmark = "Benchmark",
+    ref = "Reference",
+    bench_type = "Type",
+    total_bp = "Total Bases",
+    variant_count = "Variants",
+    density = "Density (var/Mb)"
+  ) %>%
+  theme_gt_manuscript()
+
+gt_table
+```
+
+**Note:** `gt` tables look excellent in HTML but lose most formatting when exported to Word or copied to Google Docs. This is the problem we're solving.
+
+---
+
+# 5. Direct Word Document Creation with officer
+
+For maximum control, you can create Word documents directly using `officer` + `flextable`:
+
+```{r word-doc-creation, eval=FALSE}
+# Create a Word document with embedded flextable
+doc <- read_docx() %>%
+  body_add_par("Sample Table Report", style = "heading 1") %>%
+  body_add_par("This demonstrates direct Word document creation.", style = "Normal") %>%
+  body_add_flextable(ft_styled) %>%
+  body_add_par("", style = "Normal") %>%
+  body_add_par("Additional tables can be added sequentially.", style = "Normal") %>%
+  body_add_flextable(ft_grouped)
+
+# Save to file
+print(doc, target = "table_test_output.docx")
+
+message("Word document created: table_test_output.docx")
+```
+
+---
+
+# Recommendations
+
+## Best Overall: flextable + officer
+
+**Recommended workflow:**
+
+1. **Create tables with `flextable`** using a custom `theme_flextable_manuscript()` function
+2. **Render Quarto/Rmarkdown to Word** using `format: docx`
+3. **For Google Docs**: Open .docx in Google Docs (formatting mostly preserved) OR copy tables from Word
+4. **For custom reports**: Use `officer` to build Word documents programmatically
+
+### Migration Strategy from gt
+
+Create a wrapper function to ease migration:
+
+```{r migration-helper}
+#' Convert gt-style workflow to flextable
+#' 
+#' @param data Data frame
+#' @param ... Additional flextable customizations
+convert_gt_to_flextable <- function(data, ...) {
+  data %>%
+    flextable() %>%
+    theme_flextable_manuscript() %>%
+    ...
+}
+
+# Example usage (mimics gt syntax)
+sample_data %>%
+  convert_gt_to_flextable() %>%
+  colformat_int(j = c("total_bp", "variant_count")) %>%
+  colformat_double(j = "density", digits = 4)
+```
+
+## Comparison Matrix
+
+| Feature | flextable | kableExtra | huxtable | gt |
+|---------|-----------|------------|----------|-----|
+| Word Export | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐ Poor | ⭐⭐⭐⭐ Good | ⭐ Very Poor |
+| Google Docs | ⭐⭐⭐⭐ Good | ⭐⭐ Poor | ⭐⭐⭐ Fair | ⭐ Very Poor |
+| HTML Output | ⭐⭐⭐⭐ Good | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐⭐ Fair | ⭐⭐⭐⭐⭐ Excellent |
+| Styling Control | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐⭐⭐ Good | ⭐⭐⭐⭐ Good | ⭐⭐⭐⭐⭐ Excellent |
+| API Simplicity | ⭐⭐⭐⭐ Good | ⭐⭐⭐⭐⭐ Simple | ⭐⭐⭐ Moderate | ⭐⭐⭐⭐⭐ Excellent |
+| Documentation | ⭐⭐⭐⭐⭐ Excellent | ⭐⭐⭐⭐ Good | ⭐⭐⭐ Fair | ⭐⭐⭐⭐⭐ Excellent |
+
+---
+
+# Testing Instructions
+
+1. **Render this notebook:**
+   ```r
+   quarto::quarto_render("tests/table_compatibility_test.qmd", output_format = "all")
+   ```
+
+2. **Test Word export:**
+   - Open the generated `.docx` file
+   - Check formatting preservation (fonts, colors, borders, alignment)
+   - Try editing and confirming no corruption
+
+3. **Test Google Docs:**
+   - Method 1: Upload `.docx` to Google Drive → Open with Google Docs
+   - Method 2: Copy table from Word → Paste into Google Doc
+   - Method 3: Copy table from HTML output → Paste into Google Doc
+
+4. **Compare outputs:**
+   - Which tables maintain formatting best?
+   - Which workflow is most practical for your team?
+
+---
+
+# Next Steps
+
+If flextable is chosen:
+
+1. Create `R/flextable_themes.R` with manuscript theme functions
+2. Update existing analysis notebooks to use `flextable` instead of `gt`
+3. Add flextable + officer to renv dependencies
+4. Document the new table workflow in project guidelines
+5. Consider keeping `gt` for HTML-only outputs (website, supplementary materials)
