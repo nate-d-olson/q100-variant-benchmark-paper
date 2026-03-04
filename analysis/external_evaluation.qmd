@@ -547,12 +547,12 @@ ggsave(
 stvars_no_or_unsure <- stvar_evals %>%
   filter(correct.in.benchmark != "yes")
 
-DT::datatable(stvars_no_or_unsure,
-  rownames = FALSE,
-  caption = "Structural Variant Benchmark Not Correct or Unsure Curations",
-  extensions = "Buttons",
-  options = list(dom = "Bfrtip", buttons = c("csv", "excel"))
-)
+# DT::datatable(stvars_no_or_unsure,
+#   rownames = FALSE,
+#   caption = "Structural Variant Benchmark Not Correct or Unsure Curations",
+#   extensions = "Buttons",
+#   options = list(dom = "Bfrtip", buttons = c("csv", "excel"))
+# )
 ```
 
 ## Combined plot by callset

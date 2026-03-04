@@ -181,7 +181,7 @@ create_base_upset <- function(data, ref_name, bench_type_name, title_suffix = ""
   }
 
   ggplot(plot_data, aes(x = exclusions_list, y = bases_bp)) +
-    ggupset::scale_x_upset(n_intersections = 30) +
+    ggupset::scale_x_upset(n_intersections = 30,reverse = TRUE) +
     geom_bar(stat = "identity", fill = "#2171b5") +
     labs(
       title = glue::glue("Bases: {ref_name} {bench_type_name}{title_suffix}"),
@@ -208,14 +208,15 @@ create_variant_upset <- function(data, ref_name, bench_type_name, title_suffix =
     dplyr::mutate(
       exclusions_list = strsplit(exclusion_combination, "\\|")
     ) %>%
-    dplyr::arrange(-variant_count)
+    dplyr::arrange(-variant_count) %>% 
+    ungroup()
 
   if (nrow(plot_data) == 0) {
     return(NULL)
   }
 
   ggplot(plot_data, aes(x = exclusions_list, y = variant_count)) +
-    ggupset::scale_x_upset(n_intersections = 30) +
+    ggupset::scale_x_upset(n_intersections = 30,) +
     geom_bar(stat = "identity", fill = "#d94801") +
     labs(
       title = glue::glue("Variants: {ref_name} {bench_type_name}{title_suffix}"),
@@ -230,6 +231,14 @@ create_variant_upset <- function(data, ref_name, bench_type_name, title_suffix =
       plot.title = element_text(size = 11, face = "bold")
     )
 }
+```
+
+```{r}
+ create_variant_upset(interaction_filtered_tbl, "GRCh38", "smvar")
+```
+
+```{r}
+ create_variant_upset(interaction_filtered_tbl, "GRCh38", "smvar")
 ```
 
 ### GRCh38 Exclusion Patterns (Main Figure)

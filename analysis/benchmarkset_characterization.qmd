@@ -40,9 +40,9 @@ analysis_data <- load_primary_analysis_data(
 list2env(analysis_data, envir = environment())
 
 ## Filtering variants_df to benchmark regions for the characterization
-variants_df <- variants_df %>% filter(region_ids == "BMKREGIONS")
+variants_df <- variants_df %>%
+  filter(region_ids == "BMKREGIONS", is_pass)
 ```
-
 
 ## Benchmark Set Summary Table
 
@@ -73,15 +73,18 @@ bench_var_cnt_df <- variants_df %>%
 ```
 
 ```{r}
-full_join(bench_var_cnt_df, bench_region_stats_df) %>%
+bench_var_cnt_df %>% 
+  rowwise() %>% 
+  mutate(Total = sum(SNV, INDEL, INS, DEL, na.rm = TRUE)) %>% 
+full_join(bench_region_stats_df) %>%
   select(-bench_version) %>%
   ungroup() %>%
   mutate(ref = std_references(ref)) %>%
   arrange(bench_type, ref) %>%
   group_by(bench_type) %>%
-  gt::gt() %>%
+  gt::gt(groupname_col = "Benchmarkset Type") %>%
   gt::fmt_integer(
-    columns = c(SNV, INDEL, INS, DEL, total_bp)
+    columns = c(SNV, INDEL, INS, DEL, Total, total_bp)
   ) %>%
   gt::sub_missing(
     missing_text = ""
@@ -93,13 +96,21 @@ full_join(bench_var_cnt_df, bench_region_stats_df) %>%
   gt::cols_label(
     ref = "Reference",
     bench_type = "Benchmark Type",
-    total_bp = "Benchmark Bases",
-    pct_ref_cvg = "% Ref. Cov.",
-    pct_q100_cvg = "% Asm. Cov."
+    total_bp = "Bases",
+    pct_ref_cvg = "% Ref.",
+    pct_q100_cvg = "% HG002v1.1"
   ) %>%
   gt::cols_move(
     columns = c("SNV", "INDEL", "INS", "DEL"),
     after = "ref"
+  ) %>%
+  gt::tab_spanner(
+    label = "Variants",
+    columns = c(SNV, INDEL, INS, DEL, Total)
+  ) %>%
+    gt::tab_spanner(
+    label = "Regions",
+    columns = c(total_bp, pct_ref_cvg, pct_q100_cvg)
   ) %>%
   theme_gt_manuscript()
 ```
