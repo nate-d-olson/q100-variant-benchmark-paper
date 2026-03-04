@@ -24,8 +24,26 @@ if [ "$BRANCH" != "feat/migrate-tables-to-flextable" ]; then
 fi
 
 echo ""
-echo "Step 1: Installing packages..."
-echo "------------------------------"
+echo "Step 1: Checking dependencies..."
+echo "--------------------------------"
+
+# Check for gettext (needed for gdtools compilation)
+if command -v brew &> /dev/null; then
+    if ! brew list gettext &> /dev/null; then
+        echo "⚠️  gettext not found (required for gdtools compilation)"
+        echo "   Installing via Homebrew..."
+        brew install gettext
+    else
+        echo "✓ gettext found"
+    fi
+else
+    echo "⚠️  Homebrew not found - may have issues compiling gdtools"
+    echo "   If compilation fails, install Homebrew and run: brew install gettext"
+fi
+
+echo ""
+echo "Step 2: Installing R packages..."
+echo "--------------------------------"
 
 Rscript -e '
 cat("Installing flextable and officer...\n")
@@ -38,7 +56,7 @@ cat("✓ Recorded in renv.lock\n")
 '
 
 echo ""
-echo "Step 2: Rendering test notebooks..."
+echo "Step 3: Rendering test notebooks..."
 echo "-----------------------------------"
 
 quarto render tests/table_compatibility_test.qmd --to html
@@ -54,7 +72,7 @@ quarto render tests/flextable_theme_implementation.qmd --to docx
 echo "✓ Rendered flextable_theme_implementation.docx"
 
 echo ""
-echo "Step 3: Opening outputs for review..."
+echo "Step 4: Opening outputs for review..."
 echo "-------------------------------------"
 
 # Open HTML in browser

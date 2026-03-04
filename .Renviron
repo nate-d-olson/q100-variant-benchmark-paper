@@ -1,0 +1,10 @@
+# R environment configuration for package compilation on macOS
+# Ensures compiler can find Homebrew libraries (gettext, etc.)
+
+# For Apple Silicon (arm64)
+CPPFLAGS=-I/opt/homebrew/include -I/opt/homebrew/opt/gettext/include
+LDFLAGS=-L/opt/homebrew/lib -L/opt/homebrew/opt/gettext/lib
+
+# For Intel Macs (x86_64) - uncomment if needed
+# CPPFLAGS=-I/usr/local/include -I/usr/local/opt/gettext/include
+# LDFLAGS=-L/usr/local/lib -L/usr/local/opt/gettext/lib
