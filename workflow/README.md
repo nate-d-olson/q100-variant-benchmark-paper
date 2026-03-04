@@ -1,202 +1,92 @@
 # Snakemake Workflow
 
-This directory contains the Snakemake pipeline for processing GIAB v5q benchmark set files.
+This directory contains the active Snakemake pipeline for generating benchmark analysis outputs used across `analysis/`, `manuscript/`, and `docs/`.
 
-## Directory Structure
+## Structure
 
-```
+```text
 workflow/
-├── Snakefile           # Main workflow entry point
-├── rules/              # Rule definitions
-│   ├── common.smk      # Helper functions and shared utilities
-│   ├── downloads.smk   # Download and validation rules
-│   ├── vcf_processing.smk  # VCF indexing and normalization
-│   ├── var_tables.smk  # Variant annotation and table generation
-│   └── exclusions.smk  # Exclusion region analysis
-├── envs/               # Conda environment definitions
-│   ├── bcftools.yaml
-│   ├── bedtools.yaml
-│   ├── downloads.yaml
-│   ├── python.yaml
-│   ├── rtg-tools.yaml
-│   ├── samtools.yaml
-│   └── truvari.yaml
-└── scripts/            # Custom Python scripts
-    ├── combine_beds_with_id.py
-    ├── count_variants_by_genomic_context.py
-    ├── count_exclusion_variants.py
-    ├── generate_header_lines.py
-    └── generate_variant_parquet.py
+├── Snakefile
+├── rules/
+│   ├── annotation.smk
+│   ├── benchmark_comparisons.smk
+│   ├── chr8_synteny.smk
+│   ├── common.smk
+│   ├── downloads.smk
+│   ├── exclusions.smk
+│   ├── genomic_context_analysis.smk
+│   ├── ref_processing.smk
+│   └── vcf_processing.smk
+├── scripts/
+│   ├── annotate_old_benchmark_status.py
+│   ├── combine_beds_with_id.py
+│   ├── compute_coverage_table.py
+│   ├── compute_exclusion_interactions.py
+│   ├── count_exclusion_variants.py
+│   ├── count_variants_by_genomic_context.py
+│   ├── find_chr8_inversion.py
+│   ├── generate_variant_parquet.py
+│   ├── logging_config.py
+│   └── make_chr8_figure.py
+└── envs/
+    ├── biotools.yaml
+    ├── downloads.yaml
+    ├── plotsr.yaml
+    ├── python-biotools.yaml
+    ├── samtools.yaml
+    ├── truvari.yaml
+    └── deprecated/
 ```
 
-## Rule Modules
+## Rule Module Summary
 
-All rule files are located in `workflow/rules/`. The pipeline includes 11 modular rule files:
+- `downloads.smk`: downloads benchmark VCF/BED, dip BED, references, stratifications, exclusions.
+- `ref_processing.smk`: computes reference assembled base sizes.
+- `vcf_processing.smk`: VCF indexing, multiallelic split, Truvari `anno svinfo`.
+- `annotation.smk`: combines BED annotations and writes fully annotated VCFs.
+- `genomic_context_analysis.smk`: builds genomic context coverage and variant-by-context outputs.
+- `exclusions.smk`: exclusion impact tables, interaction tables, and old-only status outputs.
+- `benchmark_comparisons.smk`: small variant and structural variant comparison runs.
+- `chr8_synteny.smk`: optional chr8 synteny alignment/visualization workflow.
+- `common.smk`: shared helper functions and target generators.
 
-1. **common.smk** (391 lines) - Helper functions and shared utilities
-2. **downloads.smk** (329 lines) - Download and validation rules
-3. **var_tables.smk** (233 lines) - Variant annotation and table generation
-4. **exclusions.smk** (200 lines) - Exclusion region analysis
-5. **strat_metrics.smk** (201 lines) - Stratification coverage metrics
-6. **benchmark_comparisons.smk** (133 lines) - Benchmark set comparisons
-7. **var_counts.smk** (110 lines) - Variant counting by type/stratification
-8. **validation.smk** (87 lines) - Data validation (WIP - not yet integrated)
-9. **vcf_processing.smk** (80 lines) - VCF indexing and normalization
-10. **ref_processing.smk** (31 lines) - Reference genome preparation
-11. **diff_tables.smk** (15 lines) - Regional coverage differences
+## Canonical Targets
 
-### common.smk
+Defined by `rule all` in `Snakefile`:
 
-Helper functions used across the pipeline:
+- `results/variant_tables/{benchmark}/variants.parquet`
+- `results/ref_genome_sizes/{ref}_size.tsv`
+- `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
+- `results/genomic_context/{benchmark}/variants_by_genomic_context.parquet`
+- `results/exclusions/{benchmark}/exclusion_impact.csv`
+- `results/exclusions/{benchmark}/exclusion_interactions.csv`
+- `results/exclusions/{comp_id}/old_only_summary.csv`
+- chr8 synteny figure targets when enabled in config
 
-- `get_var_table_inputs()` - Generate list of variant table output files
-- `get_exclusion_*()` - Functions for exclusion file handling
-- `get_stratification_*()` - Functions for stratification BED file handling
-- `get_region_beds()` - Get benchmark region and exclusion BED paths
-- `get_reference_checksum()` - Get checksum for reference genome validation
-- `get_comparison_files()` - Get file paths for benchmark comparisons
-- `get_bench_ids()`, `get_ref_ids()` - Get configured benchmark/reference IDs
+## Running
 
-### downloads.smk
-
-Rules for downloading and validating remote input files:
-
-| Rule                         | Description                                                 | Output                                                             |
-| ---------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| `download_benchmark_vcf`     | Download benchmark VCF with SHA256 validation               | `resources/benchmarksets/{benchmark}_benchmark.vcf.gz`             |
-| `download_benchmark_bed`     | Download benchmark BED with SHA256 validation               | `resources/benchmarksets/{benchmark}_benchmark.bed`                |
-| `download_benchmark_dip_bed` | Download dipcall BED files                                  | `resources/benchmarksets/{benchmark}_dip.bed`                      |
-| `prepare_reference`          | Download reference genome, convert to bgzip, create indices | `resources/references/{ref_name}.fa.gz`, `.fai`, `.gzi`            |
-| `download_stratification`    | Download stratification BED files                           | `resources/stratifications/{ref}_{strat_name}.bed.gz`              |
-| `download_exclusion`         | Download exclusion BED files                                | `resources/exclusions/{benchmark}/{exclusion_name}_{file_idx}.bed` |
-
-### vcf_processing.smk
-
-Rules for VCF processing and normalization:
-
-| Rule                  | Description                                     | Output                                                 |
-| --------------------- | ----------------------------------------------- | ------------------------------------------------------ |
-| `index_vcf`           | Create tabix index for VCF files                | `{prefix}.vcf.gz.tbi`                                  |
-| `split_multiallelics` | Split multiallelic variants using bcftools norm | `results/split_multiallelics/{benchmark}/split.vcf.gz` |
-
-### var_tables.smk
-
-Rules for variant annotation and table generation:
-
-| Rule                           | Description                                | Output                                                                    |
-| ------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------- |
-| `combine_stratification_beds`  | Merge stratification BEDs with IDs         | `results/combine_stratification_beds/{benchmark}/strat_combined.bed.gz`   |
-| `combine_region_beds`          | Merge region BEDs (benchmark + exclusions) | `results/combine_region_beds/{benchmark}/region_combined.bed.gz`          |
-| `run_truvari_anno_svinfo`      | Add SV annotations using truvari           | `results/run_truvari_anno_svinfo/{benchmark}/svinfo.vcf.gz`               |
-| `generate_annotation_headers`  | Generate VCF header lines                  | `results/generate_annotation_headers/{benchmark}/annotation_headers.txt`  |
-| `annotate_vcf_stratifications` | Annotate VCF with stratification IDs       | `results/annotate_vcf_stratifications/{benchmark}/strat_annotated.vcf.gz` |
-| `annotate_vcf_regions`         | Annotate VCF with region IDs               | `results/annotate_vcf_regions/{benchmark}/fully_annotated.vcf.gz`         |
-| `extract_info_fields`          | Extract INFO field names from VCF          | `results/extract_info_fields/{benchmark}/info_fields.txt`                 |
-| `generate_var_table`           | Generate Parquet table with all annotations | `results/variant_tables/{benchmark}/variants.parquet`                     |
-
-### exclusions.smk
-
-Rules for exclusion region analysis (v5.0q benchmarks only):
-
-| Rule                         | Description                                       | Output                                                         |
-| ---------------------------- | ------------------------------------------------- | -------------------------------------------------------------- |
-| `materialize_exclusion`      | Sort and merge exclusion BED files                | `results/exclusions/{benchmark}/{exclusion}.bed`               |
-| `compute_dip_size`           | Calculate total dip.bed size                      | `results/exclusions/{benchmark}/dip_size.txt`                  |
-| `compute_exclusion_metrics`  | Calculate per-exclusion overlap with dip.bed      | `results/exclusions/{benchmark}/coverage/{exclusion}.tsv`      |
-| `compute_exclusion_impact`   | Merge BED metrics with variant counts             | `results/exclusions/{benchmark}/exclusion_impact.csv`          |
-| `compute_exclusion_interactions` | Upset-style exclusion overlap analysis        | `results/exclusions/{benchmark}/exclusion_interactions.csv`    |
-| `annotate_old_benchmark_status` | Cross-version comparison (old vs v5.0q)       | `results/exclusions/{comp_id}/old_only_*.csv`                  |
-
-**Note:** The exclusions pipeline has a different architecture than genomic context metrics.
-See `docs/exclusions-pipeline-evaluation.md` for details on why they differ.
-
-## Python Scripts
-
-The pipeline includes 14 Python scripts in `workflow/scripts/`:
-
-### Core Infrastructure
-
-| Script              | Description                                                       |
-| ------------------- | ----------------------------------------------------------------- |
-| `logging_config.py` | Centralized logging configuration with structured output          |
-| `exceptions.py`     | Custom exception classes (ValidationError, DataFormatError, etc.) |
-| `validators.py`     | VCF/BED/TSV format validation utilities                           |
-
-### Data Validation
-
-| Script            | Description                              |
-| ----------------- | ---------------------------------------- |
-| `validate_vcf.py` | Validate VCF file format and structure   |
-| `validate_bed.py` | Validate BED file format and coordinates |
-
-### BED File Processing
-
-| Script                     | Description                                                  |
-| -------------------------- | ------------------------------------------------------------ |
-| `combine_beds_with_id.py`  | Combine multiple BED files with unique identifiers           |
-| `compute_bed_metrics.py`   | Compute overlap metrics between two BED files (exclusions)   |
-| `compute_coverage_table.py` | Summarize bedtools coverage output (genomic contexts)       |
-
-**Note:** `compute_bed_metrics.py` (exclusions) and `compute_coverage_table.py` (genomic contexts)
-serve different purposes. See `docs/exclusions-pipeline-evaluation.md` for details.
-
-### VCF Annotation & Querying
-
-| Script                     | Description                                       |
-| -------------------------- | ------------------------------------------------- |
-| `generate_header_lines.py` | Generate VCF header lines for custom annotations  |
-| `expand_annotations.py`    | Expand annotation ID lists to binary flag columns |
-
-### Variant Analysis
-
-| Script                              | Description                                            |
-| ----------------------------------- | ------------------------------------------------------ |
-| `generate_variant_parquet.py`       | Generate Parquet variant tables using Truvari          |
-| `count_variants_by_genomic_context.py` | Count variants per genomic context from Parquet     |
-| `count_exclusion_variants.py`       | Count variants per exclusion from Parquet              |
-| `compute_exclusion_interactions.py` | Compute upset-style exclusion overlap (bases + vars)   |
-
-### Metrics Aggregation (Legacy)
-
-| Script                      | Description                                  |
-| --------------------------- | -------------------------------------------- |
-| `count_variants_by_type.py`  | Count variants by type (SNV, INDEL, SV) from VCF   |
-| `count_variants_by_strat.py` | Count variants per stratification region         |
-| `stratify_comparison.py`     | Compare variants across stratifications          |
-| `summarize_var_counts.py`   | Aggregate variant count summaries            |
-| `combine_metrics_counts.py` | Combine coverage metrics with variant counts |
-
-## Conda Environments
-
-| Environment      | Primary Tools                          |
-| ---------------- | -------------------------------------- |
-| `bcftools.yaml`  | bcftools for VCF manipulation          |
-| `bedtools.yaml`  | bedtools for BED file operations       |
-| `downloads.yaml` | wget for file downloads                |
-| `python.yaml`    | Python with pysam for script execution |
-| `rtg-tools.yaml` | RTG Tools for VCF statistics           |
-| `samtools.yaml`  | samtools for reference genome indexing |
-| `truvari.yaml`   | truvari for SV annotation              |
-
-## Running the Pipeline
+From repository root:
 
 ```bash
-# Dry-run to validate workflow
+# Validate workflow
 snakemake -n --quiet
 
-# Run with conda environments
+# Execute all targets
 snakemake --cores 4 --sdm conda
 
-# Run specific target
-snakemake results/variant_tables/v5q_grch38_smvar/variants.parquet --cores 4 --sdm conda
+# Run a specific output
+snakemake --cores 4 --sdm conda \
+  results/variant_tables/v5.0q_GRCh38_smvar/variants.parquet
 ```
 
 ## Configuration
 
-The pipeline is configured via `config/config.yaml` which defines:
+- Main config: `config/config.yaml`
+- Config schema: `config/schema/config.schema.yaml`
+- Test config: `config/config.test_grch38_debug.yaml`
 
-- **benchmarksets**: Benchmark VCF/BED URLs and checksums
-- **references**: Reference genome URLs, checksums, and stratification definitions
-- **outputs**: Output directory paths
+`Snakefile` validates the loaded config against the schema at runtime.
 
-See `config/schema/config.schema.yaml` for the configuration schema.
+## Notes on Environments
+
+Environment definitions live in `workflow/envs/`; see `workflow/envs/README.md` for rationale and constraints.

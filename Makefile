@@ -1,4 +1,4 @@
-.PHONY: help dry-run lint format format-check test clean dag run pre-commit-install
+.PHONY: help dry-run lint format format-check test clean clean-deep dag run pre-commit-install
 
 QMD_FILES := $(shell find . -name '*.qmd' -not -path './.snakemake/*' -not -path './results/*' -not -path './logs/*')
 MD_FILES := "**/*.md"
@@ -18,6 +18,7 @@ help:
 	@echo "  dag              - Generate pipeline DAG visualization (PDF + DOT)"
 	@echo "  run              - Execute the pipeline with conda environments"
 	@echo "  clean            - Remove logs and temporary files"
+	@echo "  clean-deep       - Remove heavier local build/test/cache artifacts"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make format          # format all files"
@@ -105,3 +106,12 @@ clean:
 	rm -rf analysis/cache
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@echo "==> Clean complete"
+
+# Clean heavier local artifacts (safe to regenerate)
+clean-deep: clean
+	@echo "==> Cleaning deep local artifacts..."
+	rm -rf .quarto/
+	rm -rf .test/
+	rm -rf .pytest_cache/
+	find analysis -maxdepth 1 -type f -name "*.html" -delete 2>/dev/null || true
+	@echo "==> Deep clean complete"
