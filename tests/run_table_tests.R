@@ -74,7 +74,6 @@ cat("   - Upload .docx to Google Drive\n")
 cat("   - Open with Google Docs\n")
 cat("   - Check formatting preservation\n\n")
 cat("4. Read documentation:\n")
-cat("   - tests/table_packages_research.md\n")
-cat("   - tests/TABLE_TESTING_README.md\n\n")
+cat("   - docs/flextable-migration-summary.md\n\n")
 
 cat("Done! 🎉\n")

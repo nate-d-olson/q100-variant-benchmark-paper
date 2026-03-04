@@ -88,7 +88,7 @@ theme_flextable_manuscript <- function(
     
     # Alignment
     align(align = "center", part = "header") %>%
-    valign(valign = "middle", part = "all") %>%
+    valign(valign = "center", part = "all") %>%
     
     # Background colors
     bg(bg = header_bg, part = "header") %>%

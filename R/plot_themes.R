@@ -416,8 +416,9 @@ theme_gt_manuscript <- function(gt_object, striped = TRUE, ...) {
         "Arial",
         "sans-serif"
       )
-    ) %>%
-    do.call(gt::tab_options, c(list(.), merged_options))
+    )
+
+  gt_object <- do.call(gt::tab_options, c(list(gt_object), merged_options))
 
   # Add striped rows if requested
   if (striped) {
@@ -499,7 +500,7 @@ theme_flextable_manuscript <- function(
 
     # Alignment
     flextable::align(align = "center", part = "header") %>%
-    flextable::valign(valign = "middle", part = "all") %>%
+    flextable::valign(valign = "center", part = "all") %>%
 
     # Padding (8pt on all sides)
     flextable::padding(padding = 8, part = "all") %>%
