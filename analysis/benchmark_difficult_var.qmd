@@ -35,7 +35,7 @@ difficult_cov_benchmarks <- c(
 
 analysis_bench_order <- rev(BENCH_VERSION_LEVELS)
 variants_df <- load_all_variant_tables() %>%
-  filter(region_ids == "BMKREGIONS")
+  filter(is_pass, region_ids == "BMKREGIONS")
 
 diff_cov_df <- difficult_cov_benchmarks %>%
   map_dfr(
@@ -164,7 +164,7 @@ diff_cov_df %>%
   # scale_benchmark_version(aesthetic = "fill") +
   facet_grid(context ~ bench_type, scales = "free_y") +
   scale_y_continuous(label = scales::label_comma()) +
-  scale_benchmark_version(aesthetic = "fill", drop = FALSE) +
+  # scale_benchmark_version(aesthetic = "fill") +
   labs(x = "Variant Type", y = "Variant Count") +
   theme_manuscript() +
   theme(
@@ -179,23 +179,23 @@ This section visualizes variant counts by genomic context region using loaded va
 ```{r variant_counts_by_context}
 # Create variant count breakdown by genomic context from aggregated metrics
 genomic_context_var_df <- variants_df %>%
-  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  filter(context_ids %in% c("HP", "TR")) %>%
   count(bench_version, ref, bench_type, var_type, context_ids, name = "count")
 ```
 
 ```{r}
-genomic_context_var_df
+genomic_context_var_df$bench_version %>% levels()
 ```
 
 ```{r variant_counts_by_context_plot}
 (genomic_context_smvar_plt <- genomic_context_var_df %>%
-  filter(bench_type == "smvar", ref == "GRCh38") %>%
-  mutate(
-    bench_version = factor(
-      bench_version,
-      levels = analysis_bench_order
-    )
-  ) %>%
+  filter(bench_type == "smvar", ref == "GRCh38",.preserve = TRUE) %>%
+  # mutate(
+  #   bench_version = factor(
+  #     bench_version,
+  #     levels = analysis_bench_order
+  #   )
+  # ) %>%
   ggplot() +
   geom_bar(
     aes(
@@ -206,11 +206,12 @@ genomic_context_var_df
     color = "grey20",
     position = "dodge",
     stat = "identity",
-    show.legend = TRUE
+    show.legend = TRUE,
   ) +
-  facet_wrap(. ~ context_ids, nrow = 1) +
+  facet_wrap(~ context_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
-  scale_benchmark_version(aesthetic = "fill") +
+  scale_benchmark_version(aesthetic = "fill", drop = FALSE) +
+   # scale_fill_discrete(drop = FALSE) + 
   labs(x = "Variant Type", y = "Variant Count") +
   theme_manuscript() +
   theme(
@@ -221,12 +222,12 @@ genomic_context_var_df
 ```{r structural_variant_counts_by_context_plot}
 (genomic_context_stvar_plt <- genomic_context_var_df %>%
   filter(bench_type == "stvar", ref == "GRCh37", .preserve = TRUE) %>%
-  mutate(
-    bench_version = factor(
-      bench_version,
-      levels = analysis_bench_order
-    )
-  ) %>%
+  # mutate(
+  #   bench_version = factor(
+  #     bench_version,
+  #     levels = analysis_bench_order
+  #   )
+  # ) %>%
   ggplot() +
   geom_bar(
     aes(x = var_type, y = count, fill = bench_version),
@@ -235,27 +236,28 @@ genomic_context_var_df
     stat = "identity",
     show.legend = TRUE
   ) +
-  facet_wrap(. ~ context_ids, nrow = 1) +
+  facet_wrap(~ context_ids, nrow = 1) +
   scale_y_continuous(label = scales::label_comma()) +
-  scale_benchmark_version(aesthetic = "fill") +
+  scale_benchmark_version(aesthetic = "fill", drop = FALSE) +
   labs(x = "Variant Type", y = "Variant Count") +
-  theme_manuscript())
+  theme_manuscript() + theme(
+    legend.position = "bottom"
+  ))
 ```
 
 ```{r  combined_variant_counts_by_context_plot}
-(combined_context_plt <- genomic_context_smvar_plt +
-  genomic_context_stvar_plt +
-  plot_layout(guides = "collect", nrow = 2, ncol = 1) +
-  plot_annotation(tag_levels = "A") &
-  theme(
-    legend.position = "bottom"
-  ))
+(combined_context_plt <- (genomic_context_smvar_plt + theme(axis.title.x = element_blank())) +
+  (genomic_context_stvar_plt ) +
+  plot_layout(nrow = 2, ncol = 1, guides = "collect") & theme(legend.position = "bottom", 
+      plot.margin = unit(c(5, 5, 5, 5), "pt"),
+      legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+    ))
 
 ggsave(
-  filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
+  filename = here("manuscript", "figs", "genomic_context_variant_counts_tall.png"),
   plot = combined_context_plt,
-  width = 8,
-  height = 6,
+  width = 3,
+  height = 3,
   dpi = 300
 )
 ```

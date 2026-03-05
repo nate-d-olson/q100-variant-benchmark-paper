@@ -39,9 +39,9 @@ analysis_data <- load_primary_analysis_data(
 list2env(analysis_data, envir = environment())
 
 ## Filtering variants_df to benchmark regions for the characterization
-variants_df <- variants_df %>% filter(region_ids == "BMKREGIONS")
+variants_df <- variants_df %>%
+  filter(region_ids == "BMKREGIONS", is_pass)
 ```
-
 
 ## Benchmark Set Summary Table
 
@@ -72,7 +72,10 @@ bench_var_cnt_df <- variants_df %>%
 ```
 
 ```{r}
-full_join(bench_var_cnt_df, bench_region_stats_df) %>%
+bench_var_cnt_df %>% 
+  rowwise() %>% 
+  mutate(Total = sum(SNV, INDEL, INS, DEL, na.rm = TRUE)) %>% 
+full_join(bench_region_stats_df) %>%
   select(-bench_version) %>%
   ungroup() %>%
   mutate(

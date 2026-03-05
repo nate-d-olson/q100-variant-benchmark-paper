@@ -59,7 +59,10 @@
       "Bash(gh issue close:*)",
       "Bash(gh pr close:*)",
       "Bash(gh pr merge:*)",
-      "mcp__plugin_github_github__merge_pull_request"
+      "mcp__plugin_github_github__merge_pull_request",
+      "WebFetch(domain:prefix.dev)",
+      "WebFetch(domain:packages.prefix.dev)",
+      "Skill(commit-commands:commit)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -24,6 +24,8 @@ website:
             href: analysis/external_evaluation.qmd
       - text: Documentation
         menu:
+          - text: Snakemake Pipeline
+            href: pipeline_run.html
           - text: Architecture
             href: docs/architecture.md
           - text: Data Dictionary

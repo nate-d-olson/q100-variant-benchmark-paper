@@ -2,249 +2,136 @@
 
 ## Overview
 
-This repository contains the analysis pipeline and manuscript for the **GIAB v5q HG002 Variant Benchmark Set**. The benchmark set provides high-confidence variant calls for HG002 (NA24385) using the T2T HG002 Q100 diploid assembly, with coordinates available for GRCh37, GRCh38, and CHM13v2.0 (T2T) reference genomes.
+This repository contains the Snakemake workflow, analysis notebooks, and manuscript assets for the GIAB v5q HG002 variant benchmark set.
 
-## Pipeline Purpose
+Primary goals:
 
-The Snakemake pipeline processes benchmark set files to:
+1. Download and validate benchmark/reference inputs.
+2. Annotate benchmark VCFs with genomic context and benchmark/exclusion regions.
+3. Generate per-benchmark variant tables and genomic context summaries.
+4. Quantify exclusion impact and cross-version benchmark differences.
+5. Produce figures/tables used in the manuscript and companion site.
 
-1. **Download and validate** benchmark VCF/BED files and reference genomes
-2. **Annotate variants** with benchmark regions, exclusions (v5 only), and difficult genomic contexts using bcftools
-3. **Generate variant tables** with comprehensive per-variant annotations (type, size, genomic context)
-4. **Calculate overlap** with difficult genomic context (tandem repeats, homopolymers, segmental duplications, low mappability)
-5. **Generate exclusion metrics** showing regions excluded from the benchmark and their impact
-6. **Compare with historical benchmarks** (v4.2.1, v0.6 SV) to quantify improvements in callable regions and variant detection
+## Current Workspace Layout
+
+```text
+project-root/
+├── workflow/                 # Snakemake pipeline (rules, scripts, envs)
+├── config/                   # Runtime config + JSON schema
+├── R/                        # Shared R helpers (loading, cache, themes)
+├── analysis/                 # Quarto analysis notebooks
+├── manuscript/               # Manuscript chapters, figures, tables
+├── docs/                     # Architecture, outputs, troubleshooting
+├── notes/                    # Dated working notes, plans, and prep checklists
+├── tests/                    # R + Python tests
+├── scripts/                  # Utility scripts
+├── site/                     # Quarto site project + rendered site artifacts
+├── resources/                # Downloaded pipeline inputs (gitignored)
+├── results/                  # Pipeline outputs (gitignored)
+└── logs/                     # Workflow logs (gitignored)
+```
+
+## Pipeline Entry Points
+
+- Workflow entry: `workflow/Snakefile`
+- Main workflow config: `config/config.yaml`
+- Config schema: `config/schema/config.schema.yaml`
+- Developer commands: `Makefile`
+
+The active rule modules included by `workflow/Snakefile` are:
+
+- `rules/common.smk`
+- `rules/downloads.smk`
+- `rules/ref_processing.smk`
+- `rules/vcf_processing.smk`
+- `rules/annotation.smk`
+- `rules/genomic_context_analysis.smk`
+- `rules/exclusions.smk`
+- `rules/benchmark_comparisons.smk`
+- `rules/chr8_synteny.smk`
 
 ## Key Outputs
 
-- Annotated VCFs with region annotations (`results/annotate_vcf_regions/`)
-- Comprehensive variant tables with per-variant annotations (`results/variant_tables/`)
-- Exclusion intersection tables (`results/exclusions/`)
-- **Benchmark Comparisons** (`results/stats/`):
-  - `*_variants.csv`: Stratified counts of shared and unique variants
-  - `*_regions.csv`: Stratified counts of shared and unique callable bases
+- `results/variant_tables/{benchmark}/variants.parquet`
+- `results/genomic_context/{benchmark}/genomic_context_coverage_table.csv`
+- `results/genomic_context/{benchmark}/variants_by_genomic_context.parquet`
+- `results/exclusions/{benchmark}/exclusion_impact.csv`
+- `results/exclusions/{benchmark}/exclusion_interactions.csv`
+- `results/exclusions/{comp_id}/old_only_summary.csv`
+- `results/ref_genome_sizes/{ref}_size.tsv`
+- `results/chr8_synteny/chr8_figure.{pdf,png}` (when chr8 synteny is enabled)
 
-## Analysis Resources
-
-### Data Loading Functions
-
-The `R/data_loading.R` module provides standardized functions for loading pipeline outputs:
-
-- `load_genomic_context_metrics()` - Load primary analysis data with variant counts per genomic context (recommended)
-- `load_primary_analysis_data()` - Load commonly used validated analysis data frames in one call
-- `load_exclusion_metrics()` - Load exclusion overlaps (v5.0q only)
-- `load_reference_sizes()` - Load reference genome sizes and N-content
-- `load_variant_table()` - Load full variant data (use sparingly, files are large)
-- `load_genomic_context_coverage()` - Load base-level coverage data
-- `load_benchmark_regions()` - Load benchmark region BED files
-- `load_platinum_pedigree_regions()` - Download and load Platinum Pedigree benchmark region BED files from public S3
-- `parse_benchmark_id()` - Parse benchmark metadata from file path
-
-All functions handle automatic file discovery, metadata parsing, and optional filtering.
-Validation is performed during data loading before cache generation for cache-enabled
-loaders, and schema validation is applied again when writing cache artifacts.
-
-### Output Documentation
-
-- **[Pipeline Outputs Reference](docs/pipeline-outputs.md)** - Complete catalog of output files with column schemas and examples
-- **[Data Dictionary](docs/data-dictionary.md)** - Detailed definitions of metrics, stratifications, and variant types
-- **[Output Relationships Diagram](docs/diagrams/output-relationships.mmd)** - Visual guide showing how files link together
-
-# Getting Started
+## Getting Started
 
 ## Prerequisites
 
-- [Mamba](https://mamba.readthedocs.io/) or [Conda](https://docs.conda.io/)
-- [Snakemake](https://snakemake.readthedocs.io/) >= 8.0
-- [snakefmt](https://github.com/snakemake/snakefmt) (for development)
+- Conda or Mamba
+- Snakemake >= 8
+- Quarto (for notebook/manuscript/site rendering)
+- R with project packages (renv recommended)
 
-## Installation
+## Environment setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/nate-d-olson/q100-variant-benchmark-paper.git
-cd q100-variant-benchmark-paper
-
-# Create and activate the environment
 mamba env create -f environment.yaml
 mamba activate q100-smk
 ```
 
-## Running the Pipeline
+## Run workflow
 
 ```bash
-# Dry-run to validate workflow
-snakemake -n --quiet
+# Validate DAG and inputs
+make dry-run
 
-# Run pipeline locally with conda environments
-snakemake --cores 4 --sdm conda
+# Run workflow
+make run
 
-# Run using the Makefile shortcuts
-make dry-run   # Validate workflow
-make lint      # Check best practices
-make test      # Run all validation tests
-make run       # Execute the pipeline
-```
-
-## Repository Structure
-
-```
-project-root/
-├── workflow/                        # Snakemake pipeline
-│   ├── Snakefile                   # Main workflow entry point
-│   ├── rules/                      # Rule definitions (13 files, 2,080 lines)
-│   │   ├── common.smk              # Helper functions (523 lines)
-│   │   ├── downloads.smk           # Download rules (329 lines)
-│   │   ├── var_tables.smk          # Variant annotation & table generation (237 lines)
-│   │   ├── genomic_context_metrics.smk  # Genomic context overlap metrics (155 lines)
-│   │   ├── exclusions.smk          # Exclusion analysis (166 lines)
-│   │   ├── benchmark_comparisons.smk    # Benchmark comparisons (137 lines)
-│   │   ├── stratify_bench.smk      # Truvari stratification analysis (112 lines)
-│   │   ├── var_counts.smk          # Variant counting (107 lines)
-│   │   ├── output_organization.smk # Organize outputs (102 lines)
-│   │   ├── validation.smk          # Data validation (87 lines)
-│   │   ├── vcf_processing.smk      # VCF processing (79 lines)
-│   │   ├── genomic_context_tables.smk   # Aggregate metrics (15 lines)
-│   │   └── ref_processing.smk      # Reference indexing (31 lines)
-│   ├── envs/                       # Conda environment definitions (8 files)
-│   │   ├── bcftools.yaml
-│   │   ├── bedtools.yaml
-│   │   ├── downloads.yaml
-│   │   ├── python.yaml
-│   │   ├── rtg-tools.yaml
-│   │   ├── samtools.yaml
-│   │   ├── truvari.yaml
-│   │   └── analysis.yaml
-│   └── scripts/                    # Custom Python scripts (15 files)
-│       ├── logging_config.py
-│       ├── exceptions.py
-│       ├── validators.py
-│       ├── validate_vcf.py
-│       ├── validate_bed.py
-│       ├── combine_beds_with_id.py
-│       ├── compute_bed_metrics.py
-│       ├── extract_info_fields.py
-│       ├── generate_header_lines.py
-│       ├── count_variants_by_genomic_context.py
-│       ├── aggregate_stratified_bench.py
-│       ├── stratify_comparison.py
-│       ├── summarize_var_counts.py
-│       └── combine_metrics_counts.py
-├── config/
-│   ├── config.yaml                 # Pipeline configuration
-│   └── schema/
-│       └── config.schema.yaml      # Configuration validation schema
-├── docs/                           # Comprehensive documentation
-│   ├── architecture.md             # System architecture
-│   ├── api-reference.md            # Python API reference
-│   └── troubleshooting.md          # Common issues and solutions
-├── tests/                          # Unit tests
-│   ├── unit/
-│   │   ├── test_validators.py
-│   │   └── test_exceptions.py
-│   └── fixtures/
-│       ├── sample.vcf
-│       └── sample.bed
-├── manuscript/                     # Quarto manuscript files
-│   ├── introduction.qmd
-│   ├── methods.qmd
-│   ├── results.qmd
-│   ├── discussion.qmd
-│   └── references.bib
-├── analysis/                       # Supplementary analysis notebooks
-├── resources/                      # Downloaded resources (gitignored)
-│   ├── benchmarksets/
-│   ├── references/
-│   ├── stratifications/
-│   └── exclusions/
-├── results/                        # Pipeline outputs (gitignored)
-│   ├── variant_tables/
-│   ├── var_counts/
-│   ├── genomic_context_metrics/
-│   ├── exclusions/
-│   └── stats/
-├── environment.yaml                # Mamba environment spec
-├── pyproject.toml                  # Python project configuration
-├── Makefile                        # Development shortcuts
-└── _quarto.yml                     # Quarto project config
-```
-
-# Benchmark Sets Analyzed
-
-| Benchmark ID          | Reference | Variant Type        | Description                              |
-| --------------------- | --------- | ------------------- | ---------------------------------------- |
-| v5.0q_CHM13v2.0_smvar | CHM13v2.0 | Small variants      | T2T Q100 benchmark (SNVs + indels <50bp) |
-| v5.0q_CHM13v2.0_stvar | CHM13v2.0 | Structural variants | T2T Q100 benchmark (SVs ≥50bp)           |
-| v5.0q_GRCh38_smvar    | GRCh38    | Small variants      | T2T Q100 liftover                        |
-| v5.0q_GRCh38_stvar    | GRCh38    | Structural variants | T2T Q100 liftover                        |
-| v5.0q_GRCh37_smvar    | GRCh37    | Small variants      | T2T Q100 liftover                        |
-| v5.0q_GRCh37_stvar    | GRCh37    | Structural variants | T2T Q100 liftover                        |
-| v4.2.1_GRCh38_smvar   | GRCh38    | Small variants      | Historical GIAB v4.2.1                   |
-| v0.6_GRCh37_stvar     | GRCh37    | Structural variants | Historical SV v0.6                       |
-
-# Genomic Stratification Contexts
-
-The pipeline analyzes benchmark overlap with GIAB v3.6 stratification regions:
-
-| Context | Description                                      |
-| ------- | ------------------------------------------------ |
-| TR      | All tandem repeats                               |
-| TR10kb  | Tandem repeats ≥10001bp with 5bp slop            |
-| HP      | Homopolymers ≥7bp (perfect) or ≥11bp (imperfect) |
-| SD      | All segmental duplications                       |
-| SD10kb  | Segmental duplications >10kb                     |
-| MAP     | Low mappability regions                          |
-
-# Pipeline Improvements (2026-01)
-
-Recent enhancements have significantly improved pipeline reliability, maintainability, and usability. See [`IMPROVEMENT_SUGGESTIONS.md`](IMPROVEMENT_SUGGESTIONS.md) and [`IMPLEMENTATION_SUMMARY.md`](IMPLEMENTATION_SUMMARY.md) for complete details.
-
-### Comprehensive Documentation
-
-- **[Architecture Documentation](docs/architecture.md)** - System design with visual diagrams
-- **[API Reference](docs/api-reference.md)** - Complete documentation of 15+ helper functions
-- **[Troubleshooting Guide](docs/troubleshooting.md)** - Solutions for common issues
-
-## Development
-
-### Code Quality
-
-```bash
-# Run linting and format checks
+# Lint + format checks + dry-run validation
 make test
-
-# Format Snakemake files
-make format
 ```
 
-### GitHub Copilot Support
+## Render notebooks/manuscript
 
-This repository is configured for optimal use with GitHub Copilot Coding Agent:
+```bash
+# Example notebook
+quarto render analysis/benchmarkset_characterization.qmd
 
-- **Comprehensive Instructions**: Custom instructions in `.github/copilot-instructions.md` and `.github/AGENTS.md`
-- **Path-Specific Guidance**: Specialized instructions for Snakemake rules, Python scripts, and R analysis code
-- **Automated Setup**: Environment setup workflow in `.github/workflows/copilot-setup-steps.yml`
+# Project root Quarto document
+quarto render index.qmd
+```
 
-For details, see:
-- **[Copilot Setup Verification](.github/COPILOT_SETUP_VERIFICATION.md)** - Complete setup documentation
-- **[Instructions Directory](.github/instructions/)** - Path-specific coding guidelines
+## Build site
 
-### Commit Conventions
+```bash
+./build-site.sh
+# Optional publish
+./build-site.sh --publish
+```
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/):
+## Documentation Index
 
-- `feat:` - New feature or analysis
-- `fix:` - Bug fix
-- `docs:` - Documentation updates
-- `chore:` - Maintenance (dependencies, configs)
-- `refactor:` - Code restructuring
+- `docs/architecture.md`: system architecture and design rationale
+- `docs/pipeline-outputs.md`: output file catalog
+- `docs/data-dictionary.md`: metric/column definitions
+- `docs/api-reference.md`: shared helper/API docs
+- `docs/troubleshooting.md`: common failures and fixes
+- `notes/README.md`: index of dated/working notes
+- `analysis/README.md`: notebook-specific guidance
+- `workflow/README.md`: workflow module and script guide
+- `tests/README.md`: test execution and fixture details
 
-## Citation
+## Artifact Policy
 
-If you use this benchmark set, please cite:
+- Commit source and durable assets: workflow code (`workflow/`, `config/`, `R/`, `scripts/`), notebooks (`analysis/*.qmd`), manuscript source (`manuscript/*.qmd`, selected versioned figures/tables), and docs.
+- Do not commit generated run outputs: `results/`, `resources/`, `logs/`, `.snakemake/`, `analysis/cache/`, rendered notebook HTML, and site build outputs under `site/_site/` and `site/_freeze/`.
+- Keep root-level exports/archive files out of git: manuscript export/docx drafts, LaTeX export intermediates (`index.tex`), run reports (`pipeline_run.html`), and archive bundles (`*.tar.gz`).
+- If a generated artifact must be versioned for publication reproducibility, place it in `manuscript/figs/` or `manuscript/tables/` and mention its source notebook/workflow step in the relevant PR/commit.
 
-> [Citation to be added upon publication]
+## Workspace Notes
 
-# License
+- Large/generated directories (`results/`, `resources/`, `logs/`, `.snakemake/`, `analysis/cache/`, rendered HTML) are expected in local runs and are mostly gitignored.
+- Manuscript figures and selected manuscript table assets under `manuscript/figs/` and `manuscript/tables/` are versioned.
 
-This project is licensed under CC0 1.0 Universal - see the LICENSE file for details.
+## License
+
+This project is licensed under CC0 1.0 Universal.

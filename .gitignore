@@ -36,8 +36,16 @@ Thumbs.db
 /.env
 /data/
 /scratch
+/.test/
+/.pytest_cache/
 analysis/*_files/**
 /etc/**
+
+# Root-level generated exports and archives
+/index.tex
+/pipeline_run.html
+/*.tar.gz
+/HG002v5-variant-benchmark-manuscript.docx
 
 # Git worktrees
 .worktrees/
@@ -77,6 +85,18 @@ _bookdown_files/
 site/_site/
 site/.quarto/
 site/_freeze/
+site/.here
+site/R
+site/config
+site/results
+site/resources
+site/manuscript
+site/styles.css
+site/pipeline_run.html
+site/data/
+site/renv/
+site/renv.lock
+site/.Rprofile
 
 # Node.js (pre-commit)
 node_modules/
