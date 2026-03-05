@@ -19,8 +19,7 @@ execute:
 #| include: false
 source(here::here("analysis/_notebook_setup.R"))
 analysis_setup(
-  load_plot_themes = TRUE,
-  load_gt = TRUE
+  load_plot_themes = TRUE
 )
 
 library(data.table)
@@ -801,10 +800,10 @@ unique_summary_tbl %>%
     pct_old_only_of_old,
     pct_new_only_of_v5
   ) %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = c(old_only_bp, new_only_bp, old_only_variants, new_only_variants)) %>%
-  gt::fmt_number(columns = c(pct_old_only_of_old, pct_new_only_of_v5), decimals = 2) %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = c("old_only_bp", "new_only_bp", "old_only_variants", "new_only_variants")) %>%
+  fmt_number_flextable(columns = c("pct_old_only_of_old", "pct_new_only_of_v5"), decimals = 2) %>%
+  cols_label_flextable(
     old_benchmark = "Previous Benchmark",
     new_benchmark = "v5 Benchmark",
     old_only_bp = "Previous-Only Bases",
@@ -814,7 +813,7 @@ unique_summary_tbl %>%
     pct_old_only_of_old = "% Previous Benchmark Bases",
     pct_new_only_of_v5 = "% v5 Benchmark Bases"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ## Previous Benchmark-Specific Regions
@@ -823,15 +822,15 @@ unique_summary_tbl %>%
 
 ```{r}
 old_region_reason_tbl %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = "bases_bp") %>%
-  gt::fmt_number(columns = "pct_of_old_only", decimals = 2) %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = "bases_bp") %>%
+  fmt_number_flextable(columns = "pct_of_old_only", decimals = 2) %>%
+  cols_label_flextable(
     category = "Category",
     bases_bp = "Bases",
     pct_of_old_only = "% of Previous-Only Bases"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ### Exclusion Overlap Reasons (Excluded Old-Only Regions)
@@ -850,17 +849,17 @@ old_exclusion_reason_tbl <- old_exclusion_base_tbl %>%
   arrange(comparison_label, desc(bases_bp), desc(variant_count))
 
 old_exclusion_reason_tbl %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = c(bases_bp, variant_count)) %>%
-  gt::fmt_number(columns = "pct_of_excluded_bases", decimals = 2) %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = c("bases_bp", "variant_count")) %>%
+  fmt_number_flextable(columns = "pct_of_excluded_bases", decimals = 2) %>%
+  cols_label_flextable(
     exclusion = "Exclusion",
     description = "Description",
     bases_bp = "Excluded Bases Overlap",
     variant_count = "Excluded Variants Overlap",
     pct_of_excluded_bases = "% of Excluded Old-Only Bases"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ### Genomic Context of Excluded Old-Only Regions
@@ -868,15 +867,15 @@ old_exclusion_reason_tbl %>%
 ```{r}
 old_excluded_region_context_tbl %>%
   select(comparison_label, context_name, overlap_bp, pct_of_region) %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = "overlap_bp") %>%
-  gt::fmt_number(columns = "pct_of_region", decimals = 2) %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = "overlap_bp") %>%
+  fmt_number_flextable(columns = "pct_of_region", decimals = 2) %>%
+  cols_label_flextable(
     context_name = "Genomic Context",
     overlap_bp = "Overlap Bases",
     pct_of_region = "% of Excluded Old-Only Region Bases"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ### Previous-Only Variant Breakdown by Type and Size
@@ -884,14 +883,14 @@ old_excluded_region_context_tbl %>%
 ```{r}
 old_variant_type_size_tbl %>%
   select(comparison_label, variant_type, size_bin, variant_count) %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = "variant_count") %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = "variant_count") %>%
+  cols_label_flextable(
     variant_type = "Variant Type",
     size_bin = "Size Bin",
     variant_count = "Variant Count"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ## v5-Specific Regions
@@ -901,14 +900,14 @@ old_variant_type_size_tbl %>%
 ```{r}
 new_variant_type_size_tbl %>%
   select(comparison_label, variant_type, size_bin, variant_count) %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = "variant_count") %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = "variant_count") %>%
+  cols_label_flextable(
     variant_type = "Variant Type",
     size_bin = "Size Bin",
     variant_count = "Variant Count"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ### Genomic Context of v5-Only Regions
@@ -916,26 +915,26 @@ new_variant_type_size_tbl %>%
 ```{r}
 new_region_context_tbl %>%
   select(comparison_label, context_name, overlap_bp, pct_of_region) %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = "overlap_bp") %>%
-  gt::fmt_number(columns = "pct_of_region", decimals = 2) %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = "overlap_bp") %>%
+  fmt_number_flextable(columns = "pct_of_region", decimals = 2) %>%
+  cols_label_flextable(
     context_name = "Genomic Context",
     overlap_bp = "Overlap Bases",
     pct_of_region = "% of v5-Only Region Bases"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```
 
 ### Genomic Context of v5-Only Variants
 
 ```{r}
 new_variant_context_tbl %>%
-  gt::gt(groupname_col = "comparison_label") %>%
-  gt::fmt_integer(columns = "variant_count") %>%
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "comparison_label") %>%
+  fmt_integer_flextable(columns = "variant_count") %>%
+  cols_label_flextable(
     context_name = "Genomic Context",
     variant_count = "Variant Count"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```

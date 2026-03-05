@@ -18,8 +18,7 @@ execute:
 #| include: false
 source(here::here("analysis/_notebook_setup.R"))
 analysis_setup(
-  load_plot_themes = TRUE,
-  load_gt = TRUE
+  load_plot_themes = TRUE
 )
 
 # Load additional packages for upset plots
@@ -45,18 +44,6 @@ if (nrow(exclusion_intersect_tbl) == 0) {
 ## Bases Removed by Exclusion
 
 ```{r}
-make_exclusion_tbl <- function(exclusion_tbl) {
-  gt::gt(exclusion_tbl) %>%
-    gt::fmt_integer(columns = contains("intersect_bp")) %>%
-    gt::fmt_number(columns = contains("pct_of_dip"), decimals = 3) %>%
-    gt::cols_merge(columns = contains("GRCh37"), pattern = "{1} ({2})") %>%
-    gt::cols_merge(columns = contains("GRCh38"), pattern = "{1} ({2})") %>%
-    gt::cols_merge(columns = contains("CHM13"), pattern = "{1} ({2})") %>%
-    gt::cols_move_to_end(columns = contains("CHM13")) %>%
-    gt::cols_align(columns = c("exclusions", "bench_type"), align = "right") %>%
-    theme_gt_manuscript()
-}
-
 load_exclusion_metrics() %>%
   dplyr::select(ref, exclusions, bench_type, intersect_bp, pct_of_dip) %>%
   group_by(exclusions) %>%
@@ -71,8 +58,23 @@ load_exclusion_metrics() %>%
   ungroup() %>%
   distinct() %>%
   arrange(desc(bench_type), desc(intersect_bp_GRCh38)) %>%
-  make_exclusion_tbl() %>%
-  gt::cols_label_with(columns = starts_with("intersect_bp"), fn = ~ str_remove(., "intersect_bp_"))
+  # Merge bp + pct columns into "123,456 (0.005)" strings per reference
+  mutate(
+    GRCh37 = sprintf("%s (%.3f)", scales::comma(intersect_bp_GRCh37), pct_of_dip_GRCh37),
+    GRCh38 = sprintf("%s (%.3f)", scales::comma(intersect_bp_GRCh38), pct_of_dip_GRCh38),
+    CHM13v2.0 = sprintf(
+      "%s (%.3f)",
+      scales::comma(intersect_bp_CHM13v2.0), pct_of_dip_CHM13v2.0
+    )
+  ) %>%
+  select(exclusions, bench_type, GRCh37, GRCh38, CHM13v2.0) %>%
+  flextable() %>%
+  flextable::align(j = c("exclusions", "bench_type"), align = "right", part = "body") %>%
+  cols_label_flextable(
+    exclusions = "Exclusion",
+    bench_type = "Type"
+  ) %>%
+  theme_flextable_manuscript()
 ```
 
 
@@ -133,19 +135,30 @@ single_exclusion_summary <- interaction_filtered_tbl %>%
   )
 
 if (nrow(single_exclusion_summary) > 0) {
+  # Get reference names from column names
+  refs <- unique(gsub("bases_bp_|variant_count_", "",
+    grep("bases_bp_|variant_count_", names(single_exclusion_summary), value = TRUE)))
+
+  # Reorder columns: group by reference (bases, variants per ref)
+  ref_cols <- unlist(lapply(refs, function(r) {
+    c(paste0("bases_bp_", r), paste0("variant_count_", r))
+  }))
+
   single_exclusion_summary %>%
-    gt::gt() %>%
-    gt::fmt_integer(columns = contains("bases_bp")) %>%
-    gt::fmt_integer(columns = contains("variant_count")) %>%
-    gt::tab_spanner(label = "GRCh37", columns = contains("GRCh37")) %>%
-    gt::tab_spanner(label = "GRCh38", columns = contains("GRCh38")) %>%
-    gt::tab_spanner(label = "CHM13v2.0", columns = contains("CHM13v2.0")) %>%
-    gt::tab_header(title = "Single Exclusions Not Shown in Upset Plots") %>%
-    gt::cols_label(
-      exclusion_combination = "Exclusion",
-      bench_type = "Type"
+    select(exclusion_combination, bench_type, all_of(ref_cols)) %>%
+    flextable() %>%
+    fmt_integer_flextable(columns = ref_cols) %>%
+    cols_label_flextable(exclusion_combination = "Exclusion", bench_type = "Type") %>%
+    flextable::set_header_labels(
+      values = setNames(rep(c("Bases", "Variants"), length(refs)), ref_cols)
     ) %>%
-    theme_gt_manuscript()
+    flextable::add_header_row(
+      values = c("", "", unlist(lapply(refs, function(r) c(r, "")))),
+      top = TRUE
+    ) %>%
+    flextable::merge_h(part = "header") %>%
+    flextable::set_caption(caption = "Single Exclusions Not Shown in Upset Plots") %>%
+    theme_flextable_manuscript()
 } else {
   cat("All single exclusions are included in the upset plots (meet size threshold).\n")
 }
@@ -328,9 +341,9 @@ interaction_summary <- interaction_filtered_tbl %>%
   )
 
 interaction_summary %>%
-  gt::gt() %>%
-  gt::tab_header(title = "Exclusion Interaction Summary") %>%
-  gt::cols_label(
+  flextable() %>%
+  flextable::set_caption(caption = "Exclusion Interaction Summary") %>%
+  cols_label_flextable(
     ref = "Reference",
     bench_type = "Type",
     total_combinations = "Total Combos",
@@ -340,5 +353,5 @@ interaction_summary %>%
     total_bases = "Total Bases",
     total_variants = "Total Variants"
   ) %>%
-  theme_gt_manuscript()
+  theme_flextable_manuscript()
 ```

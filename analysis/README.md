@@ -63,7 +63,7 @@ For consistent setup in notebook chunks:
 
 ```r
 source(here::here("analysis/_notebook_setup.R"))
-analysis_setup(load_plot_themes = TRUE, load_gt = TRUE)
+analysis_setup(load_plot_themes = TRUE)
 ```
 
 ## Cache

@@ -22,6 +22,8 @@
 #' - File formats: PDF, EPS (scalable), or high-res PNG
 
 library(tidyverse)
+library(flextable)
+library(officer)
 library(gt)
 
 #' Color Palettes for Variables
@@ -426,6 +428,182 @@ theme_gt_manuscript <- function(gt_object, striped = TRUE, ...) {
   }
 
   return(gt_object)
+}
+
+#' Theme flextable Tables for Manuscript
+#'
+#' Applies consistent styling to flextable objects for Word/Google Docs export.
+#' Matches the styling of `theme_gt_manuscript()` but with better Word compatibility.
+#'
+#' @param ft A flextable object
+#' @param striped Logical. Add alternating row stripes (default: TRUE)
+#' @param font_family Character. Font family name (default: "Roboto")
+#' @param base_font_size Numeric. Base font size in points (default: 9)
+#' @param header_bg Character. Header background color (default: "#F5F5F5")
+#' @param stripe_color Character. Alternating row color (default: "#FAFAFA")
+#' @param ... Additional arguments (reserved for future use)
+#'
+#' @return A styled flextable object
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' library(flextable)
+#' mtcars %>%
+#'   head() %>%
+#'   flextable() %>%
+#'   theme_flextable_manuscript()
+#' }
+theme_flextable_manuscript <- function(
+  ft,
+  striped = TRUE,
+  font_family = "Roboto",
+  base_font_size = 9,
+  header_bg = "#F5F5F5",
+  stripe_color = "#FAFAFA",
+  ...
+) {
+
+  n_rows <- nrow(ft$body$dataset)
+
+  # Apply base styling
+  ft_styled <- ft %>%
+    # Fonts
+    flextable::font(fontname = font_family, part = "all") %>%
+    flextable::fontsize(size = base_font_size, part = "body") %>%
+    flextable::fontsize(size = base_font_size + 1, part = "header") %>%
+    flextable::bold(part = "header") %>%
+
+    # Borders (manuscript style: 2px top/bottom, 1px header separator)
+    flextable::border_remove() %>%
+    flextable::hline_top(
+      border = officer::fp_border(width = 2, color = "black"),
+      part = "header"
+    ) %>%
+    flextable::hline_bottom(
+      border = officer::fp_border(width = 2, color = "black"),
+      part = "body"
+    ) %>%
+    flextable::hline_bottom(
+      border = officer::fp_border(width = 1, color = "black"),
+      part = "header"
+    ) %>%
+
+    # Colors
+    flextable::bg(bg = header_bg, part = "header") %>%
+
+    # Alignment
+    flextable::align(align = "center", part = "header") %>%
+    flextable::valign(valign = "center", part = "all") %>%
+
+    # Padding (8pt on all sides)
+    flextable::padding(padding = 8, part = "all") %>%
+
+    # Table width (autofit to content)
+    flextable::set_table_properties(layout = "autofit", width = 1.0)
+
+  # Add striped rows if requested
+  if (striped && n_rows > 1) {
+    ft_styled <- ft_styled %>%
+      flextable::bg(i = seq(2, n_rows, by = 2), bg = stripe_color, part = "body")
+  }
+
+  return(ft_styled)
+}
+
+#' Format Integer Columns in flextable
+#'
+#' Wrapper for flextable::colformat_int() with consistent defaults
+#'
+#' @param ft A flextable object
+#' @param columns Character vector of column names to format
+#' @param big_mark Character for thousands separator (default: ",")
+#'
+#' @return A flextable object with formatted columns
+#' @export
+fmt_integer_flextable <- function(ft, columns, big_mark = ",") {
+  ft %>% flextable::colformat_int(j = columns, big.mark = big_mark)
+}
+
+#' Format Number Columns in flextable
+#'
+#' Wrapper for flextable::colformat_double() with consistent defaults
+#'
+#' @param ft A flextable object
+#' @param columns Character vector of column names to format
+#' @param decimals Numeric. Number of decimal places (default: 2)
+#'
+#' @return A flextable object with formatted columns
+#' @export
+fmt_number_flextable <- function(ft, columns, decimals = 2) {
+  ft %>% flextable::colformat_double(j = columns, digits = decimals)
+}
+
+#' Set Column Labels in flextable
+#'
+#' Wrapper for flextable::set_header_labels() with consistent interface
+#'
+#' @param ft A flextable object
+#' @param ... Named arguments where names are column names and values are labels
+#'
+#' @return A flextable object with updated column labels
+#' @export
+cols_label_flextable <- function(ft, ...) {
+  labels <- list(...)
+  ft %>% flextable::set_header_labels(values = labels)
+}
+
+#' Format Percent Columns in flextable
+#'
+#' Formats numeric columns as percentages with a "%" suffix.
+#'
+#' @param ft A flextable object
+#' @param columns Character vector of column names to format
+#' @param decimals Numeric. Number of decimal places (default: 1)
+#' @param scale_values Logical. If TRUE, multiply values by 100 first
+#'   (for values stored as fractions like 0.853). If FALSE (default),
+#'   values are already in percent form (like 85.3).
+#'
+#' @return A flextable object with formatted columns
+#' @export
+fmt_percent_flextable <- function(ft, columns, decimals = 1, scale_values = FALSE) {
+  fmt_string <- paste0("%.", decimals, "f%%")
+  fmt_fn <- if (scale_values) {
+    function(x) sprintf(fmt_string, x * 100)
+  } else {
+    function(x) sprintf(fmt_string, x)
+  }
+
+  # Build named list of formatter functions for set_formatter
+  formatters <- setNames(rep(list(fmt_fn), length(columns)), columns)
+  do.call(flextable::set_formatter, c(list(x = ft), formatters))
+}
+
+#' Create a Grouped flextable from a Data Frame
+#'
+#' Replaces `gt::gt(groupname_col = ...)` by wrapping `as_grouped_data()` +
+#' `as_flextable()`. Group labels appear as full-width spanning row headers.
+#'
+#' @param df A data frame (or tibble) to display
+#' @param groupname_col Character. Column name to use for grouping.
+#'
+#' @return A flextable object with grouped row headers
+#' @export
+as_grouped_flextable <- function(df, groupname_col) {
+  # Build formula dynamically — flextable formulas evaluate against the dataset
+  # directly, so .data pronoun doesn't work here
+  group_filter <- as.formula(paste0("~ !is.na(", groupname_col, ")"))
+
+  df %>%
+    flextable::as_grouped_data(groups = groupname_col) %>%
+    flextable::as_flextable(hide_grouplabel = TRUE) %>%
+    flextable::bold(j = 1, i = group_filter, bold = TRUE) %>%
+    flextable::padding(
+      i = group_filter,
+      padding.top = 8,
+      padding.bottom = 4
+    )
 }
 
 #' Helper: Add context labels to legend
