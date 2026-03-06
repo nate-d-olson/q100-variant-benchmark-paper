@@ -177,9 +177,12 @@ def generate_variant_parquet(
                     var_type = "INS"
                 elif var_size < 0:
                     var_type = "DEL"
-                else:
-                    # ref_len == alt_len: substitution, not indel
+                elif ref_len == 1 and alt_len == 1:
+                    # Single nucleotide substitution
                     var_type = "SNP"
+                else:
+                    # MNP or complex variant (ref_len == alt_len > 1) - keep as UNK
+                    var_type = "UNK"
             else:
                 # Other types (SNP, DUP, BND) keep unsigned size
                 var_size = abs_size
