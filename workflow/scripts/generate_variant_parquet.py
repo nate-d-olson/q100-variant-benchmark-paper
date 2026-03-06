@@ -165,13 +165,24 @@ def generate_variant_parquet(
             elif var_type in ["UNK", "INV"]:
                 # Recalculate size with sign for ambiguous types
                 logging.info(
-                    "Reclassifying %s to INS/DEL at %s:%d",
+                    "Reclassifying %s at %s:%d (ref_len=%d, alt_len=%d)",
                     var_type,
                     record.chrom,
                     record.pos,
+                    ref_len,
+                    alt_len,
                 )
                 var_size = alt_len - ref_len  # Positive for INS, negative for DEL
-                var_type = "INS" if var_size > 0 else "DEL"
+                if var_size > 0:
+                    var_type = "INS"
+                elif var_size < 0:
+                    var_type = "DEL"
+                elif ref_len == 1 and alt_len == 1:
+                    # Single nucleotide substitution
+                    var_type = "SNP"
+                else:
+                    # MNP or complex variant (ref_len == alt_len > 1) - keep as UNK
+                    var_type = "UNK"
             else:
                 # Other types (SNP, DUP, BND) keep unsigned size
                 var_size = abs_size
