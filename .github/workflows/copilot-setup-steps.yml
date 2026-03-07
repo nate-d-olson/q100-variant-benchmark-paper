@@ -10,8 +10,8 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  setup-environment:
-    name: Setup Copilot Environment
+  copilot-setup-steps:
+    name: copilot-setup-steps
     runs-on: ubuntu-latest
     
     steps:
