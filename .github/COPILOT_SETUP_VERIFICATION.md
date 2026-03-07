@@ -106,6 +106,7 @@ To test that instructions are working:
 
 4. **Test setup workflow:**
    - Trigger the copilot-setup-steps workflow
+   - Verify the workflow contains a single job with the exact id `copilot-setup-steps`
    - Verify it completes successfully
    - Check that environment is properly configured
 
