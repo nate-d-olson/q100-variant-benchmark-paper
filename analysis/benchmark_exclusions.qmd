@@ -21,71 +21,60 @@ analysis_setup(
   load_plot_themes = TRUE
 )
 
-# Load additional packages for upset plots
 library(ggupset)
 library(glue)
+```
+
+```{r}
+# Map pipeline exclusion names to manuscript table names
+exclusion_name_map <- c(
+  "segdups" = "Segmental Duplications",
+  "tandem-repeats" = "Tandem Repeats",
+  "satellites" = "Satellites",
+  "pav-inversions" = "PAV-inversions",
+  "flanks" = "Flanks",
+  "VDJ" = "VDJ",
+  "HG002Q100-errors" = "HG002Q100v1.1 errors",
+  "TSPY2-segdups" = "TSPY2-segdups",
+  "consecutive-svs" = "Consecutive SVs",
+  "gaps" = "Gaps",
+  "dipcall-bugs-T2TACE" = "Dipcall-bugs T2TACE",
+  "svs-and-simple-repeats" = "SV regions",
+  "self-discrep" = "Self-Discrepancies",
+  "HG002-mosaic" = "HG002-mosaic",
+  "dipcall-pav_discrep-smvar" = "dipcall-PAV Discrep. (smvar)",
+  "dipcall-pav_discrep-stvar" = "dipcall-PAV Discrep. (stvar)"
+)
+
+rename_exclusion <- function(x) {
+  dplyr::if_else(x %in% names(exclusion_name_map), exclusion_name_map[x], x)
+}
+
+# Rename pipe-separated exclusion combinations
+rename_exclusion_combination <- function(x) {
+  vapply(x, function(combo) {
+    parts <- strsplit(combo, "\\|")[[1]]
+    paste(rename_exclusion(parts), collapse = "|")
+  }, character(1), USE.NAMES = FALSE)
+}
 ```
 
 ## Data Loading
 
 ```{r}
-exclusion_intersect_tbl <- load_exclusion_metrics()
+exclusion_metrics_tbl <- load_exclusion_metrics() %>%
+  dplyr::mutate(exclusions = rename_exclusion(exclusions))
 
-if (nrow(exclusion_intersect_tbl) == 0) {
+if (nrow(exclusion_metrics_tbl) == 0) {
   stop("No v5.0q exclusion metrics found in results/exclusions.")
 }
 ```
 
-## Notes on Metrics
-
-- `pct_of_exclusion` is the percent of each exclusion BED that overlaps the benchmark.
-- `pct_of_dip` is the percent of diploid benchmark space represented by each exclusion overlap.
-
-## Bases Removed by Exclusion
-
 ```{r}
-load_exclusion_metrics() %>%
-  dplyr::select(ref, exclusions, bench_type, intersect_bp, pct_of_dip) %>%
-  group_by(exclusions) %>%
-  tidyr::pivot_wider(
-    names_from = ref,
-    values_from = c(intersect_bp, pct_of_dip)
-  ) %>%
-  group_by(exclusions) %>%
-  mutate(bench_type = case_when(n() == 1 ~ unique(bench_type),
-    .default = "Both"
-  ), .after = 1) %>%
-  ungroup() %>%
-  distinct() %>%
-  arrange(desc(bench_type), desc(intersect_bp_GRCh38)) %>%
-  # Merge bp + pct columns into "123,456 (0.005)" strings per reference
-  mutate(
-    GRCh37 = sprintf("%s (%.3f)", scales::comma(intersect_bp_GRCh37), pct_of_dip_GRCh37),
-    GRCh38 = sprintf("%s (%.3f)", scales::comma(intersect_bp_GRCh38), pct_of_dip_GRCh38),
-    CHM13v2.0 = sprintf(
-      "%s (%.3f)",
-      scales::comma(intersect_bp_CHM13v2.0), pct_of_dip_CHM13v2.0
-    )
-  ) %>%
-  select(exclusions, bench_type, GRCh37, GRCh38, CHM13v2.0) %>%
-  flextable() %>%
-  flextable::align(j = c("exclusions", "bench_type"), align = "right", part = "body") %>%
-  cols_label_flextable(
-    exclusions = "Exclusion",
-    bench_type = "Type"
-  ) %>%
-  theme_flextable_manuscript()
-```
-
-
-## Exclusion Interactions
-
-The following sections analyze how exclusions overlap with each other, showing which combinations of exclusions co-occur and their impact on the benchmark.
-
-```{r}
-# Load exclusion interaction data
 exclusion_interaction_tbl <- load_exclusion_interactions() %>%
-  dplyr::filter(ref == "GRCh38")
+  dplyr::mutate(
+    exclusion_combination = rename_exclusion_combination(exclusion_combination)
+  )
 
 if (nrow(exclusion_interaction_tbl) == 0) {
   stop("No v5.0q exclusion interaction data found in results/exclusions.")
@@ -93,256 +82,436 @@ if (nrow(exclusion_interaction_tbl) == 0) {
 ```
 
 
-### Filtering Strategy
+## Bases Removed by Exclusion
 
-For upset plots, we filter exclusion combinations to focus on the most impactful overlaps:
+### GRCh38 (Main)
 
-- **Bases**: Include combinations representing ≥1% of total excluded bases OR with ≥2 exclusions
-- **Variants**: Include combinations representing ≥1% of total excluded variants OR with ≥2 exclusions
+Exclusion names in *italics* apply only to the small variant benchmark.
+
 ```{r}
-exclusion_interaction_tbl
+grch38_exclusion_tbl <- exclusion_metrics_tbl %>%
+  dplyr::filter(ref == "GRCh38") %>%
+  dplyr::select(exclusions, bench_type, intersect_bp, pct_of_dip) %>%
+  dplyr::group_by(exclusions) %>%
+  dplyr::mutate(
+    is_smvar_only = all(bench_type == "smvar")
+  ) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct(exclusions, .keep_all = TRUE) %>%
+  dplyr::arrange(desc(intersect_bp)) %>%
+  dplyr::select(exclusions, intersect_bp, pct_of_dip, is_smvar_only)
+
+# Identify rows to italicize
+smvar_only_rows <- which(grch38_exclusion_tbl$is_smvar_only)
+
+grch38_exclusion_tbl %>%
+  dplyr::select(-is_smvar_only) %>%
+  flextable::flextable() %>%
+  fmt_integer_flextable(columns = "intersect_bp") %>%
+  fmt_number_flextable(columns = "pct_of_dip", decimals = 3) %>%
+  flextable::align(
+    j = c("intersect_bp", "pct_of_dip"), align = "right", part = "all"
+  ) %>%
+  flextable::italic(i = smvar_only_rows, j = "exclusions", part = "body") %>%
+  flextable::color(
+    i = smvar_only_rows, j = "exclusions", color = "#555555", part = "body"
+  ) %>%
+  cols_label_flextable(
+    exclusions = "Exclusion",
+    intersect_bp = "Bases Excluded",
+    pct_of_dip = "% of Dip.bed"
+  ) %>%
+  theme_flextable_manuscript()
 ```
 
+### All References (Supplemental)
+
+Exclusion names in *italics* apply only to the small variant benchmark.
+
 ```{r}
-# Compute filtering thresholds for each ref/bench_type combination
-interaction_filtered_tbl <- exclusion_interaction_tbl %>%
+supp_exclusion_tbl <- exclusion_metrics_tbl %>%
+  dplyr::select(ref, exclusions, bench_type, intersect_bp, pct_of_dip) %>%
+  dplyr::group_by(exclusions) %>%
+  dplyr::mutate(
+    is_smvar_only = all(bench_type == "smvar")
+  ) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct(exclusions, ref, .keep_all = TRUE) %>%
+  dplyr::select(-bench_type) %>%
+  tidyr::pivot_wider(
+    names_from = ref,
+    values_from = c(intersect_bp, pct_of_dip)
+  ) %>%
+  dplyr::arrange(desc(intersect_bp_GRCh38))
+
+supp_smvar_only_rows <- which(supp_exclusion_tbl$is_smvar_only)
+
+bp_cols <- c("intersect_bp_GRCh37", "intersect_bp_GRCh38", "intersect_bp_CHM13v2.0")
+pct_cols <- c("pct_of_dip_GRCh37", "pct_of_dip_GRCh38", "pct_of_dip_CHM13v2.0")
+
+supp_exclusion_tbl %>%
+  dplyr::select(-is_smvar_only) %>%
+  flextable::flextable() %>%
+  fmt_integer_flextable(columns = bp_cols) %>%
+  fmt_number_flextable(columns = pct_cols, decimals = 3) %>%
+  flextable::align(j = c(bp_cols, pct_cols), align = "right", part = "all") %>%
+  flextable::italic(
+    i = supp_smvar_only_rows, j = "exclusions", part = "body"
+  ) %>%
+  flextable::color(
+    i = supp_smvar_only_rows, j = "exclusions", color = "#555555", part = "body"
+  ) %>%
+  cols_label_flextable(
+    exclusions = "Exclusion",
+    intersect_bp_GRCh37 = "Bases",
+    intersect_bp_GRCh38 = "Bases",
+    intersect_bp_CHM13v2.0 = "Bases",
+    pct_of_dip_GRCh37 = "% Dip",
+    pct_of_dip_GRCh38 = "% Dip",
+    pct_of_dip_CHM13v2.0 = "% Dip"
+  ) %>%
+  flextable::add_header_row(
+    values = c("", "GRCh37", "GRCh38", "CHM13v2.0", "GRCh37", "GRCh38", "CHM13v2.0"),
+    top = TRUE
+  ) %>%
+  flextable::merge_h(part = "header") %>%
+  theme_flextable_manuscript()
+```
+
+
+## Exclusion Interactions
+
+Exclusion regions can overlap — a single genomic region may be excluded by multiple
+criteria simultaneously. The upset plots below show how much sequence is removed by each
+exclusion combination, highlighting where multiple exclusions co-occur.
+
+```{r}
+# Compute summary metrics per ref/bench_type
+interaction_summary_tbl <- exclusion_interaction_tbl %>%
   dplyr::group_by(ref, bench_type) %>%
   dplyr::mutate(
     total_bases = sum(bases_bp),
     total_variants = sum(variant_count),
     pct_bases = 100 * bases_bp / total_bases,
-    pct_variants = 100 * variant_count / total_variants,
-    # Include if: (1% or more of total) OR (multi-exclusion combo)
-    include_bases = pct_bases >= 1,
-    include_variants = pct_variants >= 1
+    pct_variants = 100 * variant_count / total_variants
   ) %>%
   dplyr::ungroup()
 ```
 
-### Single-Exclusion Summary
-
-
-The following table shows single exclusions that fall below the visualization threshold (<1% of total bases AND <1% of total variants). These exclusions have minimal impact on the benchmark and are not shown in the upset plots to keep the visualizations focused on the most impactful exclusion patterns.
-
 ```{r}
-# Extract single-exclusion data not included in upset plots
-single_exclusion_summary <- interaction_filtered_tbl %>%
-  dplyr::filter(n_exclusions == 1) %>%
-  dplyr::select(ref, bench_type, exclusion_combination, bases_bp, variant_count) %>%
-  tidyr::pivot_wider(
-    names_from = ref,
-    values_from = c(bases_bp, variant_count)
-  )
+bench_type_labels <- get_bench_type_labels()
 
-if (nrow(single_exclusion_summary) > 0) {
-  # Get reference names from column names
-  refs <- unique(gsub("bases_bp_|variant_count_", "",
-    grep("bases_bp_|variant_count_", names(single_exclusion_summary), value = TRUE)))
+# Internal separator used by ggupset for combination matrix labels
+UPSET_SEP <- "-__-__-_-"
 
-  # Reorder columns: group by reference (bases, variants per ref)
-  ref_cols <- unlist(lapply(refs, function(r) {
-    c(paste0("bases_bp_", r), paste0("variant_count_", r))
-  }))
+# Upset plot for excluded bases.
+# Uses scale_x_discrete + axis_combmatrix instead of scale_x_upset
+# to control bar ordering by bases_bp (scale_x_upset orders by row
+# frequency which doesn't work with stat="identity").
+# Exclusions to drop from intersection plots (no overlaps with others)
+EXCLUDE_FROM_UPSET <- c("VDJ")
 
-  single_exclusion_summary %>%
-    select(exclusion_combination, bench_type, all_of(ref_cols)) %>%
-    flextable() %>%
-    fmt_integer_flextable(columns = ref_cols) %>%
-    cols_label_flextable(exclusion_combination = "Exclusion", bench_type = "Type") %>%
-    flextable::set_header_labels(
-      values = setNames(rep(c("Bases", "Variants"), length(refs)), ref_cols)
-    ) %>%
-    flextable::add_header_row(
-      values = c("", "", unlist(lapply(refs, function(r) c(r, "")))),
-      top = TRUE
-    ) %>%
-    flextable::merge_h(part = "header") %>%
-    flextable::set_caption(caption = "Single Exclusions Not Shown in Upset Plots") %>%
-    theme_flextable_manuscript()
-} else {
-  cat("All single exclusions are included in the upset plots (meet size threshold).\n")
-}
-```
-
-### Understanding Upset Plots
-
-Upset plots show the impact of different exclusion combinations:
-
-- **Single dots**: Regions/variants excluded by only one exclusion type
-- **Multiple connected dots**: Regions/variants where multiple exclusions overlap
-- **Bar height**: Total bases or variants affected by that exact combination
-- **Ordering**: Plots are ordered by decreasing impact (largest first)
-
-```{r}
-library(ggplot2)
-
-# Function to create upset plot for bases
-create_base_upset <- function(data, ref_name, bench_type_name, title_suffix = "") {
+create_base_upset <- function(data, ref_name, bench_type_name,
+                              n_top = 15, title_suffix = "") {
   plot_data <- data %>%
-    dplyr::filter(
-      ref == ref_name,
-      bench_type == bench_type_name,
-      include_bases
-    ) %>%
+    dplyr::filter(ref == ref_name, bench_type == bench_type_name) %>%
+    # Drop combinations that contain excluded exclusions
+    dplyr::filter(!grepl(
+      paste(EXCLUDE_FROM_UPSET, collapse = "|"),
+      exclusion_combination
+    )) %>%
+    dplyr::arrange(desc(bases_bp)) %>%
+    dplyr::slice_head(n = n_top) %>%
     dplyr::mutate(
-      exclusions_list = strsplit(exclusion_combination, "\\|")
+      exclusions_list = strsplit(exclusion_combination, "\\|"),
+      # Collapse to string with ggupset's internal separator
+      combo_str = vapply(exclusions_list, function(x) {
+        paste(sort(x), collapse = UPSET_SEP)
+      }, character(1))
     ) %>%
-    dplyr::arrange(-bases_bp)
+    dplyr::ungroup()
 
   if (nrow(plot_data) == 0) {
     return(NULL)
   }
 
-  ggplot(plot_data, aes(x = exclusions_list, y = bases_bp)) +
-    ggupset::scale_x_upset(n_intersections = 30,reverse = TRUE) +
+  # Factor levels ordered by descending bases_bp
+  ordered_levels <- plot_data %>%
+    dplyr::arrange(desc(bases_bp)) %>%
+    dplyr::pull(combo_str)
+
+  # Order y-axis exclusion labels by bases from single-exclusion rows
+  single_exclusion_bases <- plot_data %>%
+    dplyr::filter(lengths(exclusions_list) == 1) %>%
+    dplyr::mutate(excl_name = vapply(exclusions_list, `[`, character(1), 1)) %>%
+    dplyr::arrange(desc(bases_bp)) %>%
+    dplyr::pull(excl_name)
+
+  # Add any exclusions that only appear in multi-combos (not as singles)
+  all_excl_names <- unique(unlist(plot_data$exclusions_list))
+  remaining <- setdiff(all_excl_names, single_exclusion_bases)
+  set_levels <- c(single_exclusion_bases, remaining)
+
+  bt_label <- bench_type_labels[bench_type_name]
+
+  ggplot(plot_data, aes(x = factor(combo_str, levels = ordered_levels), y = bases_bp)) +
     geom_bar(stat = "identity", fill = "#2171b5") +
+    scale_x_discrete(limits = ordered_levels) +
+    ggupset::axis_combmatrix(sep = UPSET_SEP, levels = set_levels) +
+    scale_y_continuous(labels = scales::comma) +
     labs(
-      title = glue::glue("Bases: {ref_name} {bench_type_name}{title_suffix}"),
+      title = glue::glue("{bt_label}: {ref_name}{title_suffix}"),
       x = NULL,
       y = "Bases (bp)"
     ) +
-    scale_y_continuous(labels = scales::comma) +
-    theme_bw(base_size = 11) +
+    theme_manuscript() +
     theme(
-      axis.text.x = element_text(angle = 0, hjust = 0.5),
-      panel.grid.major.x = element_blank(),
-      plot.title = element_text(size = 11, face = "bold")
+      panel.grid.major.x = element_blank()
     )
 }
+```
 
-# Function to create upset plot for variants
-create_variant_upset <- function(data, ref_name, bench_type_name, title_suffix = "") {
+
+```{r}
+# Upset plot for excluded variants (same structure as bases)
+create_variant_upset <- function(data, ref_name, bench_type_name,
+                                 n_top = 15, title_suffix = "") {
   plot_data <- data %>%
-    dplyr::filter(
-      ref == ref_name,
-      bench_type == bench_type_name,
-      include_variants
-    ) %>%
+    dplyr::filter(ref == ref_name, bench_type == bench_type_name) %>%
+    dplyr::filter(!grepl(
+      paste(EXCLUDE_FROM_UPSET, collapse = "|"),
+      exclusion_combination
+    )) %>%
+    dplyr::arrange(desc(variant_count)) %>%
+    dplyr::slice_head(n = n_top) %>%
     dplyr::mutate(
-      exclusions_list = strsplit(exclusion_combination, "\\|")
+      exclusions_list = strsplit(exclusion_combination, "\\|"),
+      combo_str = vapply(exclusions_list, function(x) {
+        paste(sort(x), collapse = UPSET_SEP)
+      }, character(1))
     ) %>%
-    dplyr::arrange(-variant_count) %>% 
-    ungroup()
+    dplyr::ungroup()
 
   if (nrow(plot_data) == 0) {
     return(NULL)
   }
 
-  ggplot(plot_data, aes(x = exclusions_list, y = variant_count)) +
-    ggupset::scale_x_upset(n_intersections = 30,) +
+  ordered_levels <- plot_data %>%
+    dplyr::arrange(desc(variant_count)) %>%
+    dplyr::pull(combo_str)
+
+  single_exclusion_vars <- plot_data %>%
+    dplyr::filter(lengths(exclusions_list) == 1) %>%
+    dplyr::mutate(excl_name = vapply(exclusions_list, `[`, character(1), 1)) %>%
+    dplyr::arrange(desc(variant_count)) %>%
+    dplyr::pull(excl_name)
+
+  all_excl_names <- unique(unlist(plot_data$exclusions_list))
+  remaining <- setdiff(all_excl_names, single_exclusion_vars)
+  set_levels <- c(single_exclusion_vars, remaining)
+
+  bt_label <- bench_type_labels[bench_type_name]
+
+  ggplot(plot_data, aes(x = factor(combo_str, levels = ordered_levels), y = variant_count)) +
     geom_bar(stat = "identity", fill = "#d94801") +
+    scale_x_discrete(limits = ordered_levels) +
+    ggupset::axis_combmatrix(sep = UPSET_SEP, levels = set_levels) +
+    scale_y_continuous(labels = scales::comma) +
     labs(
-      title = glue::glue("Variants: {ref_name} {bench_type_name}{title_suffix}"),
+      title = glue::glue("{bt_label}: {ref_name}{title_suffix}"),
       x = NULL,
       y = "Variant Count"
     ) +
-    scale_y_continuous(labels = scales::comma) +
-    theme_bw(base_size = 11) +
+    theme_manuscript() +
     theme(
-      axis.text.x = element_text(angle = 0, hjust = 0.5),
-      panel.grid.major.x = element_blank(),
-      plot.title = element_text(size = 11, face = "bold")
+      panel.grid.major.x = element_blank()
     )
 }
 ```
 
-```{r}
- create_variant_upset(interaction_filtered_tbl, "GRCh38", "smvar")
-```
 
-```{r}
- create_variant_upset(interaction_filtered_tbl, "GRCh38", "smvar")
-```
-
-### GRCh38 Exclusion Patterns (Main Figure)
-
-Combined upset plots showing bases and variants excluded for GRCh38 benchmarks.
+### GRCh38 Bases Excluded (Main Figure)
 
 ```{r grch38-upset}
-#| fig-height: 10
-#| fig-width: 14
-#| fig-cap: "Exclusion patterns for GRCh38 benchmarks showing bases (blue) and variants (orange) affected by different exclusion combinations."
+#| fig-height: 8
+#| fig-width: 12
+#| fig-cap: "Bases excluded by each exclusion combination for GRCh38 small variant (top) and structural variant (bottom) benchmarks. Bars are ordered by total bases excluded."
 
-# Create plots for GRCh38
-p_bases_smvar <- create_base_upset(interaction_filtered_tbl, "GRCh38", "smvar")
-p_vars_smvar <- create_variant_upset(interaction_filtered_tbl, "GRCh38", "smvar")
-p_bases_stvar <- create_base_upset(interaction_filtered_tbl, "GRCh38", "stvar")
-p_vars_stvar <- create_variant_upset(interaction_filtered_tbl, "GRCh38", "stvar")
+p_bases_smvar <- create_base_upset(interaction_summary_tbl, "GRCh38", "smvar")
+p_bases_stvar <- create_base_upset(interaction_summary_tbl, "GRCh38", "stvar")
 
-# Combine using patchwork
-combined_plot <- (p_bases_smvar | p_vars_smvar) / (p_bases_stvar | p_vars_stvar) +
-  plot_annotation(
-    title = "GRCh38 Exclusion Patterns",
-    theme = theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
-  )
+(grch38_upset_plt <- p_bases_smvar / p_bases_stvar +
+  plot_annotation(tag_levels = "A"))
+```
 
-print(combined_plot)
+```{r}
+ggsave(
+  filename = here::here("manuscript", "figs", "grch38_exclusion_upset.png"),
+  plot = grch38_upset_plt,
+  width = 12,
+  height = 8,
+  dpi = 300
+)
 ```
 
 ### All References Exclusion Patterns (Supplemental)
 
-Comprehensive upset plots for all three reference genomes. Each reference genome is shown on a separate page with both bases and variants side-by-side.
-
 ```{r all-refs-upset}
-#| fig-height: 10
-#| fig-width: 14
+#| fig-height: 8
+#| fig-width: 12
+#| results: asis
 
-# Function to create combined plot for a single reference
-create_ref_combined_plot <- function(data, ref_name) {
-  p_bases_smvar <- create_base_upset(data, ref_name, "smvar")
-  p_vars_smvar <- create_variant_upset(data, ref_name, "smvar")
-  p_bases_stvar <- create_base_upset(data, ref_name, "stvar")
-  p_vars_stvar <- create_variant_upset(data, ref_name, "stvar")
-
-  # Check if we have any plots
-  has_plots <- !is.null(p_bases_smvar) || !is.null(p_vars_smvar) ||
-               !is.null(p_bases_stvar) || !is.null(p_vars_stvar)
-
-  if (!has_plots) {
-    return(NULL)
-  }
-
-  # Combine using patchwork
-  combined <- (p_bases_smvar | p_vars_smvar) / (p_bases_stvar | p_vars_stvar) +
-    plot_annotation(
-      title = glue::glue("{ref_name} Exclusion Patterns"),
-      theme = theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
-    )
-
-  return(combined)
-}
-
-# Generate plots for each reference
 refs <- c("GRCh37", "GRCh38", "CHM13v2.0")
 
 for (ref in refs) {
-  p <- create_ref_combined_plot(interaction_filtered_tbl, ref)
-  if (!is.null(p)) {
-    print(p)
-    cat("\n\n---\n\n")  # Page break for multi-page output
+  p_smvar <- create_base_upset(interaction_summary_tbl, ref, "smvar")
+  p_stvar <- create_base_upset(interaction_summary_tbl, ref, "stvar")
+
+  if (!is.null(p_smvar) || !is.null(p_stvar)) {
+    combined <- p_smvar / p_stvar +
+      plot_annotation(
+        title = glue::glue("{ref} Exclusion Patterns"),
+        tag_levels = "A",
+        theme = theme(
+          plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+        )
+      )
+    print(combined)
+    cat("\n\n---\n\n")
   }
 }
 ```
 
+
+## Variants in Excluded Regions
+
+### GRCh38 Variant Exclusion Patterns
+
+```{r grch38-variant-upset}
+#| fig-height: 8
+#| fig-width: 12
+#| fig-cap: "Variants excluded by each exclusion combination for GRCh38 small variant (top) and structural variant (bottom) benchmarks. Bars are ordered by variant count."
+
+p_vars_smvar <- create_variant_upset(interaction_summary_tbl, "GRCh38", "smvar")
+p_vars_stvar <- create_variant_upset(interaction_summary_tbl, "GRCh38", "stvar")
+
+p_vars_smvar / p_vars_stvar +
+  plot_annotation(tag_levels = "A")
+```
+
+### All References Variant Exclusion Patterns
+
+```{r all-refs-variant-upset}
+#| fig-height: 8
+#| fig-width: 12
+#| results: asis
+
+for (ref in refs) {
+  p_smvar <- create_variant_upset(interaction_summary_tbl, ref, "smvar")
+  p_stvar <- create_variant_upset(interaction_summary_tbl, ref, "stvar")
+
+  if (!is.null(p_smvar) || !is.null(p_stvar)) {
+    combined <- p_smvar / p_stvar +
+      plot_annotation(
+        title = glue::glue("{ref} Variant Exclusion Patterns"),
+        tag_levels = "A",
+        theme = theme(
+          plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+        )
+      )
+    print(combined)
+    cat("\n\n---\n\n")
+  }
+}
+```
+
+### Excluded Variant Counts by Exclusion
+
+```{r}
+# Single-exclusion variant counts for GRCh38
+interaction_summary_tbl %>%
+  dplyr::filter(n_exclusions == 1, ref == "GRCh38") %>%
+  dplyr::select(exclusion_combination, bench_type, variant_count, bases_bp) %>%
+  dplyr::mutate(
+    bench_type = bench_type_labels[bench_type],
+    variants_per_mb = round(variant_count / (bases_bp / 1e6), 1)
+  ) %>%
+  dplyr::arrange(desc(variant_count)) %>%
+  flextable::flextable() %>%
+  fmt_integer_flextable(columns = c("variant_count", "bases_bp")) %>%
+  fmt_number_flextable(columns = "variants_per_mb", decimals = 1) %>%
+  flextable::align(
+    j = c("variant_count", "bases_bp", "variants_per_mb"),
+    align = "right", part = "all"
+  ) %>%
+  cols_label_flextable(
+    exclusion_combination = "Exclusion",
+    bench_type = "Type",
+    variant_count = "Variants",
+    bases_bp = "Bases",
+    variants_per_mb = "Variants/Mb"
+  ) %>%
+  theme_flextable_manuscript()
+```
+
+### Excluded Variant Counts — All References
+
+```{r}
+interaction_summary_tbl %>%
+  dplyr::filter(n_exclusions == 1) %>%
+  dplyr::select(ref, exclusion_combination, bench_type, variant_count) %>%
+  dplyr::mutate(bench_type = bench_type_labels[bench_type]) %>%
+  tidyr::pivot_wider(
+    names_from = ref,
+    values_from = variant_count,
+    values_fill = 0L
+  ) %>%
+  dplyr::arrange(desc(GRCh38)) %>%
+  flextable::flextable() %>%
+  fmt_integer_flextable(columns = c("GRCh37", "GRCh38", "CHM13v2.0")) %>%
+  flextable::align(
+    j = c("GRCh37", "GRCh38", "CHM13v2.0"),
+    align = "right", part = "all"
+  ) %>%
+  cols_label_flextable(
+    exclusion_combination = "Exclusion",
+    bench_type = "Type"
+  ) %>%
+  theme_flextable_manuscript()
+```
+
+
 ### Summary Statistics
 
 ```{r}
-# Compute summary statistics about exclusion interactions
-interaction_summary <- interaction_filtered_tbl %>%
+interaction_summary_tbl %>%
   dplyr::group_by(ref, bench_type) %>%
   dplyr::summarise(
     total_combinations = dplyr::n(),
     single_exclusions = sum(n_exclusions == 1),
     multi_exclusions = sum(n_exclusions >= 2),
     max_overlap = max(n_exclusions),
-    total_bases = scales::comma(sum(bases_bp)),
-    total_variants = scales::comma(sum(variant_count)),
+    total_bases = sum(bases_bp),
+    total_variants = sum(variant_count),
     .groups = "drop"
-  )
-
-interaction_summary %>%
-  flextable() %>%
-  flextable::set_caption(caption = "Exclusion Interaction Summary") %>%
+  ) %>%
+  dplyr::mutate(
+    bench_type = bench_type_labels[bench_type]
+  ) %>%
+  flextable::flextable() %>%
+  fmt_integer_flextable(
+    columns = c(
+      "total_combinations", "single_exclusions", "multi_exclusions",
+      "total_bases", "total_variants"
+    )
+  ) %>%
+  flextable::align(
+    j = c(
+      "total_combinations", "single_exclusions", "multi_exclusions",
+      "max_overlap", "total_bases", "total_variants"
+    ),
+    align = "right", part = "all"
+  ) %>%
   cols_label_flextable(
     ref = "Reference",
     bench_type = "Type",
