@@ -1,5 +1,11 @@
+
 project:
   type: website
+  render:
+    - "*.qmd"
+    - "analysis/"
+    - "docs/*md"
+    - "!scratch/"
   output-dir: _site
 
 website:

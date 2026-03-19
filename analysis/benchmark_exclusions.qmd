@@ -14,6 +14,12 @@ execute:
   warning: false
 ---
 
+## Exclusion Processing Diagram
+
+![Exclusion region processing schematic](../manuscript/figs/exclusion_diagram.png)
+
+**Figure exclusion_diagram: Schematic of exclusion region processing used to define v5.0q benchmark regions from dipcall assembly alignments.** (A) BED operations applied to exclusion regions before subtraction. *Slop* adds a ±15 kb buffer to each interval (used for tandem repeats and gaps). *Slopmerge* adds a ±15 kb buffer and then merges intervals within 10 kb (used for segmental duplications and satellites). *Assembly-intersect* filtering retains only exclusion intervals that overlap assembly alignment breaks, preventing over-exclusion in well-assembled regions. (B) Three categories of exclusions are subtracted from dipcall assembly regions (dip.bed) to produce the final benchmark regions. Assembly-agnostic exclusions (orange) are applied regardless of assembly quality and include reference gaps, V(D)J recombination regions, manually curated errors, and PAV inversions. Assembly-intersect exclusions (purple) are reference-based regions (segmental duplications, tandem repeats >10 kb, and satellites) that are only excluded where the assembly has alignment breaks. Reference-agnostic exclusions (green) are derived from the assembly alignments and variant calls independent of the reference genome, including 15 kb flanks around alignment breaks, structural variants intersecting simple repeats, consecutive insertion-deletion pairs, and self-comparison discrepancies. The union of all processed exclusions is subtracted from dip.bed to produce the final benchmark BED file.
+
 ```{r setup}
 #| include: false
 source(here::here("analysis/_notebook_setup.R"))
