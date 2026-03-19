@@ -53,9 +53,17 @@ test_that("load_genomic_context_metrics returns correct structure", {
 
   # Check required columns exist
   required_cols <- c(
-    "bench_version", "ref", "bench_type", "context_name",
-    "context_bp", "intersect_bp", "pct_of_context", "pct_of_bench",
-    "total_variants", "snv_count", "indel_count",
+    "bench_version",
+    "ref",
+    "bench_type",
+    "context_name",
+    "context_bp",
+    "intersect_bp",
+    "pct_of_context",
+    "pct_of_bench",
+    "total_variants",
+    "snv_count",
+    "indel_count",
     "variant_density_per_mb"
   )
   expect_true(all(required_cols %in% names(metrics)))
@@ -101,8 +109,14 @@ test_that("load_exclusion_metrics returns correct structure or empty", {
     expect_s3_class(exclusions, "tbl_df")
 
     required_cols <- c(
-      "bench_version", "ref", "bench_type", "exclusions",
-      "exclusion_bp", "intersect_bp", "pct_of_exclusion", "pct_of_dip"
+      "bench_version",
+      "ref",
+      "bench_type",
+      "exclusions",
+      "exclusion_bp",
+      "intersect_bp",
+      "pct_of_exclusion",
+      "pct_of_dip"
     )
     expect_true(all(required_cols %in% names(exclusions)))
   } else {
@@ -182,8 +196,14 @@ test_that("load_genomic_context_coverage returns correct structure", {
   expect_s3_class(coverage, "tbl_df")
 
   required_cols <- c(
-    "context_name", "chrom", "start", "end",
-    "n_overlap", "bases_cov", "ivl_len", "frac_cov"
+    "context_name",
+    "chrom",
+    "start",
+    "end",
+    "n_overlap",
+    "bases_cov",
+    "ivl_len",
+    "frac_cov"
   )
   expect_true(all(required_cols %in% names(coverage)))
 })

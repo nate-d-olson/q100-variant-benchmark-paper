@@ -1,5 +1,5 @@
 ---
-title: "Benchmark Set Coverage and Variants Counts for Difficult Regions"
+title: "Variant Counts in Difficult Genomic Contexts"
 date: '`r Sys.Date()`'
 author: "ND Olson"
 format:
@@ -8,7 +8,6 @@ format:
     page-layout: full
     toc: true
     self-contained: true
-  docx: default
 editor: source
 code-fold: true
 execute:
@@ -21,155 +20,21 @@ source(here::here("analysis/_notebook_setup.R"))
 analysis_setup(load_plot_themes = TRUE)
 ```
 
+## Overview
+
+This notebook focuses on variant counts within difficult genomic contexts
+(HP, MAP, SD, TR) across benchmark versions. It produces Figure 3
+(variant counts by genomic context) and fold change analysis.
+
+For coverage-level analysis of genomic contexts (% context covered, % bench
+in context), see `genomic_context_analysis.qmd`.
+
 ## Data Loading
 
 ```{r}
-# Load base-level coverage for difficult regions using standardized loading function
-difficult_cov_benchmarks <- c(
-  "v5.0q_GRCh38_smvar",
-  "v5.0q_GRCh37_stvar",
-  "v4.2.1_GRCh38_smvar",
-  "v0.6_GRCh37_stvar"
-) %>%
-  set_names()
-
 analysis_bench_order <- rev(BENCH_VERSION_LEVELS)
 variants_df <- load_all_variant_tables() %>%
   filter(region_ids == "BMKREGIONS")
-
-diff_cov_df <- difficult_cov_benchmarks %>%
-  map_dfr(
-    ~ load_genomic_context_coverage(.x),
-    .id = "benchmark"
-  ) %>%
-  # Standardize column names for compatibility with existing analysis code
-  rename(
-    CHROM = chrom,
-    START = start,
-    END = end,
-    num_overlap = n_overlap,
-    bases_covered = bases_cov,
-    interval_bp = ivl_len
-  ) %>%
-  # Create bench_context column for grouping (benchmark/genomic context)
-  mutate(
-    bench_context = glue::glue("{benchmark}/{context_name}")
-  ) %>%
-  select(-benchmark)
-```
-
-```{r}
-#| echo: false
-glimpse(diff_cov_df)
-```
-
-```{r}
-# Aggregate coverage metrics by benchmark and genomic context
-diff_cov_total_df <- diff_cov_df %>%
-  group_by(bench_context, context_name) %>%
-  summarise(
-    bases_covered = sum(bases_covered),
-    interval_bp = sum(interval_bp),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    frac_cov = 1 - (bases_covered / interval_bp),
-    bench_context = str_replace(bench_context, "/", "_"),
-    context = context_name
-  ) %>%
-  separate(
-    bench_context,
-    into = c("bench_version", "ref", "bench_type", "context"),
-    sep = "_"
-  ) %>%
-  select(-context_name)
-```
-
-```{r}
-diff_cov_total_df %>%
-  filter(
-    ref != "CHM13v2.0",
-    !(bench_version == "v5.0q" & bench_type == "smvar" & ref == "GRCh38"),
-    !(bench_version == "v5.0q" & bench_type == "stvar" & ref == "GRCh37")
-  ) %>%
-  ggplot() +
-  geom_bar(
-    aes(
-      x = context,
-      y = bases_covered,
-      fill = glue::glue("{bench_version} {ref}")
-    ),
-    position = "dodge",
-    stat = "identity"
-  ) +
-  facet_wrap(~bench_type, ncol = 1) +
-  theme_manuscript() +
-  labs(x = "Genomic Context", y = "Bases Included", fill = "Benchmark") +
-  theme(legend.position = "bottom")
-```
-
-
-```{r}
-diff_top_intervals <- diff_cov_df %>%
-  filter(
-    str_detect(bench_context, "GRCh38_smvar") |
-      str_detect(bench_context, "GRCh37_stvar")
-  ) %>%
-  group_by(bench_context) %>%
-  slice_max(order_by = interval_bp, n = 10000) %>%
-  mutate(bench_context = str_replace(bench_context, "/", "_")) %>%
-  separate(
-    bench_context,
-    into = c("bench_version", "ref", "bench_type", "context"),
-    sep = "_"
-  )
-```
-
-
-```{r}
-diff_top_intervals %>%
-  filter(interval_bp > 5000) %>%
-  arrange(frac_cov) %>%
-  mutate(n_interval = cumsum(bases_covered)) %>%
-  ggplot() +
-  geom_path(aes(x = n_interval, y = frac_cov, color = bench_version)) +
-  scale_benchmark_version(aesthetic = "color") +
-  facet_grid(bench_type ~ context)
-```
-
-
-```{r}
-diff_cov_df %>%
-  filter(
-    str_detect(bench_context, "GRCh38_smvar") |
-      str_detect(bench_context, "GRCh37_stvar"),
-    context_name %in% c("HP", "MAP", "SD", "TR")
-  ) %>%
-    separate(
-    bench_context,
-    into = c("bench_version", "ref", "bench_type", "context"),
-    sep = "_"
-  ) %>%
-  mutate(
-    fully_covered = if_else(num_overlap == 1 & frac_cov == 1.0, TRUE, FALSE)
-  ) %>%
-  group_by(bench_version, ref, bench_type, context, fully_covered) %>%
-  summarise(diff_bp = sum(interval_bp)) %>%
-  ggplot() +
-  geom_bar(
-    aes(x = bench_version, fill = fully_covered, y = diff_bp),
-    stat = "identity",
-    position = position_stack(),
-  ) +
-  # scale_benchmark_version(aesthetic = "fill") +
-  facet_grid(context ~ bench_type, scales = "free_y") +
-  scale_y_continuous(label = scales::label_comma()) +
-  scale_benchmark_version(aesthetic = "fill", drop = FALSE) +
-  labs(x = "Variant Type", y = "Variant Count") +
-  theme_manuscript() +
-  theme(
-    legend.position = "bottom"
-  )
 ```
 
 ## Variants in Difficult Genomic Contexts
@@ -340,57 +205,5 @@ genomic_context_var_fld_chg %>%
 ```
 
 
-### Inclusion of Difficult Regions
-
-```{r difficult_region_coverage}
-# Load coverage data for all benchmarks
-benchmarks <- parse_pipeline_config()$benchmarks
-
-diff_coverage_df <- benchmarks %>%
-  purrr::map_dfr(function(bench_id) {
-    # Skip PP benchmarks as they don't have coverage data yet
-    if (str_detect(bench_id, "^PP")) {
-      return(NULL)
-    }
-
-    tryCatch(
-      {
-        load_genomic_context_coverage(bench_id) %>%
-          # Parse benchmark ID to get metadata columns
-          bind_cols(parse_benchmark_id(bench_id))
-      },
-      error = function(e) {
-        warning(glue::glue("Could not load coverage for {bench_id}: {e$message}"))
-        return(NULL)
-      }
-    )
-  })
-
-# Calculate total coverage per context
-diff_cov_total <- diff_coverage_df %>%
-  group_by(bench_version, ref, bench_type, context_name) %>%
-  summarise(total_cov = sum(bases_cov), .groups = "drop")
-
-# Visualize coverage
-diff_cov_total %>%
-  mutate(
-    bench_type = factor(bench_type, levels = BENCH_TYPE_LEVELS, labels = c("Small Variants", "Structural Variants"))
-  ) %>%
-  ggplot() +
-  geom_bar(
-    aes(x = context_name, y = total_cov, fill = bench_version),
-    stat = "identity",
-    position = "dodge"
-  ) +
-  scale_y_continuous(labels = scales::comma) +
-  labs(
-    x = "Genomic Context",
-    y = "Total Bases Covered (bp)",
-    fill = "Benchmark Version"
-  ) +
-  facet_wrap(~bench_type, ncol = 1, scales = "free_y") +
-  theme_manuscript() +
-  theme(legend.position = "bottom")
-```
 
 

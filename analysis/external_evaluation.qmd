@@ -27,14 +27,43 @@ The external evaluation data with JZ curations is loaded from local TSV files
 (previously sourced from Google Sheets).
 
 ```{r message=FALSE}
+## Loading collaborator curations
+eval_csvs <- list.files(
+  path = here("data/external-evaluations"),
+  pattern = "Miqa.csv",
+  full.names = TRUE,
+  recursive = TRUE,
+  include.dirs = TRUE
+) %>%
+  {
+    set_names(., str_extract(., "(?<=evaluations/).*(?= On)"))
+  }
+
+## Subsetting small and structural variant tables based on number of rows
+## - small variants expect 71, structural variants 41
+## a few files have less as less than 5 variants per strata to subset
+nlines <- eval_csvs %>% map_int(~ length(read_lines(.x)))
+
+cols_to_keep <- c("callset","correct.in.callset", "correct.in.benchmark", "chrom", "chromStart", "var_type","strata")
+smvar_evals <- eval_csvs[nlines > 50] %>%
+  map_dfr(read_csv, name_repair = "universal", show_col_types = FALSE, .id = "callset") %>%
+  select(all_of(cols_to_keep))
+
+stvar_evals <- eval_csvs[nlines < 50] %>%
+  map_dfr(read_csv,
+    name_repair = "universal",
+    show_col_types = FALSE,
+    .id = "callset")
+
+
 ## Load pre-combined evaluation data with JZ curations from local TSV files
-smvar_evals <- read_tsv(
+smvar_evals_jz <- read_tsv(
   here("data/external-evaluations/Q100-ext-evals-2025-04-11-smvars.tsv"),
   show_col_types = FALSE,
   name_repair = "universal"
 )
 
-stvar_evals <- read_tsv(
+stvar_evals_jz <- read_tsv(
   here("data/external-evaluations/Q100-ext-evals-2025-04-11-stvars.tsv"),
   show_col_types = FALSE,
   name_repair = "universal"
@@ -64,7 +93,7 @@ smvar_callsets <- c(
 
 ## Cleaned up tables with updated curations
 ## Note: TSV files already contain JZ curations, no join needed
-smvar_curations <- smvar_evals %>%
+smvar_curations <- full_join(smvar_evals, smvar_evals_jz) %>%
   rename(unique_to = label) %>%
   select(
     callset,
@@ -73,9 +102,9 @@ smvar_curations <- smvar_evals %>%
     var_type, strata, unique_to
   ) %>%
   mutate(
-    curation = if_else(is.na(JZcorrect.in.benchmark),
-      correct.in.benchmark,
-      JZcorrect.in.benchmark
+    curation = if_else(!is.na(JZcorrect.in.benchmark),
+      JZcorrect.in.benchmark,
+      correct.in.benchmark
     ),
     curation = factor(curation,
       levels = c("no", "unsure", "yes")
@@ -83,7 +112,7 @@ smvar_curations <- smvar_evals %>%
   ) %>%
   mutate(callset = smvar_callsets[callset])
 
-stvar_curations <- stvar_evals %>%
+stvar_curations <- full_join(stvar_evals, stvar_evals_jz) %>%
   rename(var_type = SVTYPE) %>%
   mutate(
     unique_to = if_else(unique_to == "benchmark", "bench", "query"),
@@ -96,9 +125,9 @@ stvar_curations <- stvar_evals %>%
     var_type, strata, unique_to
   ) %>%
   mutate(
-    curation = if_else(is.na(JZcorrect.in.benchmark),
-      correct.in.benchmark,
-      JZcorrect.in.benchmark
+    curation = if_else(!is.na(JZcorrect.in.benchmark),
+      JZcorrect.in.benchmark,
+      correct.in.benchmark
     ),
     curation = factor(curation,
       levels = c("no", "unsure", "yes")
@@ -106,6 +135,7 @@ stvar_curations <- stvar_evals %>%
   ) %>%
   mutate(callset = stvar_callsets[callset])
 ```
+
 
 
 ## Small Variants External Evaluations
@@ -358,7 +388,7 @@ ggplot(plot_data, aes(y = Rich_Label, x = Count, fill = Status)) +
   )
 ```
 
-\`
+
 
 ```{r}
 library(ggplot2)
@@ -454,23 +484,6 @@ combined_plot <- p_sankey + p_bars +
 combined_plot
 ```
 
-```{r}
-library(ggplot2)
-
-# Using the 'strat_source_first' data frame concept from previous response
-# ggplot(strat_long_data, aes(x = Context, y = Group, fill = Source)) +
-#   geom_tile(color = "white", size = 1) + # The Tiles
-#   geom_text(aes(label = paste0(Strata, "\n(", Count, ")")), color = "white", fontface = "bold") +
-#   scale_fill_manual(values = c("Query" = "#E69F00", "Benchmark" = "#56B4E9")) +
-#   scale_x_discrete(limits = c("Homopolymer (>6bp)", "In Tandem Repeat", "In Difficult Region", "XY nonPAR", "Autosomes")) +
-#   labs(title = "Stratification Periodic Table", x = NULL, y = NULL) +
-#   theme_minimal() +
-#   theme(
-#     panel.grid = element_blank(),
-#     axis.text.x = element_text(face = "bold", size = 10),
-#     axis.text.y = element_text(face = "bold", size = 11)
-#   )
-```
 
 ### Structural Variants External Evaluations
 
@@ -543,17 +556,6 @@ ggsave(
 )
 ```
 
-```{r}
-stvars_no_or_unsure <- stvar_evals %>%
-  filter(correct.in.benchmark != "yes")
-
-# DT::datatable(stvars_no_or_unsure,
-#   rownames = FALSE,
-#   caption = "Structural Variant Benchmark Not Correct or Unsure Curations",
-#   extensions = "Buttons",
-#   options = list(dom = "Bfrtip", buttons = c("csv", "excel"))
-# )
-```
 
 ## Combined plot by callset
 
@@ -574,3 +576,11 @@ ggsave(
   dpi = 300
 )
 ```
+
+```{r}
+stvar_curations %>% filter(correct.in.benchmark != "yes") %>% count(callset, JZcorrect.in.benchmark)
+```
+```{r}
+stvar_evals %>% filter(correct.in.benchmark != "yes", correct.in.callset == "yes")
+```
+

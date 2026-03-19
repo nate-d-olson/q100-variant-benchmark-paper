@@ -45,57 +45,127 @@ variants_df <- variants_df %>%
 
 ## Benchmark Set Summary Table
 
+### Benchmark Regions
+
 ```{r}
+glimpse(bench_regions_df)
+```
+
+```{r}
+grch37_dip_bp <- 2831481872
+grch38_dip_bp <- 2841316100
+chm13_dip_bp <- 2938461012
+
+dip_df <- tibble(
+  ref = c("GRCh37", "GRCh38", "CHM13v2.0"),
+  dip_bp = c(grch37_dip_bp, grch38_dip_bp, chm13_dip_bp)
+)
+
 bench_region_stats_df <- bench_regions_df %>%
   filter(
-    bench_version %in% c("v5.0q"),
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
     chrom %in% CHROM_LEVELS
   ) %>%
   group_by(bench_type, ref, bench_version) %>%
   summarise(total_bp = sum(interval_size), .groups = "drop") %>%
   left_join(total_ref_asm_bp) %>%
+  left_join(dip_df) %>% 
   mutate(
     pct_ref_cvg = round(100 * (total_bp / total_asm_bp), 0),
-    pct_q100_cvg = round(100 * (total_bp / hg002q100_size), 0)
+    pct_dip_cvg = if_else(bench_version == "v5.0q", round(100 * (total_bp / dip_bp), 0), NA_real_),
+    pct_q100_cvg = round(100 * (total_bp / hg002q100_size), 0),
+    pct_q100_dip_cvg = if_else(bench_version == "v5.0q", round(100 * (dip_bp / hg002q100_size), 0), NA_real_),
+    pct_ref_dip_cvg = if_else(bench_version == "v5.0q", round(100 * (dip_bp/ total_asm_bp), 0), NA_real_)
   ) %>%
-  select(-total_asm_bp)
-
-bench_var_cnt_df <- variants_df %>%
+  select(-total_asm_bp, -dip_bp)
+```
+```{r}
+bench_region_stats_df %>%
   filter(bench_version == "v5.0q") %>%
+  select(ref, bench_type, pct_dip_cvg, pct_ref_dip_cvg, pct_ref_cvg, pct_q100_dip_cvg, pct_q100_cvg, total_bp) %>% 
+  mutate(ref = std_references(ref)) %>% arrange(ref) 
+```
+```{r}
+bench_region_stats_df %>%
+  select(ref, bench_type, bench_version, pct_ref_cvg, total_bp) %>% 
+  mutate(ref = std_references(ref)) %>% arrange(ref) 
+```
+
+
+### Bechmark Variants
+
+```{r}
+bench_var_cnt_df <- variants_df %>%
+  # filter(bench_version == "v5.0q") %>%
   group_by(bench_type, ref) %>%
   count(bench_type, ref, bench_version, var_type) %>%
-  ungroup() %>%
-  pivot_wider(
-    names_from = var_type,
-    values_from = n
-  )
+  ungroup() #%>%
+  # pivot_wider(
+  #   names_from = var_type,
+  #   values_from = n
+  # )
 ```
 
 ```{r}
 bench_var_cnt_df %>% 
-  rowwise() %>% 
-  mutate(Total = sum(SNV, INDEL, INS, DEL, na.rm = TRUE)) %>% 
-full_join(bench_region_stats_df) %>%
-  select(-bench_version) %>%
-  ungroup() %>%
-  mutate(
-    ref = std_references(ref),
-    bench_type = get_bench_type_labels()[as.character(bench_type)],
-    across(c(SNV, INDEL, INS, DEL), ~ replace_na(., 0L))
-  ) %>%
-  arrange(bench_type, ref) %>%
-  select(bench_type, ref, SNV, INDEL, INS, DEL, total_bp, pct_ref_cvg, pct_q100_cvg)  %>%
-  as_grouped_flextable(groupname_col = "bench_type") %>%
-  fmt_integer_flextable(columns = c("SNV", "INDEL", "INS", "DEL", "total_bp")) %>%
-  flextable::align(j = "ref", align = "right", part = "body") %>%
-  cols_label_flextable(
-    ref = "Reference",
-    total_bp = "Benchmark Bases",
-    pct_ref_cvg = "% Ref. Cov.",
-    pct_q100_cvg = "% Asm. Cov."
-  ) %>%
-  theme_flextable_manuscript()
+  group_by(bench_type, ref, bench_version) %>% 
+  summarise(n = sum(n), .groups = "drop") %>% 
+  add_column(var_type = "Total") %>% 
+  bind_rows(bench_var_cnt_df)
 ```
+
+
+```{r}
+## Join variant counts with region stats
+bench_summary_df <- bench_var_cnt_df %>%
+  pivot_wider(names_from = var_type, values_from = n, values_fill = 0L) %>%
+  mutate(Total = rowSums(across(any_of(c("SNV", "INDEL", "INS", "DEL"))))) %>%
+  full_join(bench_region_stats_df, by = c("bench_type", "ref", "bench_version")) %>%
+  mutate(
+    ref = std_references(ref)
+  ) %>%
+  arrange(bench_type, ref)
+
+## Small variants table
+smvar_tbl <- bench_summary_df %>%
+  filter(bench_type == "smvar") %>%
+  select(bench_type, ref, bench_version, SNV, INDEL, Total, total_bp, pct_dip_cvg, pct_ref_dip_cvg, pct_ref_cvg, pct_q100_dip_cvg, pct_q100_cvg)
+
+## Structural variants table
+stvar_tbl <- bench_summary_df %>%
+  filter(bench_type == "stvar") %>%
+  select(bench_type, ref, bench_version, DEL, INS, Total, total_bp, pct_dip_cvg, pct_ref_dip_cvg, pct_ref_cvg, pct_q100_dip_cvg, pct_q100_cvg)
+
+## Shared formatting function
+format_bench_table <- function(df) {
+  df %>% select(-bench_type) %>% as_flextable(show_coltype = FALSE) %>%
+    # as_grouped_flextable(groupname_col = "bench_type") %>%
+    fmt_integer_flextable(
+      columns = intersect(c("SNV", "INDEL", "DEL", "INS", "Total", "total_bp"), names(df))
+    ) %>%
+    fmt_percent_flextable(
+      columns = starts_with("pct_"),
+      decimals = 0
+    ) %>%
+    cols_label_flextable(
+      ref = "Reference",
+      bench_version = "Version",
+      Total = "Total",
+      total_bp = "Benchmark Bases",
+      pct_dip_cvg = "% Dip. Cov.",
+      pct_ref_cvg = "% Ref Cov.",
+      pct_ref_dip_cvg = "% Ref. Dip. Cov.",
+      pct_q100_cvg = "% Asm Cov.",
+      pct_q100_dip_cvg = "% Asm. Dip. Cov."
+    ) %>%
+    flextable::align(j = "ref", align = "right", part = "body") %>%
+    theme_flextable_manuscript()
+}
+```
+```{r}
+format_bench_table(smvar_tbl)
+```
+
 
 ## Variant Size Distributions
 
@@ -119,19 +189,19 @@ stvar_len_df <- variants_df %>%
   aes(x = var_size)
 ) +
   geom_histogram(
-    data = filter(stvar_len_df, bench_version != "v0.6"),
+    data = filter(stvar_len_df, bench_version != "v0.6", ref == "GRCh38"),
     fill = "grey80",
     color = "grey20",
-    bins = 100,
+    bins = 50,
     drop = "all"
   ) +
-  geom_histogram(
-    data = filter(stvar_len_df, bench_version == "v0.6"),
-    fill = "grey30",
-    color = "grey20",
-    bins = 100,
-    drop = "all"
-  ) +
+  # geom_histogram(
+  #   data = filter(stvar_len_df, bench_version == "v0.6"),
+  #   fill = "grey30",
+  #   color = "grey20",
+  #   bins = 50,
+  #   drop = "all"
+  # ) +
   scale_x_continuous(
     breaks = c(
       -10000,
@@ -156,12 +226,13 @@ stvar_len_df <- variants_df %>%
     x = "SV Length (bp)",
     y = "Count"
   ) +
-  facet_wrap(~ref, ncol = 1) +
+  # facet_wrap(~ref, ncol = 1) +
   theme_manuscript() +
   theme(
     axis.text.x = element_text(angle = -45, hjust = 0)
   ))
 ```
+
 
 ```{r indel_length_distribution}
 #| message: true
@@ -175,32 +246,34 @@ smvar_len_df <- variants_df %>%
     var_type == "INDEL"
   ) %>%
   mutate(ref = std_references(ref)) %>%
-  select(bench_version, bench_type, ref, chrom, pos, var_size)
+  select(bench_version, bench_type, ref, chrom, pos, var_size) %>% 
+  mutate(var_size = if_else(var_size > 0, var_size + 0.5, var_size - 0.5))
 
 (smvar_len_dist_plt <- ggplot(
   smvar_len_df,
   aes(x = var_size)
 ) +
   geom_histogram(
-    data = filter(smvar_len_df, bench_version != "v4.2.1"),
+    data = filter(smvar_len_df, bench_version != "v4.2.1", ref == "GRCh38"),
     fill = "grey80",
     color = "grey20",
     binwidth = 1,
+    # closed = "right",
     drop = "all"
   ) +
-  geom_histogram(
-    data = filter(smvar_len_df, bench_version == "v4.2.1"),
-    fill = "grey30",
-    color = "grey20",
-    binwidth = 1,
-    drop = "all"
-  ) +
+  # geom_histogram(
+  #   data = filter(smvar_len_df, bench_version == "v4.2.1"),
+  #   fill = "grey30",
+  #   color = "grey20",
+  #   binwidth = 2,
+  #   drop = "all"
+  # ) +
   scale_y_continuous(labels = scales::comma) +
   labs(
     x = "INDEL Length (bp)",
     y = "Count"
   ) +
-  facet_wrap(~ref, ncol = 1) +
+  # facet_wrap(~ref, ncol = 1) +
   theme_manuscript())
 ```
 
