@@ -37,105 +37,86 @@ variants_df <- load_all_variant_tables() %>%
   filter(region_ids == "BMKREGIONS")
 ```
 
-## Variants in Difficult Genomic Contexts
+## Variant Fold Change by Genomic Context
 
-This section visualizes variant counts by genomic context region using loaded variant tables.
+Compute fold change in total variant counts (v5.0q vs legacy) per context.
+Small variants: GRCh38 v5.0q / v4.2.1. Structural variants: GRCh37 v5.0q / v0.6.
 
-```{r variant_counts_by_context}
-# Create variant count breakdown by genomic context from aggregated metrics
-genomic_context_var_df <- variants_df %>%
+```{r fold_change_data}
+## Total variant counts per context (no size bin breakdown)
+context_totals <- variants_df %>%
   filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
-  count(bench_version, ref, bench_type, var_type, context_ids, name = "count")
-```
-
-```{r}
-genomic_context_var_df
-```
-
-```{r variant_counts_by_context_plot}
-(genomic_context_smvar_plt <- genomic_context_var_df %>%
-  filter(bench_type == "smvar", ref == "GRCh38") %>%
-  mutate(
-    bench_version = factor(
-      bench_version,
-      levels = analysis_bench_order
-    )
+  count(bench_version, ref, bench_type, context_ids, name = "count") %>%
+  pivot_wider(
+    names_from = bench_version,
+    values_from = count,
+    id_cols = c(ref, bench_type, context_ids)
   ) %>%
-  ggplot() +
-  geom_bar(
-    aes(
-      x = var_type,
-      y = count,
-      fill = bench_version
-    ),
-    color = "grey20",
-    position = "dodge",
-    stat = "identity",
-    show.legend = TRUE
+  filter(
+    (bench_type == "smvar" & ref == "GRCh38" & !is.na(v4.2.1)) |
+      (bench_type == "stvar" & ref == "GRCh37" & !is.na(v0.6))
+  ) %>%
+  mutate(
+    legacy_count = coalesce(v4.2.1, v0.6),
+    fold_chg = v5.0q / legacy_count,
+    context_label = get_context_labels()[as.character(context_ids)],
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  )
+```
+
+### Figure 3: Fold Change in Variant Counts by Genomic Context
+
+```{r fold_change_main_plot, fig.width = 7, fig.height = 4}
+(fold_change_plt <- context_totals %>%
+  ggplot(aes(
+    x = context_label,
+    y = fold_chg,
+    fill = context_ids
+  )) +
+  geom_col(color = "grey30", linewidth = 0.3) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
+  geom_text(
+    aes(label = sprintf("%.1fx", fold_chg)),
+    vjust = -0.5,
+    size = 3
   ) +
-  facet_wrap(. ~ context_ids, nrow = 1) +
-  scale_y_continuous(label = scales::label_comma()) +
-  scale_benchmark_version(aesthetic = "fill") +
-  labs(x = "Variant Type", y = "Variant Count") +
+  facet_wrap(~bench_type_label, scales = "free_x") +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.15)),
+    breaks = scales::pretty_breaks(n = 5)
+  ) +
+  scale_genomic_context(aesthetic = "fill", guide = "none") +
+  labs(
+    x = "Genomic Context",
+    y = "Fold Change (v5.0q / legacy)"
+  ) +
   theme_manuscript() +
   theme(
-    legend.position = "bottom"
-  ))
-```
-
-```{r structural_variant_counts_by_context_plot}
-(genomic_context_stvar_plt <- genomic_context_var_df %>%
-  filter(bench_type == "stvar", ref == "GRCh37", .preserve = TRUE) %>%
-  mutate(
-    bench_version = factor(
-      bench_version,
-      levels = analysis_bench_order
-    )
-  ) %>%
-  ggplot() +
-  geom_bar(
-    aes(x = var_type, y = count, fill = bench_version),
-    color = "grey20",
-    position = "dodge",
-    stat = "identity",
-    show.legend = TRUE
-  ) +
-  facet_wrap(. ~ context_ids, nrow = 1) +
-  scale_y_continuous(label = scales::label_comma()) +
-  scale_benchmark_version(aesthetic = "fill") +
-  labs(x = "Variant Type", y = "Variant Count") +
-  theme_manuscript())
-```
-
-```{r  combined_variant_counts_by_context_plot}
-(combined_context_plt <- genomic_context_smvar_plt +
-  genomic_context_stvar_plt +
-  plot_layout(guides = "collect", nrow = 2, ncol = 1) +
-  plot_annotation(tag_levels = "A") &
-  theme(
-    legend.position = "bottom"
+    axis.text.x = element_text(angle = -30, hjust = 0)
   ))
 
 ggsave(
   filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
-  plot = combined_context_plt,
-  width = 8,
-  height = 6,
+  plot = fold_change_plt,
+  width = 7,
+  height = 4,
   dpi = 300
 )
 ```
 
+### Supplemental: Fold Change by Variant Size Bin
 
-```{r variant_counts_by_context_fold_change}
+```{r fold_change_by_size_data}
 genomic_context_var_fld_chg <- variants_df %>%
+  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
   mutate(
-    var_size_bin = case_when(
+    var_size_bin = factor(case_when(
       abs(var_size) < 15 ~ "<15bp",
       abs(var_size) < 50 ~ "15-49bp",
-      abs(var_size) < 1001 ~ "50 - 1,000bp",
-      abs(var_size) < 10001 ~ "1,001 - 10,000bp",
+      abs(var_size) < 1001 ~ "50-1,000bp",
+      abs(var_size) < 10001 ~ "1,001-10,000bp",
       .default = ">10kb"
-    )
+    ), levels = c("<15bp", "15-49bp", "50-1,000bp", "1,001-10,000bp", ">10kb"))
   ) %>%
   count(bench_version, ref, bench_type, var_type, var_size_bin, context_ids) %>%
   pivot_wider(
@@ -144,29 +125,17 @@ genomic_context_var_fld_chg <- variants_df %>%
     id_cols = c(ref, bench_type, var_type, var_size_bin, context_ids)
   ) %>%
   filter(
-    !is.na(v0.6) | !is.na(v4.2.1),
-    !(ref == "GRCh37" & bench_type == "smvar")
+    (bench_type == "smvar" & ref == "GRCh38" & !is.na(v4.2.1)) |
+      (bench_type == "stvar" & ref == "GRCh37" & !is.na(v0.6))
   ) %>%
   mutate(
-    fold_chg = case_when(
-      !is.na(v0.6) ~ v5.0q / v0.6,
-      !is.na(v4.2.1) ~ v5.0q / v4.2.1,
-      .default = NA
-    )
+    fold_chg = coalesce(v5.0q / v4.2.1, v5.0q / v0.6),
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
   )
 ```
 
-
-```{r variant_counts_by_context_fold_change_plot_combined}
-genomic_context_var_fld_chg %>%
-  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
-  mutate(
-    bench_type = factor(
-      bench_type,
-      levels = BENCH_TYPE_LEVELS,
-      labels = c("Small Variants", "Structural Variants")
-    )
-  ) %>%
+```{r fold_change_by_size_plot, fig.width = 8, fig.height = 6}
+(fold_change_size_plt <- genomic_context_var_fld_chg %>%
   ggplot() +
   geom_point(
     aes(
@@ -175,35 +144,38 @@ genomic_context_var_fld_chg %>%
       fill = var_size_bin,
       shape = var_type
     ),
-    size = 4,
+    size = 3,
     color = "black",
-    position = "jitterdodge"
+    position = position_jitterdodge(jitter.width = 0.15)
   ) +
-  facet_wrap(~bench_type, scales = "free", ncol = 1) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
+  facet_wrap(~bench_type_label, scales = "free", ncol = 1) +
   scale_shape_manual(
     values = c(21, 22, 23, 24),
     guide = guide_legend(override.aes = list(fill = "grey80"))
   ) +
   scale_fill_viridis_d(
-    labels = c("<15bp", "15-49bp", "50bp-1kb", "1kb-10kb", ">10kb"),
     guide = guide_legend(override.aes = list(shape = 21))
   ) +
-  scale_y_continuous(
-    labels = scales::comma
-  ) +
+  scale_y_continuous(labels = scales::comma) +
   labs(
-    x = "Difficult Genomic Context",
-    y = "Fold Change Variant Count",
-    fill = "Variant Size Bin",
-    shape = "Variant Class"
+    x = "Genomic Context",
+    y = "Fold Change (v5.0q / legacy)",
+    fill = "Variant Size",
+    shape = "Variant Type"
   ) +
   theme_manuscript() +
   theme(
     legend.position = "bottom",
     legend.box = "vertical"
-  )
+  ))
+
+ggsave(
+  filename = here("manuscript", "figs", "genomic_context_fold_change_by_size.png"),
+  plot = fold_change_size_plt,
+  width = 8,
+  height = 6,
+  dpi = 300
+)
 ```
-
-
-
 

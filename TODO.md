@@ -1,79 +1,75 @@
-# Codebase Review Findings (Feb 2026)
-Remove genome context worktree and local branch
+# Manuscript TODO
 
-# Manuscript Preparation
+## Pre-Draft Sharing (co-author review)
 
-## Completed (2026-02-17)
+### Figures
+
+- [ ] **Update stats table** (Table 1) — consolidate summary stats
+- [ ] **Update variant size distribution figure** (Figure 2) — verify v0.6 bars look correct relative to v5
+- [ ] **Simplify variant context figure** (Figure 3) — emphasize points made in text
+- [ ] **Combine v5 coverage change with variant count comparison** (Figure 4) — merge into single figure
+- [ ] **Better version of pangene graphs**
+- [ ] **Better presentation of external evaluation strata** (Figure 5 / S3)
+- [ ] **Clean-up chr8 inversion figure** (Figure S1) — use PAV callset inversion coordinates for specifics
+- [ ] **Create/locate Figure 1** — DeFrABB workflow diagram
+
+### Text
+
+- [ ] **Fill and verify highlighted values** — all placeholders (##, ??, XYZ, xx) in manuscript
+- [ ] **Add chr8 inversion specifics** — coordinates from PAV callset
+- [ ] **Benchmarking use-case section** — similar to pFDA manuscript
+- [ ] **Replace Discussion section** with content from `manuscript/discussion.qmd`
+- [ ] **Remove Sina's embedded email** (paras 352–366 in docx)
+- [ ] **Remove informal notes and outline fragments** (18 items per cleanup checklist)
+- [ ] **Apply figure/table numbering scheme** (cross-reference map in numbering doc)
+- [ ] **Address JZ's Word comments** (14 comments)
+
+### Metadata / Admin
+
+- [ ] **Finalize author list**
+- [ ] **Fill iPSC cell line identifiers** (check GIAB/Coriell docs)
+- [ ] **Decide: add UCLA stvar callsets to Table 1** or keep at 6?
+- [ ] **Verify Snakemake provenance archive URL/DOI** on data.nist.gov
+
+## Completed
+
+### 2026-03-18
+
+- [x] Merged PR #47: correct variant type classification for UNK variants
+- [x] Fixed CI (ruff lint/format, air R formatting)
+- [x] Regenerated analysis notebooks and figures after variant type fix
+- [x] Added `R/bed_helpers.R` (extracted from benchmark_unique_regions.qmd)
+
+### 2026-02-17
 
 - [x] Verified all placeholder numbers from pipeline results
-      → see `docs/manuscript_number_verification.md`
 - [x] Drafted co-author email → see `docs/coauthor_email_draft.md`
 - [x] Wrote full Discussion section → `manuscript/discussion.qmd`
-- [x] Created docx cleanup checklist → `docs/docx_cleanup_checklist.md`
-- [x] Created figure/table numbering scheme → `docs/figure_table_numbering.md`
-- [x] Fixed FTP version mismatch (V0.019 → V0.020 in data.qmd, methods.qmd)
-- [x] Reconciled stvar callset count discrepancy (updated number_verification.md)
+- [x] Fixed FTP version mismatch (V0.019 → V0.020)
+- [x] Reconciled stvar callset count discrepancy
 - [x] Updated results.qmd display items to match numbering scheme
 - [x] Removed pipeline-internal section from data.qmd
 - [x] Deleted stale diff_variant_counts.png
 
-## Remaining — Docx Edits (manual)
+## Post-Draft (lower priority)
 
-- [ ] Fill all placeholder values (##, ??, XYZ, xx) per cleanup checklist
-- [ ] Remove Sina's embedded email (paras 352–366)
-- [ ] Remove informal notes and outline fragments (18 items in checklist)
-- [ ] Apply figure/table numbering scheme (cross-reference map in numbering doc)
-- [ ] Address Word comments from JZ (14 comments)
-- [ ] Replace Discussion section with content from discussion.qmd
-- [ ] Create/locate Figure 1 (DeFrABB workflow diagram)
-- [ ] Create Figure S1 (chr8 inversion visualization)
-- [ ] Finalize author list
-- [ ] Fill iPSC cell line identifiers (check GIAB/Coriell docs)
-- [ ] Decide: add UCLA stvar callsets to Table 1 or keep at 6?
-- [ ] Verify "Snakemake provenance archive: data.nist.gov" has actual URL/DOI
+### Analysis
 
-# Analysis
+- [ ] Add variants to exclusion tables in benchmarkset_characterization.qmd
+- [ ] Small variant counts breakdown by <15bp, 15–49bp
+- [ ] Look into small intervals (50–100bp) in v5q
+- [ ] Validate summary outputs against old_only status CSVs
+- [ ] Add compact figure for v5-only vs previous-only base/variant deltas
+- [ ] Linear model for confidence intervals on curations (external_evaluation.qmd)
+- [ ] Annotate V5 benchmark VCFs with exclusion-based FILTER values
+- [ ] Update difficult variant counts to include complex variants
 
-- v0.6 size distribution compared to v5 the bars don't look quite right, v0.6
-  has more variants than expected compared to v5 based on previous plots and
-  expectations. Need to verify.
+### Infrastructure
 
-### R Analysis & Data Loading
-
-- [ ] **Robust Metadata Handling**: Transition from regex-based filename parsing (`parse_benchmark_id`) to structured metadata sidecars (JSON/YAML) for pipeline outputs.
-- [ ] **Simplify Data Loading**: Evaluate replacing the custom caching/validation logic in `R/data_loading.R` with a standard framework like the R `targets` package.
-- [ ] **Documentation Debt**: Address internal TODOs and "documentation debt" found within `docs/` files and notebook comments.
-
-
-## Analysis Revisions
-
-### benchmarkset_characterization.qmd
-
-- Add variants to the exclusion tables
-- Small variant counts breakdown by <15bp , 15 - 49bp
-- Look into number and distribution of small intervals (50 - 100bp) in v5q
-
-### benchmark_unique_regions.qmd
-
-- Validate summary outputs against old_only status CSVs
-- Add compact figure for v5-only vs previous-only base/variant deltas
-
-
-### manuscript/results.qmd
-
-- **Figure 2**: Small and structural variant counts, coverage, and comparison to previous benchmark sets. %%TODO%% Stratified, annotation based???
-
-### analysis/external_evaluation.qmd
-
-- **TODO**: linear model to get confidence intervals for curations
-
-### Low priority
-
-- more sensible results and log directory structures
-- cleanup data_loading script
-- look into intervals, less than 100bp (potential bug in exclusions) in small variant benchmark regions bed files for v5 benchmarkset.
-
-## Other
-
-- Annotating V5 benchmark vcfs based on exclusions and add filter field values for variants outside the benchmark regions.
-- Updating difficult variant counts to include complex variants
+- [ ] Transition from regex-based `parse_benchmark_id` to structured metadata sidecars
+- [ ] Evaluate replacing custom caching with R `targets` package
+- [ ] Address documentation debt in `docs/` files
+- [ ] Cleanup `data_loading.R` script
+- [ ] More sensible results and log directory structures
+- [ ] Look into intervals <100bp (potential exclusions bug)
+- [ ] Remove genome context worktree and local branch

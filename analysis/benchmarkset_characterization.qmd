@@ -45,22 +45,12 @@ variants_df <- variants_df %>%
 
 ## Benchmark Set Summary Table
 
-### Benchmark Regions
+Consolidated summary of variant counts and benchmark region sizes across
+benchmark versions. GRCh38 is the primary reference for the manuscript;
+GRCh37 and CHM13v2.0 are included in supplemental tables.
 
-```{r}
-glimpse(bench_regions_df)
-```
-
-```{r}
-grch37_dip_bp <- 2831481872
-grch38_dip_bp <- 2841316100
-chm13_dip_bp <- 2938461012
-
-dip_df <- tibble(
-  ref = c("GRCh37", "GRCh38", "CHM13v2.0"),
-  dip_bp = c(grch37_dip_bp, grch38_dip_bp, chm13_dip_bp)
-)
-
+```{r benchmark_summary_data}
+## Compute benchmark region sizes
 bench_region_stats_df <- bench_regions_df %>%
   filter(
     bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
@@ -68,227 +58,160 @@ bench_region_stats_df <- bench_regions_df %>%
   ) %>%
   group_by(bench_type, ref, bench_version) %>%
   summarise(total_bp = sum(interval_size), .groups = "drop") %>%
-  left_join(total_ref_asm_bp) %>%
-  left_join(dip_df) %>% 
-  mutate(
-    pct_ref_cvg = round(100 * (total_bp / total_asm_bp), 0),
-    pct_dip_cvg = if_else(bench_version == "v5.0q", round(100 * (total_bp / dip_bp), 0), NA_real_),
-    pct_q100_cvg = round(100 * (total_bp / hg002q100_size), 0),
-    pct_q100_dip_cvg = if_else(bench_version == "v5.0q", round(100 * (dip_bp / hg002q100_size), 0), NA_real_),
-    pct_ref_dip_cvg = if_else(bench_version == "v5.0q", round(100 * (dip_bp/ total_asm_bp), 0), NA_real_)
-  ) %>%
-  select(-total_asm_bp, -dip_bp)
-```
-```{r}
-bench_region_stats_df %>%
-  filter(bench_version == "v5.0q") %>%
-  select(ref, bench_type, pct_dip_cvg, pct_ref_dip_cvg, pct_ref_cvg, pct_q100_dip_cvg, pct_q100_cvg, total_bp) %>% 
-  mutate(ref = std_references(ref)) %>% arrange(ref) 
-```
-```{r}
-bench_region_stats_df %>%
-  select(ref, bench_type, bench_version, pct_ref_cvg, total_bp) %>% 
-  mutate(ref = std_references(ref)) %>% arrange(ref) 
-```
+  left_join(total_ref_asm_bp, by = "ref") %>%
+  mutate(pct_ref_cvg = 100 * (total_bp / total_asm_bp)) %>%
+  select(-total_asm_bp)
 
-
-### Bechmark Variants
-
-```{r}
+## Compute variant counts by type
 bench_var_cnt_df <- variants_df %>%
-  # filter(bench_version == "v5.0q") %>%
-  group_by(bench_type, ref) %>%
-  count(bench_type, ref, bench_version, var_type) %>%
-  ungroup() #%>%
-  # pivot_wider(
-  #   names_from = var_type,
-  #   values_from = n
-  # )
-```
+  count(bench_type, ref, bench_version, var_type)
 
-```{r}
-bench_var_cnt_df %>% 
-  group_by(bench_type, ref, bench_version) %>% 
-  summarise(n = sum(n), .groups = "drop") %>% 
-  add_column(var_type = "Total") %>% 
-  bind_rows(bench_var_cnt_df)
-```
-
-
-```{r}
-## Join variant counts with region stats
+## Build unified summary: variant counts + region stats
 bench_summary_df <- bench_var_cnt_df %>%
   pivot_wider(names_from = var_type, values_from = n, values_fill = 0L) %>%
   mutate(Total = rowSums(across(any_of(c("SNV", "INDEL", "INS", "DEL"))))) %>%
   full_join(bench_region_stats_df, by = c("bench_type", "ref", "bench_version")) %>%
   mutate(
-    ref = std_references(ref)
+    ref = std_references(ref),
+    bench_version = std_bench_versions(bench_version),
+    bench_mb = round(total_bp / 1e6, 0)
   ) %>%
-  arrange(bench_type, ref)
+  arrange(bench_type, ref, bench_version)
+```
 
-## Small variants table
-smvar_tbl <- bench_summary_df %>%
-  filter(bench_type == "smvar") %>%
-  select(bench_type, ref, bench_version, SNV, INDEL, Total, total_bp, pct_dip_cvg, pct_ref_dip_cvg, pct_ref_cvg, pct_q100_dip_cvg, pct_q100_cvg)
-
-## Structural variants table
-stvar_tbl <- bench_summary_df %>%
-  filter(bench_type == "stvar") %>%
-  select(bench_type, ref, bench_version, DEL, INS, Total, total_bp, pct_dip_cvg, pct_ref_dip_cvg, pct_ref_cvg, pct_q100_dip_cvg, pct_q100_cvg)
-
-## Shared formatting function
-format_bench_table <- function(df) {
-  df %>% select(-bench_type) %>% as_flextable(show_coltype = FALSE) %>%
-    # as_grouped_flextable(groupname_col = "bench_type") %>%
-    fmt_integer_flextable(
-      columns = intersect(c("SNV", "INDEL", "DEL", "INS", "Total", "total_bp"), names(df))
-    ) %>%
-    fmt_percent_flextable(
-      columns = starts_with("pct_"),
-      decimals = 0
-    ) %>%
+```{r format_bench_table_fn}
+## Shared formatting function for benchmark summary tables
+format_bench_table <- function(df, var_cols) {
+  df %>%
+    select(ref, bench_version, all_of(var_cols), Total, bench_mb, pct_ref_cvg) %>%
+    as_flextable(show_coltype = FALSE) %>%
+    fmt_integer_flextable(columns = c(var_cols, "Total", "bench_mb")) %>%
+    fmt_number_flextable(columns = "pct_ref_cvg", decimals = 1) %>%
     cols_label_flextable(
       ref = "Reference",
       bench_version = "Version",
-      Total = "Total",
-      total_bp = "Benchmark Bases",
-      pct_dip_cvg = "% Dip. Cov.",
-      pct_ref_cvg = "% Ref Cov.",
-      pct_ref_dip_cvg = "% Ref. Dip. Cov.",
-      pct_q100_cvg = "% Asm Cov.",
-      pct_q100_dip_cvg = "% Asm. Dip. Cov."
+      Total = "Total Variants",
+      bench_mb = "Bench (Mb)",
+      pct_ref_cvg = "% Ref"
     ) %>%
     flextable::align(j = "ref", align = "right", part = "body") %>%
     theme_flextable_manuscript()
 }
 ```
-```{r}
-format_bench_table(smvar_tbl)
+
+### Main Text: Summary (Table 1)
+
+Small variants on GRCh38 (v5.0q vs v4.2.1). Structural variants on GRCh37
+(v5.0q vs v0.6) since v0.6 was only generated for GRCh37.
+
+```{r table1_smvar}
+bench_summary_df %>%
+  filter(bench_type == "smvar", ref == "GRCh38") %>%
+  format_bench_table(var_cols = c("SNV", "INDEL"))
+```
+
+```{r table1_stvar}
+bench_summary_df %>%
+  filter(bench_type == "stvar", ref == "GRCh37") %>%
+  format_bench_table(var_cols = c("DEL", "INS"))
+```
+
+### Supplemental: All References
+
+```{r table_s_smvar}
+bench_summary_df %>%
+  filter(bench_type == "smvar") %>%
+  format_bench_table(var_cols = c("SNV", "INDEL"))
+```
+
+```{r table_s_stvar}
+bench_summary_df %>%
+  filter(bench_type == "stvar") %>%
+  format_bench_table(var_cols = c("DEL", "INS"))
 ```
 
 
 ## Variant Size Distributions
 
-
-```{r sv_length_distribution}
-#| message: true
-# Load structural variant data for selected benchmarks
-# This loads full variant tables for size distribution analysis
-
-stvar_len_df <- variants_df %>%
-  filter(
-    bench_version %in% c("v5.0q", "v0.6"),
-    bench_type == "stvar"
-  ) %>%
-  mutate(ref = std_references(ref)) %>%
-  select(bench_version, bench_type, ref, chrom, pos, var_size) %>%
-  filter(abs(var_size) < 20000)
-
-(stvar_len_dist_plt <- ggplot(
-  stvar_len_df,
-  aes(x = var_size)
-) +
-  geom_histogram(
-    data = filter(stvar_len_df, bench_version != "v0.6", ref == "GRCh38"),
-    fill = "grey80",
-    color = "grey20",
-    bins = 50,
-    drop = "all"
-  ) +
-  # geom_histogram(
-  #   data = filter(stvar_len_df, bench_version == "v0.6"),
-  #   fill = "grey30",
-  #   color = "grey20",
-  #   bins = 50,
-  #   drop = "all"
-  # ) +
-  scale_x_continuous(
-    breaks = c(
-      -10000,
-      -5000,
-      -1000,
-      -500,
-      -100,
-      -50,
-      0,
-      50,
-      100,
-      500,
-      1000,
-      5000,
-      10000
-    ),
-    trans = scales::pseudo_log_trans(sigma = 100, base = 10),
-    labels = scales::comma
-  ) +
-  scale_y_continuous(labels = scales::comma) +
-  labs(
-    x = "SV Length (bp)",
-    y = "Count"
-  ) +
-  # facet_wrap(~ref, ncol = 1) +
-  theme_manuscript() +
-  theme(
-    axis.text.x = element_text(angle = -45, hjust = 0)
-  ))
-```
-
+Size distributions for v5.0q compared to legacy benchmarks (GRCh38 only).
+Overlaid histograms show the expansion in variant content.
 
 ```{r indel_length_distribution}
-#| message: true
+#| message: false
 #| warning: false
-# Load small variant data for selected benchmarks
-
 smvar_len_df <- variants_df %>%
   filter(
     bench_version %in% c("v5.0q", "v4.2.1"),
     bench_type == "smvar",
-    var_type == "INDEL"
+    var_type == "INDEL",
+    ref == "GRCh38"
   ) %>%
-  mutate(ref = std_references(ref)) %>%
-  select(bench_version, bench_type, ref, chrom, pos, var_size) %>% 
+  select(bench_version, var_size) %>%
   mutate(var_size = if_else(var_size > 0, var_size + 0.5, var_size - 0.5))
 
-(smvar_len_dist_plt <- ggplot(
-  smvar_len_df,
-  aes(x = var_size)
-) +
+(smvar_len_dist_plt <- ggplot(smvar_len_df, aes(x = var_size, fill = bench_version)) +
   geom_histogram(
-    data = filter(smvar_len_df, bench_version != "v4.2.1", ref == "GRCh38"),
-    fill = "grey80",
-    color = "grey20",
     binwidth = 1,
-    # closed = "right",
-    drop = "all"
+    position = "identity",
+    alpha = 0.7,
+    color = NA
   ) +
-  # geom_histogram(
-  #   data = filter(smvar_len_df, bench_version == "v4.2.1"),
-  #   fill = "grey30",
-  #   color = "grey20",
-  #   binwidth = 2,
-  #   drop = "all"
-  # ) +
+  scale_fill_manual(
+    values = c("v5.0q" = get_color_palettes()$bench_version["v5.0q"],
+               "v4.2.1" = get_color_palettes()$bench_version["v4.2.1"])
+  ) +
   scale_y_continuous(labels = scales::comma) +
-  labs(
-    x = "INDEL Length (bp)",
-    y = "Count"
-  ) +
-  # facet_wrap(~ref, ncol = 1) +
-  theme_manuscript())
+  labs(x = "INDEL Length (bp)", y = "Count", fill = "Version") +
+  theme_manuscript() +
+  theme(legend.position = "none"))
 ```
 
-```{r}
-(combined_var_len_dist_plt <- (smvar_len_dist_plt) +
-  (stvar_len_dist_plt) +
-  plot_layout(
-    ncol = 2,
-    guides = "collect",
-    widths = c(1, 2)
+```{r sv_length_distribution}
+#| message: false
+## Use GRCh37 for SV comparison since v0.6 is GRCh37-only
+stvar_len_df <- variants_df %>%
+  filter(
+    bench_version %in% c("v5.0q", "v0.6"),
+    bench_type == "stvar",
+    ref == "GRCh37"
+  ) %>%
+  select(bench_version, var_size) %>%
+  filter(abs(var_size) < 20000)
+
+(stvar_len_dist_plt <- ggplot(stvar_len_df, aes(x = var_size, fill = bench_version)) +
+  geom_histogram(
+    bins = 50,
+    position = "identity",
+    alpha = 0.7,
+    color = NA
   ) +
+  scale_fill_manual(
+    values = c("v5.0q" = get_color_palettes()$bench_version["v5.0q"],
+               "v0.6" = get_color_palettes()$bench_version["v0.6"])
+  ) +
+  scale_x_continuous(
+    breaks = c(-10000, -5000, -1000, -500, -100, -50,
+               0, 50, 100, 500, 1000, 5000, 10000),
+    trans = scales::pseudo_log_trans(sigma = 100, base = 10),
+    labels = scales::comma
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(x = "SV Length (bp)", y = "Count", fill = "Version") +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -45, hjust = 0),
+    legend.position = "none"
+  ))
+```
+
+```{r combined_var_len_dist}
+(combined_var_len_dist_plt <- smvar_len_dist_plt + stvar_len_dist_plt +
+  plot_layout(ncol = 2, guides = "collect", widths = c(1, 2)) +
   plot_annotation(tag_levels = "A") &
   theme_manuscript() +
     theme(
       axis.text.x = element_text(angle = -45, hjust = 0),
+      legend.position = "bottom",
       plot.margin = unit(c(5, 5, 5, 5), "pt")
     ))
 ```
@@ -304,21 +227,20 @@ ggsave(
 ```
 
 
+## Benchmark Region Coverage Change by Chromosome
 
-## Benchmark region characterization
+Relative change in benchmark region size (v5.0q vs legacy) per autosome.
+Small variants use GRCh38 (v5.0q vs v4.2.1); structural variants use
+GRCh37 (v5.0q vs v0.6) since v0.6 is GRCh37-only.
 
-- Number of bases in benchmark regions in v5 compared to v4 and v0.6
-
-### Relative changes between v5q and v4.2.1/v0.6 by chromosome
-```{r fig.width = 8, fig.height = 4}
-(coverage_change_plt <- bench_regions_df %>%
+```{r coverage_change_plot, fig.width = 8, fig.height = 4}
+coverage_change_df <- bench_regions_df %>%
   filter(
     bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
     (bench_type == "smvar" & ref == "GRCh38") |
       (bench_type == "stvar" & ref == "GRCh37"),
     chrom %in% AUTOSOME_CHROM_LEVELS
   ) %>%
-  select(-starts_with("X")) %>%
   group_by(bench_type, chrom, bench_version) %>%
   summarise(total_size = sum(interval_size), .groups = "drop") %>%
   mutate(
@@ -330,51 +252,51 @@ ggsave(
   mutate(
     pct_change = 100 * (new - old) / old,
     total_change = new - old
-  ) %>%
+  )
+
+(coverage_change_plt <- coverage_change_df %>%
   ggplot() +
   geom_hline(yintercept = 0, color = "grey50") +
   geom_point(
     aes(
       x = chrom,
       y = pct_change,
-      fill = total_change / 1000000,
+      fill = total_change / 1e6,
       shape = bench_type
     ),
-    size = 4,
+    size = 3,
     color = "black",
-    position = "jitterdodge"
+    position = position_jitterdodge(jitter.width = 0.1)
   ) +
   scale_y_continuous(
     labels = scales::percent_format(scale = 1),
-    n.breaks = 10
+    n.breaks = 8
   ) +
   scale_fill_gradient2(
-    low = "red",
-    mid = "white",
-    high = "blue",
-    midpoint = 0,
-    labels = scales::comma
+    low = "red", mid = "white", high = "blue",
+    midpoint = 0, labels = scales::comma
   ) +
-  scale_shape_manual(values = c(21, 24)) +
+  scale_shape_manual(
+    values = c("smvar" = 21, "stvar" = 24),
+    labels = c("smvar" = "Small Variants", "stvar" = "Structural Variants")
+  ) +
   labs(
     x = "Chromosome",
-    y = "Coverage Change",
-    fill = "Coverage change (Mb)",
-    shape = "Variant Type"
+    y = "Coverage Change (v5.0q vs legacy)",
+    fill = "Change (Mb)",
+    shape = "Benchmark Type"
   ) +
-  theme_minimal() +
+  theme_manuscript() +
   theme(
     axis.text.x = element_text(angle = -45, hjust = 0),
     legend.position = "bottom"
   ))
-```
 
-```{r}
-(ggsave(
+ggsave(
   filename = here("manuscript", "figs", "benchmark_region_size_change.png"),
   plot = coverage_change_plt,
   width = 8,
   height = 4,
   dpi = 300
-))
+)
 ```
