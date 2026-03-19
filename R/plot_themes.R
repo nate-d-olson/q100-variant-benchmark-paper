@@ -419,7 +419,9 @@ theme_gt_manuscript <- function(gt_object, striped = TRUE, ...) {
         "sans-serif"
       )
     ) %>%
-    { do.call(gt::tab_options, c(list(.), merged_options)) }
+    {
+      do.call(gt::tab_options, c(list(.), merged_options))
+    }
 
   # Add striped rows if requested
   if (striped) {
@@ -464,7 +466,6 @@ theme_flextable_manuscript <- function(
   stripe_color = "#FAFAFA",
   ...
 ) {
-
   n_rows <- nrow(ft$body$dataset)
 
   # Apply base styling

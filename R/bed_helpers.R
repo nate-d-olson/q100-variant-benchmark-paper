@@ -73,16 +73,22 @@ merge_intervals <- function(dt) {
   }
   setorder(x, chrom, start, end)
   x[, cum_end := cummax(end), by = chrom]
-  x[, grp_break := ifelse(
-    is.na(shift(cum_end)),
-    1L,
-    as.integer(start > shift(cum_end))
-  ), by = chrom]
+  x[,
+    grp_break := ifelse(
+      is.na(shift(cum_end)),
+      1L,
+      as.integer(start > shift(cum_end))
+    ),
+    by = chrom
+  ]
   x[, grp := cumsum(grp_break), by = chrom]
-  merged <- x[, .(
-    start = min(start),
-    end = max(end)
-  ), by = .(chrom, grp)][, grp := NULL]
+  merged <- x[,
+    .(
+      start = min(start),
+      end = max(end)
+    ),
+    by = .(chrom, grp)
+  ][, grp := NULL]
   setorder(merged, chrom, start, end)
   merged[]
 }
@@ -119,7 +125,9 @@ read_bed <- function(path, merge = TRUE) {
 }
 
 interval_bases <- function(dt) {
-  if (nrow(dt) == 0) return(0)
+  if (nrow(dt) == 0) {
+    return(0)
+  }
   sum(as.numeric(dt$end - dt$start))
 }
 
@@ -276,9 +284,11 @@ read_context_beds <- function(ref, resources_dir) {
   context_names <- c("HP", "MAP", "SD", "SD10kb", "TR", "TR10kb")
   beds <- purrr::map(
     context_names,
-    function(ctx) read_bed(
-      file.path(resources_dir, "stratifications", paste0(ref, "_", ctx, ".bed.gz"))
-    )
+    function(ctx) {
+      read_bed(
+        file.path(resources_dir, "stratifications", paste0(ref, "_", ctx, ".bed.gz"))
+      )
+    }
   )
   names(beds) <- context_names
   beds
@@ -320,30 +330,38 @@ read_variant_table_parquet <- function(path, bench_type, benchmark_only = TRUE) 
   dt[, pos := as.integer(pos)]
   dt[, end := as.integer(end)]
 
-  if (!"context_ids" %in% names(dt)) dt[, context_ids := "."]
-  if (!"region_ids" %in% names(dt)) dt[, region_ids := "."]
+  if (!"context_ids" %in% names(dt)) {
+    dt[, context_ids := "."]
+  }
+  if (!"region_ids" %in% names(dt)) {
+    dt[, region_ids := "."]
+  }
   dt[, context_ids := as.character(context_ids)]
   dt[, region_ids := as.character(region_ids)]
 
   if (bench_type == "smvar") {
-    dt[, variant_type := dplyr::case_when(
-      var_type %in% c("SNP", "SNV") ~ "SNV",
-      var_type == "INS" ~ "INS",
-      var_type == "DEL" ~ "DEL",
-      var_type == "INDEL" & alt_len > ref_len ~ "INS",
-      var_type == "INDEL" & alt_len < ref_len ~ "DEL",
-      var_type == "INDEL" ~ "INDEL",
-      TRUE ~ "OTHER"
-    )]
+    dt[,
+      variant_type := dplyr::case_when(
+        var_type %in% c("SNP", "SNV") ~ "SNV",
+        var_type == "INS" ~ "INS",
+        var_type == "DEL" ~ "DEL",
+        var_type == "INDEL" & alt_len > ref_len ~ "INS",
+        var_type == "INDEL" & alt_len < ref_len ~ "DEL",
+        var_type == "INDEL" ~ "INDEL",
+        TRUE ~ "OTHER"
+      )
+    ]
     dt <- dt[abs(var_size) < 50]
   } else {
-    dt[, variant_type := dplyr::case_when(
-      var_type == "INS" ~ "SV_INS",
-      var_type == "DEL" ~ "SV_DEL",
-      alt_len > ref_len ~ "SV_INS",
-      alt_len < ref_len ~ "SV_DEL",
-      TRUE ~ "SV_OTHER"
-    )]
+    dt[,
+      variant_type := dplyr::case_when(
+        var_type == "INS" ~ "SV_INS",
+        var_type == "DEL" ~ "SV_DEL",
+        alt_len > ref_len ~ "SV_INS",
+        alt_len < ref_len ~ "SV_DEL",
+        TRUE ~ "SV_OTHER"
+      )
+    ]
     dt <- dt[abs(var_size) >= 50]
   }
 
@@ -387,13 +405,15 @@ normalize_old_only_variants <- function(path, bench_type) {
   dt[, size_coord := pmax(end - pos + 1L, 0L)]
   dt[, var_size := pmax(size_len, size_coord, na.rm = TRUE)]
 
-  dt[, variant_type := dplyr::case_when(
-    var_type %in% c("SNP", "SNV") ~ "SNV",
-    var_type == "INDEL" & alt_len > ref_len ~ "INS",
-    var_type == "INDEL" & alt_len < ref_len ~ "DEL",
-    var_type == "INDEL" ~ "INDEL",
-    TRUE ~ "OTHER"
-  )]
+  dt[,
+    variant_type := dplyr::case_when(
+      var_type %in% c("SNP", "SNV") ~ "SNV",
+      var_type == "INDEL" & alt_len > ref_len ~ "INS",
+      var_type == "INDEL" & alt_len < ref_len ~ "DEL",
+      var_type == "INDEL" ~ "INDEL",
+      TRUE ~ "OTHER"
+    )
+  ]
   dt[variant_type == "SNV", var_size := 1L]
 
   if (bench_type == "smvar") {
@@ -433,7 +453,13 @@ size_bin_for <- function(var_size, variant_type, bench_type) {
   }
 }
 
-summarize_variant_type_size <- function(dt, bench_type, comparison_id, comparison_label, region_group) {
+summarize_variant_type_size <- function(
+  dt,
+  bench_type,
+  comparison_id,
+  comparison_label,
+  region_group
+) {
   if (nrow(dt) == 0) {
     return(tibble::tibble(
       comparison_id = comparison_id,
@@ -484,7 +510,13 @@ summarize_variant_context <- function(dt, comparison_id, comparison_label, regio
     dplyr::arrange(comparison_label, dplyr::desc(variant_count))
 }
 
-summarize_region_context <- function(regions_dt, context_beds, comparison_id, comparison_label, region_group) {
+summarize_region_context <- function(
+  regions_dt,
+  context_beds,
+  comparison_id,
+  comparison_label,
+  region_group
+) {
   total_bp <- interval_bases(regions_dt)
   tibble::tibble(
     context_name = names(context_beds),
@@ -522,13 +554,19 @@ get_exclusion_descriptions <- function(config_path, benchmark_id) {
 
 analyze_comparison <- function(comp, results_dir, resources_dir, config_path, context_cache) {
   old_bed <- read_bed(file.path(
-    resources_dir, "benchmarksets", paste0(comp$old_benchmark, "_benchmark.bed")
+    resources_dir,
+    "benchmarksets",
+    paste0(comp$old_benchmark, "_benchmark.bed")
   ))
   new_bed <- read_bed(file.path(
-    resources_dir, "benchmarksets", paste0(comp$new_benchmark, "_benchmark.bed")
+    resources_dir,
+    "benchmarksets",
+    paste0(comp$new_benchmark, "_benchmark.bed")
   ))
   new_dip_bed <- read_bed(file.path(
-    resources_dir, "benchmarksets", paste0(comp$new_benchmark, "_dip.bed")
+    resources_dir,
+    "benchmarksets",
+    paste0(comp$new_benchmark, "_dip.bed")
   ))
 
   old_only <- subtract_intervals(old_bed, new_bed)
@@ -653,11 +691,13 @@ analyze_comparison <- function(comp, results_dir, resources_dir, config_path, co
       interval_bases(old_only_in_dip_not_excluded)
     )
   ) %>%
-    dplyr::mutate(pct_of_old_only = if (sum(bases_bp) > 0) {
-      100 * bases_bp / sum(bases_bp)
-    } else {
-      0
-    })
+    dplyr::mutate(
+      pct_of_old_only = if (sum(bases_bp) > 0) {
+        100 * bases_bp / sum(bases_bp)
+      } else {
+        0
+      }
+    )
 
   list(
     summary = summary_tbl,

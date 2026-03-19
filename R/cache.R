@@ -136,12 +136,16 @@ CACHE_COMPRESSION_LEVEL <- 3L
 collect_pipeline_metadata <- function() {
   # Package versions for key dependencies
   pkg_names <- c("arrow", "dplyr", "vroom", "tidyverse", "here", "glue")
-  pkg_versions <- vapply(pkg_names, function(pkg) {
-    tryCatch(
-      as.character(utils::packageVersion(pkg)),
-      error = function(e) "not installed"
-    )
-  }, character(1))
+  pkg_versions <- vapply(
+    pkg_names,
+    function(pkg) {
+      tryCatch(
+        as.character(utils::packageVersion(pkg)),
+        error = function(e) "not installed"
+      )
+    },
+    character(1)
+  )
   names(pkg_versions) <- pkg_names
 
   # Pipeline config summary (best-effort)
@@ -232,7 +236,9 @@ write_cache <- function(data, dataset_name, source_files, params = list()) {
 
   # Set file-level metadata
   existing_meta <- tbl$metadata
-  if (is.null(existing_meta)) existing_meta <- list()
+  if (is.null(existing_meta)) {
+    existing_meta <- list()
+  }
   existing_meta[["q100_pipeline_metadata"]] <- as.character(metadata_json)
   tbl$metadata <- existing_meta
 
@@ -262,8 +268,7 @@ write_cache <- function(data, dataset_name, source_files, params = list()) {
 #' @return A tibble if cache hit, NULL if cache miss
 #'
 #' @export
-read_cache <- function(dataset_name, source_files, params = list(),
-                       validate = FALSE) {
+read_cache <- function(dataset_name, source_files, params = list(), validate = FALSE) {
   cache_key <- .build_cache_key(dataset_name, source_files, params)
   cache_path <- .find_cache_file(dataset_name, cache_key)
 

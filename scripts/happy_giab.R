@@ -7,11 +7,7 @@
 
 ## Reading and tidying happy benchmarking extended csv files ###################
 load_happy_extended <-
-  function(path,
-           tidy = FALSE,
-           filter = FALSE,
-           subsets,
-           metrics) {
+  function(path, tidy = FALSE, filter = FALSE, subsets, metrics) {
     ## Reading extended csv
     happy_df <- read_happy_extended(path)
 
@@ -33,10 +29,7 @@ load_happy_extended <-
 read_happy_extended <- function(path) {
   ## Defining col types to avoid ti/tiv logical issues
   ctypes <-
-    stringr::str_c(c(rep("c", 7), rep("d", 9), rep("dccddcd", 7)),
-      sep = "",
-      collapse = ""
-    )
+    stringr::str_c(c(rep("c", 7), rep("d", 9), rep("dccddcd", 7)), sep = "", collapse = "")
 
   ## Reading as csv file
   happy_df <- readr::read_csv(path, col_types = ctypes)
@@ -46,12 +39,14 @@ read_happy_extended <- function(path) {
 
 ## Tidying happy benchmark extended csv files ##################################
 filter_happy_extended <-
-  function(happy_df,
-           subsets = NULL,
-           metrics = NULL,
-           subtypes = NULL,
-           min.subset.size = 10,
-           filter_pass = TRUE) {
+  function(
+    happy_df,
+    subsets = NULL,
+    metrics = NULL,
+    subtypes = NULL,
+    min.subset.size = 10,
+    filter_pass = TRUE
+  ) {
     ## Subsetting to defined stratification set
     if (!is.null(subsets)) {
       happy_df <- dplyr::filter(happy_df, Subset %in% subsets)
@@ -114,12 +109,11 @@ tidy_happy_extended <- function(happy_df, scale_phred = TRUE) {
   ##
   ci_happy_df <- long_happy_df %>%
     group_by(Type, Subtype, Subset, Filter, metric) %>%
-    mutate(metric_ci = list(
-      get_metric_ci(metric,
-        alpha = 0.05,
-        TRUTH.TP, TRUTH.FN, QUERY.TP, QUERY.FP
+    mutate(
+      metric_ci = list(
+        get_metric_ci(metric, alpha = 0.05, TRUTH.TP, TRUTH.FN, QUERY.TP, QUERY.FP)
       )
-    )) %>%
+    ) %>%
     unnest(cols = c(metric_ci)) %>%
     select(-TRUTH.TP, -TRUTH.FN, -QUERY.TP, -QUERY.FP, -PointEst) %>%
     rename(
@@ -174,12 +168,7 @@ convert_to_phred <- function(metric) {
 #' @export
 #'
 #' @examples get_metric_ci("RECALL", 0.05, 999, 1)
-get_metric_ci <- function(metric,
-                          alpha,
-                          TRUTH.TP,
-                          TRUTH.FN,
-                          QUERY.TP,
-                          QUERY.FP) {
+get_metric_ci <- function(metric, alpha, TRUTH.TP, TRUTH.FN, QUERY.TP, QUERY.FP) {
   ## Converting to upper to allow lower case metric names
   metric <- toupper(metric)
   ## Recall defined as TRUTH.TP /(TRUTH.TP + TRUTH.FN)
