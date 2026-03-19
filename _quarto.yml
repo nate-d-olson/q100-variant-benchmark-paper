@@ -1,81 +1,55 @@
 project:
-  type: manuscript
-  render:
-    - "results/*qmd"
-    - "!scratch/"
-bibliography: manuscript/references.bib
-citations-hover: true
+  type: website
+  output-dir: _site
+
+website:
+  title: "Q100 Variant Benchmark"
+  navbar:
+    left:
+      - text: Home
+        href: index.qmd
+      - text: Analysis Notebooks
+        menu:
+          - text: Benchmarkset Characterization
+            href: analysis/benchmarkset_characterization.qmd
+          - text: Benchmark Difficult Regions
+            href: analysis/benchmark_difficult.qmd
+          - text: Genomic Context Analysis
+            href: analysis/genomic_context_analysis.qmd
+          - text: Benchmark Exclusions
+            href: analysis/benchmark_exclusions.qmd
+          - text: Interval Size Distributions
+            href: analysis/benchmark_interval_size_distributions.qmd
+          - text: Unique Regions
+            href: analysis/benchmark_unique_regions.qmd
+          - text: External Evaluation
+            href: analysis/external_evaluation.qmd
+          - text: Use-Case Evaluation
+            href: analysis/use_case_evaluation.qmd
+      - text: Documentation
+        menu:
+          - text: Architecture
+            href: docs/architecture.md
+          - text: Data Dictionary
+            href: docs/data-dictionary.md
+          - text: API Reference
+            href: docs/api-reference.md
+          - text: Pipeline Outputs
+            href: docs/pipeline-outputs.md
+          - text: Plot Themes Guide
+            href: docs/plot_themes_guide.md
+          - text: Troubleshooting
+            href: docs/troubleshooting.md
+      - text: R Reference
+        href: r-reference.qmd
+      - text: Pipeline README
+        href: README.md
+
+execute:
+  freeze: auto
+
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
-    number-sections: true
-    comments:
-      hypothesis: true
-  docx: default
-  jats: default
-  pdf:
-    documentclass: article
-    classoption: [a4paper, 11pt]
-    geometry: margin=1in
-    fontsize: 11pt
-    linestretch: 1.2
-    colorlinks: true
-    linkcolor: blue
-    urlcolor: blue
-    citecolor: blue
-    toc: true
-    number-sections: true
-    lof: true
-    lot: true
-
-## Additional Header Info to include
-# manuscript:
-#   # Abstract and keywords
-#   abstract: |
-#     Your abstract text here
-#   keywords: [keyword1, keyword2]
-  
-#   # Author details
-#   author:
-#     - name: "Author Name"
-#       affiliations:
-#         - id: org1
-#           name: "Organization"
-#           department: "Department"
-#           address: "Address"
-#           city: "City"
-#           country: "Country"
-#       email: "email@example.com"
-#       orcid: "0000-0000-0000-0000"
-#       corresponding: true
-      
-#   # Additional sections
-#   acknowledgements: |
-#     Acknowledgements text
-  
-#   # Supplementary materials
-#   supplements:
-#     - file: supplements/extra.qmd
-#       label: "Supplementary Material"
-  
-#   # Journal submission
-#   journal:
-#     name: "Journal Name"
-#     doi: "10.xxxx/xxxxx"
-#     publisher: "Publisher Name"
-#     epub-ppub: true
-    
-#   # Citation settings
-#   cite-method: citeproc
-#   biblio-style: apa
-#   link-citations: true
-  
-#   # Language and locale
-#   lang: en
-  
-#   # Figure and table settings
-#   fig-format: png
-#   fig-dpi: 300
-#   tbl-cap-location: top

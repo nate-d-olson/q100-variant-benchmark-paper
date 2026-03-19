@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains the Snakemake workflow, analysis notebooks, and manuscript assets for the GIAB v5q HG002 variant benchmark set.
+This repository contains the Snakemake workflow and analysis notebooks for the GIAB v5q HG002 variant benchmark set. The manuscript is drafted in Google Docs; this repository holds the analysis code, generated figures, and supporting documentation.
 
 Primary goals:
 
@@ -10,7 +10,7 @@ Primary goals:
 2. Annotate benchmark VCFs with genomic context and benchmark/exclusion regions.
 3. Generate per-benchmark variant tables and genomic context summaries.
 4. Quantify exclusion impact and cross-version benchmark differences.
-5. Produce figures/tables used in the manuscript and companion site.
+5. Produce figures/tables used in the manuscript.
 
 ## Current Workspace Layout
 
@@ -20,12 +20,11 @@ project-root/
 ├── config/                   # Runtime config + JSON schema
 ├── R/                        # Shared R helpers (loading, cache, themes)
 ├── analysis/                 # Quarto analysis notebooks
-├── manuscript/               # Manuscript chapters, figures, tables
+├── manuscript/figs/           # Generated figures for manuscript
 ├── docs/                     # Architecture, outputs, troubleshooting
 ├── notes/                    # Dated working notes, plans, and prep checklists
 ├── tests/                    # R + Python tests
 ├── scripts/                  # Utility scripts
-├── site/                     # Quarto site project + rendered site artifacts
 ├── resources/                # Downloaded pipeline inputs (gitignored)
 ├── results/                  # Pipeline outputs (gitignored)
 └── logs/                     # Workflow logs (gitignored)
@@ -102,10 +101,12 @@ quarto render index.qmd
 
 ## Build site
 
+The repository is configured as a Quarto website project. To render:
+
 ```bash
-./build-site.sh
-# Optional publish
-./build-site.sh --publish
+quarto render           # Render full site to _site/
+quarto preview          # Live preview with auto-reload
+quarto publish gh-pages # Publish to GitHub Pages
 ```
 
 ## Documentation Index
@@ -122,15 +123,15 @@ quarto render index.qmd
 
 ## Artifact Policy
 
-- Commit source and durable assets: workflow code (`workflow/`, `config/`, `R/`, `scripts/`), notebooks (`analysis/*.qmd`), manuscript source (`manuscript/*.qmd`, selected versioned figures/tables), and docs.
-- Do not commit generated run outputs: `results/`, `resources/`, `logs/`, `.snakemake/`, `analysis/cache/`, rendered notebook HTML, and site build outputs under `site/_site/` and `site/_freeze/`.
-- Keep root-level exports/archive files out of git: manuscript export/docx drafts, LaTeX export intermediates (`index.tex`), run reports (`pipeline_run.html`), and archive bundles (`*.tar.gz`).
-- If a generated artifact must be versioned for publication reproducibility, place it in `manuscript/figs/` or `manuscript/tables/` and mention its source notebook/workflow step in the relevant PR/commit.
+- Commit source and durable assets: workflow code (`workflow/`, `config/`, `R/`, `scripts/`), notebooks (`analysis/*.qmd`), and docs.
+- Do not commit generated run outputs: `results/`, `resources/`, `logs/`, `.snakemake/`, `analysis/cache/`, rendered notebook HTML, and site build outputs under `_site/` and `_freeze/`.
+- Keep root-level exports/archive files out of git: LaTeX export intermediates (`index.tex`), run reports (`pipeline_run.html`), and archive bundles (`*.tar.gz`).
+- Generated figures for the manuscript are versioned under `manuscript/figs/`.
 
 ## Workspace Notes
 
 - Large/generated directories (`results/`, `resources/`, `logs/`, `.snakemake/`, `analysis/cache/`, rendered HTML) are expected in local runs and are mostly gitignored.
-- Manuscript figures and selected manuscript table assets under `manuscript/figs/` and `manuscript/tables/` are versioned.
+- Manuscript figures under `manuscript/figs/` are versioned.
 
 ## License
 

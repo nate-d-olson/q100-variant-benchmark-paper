@@ -9,9 +9,9 @@ This directory contains Quarto notebooks for downstream analysis and figure gene
 - `benchmark_interval_size_distributions.qmd`
 - `benchmark_exclusions.qmd`
 - `benchmark_difficult.qmd`
-- `benchmark_difficult_var.qmd`
 - `external_evaluation.qmd`
 - `genomic_context_analysis.qmd`
+- `use_case_evaluation.qmd`
 
 Shared setup helper:
 
@@ -35,17 +35,17 @@ Notebooks primarily consume:
 Most rendered figures/tables are written to:
 
 - `manuscript/figs/`
-- `manuscript/tables/`
 
 Examples currently produced by notebooks include:
 
 - `manuscript/figs/benchmark_intervals.png`
 - `manuscript/figs/benchmark_region_size_change.png`
+- `manuscript/figs/combined_coverage_variant_change.png`
 - `manuscript/figs/genomic_context_variant_counts.png`
-- `manuscript/figs/genomic_context_variant_counts_tall.png`
-- `manuscript/figs/smvar_strat_flow.png`
-- `manuscript/figs/stvar_eval_strata_supplemental.png`
+- `manuscript/figs/genomic_context_fold_change_by_size.png`
 - `manuscript/figs/combined_eval.png`
+- `manuscript/figs/use_case_smvar.png`
+- `manuscript/figs/use_case_stvar.png`
 
 ## Running
 

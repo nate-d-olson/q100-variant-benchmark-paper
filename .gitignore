@@ -81,22 +81,11 @@ _bookdown_files/
 **/*.quarto_ipynb
 .claude/settings.local.json
 
-# GitHub Pages site build artifacts
-site/_site/
-site/.quarto/
-site/_freeze/
-site/.here
-site/R
-site/config
-site/results
-site/resources
-site/manuscript
-site/styles.css
-site/pipeline_run.html
-site/data/
-site/renv/
-site/renv.lock
-site/.Rprofile
+# Legacy site directory (replaced by root Quarto website project)
+site/
 
 # Node.js (pre-commit)
 node_modules/
+# pixi environments
+.pixi/*
+!.pixi/config.toml
