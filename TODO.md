@@ -7,17 +7,17 @@
 - [x] **Update stats table** (Table 1) — consolidated flextable
 - [x] **Update variant size distribution figure** (Figure 2) — overlaid histograms, GRCh37 for SV
 - [x] **Simplify variant context figure** (Figure 3) — fold change bars with exploded context_ids
-- [ ] **Combine v5 coverage change with variant count comparison** (Figure 4) — merge into single figure
+- [x] **Combine v5 coverage change with variant count comparison** (Figure 4) — merge into single figure
 - [ ] **Better version of pangene graphs** (stretch goal)
 - [x] **Better presentation of external evaluation strata** (Figure 5 / S3) — readable labels, UCLA ensemble only
-- [ ] **Clean-up chr8 inversion figure** (Figure S1) — use PAV callset inversion coordinates for specifics
+- [x] **Clean-up chr8 inversion figure** (Figure S1) — PAV excluded region added, panels stacked
 - [ ] **Create/locate Figure 1** — DeFrABB workflow diagram
 
 ### Text
 
 - [ ] **Fill and verify highlighted values** — all placeholders (##, ??, XYZ, xx) in manuscript
-- [ ] **Add chr8 inversion specifics** — coordinates from PAV callset
-- [ ] **Benchmarking use-case section** — similar to pFDA manuscript
+- [x] **Add chr8 inversion specifics** — coordinates from PAV callset (chr8:8,237,843–12,234,345)
+- [x] **Benchmarking use-case section** — draft text in `analysis/use_case_evaluation.qmd`
 - [ ] **Replace Discussion section** with content from `manuscript/discussion.qmd`
 - [ ] **Remove Sina's embedded email** (paras 352–366 in docx)
 - [ ] **Remove informal notes and outline fragments** (18 items per cleanup checklist)
@@ -32,6 +32,13 @@
 - [ ] **Verify Snakemake provenance archive URL/DOI** on data.nist.gov
 
 ## Completed
+
+### 2026-03-19
+
+- [x] Added figure legends and results text for use-case evaluation
+- [x] Restructured repo: removed manuscript draft text (now in Google Docs)
+- [x] Replaced build-site.sh + site/ with root Quarto website project
+- [x] Committed combined coverage/variant fold change figure (Figure 4)
 
 ### 2026-03-18
 
