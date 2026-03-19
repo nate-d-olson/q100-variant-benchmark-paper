@@ -44,7 +44,12 @@ Small variants: GRCh38 v5.0q / v4.2.1. Structural variants: GRCh37 v5.0q / v0.6.
 
 ```{r fold_change_data}
 ## Total variant counts per context (no size bin breakdown)
+## Explode comma-separated context_ids so variants in multiple contexts
+## (e.g., "SD,TR") are counted once per context
 context_totals <- variants_df %>%
+  filter(!is.na(context_ids), context_ids != "") %>%
+  separate_rows(context_ids, sep = ",") %>%
+  mutate(context_ids = str_trim(context_ids)) %>%
   filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
   count(bench_version, ref, bench_type, context_ids, name = "count") %>%
   pivot_wider(
@@ -108,6 +113,9 @@ ggsave(
 
 ```{r fold_change_by_size_data}
 genomic_context_var_fld_chg <- variants_df %>%
+  filter(!is.na(context_ids), context_ids != "") %>%
+  separate_rows(context_ids, sep = ",") %>%
+  mutate(context_ids = str_trim(context_ids)) %>%
   filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
   mutate(
     var_size_bin = factor(case_when(
