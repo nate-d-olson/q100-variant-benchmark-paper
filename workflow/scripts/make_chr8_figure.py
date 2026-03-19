@@ -26,7 +26,6 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec
 from PIL import Image
 
@@ -99,19 +98,37 @@ def write_genomes(path: str, ref: str, mat: str, pat: str) -> None:
 
 
 def write_markers(
-    path: str, chrom: str, inv_start: int, inv_end: int, genome_id: str = "PAT"
+    path: str,
+    chrom: str,
+    inv_start: int,
+    inv_end: int,
+    genome_id: str = "PAT",
+    excl_start: int | None = None,
+    excl_end: int | None = None,
 ) -> None:
-    """Mark inversion breakpoints as downward triangles on the PAT haplotype."""
+    """Mark inversion breakpoints and optional excluded region boundaries."""
     with open(path, "w") as fh:
         fh.write("#chr\tstart\tend\tgenome_id\ttags\n")
+        # Inversion breakpoints on PAT (triangles, hidden text)
+        _hidden = "tt: ;tp:0.01;ts:1;tf:Arial;tc:white"
         fh.write(
             f"{chrom}\t{inv_start}\t{inv_start + 1}\t{genome_id}\t"
-            "mt:v;mc:#d62728;ms:4;tt:INV_start;tp:0.04;ts:7;tf:Arial;tc:#d62728\n"
+            f"mt:v;mc:#d62728;ms:4;{_hidden}\n"
         )
         fh.write(
             f"{chrom}\t{inv_end}\t{inv_end + 1}\t{genome_id}\t"
-            "mt:v;mc:#d62728;ms:4;tt:INV_end;tp:0.04;ts:7;tf:Arial;tc:#d62728\n"
+            f"mt:v;mc:#d62728;ms:4;{_hidden}\n"
         )
+        # Excluded region boundaries on REF (diamonds)
+        if excl_start is not None and excl_end is not None:
+            fh.write(
+                f"{chrom}\t{excl_start}\t{excl_start + 1}\tREF\t"
+                f"mt:D;mc:#555555;ms:3;{_hidden}\n"
+            )
+            fh.write(
+                f"{chrom}\t{excl_end}\t{excl_end + 1}\tREF\t"
+                f"mt:D;mc:#555555;ms:3;{_hidden}\n"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -178,6 +195,12 @@ def _panel_label(ax, letter: str) -> None:
     )
 
 
+def _crop_top(img: Image.Image, frac: float = 0.22) -> Image.Image:
+    """Crop the top portion of a plotsr image."""
+    crop_top = int(img.height * frac)
+    return img.crop((0, crop_top, img.width, img.height))
+
+
 def assemble_figure(
     full_png: str,
     zoom_png: str,
@@ -187,114 +210,52 @@ def assemble_figure(
     chrom: str,
     ref_start: int,
     ref_end: int,
+    excl_start: int | None = None,
+    excl_end: int | None = None,
     dpi: int = 300,
 ) -> None:
 
-    fig = plt.figure(figsize=(15, 11))
+    # Crop whitespace: remove gap between legend and tracks (full panel)
+    # and remove legend entirely from zoom panel
+    full_img = _crop_top(Image.open(full_png), frac=0.07)
+    zoom_img = _crop_top(Image.open(zoom_png), frac=0.28)
+
+    fig = plt.figure(figsize=(10, 8))
     gs = GridSpec(
         2,
-        2,
+        1,
         figure=fig,
-        hspace=0.30,
-        wspace=0.06,
-        left=0.03,
-        right=0.97,
-        top=0.92,
-        bottom=0.03,
-        height_ratios=[1.1, 0.9],
-        width_ratios=[1.6, 1.0],
+        hspace=0.08,
+        left=0.02,
+        right=0.98,
+        top=0.95,
+        bottom=0.02,
+        height_ratios=[1.0, 0.8],
     )
 
-    # -- Panel A: full synteny (left, spans both rows) -----------------------
-    ax_a = fig.add_subplot(gs[:, 0])
-    ax_a.imshow(Image.open(full_png), aspect="equal", interpolation="bilinear")
+    # -- Panel A: full synteny ------------------------------------------------
+    ax_a = fig.add_subplot(gs[0])
+    ax_a.imshow(full_img, aspect="equal", interpolation="bilinear")
     ax_a.axis("off")
     _panel_label(ax_a, "A")
-    ax_a.set_title(
-        "Chromosome 8 synteny  —  REF  ·  MAT  ·  PAT",
-        fontsize=11,
-        pad=7,
-    )
 
-    # -- Panel B: zoomed inversion (top-right) --------------------------------
-    ax_b = fig.add_subplot(gs[0, 1])
-    ax_b.imshow(Image.open(zoom_png), aspect="equal", interpolation="bilinear")
+    # -- Panel B: zoomed inversion --------------------------------------------
+    ax_b = fig.add_subplot(gs[1])
+    ax_b.imshow(zoom_img, aspect="equal", interpolation="bilinear")
     ax_b.axis("off")
     _panel_label(ax_b, "B")
-    ax_b.set_title(
-        f"Zoomed around largest inversion ({chrom})\n"
-        f"REF {ref_start / 1e6:.1f} – {ref_end / 1e6:.1f} Mb | "
-        f"PAT {inv_start / 1e6:.1f} – {inv_end / 1e6:.1f} Mb",
-        fontsize=10,
-        pad=7,
-    )
 
-    # -- Panel C: legend (bottom-right) ---------------------------------------
-    ax_c = fig.add_subplot(gs[1, 1])
-    ax_c.set_xlim(0, 1)
-    ax_c.set_ylim(0, 1)
-    ax_c.axis("off")
-    _panel_label(ax_c, "C")
-    ax_c.set_title("Structural annotation legend", fontsize=10, pad=7)
-
-    # SyRI / plotsr default annotation colours
-    legend_patches = [
-        mpatches.Patch(fc="#91d6e6", ec="#555", label="Syntenic (SYN)"),
-        mpatches.Patch(fc="#fdbe85", ec="#555", label="Inversion (INV)"),
-        mpatches.Patch(fc="#c2b2d9", ec="#555", label="Translocation (TRA)"),
-        mpatches.Patch(fc="#c4e5b8", ec="#555", label="Inv. translocation (INVTR)"),
-        mpatches.Patch(fc="#fccde5", ec="#555", label="Duplication (DUP)"),
-        mpatches.Patch(fc="#d9d9d9", ec="#555", label="Inv. duplication (INVDP)"),
-    ]
-    ax_c.legend(
-        handles=legend_patches,
-        loc="upper left",
-        fontsize=8.5,
-        frameon=True,
-        framealpha=0.9,
-        edgecolor="#aaaaaa",
-        title="SyRI annotation types",
-        title_fontsize=9,
-    )
-
-    # Inversion callout box
-    size_mb = (inv_end - inv_start) / 1e6
-    ax_c.text(
-        0.05,
-        0.38,
-        f"[v]  PAT large inversion\n"
-        f"   {chrom}:{inv_start / 1e6:.2f} – {inv_end / 1e6:.2f} Mb\n"
-        f"   REF zoom: {chrom}:{ref_start / 1e6:.2f} – {ref_end / 1e6:.2f} Mb\n"
-        f"   Size approx {size_mb:.1f} Mb",
-        transform=ax_c.transAxes,
-        fontsize=9,
-        va="top",
-        color="#d62728",
-        bbox=dict(
-            boxstyle="round,pad=0.5", fc="#fff5f5", ec="#d62728", lw=1.2, alpha=0.85
-        ),
-    )
-
-    # Genome-track colour swatches
-    for i, (label, color) in enumerate(
-        [
-            ("REF", "#1f77b4"),
-            ("MAT", "#2ca02c"),
-            ("PAT", "#d62728"),
-        ]
-    ):
-        y = 0.12 - i * 0.05
-        ax_c.plot([0.05, 0.15], [y, y], color=color, lw=3, transform=ax_c.transAxes)
-        ax_c.text(
-            0.18,
-            y,
-            label,
-            transform=ax_c.transAxes,
-            fontsize=9,
-            va="center",
-            color=color,
-            fontweight="bold",
+    excl_label = ""
+    if excl_start is not None and excl_end is not None:
+        excl_label = (
+            f"  |  Excluded: {excl_start / 1e6:.1f} – {excl_end / 1e6:.1f} Mb"
         )
+    ax_b.set_title(
+        f"Zoomed: REF {ref_start / 1e6:.1f} – {ref_end / 1e6:.1f} Mb"
+        f"{excl_label}",
+        fontsize=9,
+        pad=4,
+    )
 
     # -- Save -----------------------------------------------------------------
     Path(out_base).parent.mkdir(parents=True, exist_ok=True)
@@ -336,11 +297,19 @@ def main():
     z_start = coords["zoom_ref_start"]
     z_end = coords["zoom_ref_end"]
 
+    # Excluded region from PAV callset (hardcoded)
+    excl_start = 8_237_843
+    excl_end = 12_234_345
+
     print(
         "[INFO] Inversion coordinates from coords file: "
         f"REF {args.chrom}:{ref_inv_start}-{ref_inv_end}, "
         f"PAT {args.chrom}:{inv_start}-{inv_end}, "
         f"size {coords['size']:,} bp"
+    )
+    print(
+        f"[INFO] Excluded region (PAV): "
+        f"REF {args.chrom}:{excl_start}-{excl_end}"
     )
 
     sr_files = [args.syri_rm, args.syri_mp]
@@ -357,18 +326,25 @@ def main():
     # 1. Write plotsr support files
     print("\n[1/4] Writing plotsr input files ...")
     write_genomes(genomes_path, args.ref, args.mat, args.pat)
-    write_markers(markers_path, args.chrom, inv_start, inv_end)
+    write_markers(
+        markers_path,
+        args.chrom,
+        inv_start,
+        inv_end,
+        excl_start=excl_start,
+        excl_end=excl_end,
+    )
 
-    # 2. Panel A: full chr8 synteny
+    # 2. Panel A: full chr8 synteny (compact height)
     print(f"\n[2/4] Generating full {args.chrom} synteny panel ...")
     run_plotsr(
         genomes=genomes_path,
         sr_files=sr_files,
         output=full_png,
         markers=markers_path,
-        region=None,  # FASTAs contain only chr8; no --reg needed
-        width=8,
-        height=7,
+        region=None,
+        width=10,
+        height=3,
         fontsize=8,
     )
 
@@ -380,8 +356,8 @@ def main():
         output=zoom_png,
         markers=markers_path,
         region=f"REF:{args.chrom}:{z_start}-{z_end}",
-        width=7,
-        height=5,
+        width=10,
+        height=4,
         fontsize=8,
     )
 
@@ -396,6 +372,8 @@ def main():
         chrom=args.chrom,
         ref_start=ref_inv_start,
         ref_end=ref_inv_end,
+        excl_start=excl_start,
+        excl_end=excl_end,
         dpi=args.dpi,
     )
     print("\nDone.")
