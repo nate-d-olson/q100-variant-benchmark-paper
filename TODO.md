@@ -4,12 +4,12 @@
 
 ### Figures
 
-- [ ] **Update stats table** (Table 1) — consolidate summary stats
-- [ ] **Update variant size distribution figure** (Figure 2) — verify v0.6 bars look correct relative to v5
-- [ ] **Simplify variant context figure** (Figure 3) — emphasize points made in text
+- [x] **Update stats table** (Table 1) — consolidated flextable
+- [x] **Update variant size distribution figure** (Figure 2) — overlaid histograms, GRCh37 for SV
+- [x] **Simplify variant context figure** (Figure 3) — fold change bars with exploded context_ids
 - [ ] **Combine v5 coverage change with variant count comparison** (Figure 4) — merge into single figure
-- [ ] **Better version of pangene graphs**
-- [ ] **Better presentation of external evaluation strata** (Figure 5 / S3)
+- [ ] **Better version of pangene graphs** (stretch goal)
+- [x] **Better presentation of external evaluation strata** (Figure 5 / S3) — readable labels, UCLA ensemble only
 - [ ] **Clean-up chr8 inversion figure** (Figure S1) — use PAV callset inversion coordinates for specifics
 - [ ] **Create/locate Figure 1** — DeFrABB workflow diagram
 
@@ -39,6 +39,12 @@
 - [x] Fixed CI (ruff lint/format, air R formatting)
 - [x] Regenerated analysis notebooks and figures after variant type fix
 - [x] Added `R/bed_helpers.R` (extracted from benchmark_unique_regions.qmd)
+- [x] Consolidated stats table (Table 1) with flextable
+- [x] Updated variant size distribution figure (overlaid histograms)
+- [x] Simplified variant context figure to fold change bars
+- [x] Updated external evaluation figure (readable strata labels, UCLA ensemble only)
+- [x] Fixed context_ids exact-match bug in fold change analysis (explode comma-separated field)
+- [x] Removed obsolete `benchmark_difficult_var.qmd`
 
 ### 2026-02-17
 

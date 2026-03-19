@@ -300,3 +300,78 @@ ggsave(
   dpi = 300
 )
 ```
+
+## Variant Fold Change by Genomic Context
+
+Fold change in variant counts (v5.0q vs legacy) per difficult genomic context.
+
+```{r fold_change_data}
+context_totals <- variants_df %>%
+  filter(!is.na(context_ids), context_ids != "") %>%
+  separate_rows(context_ids, sep = ",") %>%
+  mutate(context_ids = str_trim(context_ids)) %>%
+  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  count(bench_version, ref, bench_type, context_ids, name = "count") %>%
+  pivot_wider(
+    names_from = bench_version,
+    values_from = count,
+    id_cols = c(ref, bench_type, context_ids)
+  ) %>%
+  filter(
+    (bench_type == "smvar" & ref == "GRCh38" & !is.na(v4.2.1)) |
+      (bench_type == "stvar" & ref == "GRCh37" & !is.na(v0.6))
+  ) %>%
+  mutate(
+    legacy_count = coalesce(v4.2.1, v0.6),
+    fold_chg = v5.0q / legacy_count,
+    context_label = get_context_labels()[as.character(context_ids)],
+    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+  )
+```
+
+```{r fold_change_plot, fig.width = 7, fig.height = 4}
+(fold_change_plt <- context_totals %>%
+  ggplot(aes(
+    x = context_label,
+    y = fold_chg,
+    fill = context_ids
+  )) +
+  geom_col(color = "grey30", linewidth = 0.3) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
+  geom_text(
+    aes(label = sprintf("%.1fx", fold_chg)),
+    vjust = -0.5,
+    size = 3
+  ) +
+  facet_wrap(~bench_type_label, scales = "free_x") +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.15)),
+    breaks = scales::pretty_breaks(n = 5)
+  ) +
+  scale_genomic_context(aesthetic = "fill", guide = "none") +
+  labs(
+    x = "Genomic Context",
+    y = "Fold Change (v5.0q / legacy)"
+  ) +
+  theme_manuscript() +
+  theme(
+    axis.text.x = element_text(angle = -30, hjust = 0)
+  ))
+```
+
+## Combined Coverage and Variant Change Figure (Figure 4)
+
+```{r combined_coverage_variant, fig.width = 8, fig.height = 8}
+(combined_coverage_variant_plt <- coverage_change_plt /
+  fold_change_plt +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.margin = unit(c(5, 5, 5, 5), "pt")))
+
+ggsave(
+  filename = here("manuscript", "figs", "combined_coverage_variant_change.png"),
+  plot = combined_coverage_variant_plt,
+  width = 8,
+  height = 8,
+  dpi = 300
+)
+```

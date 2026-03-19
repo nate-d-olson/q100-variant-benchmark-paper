@@ -34,7 +34,7 @@ in context), see `genomic_context_analysis.qmd`.
 ```{r}
 analysis_bench_order <- rev(BENCH_VERSION_LEVELS)
 variants_df <- load_all_variant_tables() %>%
-  filter(region_ids == "BMKREGIONS")
+  filter(region_ids == "BMKREGIONS", is_pass)
 ```
 
 ## Variant Fold Change by Genomic Context
