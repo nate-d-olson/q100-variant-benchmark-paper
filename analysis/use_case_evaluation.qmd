@@ -19,6 +19,8 @@ execute:
 source(here::here("analysis/_notebook_setup.R"))
 analysis_setup(load_plot_themes = TRUE)
 
+source(here::here("scripts/happy_giab.R"))  ## imports convert_to_phred()
+
 callset_colors <- c(
   "Baylor ONT (Sniffles2)" = "#2ca02c",
   "Illumina DRAGEN" = "#1f77b4"
@@ -26,6 +28,176 @@ callset_colors <- c(
 
 size_bin_levels <- c("SNP", "1-4bp", "5-14bp", "15-49bp")
 sv_size_levels <- c("50-99bp", "100-299bp", "300-999bp", "1-10kb", ">=10kb")
+
+## Phred-scale ggplot2 transformation ----------------------------------------
+phred_trans <- scales::trans_new(
+  name      = "phred",
+  transform = convert_to_phred,
+  inverse   = function(y) 1 - 10^(-y / 10)
+)
+
+## Break positions and labels (in proportion scale) for each plot type
+phred_smvar_pcts   <- c(0.90, 0.95, 0.99, 0.999)
+phred_smvar_labels <- c("90%", "95%", "99%", "99.9%")
+
+phred_stvar_pcts   <- c(0.5, 0.7, 0.8, 0.9, 0.95)
+phred_stvar_labels <- c("50%", "70%", "80%", "90%", "95%")
+
+## Colour and shape mappings for context labels in comparison scatter plots
+context_label_colors <- c(
+  "Overall"                = "black",
+  "Homopolymers"           = "#E41A1C",
+  "Low Mappability"        = "#377EB8",
+  "Segmental Duplications" = "#4DAF4A",
+  "Tandem Repeats"         = "#FF7F00"
+)
+context_label_shapes <- c(
+  "Overall"                = 16,
+  "Homopolymers"           = 17,
+  "Low Mappability"        = 15,
+  "Segmental Duplications" = 18,
+  "Tandem Repeats"         = 8
+)
+
+## annotation_phredticks and helpers ------------------------------------------
+## Adapted from:
+## https://github.com/usnistgov/giab-pFDA-2nd-challenge/blob/main/scripts/annotation-phredticks.R
+##
+## Calculates phred-scale tick positions for annotation_phredticks().
+calc_phredticks <- function(
+  minphred = 0, maxphred = minphred + 1,
+  start = 0, shortend = 0.1, midend = 0.2, longend = 0.3
+) {
+  tick_df <- tibble(
+    x_pct    = c(0, seq(10, 90, 10),
+                 seq(91, 99, 1),
+                 seq(99.1,   99.9,   0.1),
+                 seq(99.91,  99.99,  0.01),
+                 seq(99.991, 99.999, 0.001)),
+    ticknums = c(0, rep(1:9, times = 5))
+  ) |>
+    mutate(
+      x       = x_pct / 100,
+      phred_x = convert_to_phred(x),
+      start   = start,
+      tickend = case_when(
+        x == 0        ~ longend,
+        ticknums == 9 ~ longend,
+        ticknums == 5 ~ midend,
+        TRUE          ~ shortend
+      )
+    )
+  data.frame(value = tick_df$phred_x, start = tick_df$start, end = tick_df$tickend)
+}
+
+GeomPhredticks <- ggplot2::ggproto(
+  "GeomPhredticks", ggplot2::Geom,
+  extra_params = "",
+  handle_na = function(data, params) data,
+
+  draw_panel = function(
+    data, panel_params, coord,
+    base = 10, sides = "bl", outside = FALSE, scaled = TRUE,
+    short    = grid::unit(0.1, "cm"),
+    mid      = grid::unit(0.2, "cm"),
+    long     = grid::unit(0.3, "cm"),
+    colour   = "black", size = 0.5, linetype = 1, alpha = 1
+  ) {
+    ticks <- list()
+    short <- grid::convertUnit(short, "cm", valueOnly = TRUE)
+    mid   <- grid::convertUnit(mid,   "cm", valueOnly = TRUE)
+    long  <- grid::convertUnit(long,  "cm", valueOnly = TRUE)
+    flipped <- inherits(coord, "CoordFlip")
+    x_name  <- if (flipped) "y" else "x"
+    y_name  <- if (flipped) "x" else "y"
+
+    if (grepl("[bt]", sides)) {
+      xticks <- calc_phredticks(
+        minphred = floor(panel_params$x.range[1]),
+        maxphred = ceiling(panel_params$x.range[2]),
+        start = 0, shortend = short, midend = mid, longend = long
+      )
+      names(xticks)[names(xticks) == "value"] <- x_name
+      xticks <- coord$transform(xticks, panel_params)
+      xticks <- xticks[xticks$x >= 0 & xticks$x <= 1, ]
+      if (outside) xticks$end <- -xticks$end
+
+      if (grepl("b", sides))
+        ticks$x_b <- grid::segmentsGrob(
+          x0 = grid::unit(xticks$x, "native"), x1 = grid::unit(xticks$x, "native"),
+          y0 = grid::unit(xticks$start, "cm"), y1 = grid::unit(xticks$end, "cm"),
+          gp = grid::gpar(col = scales::alpha(colour, alpha),
+                          lty = linetype, lwd = size * ggplot2::.pt)
+        )
+      if (grepl("t", sides))
+        ticks$x_t <- grid::segmentsGrob(
+          x0 = grid::unit(xticks$x, "native"), x1 = grid::unit(xticks$x, "native"),
+          y0 = grid::unit(1, "npc") - grid::unit(xticks$start, "cm"),
+          y1 = grid::unit(1, "npc") - grid::unit(xticks$end,   "cm"),
+          gp = grid::gpar(col = scales::alpha(colour, alpha),
+                          lty = linetype, lwd = size * ggplot2::.pt)
+        )
+    }
+
+    if (grepl("[lr]", sides)) {
+      yticks <- calc_phredticks(
+        minphred = floor(panel_params$y.range[1]),
+        maxphred = ceiling(panel_params$y.range[2]),
+        start = 0, shortend = short, midend = mid, longend = long
+      )
+      names(yticks)[names(yticks) == "value"] <- y_name
+      yticks <- coord$transform(yticks, panel_params)
+      yticks <- yticks[yticks$y >= 0 & yticks$y <= 1, ]
+      if (outside) yticks$end <- -yticks$end
+
+      if (grepl("l", sides))
+        ticks$y_l <- grid::segmentsGrob(
+          y0 = grid::unit(yticks$y, "native"), y1 = grid::unit(yticks$y, "native"),
+          x0 = grid::unit(yticks$start, "cm"), x1 = grid::unit(yticks$end, "cm"),
+          gp = grid::gpar(col = scales::alpha(colour, alpha),
+                          lty = linetype, lwd = size * ggplot2::.pt)
+        )
+      if (grepl("r", sides))
+        ticks$y_r <- grid::segmentsGrob(
+          y0 = grid::unit(yticks$y, "native"), y1 = grid::unit(yticks$y, "native"),
+          x0 = grid::unit(1, "npc") - grid::unit(yticks$start, "cm"),
+          x1 = grid::unit(1, "npc") - grid::unit(yticks$end,   "cm"),
+          gp = grid::gpar(col = scales::alpha(colour, alpha),
+                          lty = linetype, lwd = size * ggplot2::.pt)
+        )
+    }
+
+    grid::gTree(children = do.call(grid::gList, ticks))
+  },
+
+  default_aes = ggplot2::aes(colour = "black", size = 0.5, linetype = 1, alpha = 1)
+)
+
+annotation_phredticks <- function(
+  base = 10, sides = "bl", outside = FALSE, scaled = TRUE,
+  short    = grid::unit(0.1, "cm"),
+  mid      = grid::unit(0.2, "cm"),
+  long     = grid::unit(0.3, "cm"),
+  colour = "black", size = 0.5, linetype = 1, alpha = 1, color = NULL, ...
+) {
+  if (!is.null(color)) colour <- color
+  ggplot2::layer(
+    data        = data.frame(x = 1),
+    mapping     = NULL,
+    stat        = ggplot2::StatIdentity,
+    geom        = GeomPhredticks,
+    position    = ggplot2::PositionIdentity,
+    show.legend = FALSE,
+    inherit.aes = FALSE,
+    params = list(
+      base     = base,     sides    = sides,    outside  = outside,
+      scaled   = scaled,   short    = short,    mid      = mid,
+      long     = long,     colour   = colour,   size     = size,
+      linetype = linetype, alpha    = alpha,
+      ...
+    )
+  )
+}
 ```
 
 ## Small Variant Benchmarking: Roche Neusomatic
@@ -93,53 +265,86 @@ smvar_size_df <- read_csv(
   mutate(size_bin = factor(size_bin, levels = size_bin_levels))
 ```
 
-### Precision-Recall Scatter: v4.2.1 vs v5.0q by Context
+### Benchmark Comparison Scatter: v4.2.1 vs v5.0q by Context
 
-```{r smvar_scatter, fig.width = 7, fig.height = 5}
-(smvar_scatter_plt <- smvar_df %>%
-  ggplot(aes(x = recall, y = precision, color = bench_version)) +
-  geom_point(aes(shape = context_label), size = 3.5, stroke = 0.8) +
+```{r smvar_scatter, fig.width = 10, fig.height = 4}
+smvar_compare_df <- smvar_df |>
+  select(bench_version, context_label, precision, recall, f1) |>
+  pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
+  pivot_wider(names_from = bench_version, values_from = value) |>
+  rename(v421 = `v4.2.1`, v50q = `v5.0q`) |>
+  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
+
+(smvar_scatter_plt <- smvar_compare_df |>
+  ggplot(aes(x = v421, y = v50q, color = context_label, shape = context_label)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
+  geom_point(size = 3.5, stroke = 0.8) +
   ggrepel::geom_text_repel(
     aes(label = context_label),
     size = 2.5, max.overlaps = 15, seed = 42,
     show.legend = FALSE
   ) +
-  scale_x_continuous(labels = scales::percent, limits = c(0.90, 1.002)) +
-  scale_y_continuous(labels = scales::percent, limits = c(0.90, 1.002)) +
-  scale_benchmark_version(aesthetic = "color") +
-  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  facet_wrap(~metric) +
+  scale_x_continuous(
+    trans = phred_trans,
+    breaks = phred_smvar_pcts, labels = phred_smvar_labels
+  ) +
+  scale_y_continuous(
+    trans = phred_trans,
+    breaks = phred_smvar_pcts, labels = phred_smvar_labels
+  ) +
+  annotation_phredticks(sides = "bl") +
+  scale_color_manual(values = context_label_colors) +
+  scale_shape_manual(values = context_label_shapes) +
   labs(
-    x = "Recall",
-    y = "Precision",
-    color = "Benchmark",
+    x = "v4.2.1",
+    y = "v5.0q",
+    color = "Genomic Context",
     shape = "Genomic Context"
   ) +
+  coord_equal(clip = "off") +
   theme_manuscript() +
   theme(legend.position = "right"))
 ```
 
 ### By Variant Type and Context
 
-```{r smvar_type_scatter, fig.width = 8, fig.height = 5}
-(smvar_type_plt <- smvar_type_df %>%
-  ggplot(aes(x = recall, y = precision, color = bench_version)) +
-  geom_point(aes(shape = context_label), size = 3, stroke = 0.8) +
+```{r smvar_type_scatter, fig.width = 10, fig.height = 7}
+smvar_type_compare_df <- smvar_type_df |>
+  select(bench_version, var_type_label, context_label, precision, recall, f1) |>
+  pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
+  pivot_wider(names_from = bench_version, values_from = value) |>
+  rename(v421 = `v4.2.1`, v50q = `v5.0q`) |>
+  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
+
+(smvar_type_plt <- smvar_type_compare_df |>
+  ggplot(aes(x = v421, y = v50q, color = context_label, shape = context_label)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
+  geom_point(size = 3, stroke = 0.8) +
   ggrepel::geom_text_repel(
     aes(label = context_label),
     size = 2, max.overlaps = 20, seed = 42,
     show.legend = FALSE
   ) +
-  facet_wrap(~var_type_label) +
-  scale_x_continuous(labels = scales::percent, limits = c(0.85, 1.005)) +
-  scale_y_continuous(labels = scales::percent, limits = c(0.85, 1.005)) +
-  scale_benchmark_version(aesthetic = "color") +
-  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  facet_grid(var_type_label ~ metric) +
+  scale_x_continuous(
+    trans = phred_trans,
+    breaks = phred_smvar_pcts, labels = phred_smvar_labels
+  ) +
+  scale_y_continuous(
+    trans = phred_trans,
+    breaks = phred_smvar_pcts, labels = phred_smvar_labels
+  ) +
+  annotation_phredticks(sides = "bl") +
+  scale_color_manual(values = context_label_colors) +
+  scale_shape_manual(values = context_label_shapes) +
   labs(
-    x = "Recall",
-    y = "Precision",
-    color = "Benchmark",
+    x = "v4.2.1",
+    y = "v5.0q",
+    color = "Genomic Context",
     shape = "Genomic Context"
   ) +
+  coord_equal(clip = "off") +
   theme_manuscript() +
   theme(legend.position = "bottom"))
 ```
@@ -157,17 +362,13 @@ smvar_size_long <- smvar_size_df %>%
     position = position_dodge(width = 0.8), width = 0.7,
     color = "grey30", linewidth = 0.3
   ) +
-  geom_text(
-    aes(label = sprintf("%.1f%%", value * 100)),
-    position = position_dodge(width = 0.8),
-    vjust = -0.3, size = 2.5
-  ) +
   facet_wrap(~metric) +
   scale_y_continuous(
-    labels = scales::percent,
-    limits = c(0.85, 1.01),
-    oob = scales::squish,
-    breaks = seq(0.85, 1.0, 0.05)
+    trans   = phred_trans,
+    breaks  = phred_smvar_pcts,
+    labels  = phred_smvar_labels,
+    limits  = c(0.85, 0.9999),
+    oob     = scales::squish
   ) +
   scale_benchmark_version(aesthetic = "fill") +
   labs(x = "Variant Size", y = NULL, fill = "Benchmark") +
@@ -177,7 +378,7 @@ smvar_size_long <- smvar_size_df %>%
 
 ### Combined Small Variant Figure
 
-```{r combined_smvar, fig.width = 10, fig.height = 10}
+```{r combined_smvar, fig.width = 10, fig.height = 16}
 (combined_smvar_plt <-
   (smvar_scatter_plt + theme(legend.position = "bottom")) /
   smvar_type_plt /
@@ -189,7 +390,7 @@ ggsave(
   filename = here("manuscript", "figs", "use_case_smvar.png"),
   plot = combined_smvar_plt,
   width = 10,
-  height = 10,
+  height = 16,
   dpi = 300
 )
 ```
@@ -197,9 +398,9 @@ ggsave(
 ### Figure Legend
 
 **Figure use_case_smvar: Small variant benchmarking of the Roche NeuSomatic callset against v4.2.1 and v5.0q benchmark sets.**
-(A) Precision-recall scatter plot for the Roche NeuSomatic HG002 callset (Illumina + PacBio + ONT input data) evaluated against the v4.2.1 and v5.0q GRCh38 small variant benchmarks using `rtg vcfeval`. Points represent overall and stratified (homopolymers, low mappability, segmental duplications, tandem repeats) performance using GIAB v3.6 stratifications.
-(B) Precision-recall scatter by variant type (SNV and INDEL) and genomic context.
-(C) Recall and precision by variant size bin (SNP, 1–4 bp, 5–14 bp, 15–49 bp).
+(A) Benchmark comparison scatter plots for the Roche NeuSomatic HG002 callset (Illumina + PacBio + ONT input data) evaluated against the v4.2.1 and v5.0q GRCh38 small variant benchmarks using `rtg vcfeval`. Each panel shows one performance metric (recall, precision, F1); each point is a genomic context (overall, homopolymers, low mappability, segmental duplications, tandem repeats) using GIAB v3.6 stratifications. Axes are phred-scaled; the dashed diagonal marks equal performance between the two benchmarks.
+(B) Same comparison faceted by variant type (SNV and INDEL) and performance metric.
+(C) Recall and precision by variant size bin (SNP, 1–4 bp, 5–14 bp, 15–49 bp) on a phred-scaled y-axis.
 
 ### Results Text
 
@@ -216,7 +417,7 @@ Performance differences were particularly pronounced for INDELs compared to SNVs
 
 Comparison of Baylor ONT (Sniffles2) and Illumina DRAGEN SV callsets
 against the v5.0q GRCh38 structural variant benchmark.
-Evaluated with `truvari bench`.
+Evaluated with `truvari bench` and `truvari refine` using GIAB v5.0q recommended parameters (`--pick ac --passonly -r 2000 -C 5000 --refine`).
 
 ```{r stvar_data}
 stvar_df <- read_csv(
@@ -271,27 +472,43 @@ sv_size_df <- read_csv(
   )
 ```
 
-### Precision-Recall Scatter: ONT vs DRAGEN by Context
+### Callset Comparison Scatter: ONT vs DRAGEN by Context
 
-```{r stvar_scatter, fig.width = 7, fig.height = 5}
-(stvar_scatter_plt <- stvar_df %>%
-  ggplot(aes(x = recall, y = precision, color = callset_label)) +
-  geom_point(aes(shape = context_label), size = 3.5, stroke = 0.8) +
+```{r stvar_scatter, fig.width = 10, fig.height = 4}
+stvar_compare_df <- stvar_df |>
+  select(callset, context_label, precision, recall, f1) |>
+  pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
+  pivot_wider(names_from = callset, values_from = value) |>
+  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
+
+(stvar_scatter_plt <- stvar_compare_df |>
+  ggplot(aes(x = baylor_ont, y = dragen, color = context_label, shape = context_label)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
+  geom_point(size = 3.5, stroke = 0.8) +
   ggrepel::geom_text_repel(
     aes(label = context_label),
     size = 2.5, max.overlaps = 15, seed = 42,
     show.legend = FALSE
   ) +
-  scale_x_continuous(labels = scales::percent) +
-  scale_y_continuous(labels = scales::percent) +
-  scale_color_manual(values = callset_colors) +
-  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  facet_wrap(~metric) +
+  scale_x_continuous(
+    trans = phred_trans,
+    breaks = phred_stvar_pcts, labels = phred_stvar_labels
+  ) +
+  scale_y_continuous(
+    trans = phred_trans,
+    breaks = phred_stvar_pcts, labels = phred_stvar_labels
+  ) +
+  annotation_phredticks(sides = "bl") +
+  scale_color_manual(values = context_label_colors) +
+  scale_shape_manual(values = context_label_shapes) +
   labs(
-    x = "Recall",
-    y = "Precision",
-    color = "Callset",
+    x = "Baylor ONT (Sniffles2)",
+    y = "Illumina DRAGEN",
+    color = "Genomic Context",
     shape = "Genomic Context"
   ) +
+  coord_equal(clip = "off") +
   theme_manuscript() +
   theme(legend.position = "right"))
 ```
@@ -310,7 +527,12 @@ sv_size_long <- sv_size_df %>%
     color = "grey30", linewidth = 0.3
   ) +
   facet_grid(svtype ~ metric) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1.05)) +
+  scale_y_continuous(
+    trans   = phred_trans,
+    breaks  = phred_stvar_pcts,
+    labels  = phred_stvar_labels,
+    limits  = c(0, 0.99)
+  ) +
   scale_fill_manual(values = callset_colors) +
   labs(x = "SV Size", y = NULL, fill = "Callset") +
   theme_manuscript() +
@@ -320,40 +542,54 @@ sv_size_long <- sv_size_df %>%
   ))
 ```
 
-### Precision-Recall Scatter: By SV Type and Size
+### Callset Comparison Scatter: By SV Type and Size
 
-```{r stvar_size_scatter, fig.width = 7, fig.height = 5}
-(stvar_size_scatter_plt <- sv_size_df %>%
-  ggplot(aes(x = recall, y = precision, color = callset_label)) +
-  geom_point(aes(shape = svtype), size = 3, stroke = 0.8) +
-  geom_line(aes(group = interaction(callset_label, svtype)),
-            linewidth = 0.4, alpha = 0.5) +
+```{r stvar_size_scatter, fig.width = 10, fig.height = 7}
+sv_size_compare_df <- sv_size_df |>
+  select(callset, svtype, size_bin, precision, recall, f1) |>
+  pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
+  pivot_wider(names_from = callset, values_from = value) |>
+  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
+
+(stvar_size_scatter_plt <- sv_size_compare_df |>
+  ggplot(aes(x = baylor_ont, y = dragen, color = svtype, shape = size_bin)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
+  geom_point(size = 3, stroke = 0.8) +
   ggrepel::geom_text_repel(
     aes(label = size_bin),
     size = 2, max.overlaps = 20, seed = 42,
     show.legend = FALSE
   ) +
-  scale_x_continuous(labels = scales::percent) +
-  scale_y_continuous(labels = scales::percent) +
-  scale_color_manual(values = callset_colors) +
-  scale_shape_manual(values = c("DEL" = 17, "INS" = 16)) +
-  labs(
-    x = "Recall",
-    y = "Precision",
-    color = "Callset",
-    shape = "SV Type"
+  facet_grid(svtype ~ metric) +
+  scale_x_continuous(
+    trans = phred_trans,
+    breaks = phred_stvar_pcts, labels = phred_stvar_labels
   ) +
+  scale_y_continuous(
+    trans = phred_trans,
+    breaks = phred_stvar_pcts, labels = phred_stvar_labels
+  ) +
+  annotation_phredticks(sides = "bl") +
+  scale_color_manual(values = c("DEL" = "#D95F02", "INS" = "#1B9E77")) +
+  scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
+  labs(
+    x = "Baylor ONT (Sniffles2)",
+    y = "Illumina DRAGEN",
+    color = "SV Type",
+    shape = "SV Size"
+  ) +
+  coord_equal(clip = "off") +
   theme_manuscript() +
   theme(legend.position = "right"))
 ```
 
 ### Combined SV Figure
 
-```{r combined_stvar, fig.width = 10, fig.height = 12}
+```{r combined_stvar, fig.width = 10, fig.height = 16}
 (combined_stvar_plt <-
   (stvar_scatter_plt + theme(legend.position = "bottom")) /
   stvar_size_plt /
-  (stvar_size_scatter_plt + theme(legend.position = "bottom")) +
+  (stvar_size_scatter_plt + theme(legend.position = "right")) +
   plot_annotation(tag_levels = "A") &
   theme(plot.margin = unit(c(5, 5, 5, 5), "pt")))
 
@@ -361,7 +597,7 @@ ggsave(
   filename = here("manuscript", "figs", "use_case_stvar.png"),
   plot = combined_stvar_plt,
   width = 10,
-  height = 12,
+  height = 16,
   dpi = 300
 )
 ```
@@ -369,18 +605,18 @@ ggsave(
 ### Figure Legend
 
 **Figure use_case_stvar: Structural variant benchmarking of Baylor ONT (Sniffles2) and Illumina DRAGEN callsets against the v5.0q GRCh38 SV benchmark.**
-(A) Precision-recall scatter plot for overall and stratified performance (homopolymers, low mappability, segmental duplications, tandem repeats) using GIAB v3.6 stratifications and `truvari bench`.
-(B) Recall and precision by SV type (DEL and INS) and size bin (50–99 bp, 100–299 bp, 300–999 bp, 1–10 kb, ≥10 kb).
-(C) Precision-recall scatter by SV type and size bin, with connected lines showing performance trends across size ranges.
+(A) Callset comparison scatter plots for overall and stratified performance (homopolymers, low mappability, segmental duplications, tandem repeats) using GIAB v3.6 stratifications and `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine`. Each panel shows one performance metric (recall, precision, F1); x-axis is Baylor ONT (Sniffles2), y-axis is Illumina DRAGEN. Axes are phred-scaled; the dashed diagonal marks equal performance between callsets.
+(B) Recall and precision by SV type (DEL and INS) and size bin (50–99 bp, 100–299 bp, 300–999 bp, 1–10 kb, ≥10 kb) on a phred-scaled y-axis.
+(C) Callset comparison scatter by SV type and size bin, faceted by SV type and performance metric. Axes are phred-scaled.
 
 ### Results Text
 
-To illustrate how the v5.0q SV benchmark enables differentiation of variant calling approaches, we compared the Baylor ONT (Sniffles2) and Illumina DRAGEN SV callsets against the v5.0q GRCh38 structural variant benchmark using `truvari bench`.
+To illustrate how the v5.0q SV benchmark enables differentiation of variant calling approaches, we compared the Baylor ONT (Sniffles2) and Illumina DRAGEN SV callsets against the v5.0q GRCh38 structural variant benchmark using `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine` for MSA-based re-evaluation of candidate regions. ALT="*" spanning deletion records were filtered prior to benchmarking per GIAB v5.0q README guidance.
 
-The Baylor ONT callset achieved higher overall recall (65.9% vs. 60.0%) and precision (89.9% vs. 73.9%) compared to DRAGEN. This performance advantage was consistent across all genomic contexts. Both callsets showed highest recall in homopolymers (ONT: 81.9%, DRAGEN: 75.9%) and lowest recall in segmental duplications (ONT: 42.2%, DRAGEN: 34.4%), where sequence similarity between duplicated loci presents challenges for both short and long read alignment.
+The Baylor ONT callset achieved higher overall recall (74.5% vs. 64.2%) and precision (93.6% vs. 78.6%) compared to DRAGEN. This performance advantage was consistent across all genomic contexts. Both callsets showed highest recall in homopolymers (ONT: 87.6%, DRAGEN: 77.9%) and lowest recall in segmental duplications (ONT: 45.0%, DRAGEN: 35.4%), where sequence similarity between duplicated loci presents challenges for both short and long read alignment.
 
-The precision advantage of ONT over DRAGEN was most pronounced in tandem repeats (88.6% vs. 72.4%) and segmental duplications (69.7% vs. 57.6%). DRAGEN produced substantially more false positives overall (5,958 vs. 2,082), particularly in tandem repeats (4,234 vs. 1,610), likely reflecting the inherent difficulty of resolving repeat-length variation from short reads.
+The precision advantage of ONT over DRAGEN was most pronounced in tandem repeats (92.8% vs. 77.9%) and segmental duplications (80.4% vs. 65.9%). DRAGEN produced substantially more false positives overall (4,909 vs. 1,431), particularly in tandem repeats (3,334 vs. 1,106), likely reflecting the inherent difficulty of resolving repeat-length variation from short reads.
 
-By SV type, both callsets had higher recall for deletions than insertions (ONT: DEL 74.3% vs. INS 61.1%; DRAGEN: DEL 65.0% vs. INS 57.2%). Precision was similar for both SV types in the ONT callset (~89–91%), while DRAGEN showed higher precision for deletions (84.3%) than insertions (80.9%). Across size bins, the ONT callset maintained relatively consistent recall for deletions from 50 bp to 10 kb, while DRAGEN recall dropped more steeply for larger deletions. For insertions, both callsets showed decreased recall for variants ≥10 kb, though the ONT callset retained a clear advantage at all size ranges.
+By SV type, both callsets had higher recall for deletions than insertions (ONT: DEL 77.3% vs. INS 73.0%; DRAGEN: DEL 64.8% vs. INS 63.9%). Precision was similar for both SV types in the ONT callset (~93–94%), while DRAGEN showed higher precision for deletions (88.4%) than insertions (85.8%). Across size bins, the ONT callset maintained relatively consistent recall for deletions from 50 bp to 10 kb, while DRAGEN recall dropped more steeply for larger deletions. For insertions, both callsets showed decreased recall for variants ≥10 kb, though the ONT callset retained a clear advantage at all size ranges.
 
 These results demonstrate that the expanded v5.0q SV benchmark, which includes challenging repetitive regions, reveals meaningful performance differences between sequencing technologies and variant callers that would not be apparent with a benchmark limited to easier genomic contexts.
