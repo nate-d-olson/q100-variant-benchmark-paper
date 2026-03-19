@@ -8,7 +8,6 @@ Tests the UNK/INV → INS/DEL/SNP reclassification branch to ensure:
 - UNK variants with ref_len == alt_len > 1 (MNPs) are NOT classified as SNP
 """
 
-import pytest
 import sys
 from pathlib import Path
 
@@ -100,13 +99,13 @@ def test_unk_reclassification_edge_cases():
     """Test edge cases in variant reclassification."""
     test_cases = [
         # (ref_len, alt_len, expected_type, expected_size)
-        (1, 1, "SNP", 0),       # Single nucleotide substitution
-        (1, 2, "INS", 1),       # Single base insertion
-        (2, 1, "DEL", -1),      # Single base deletion
-        (10, 20, "INS", 10),    # Larger insertion
-        (50, 25, "DEL", -25),   # Larger deletion
-        (2, 2, "UNK", 0),       # MNP (dinucleotide)
-        (10, 10, "UNK", 0),     # Larger MNP
+        (1, 1, "SNP", 0),  # Single nucleotide substitution
+        (1, 2, "INS", 1),  # Single base insertion
+        (2, 1, "DEL", -1),  # Single base deletion
+        (10, 20, "INS", 10),  # Larger insertion
+        (50, 25, "DEL", -25),  # Larger deletion
+        (2, 2, "UNK", 0),  # MNP (dinucleotide)
+        (10, 10, "UNK", 0),  # Larger MNP
     ]
 
     for ref_len, alt_len, expected_type, expected_size in test_cases:
