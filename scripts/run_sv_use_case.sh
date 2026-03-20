@@ -11,7 +11,7 @@ BENCH_VCF="${PROJ_DIR}/resources/benchmarksets/v5.0q_GRCh38_stvar_benchmark.vcf.
 BENCH_BED="${PROJ_DIR}/resources/benchmarksets/v5.0q_GRCh38_stvar_benchmark.bed"
 REF="${PROJ_DIR}/resources/references/GRCh38.fa.gz"
 STRAT_DIR="${PROJ_DIR}/resources/stratifications"
-THREADS=16
+THREADS=4
 
 CALLSET_NAMES="ont-sniffles ont-verkko"
 SNIFFLES_SRC="/Users/nolson/Google Drive/Shared drives/BBD_Human_Genomics/HG002-Q100v1.1-Variant-Benchmark-Evaluations/evaluations/stvar/callsets/ont-sniffles/v5hac40x_snifflesPhased_v2.5.3tr.pass.vcf.gz"
@@ -65,19 +65,17 @@ for callset in ${CALLSET_NAMES}; do
         --reference "${REF}" \
         --use-original-vcfs \
         --threads "${THREADS}" \
-        --debug \
         "${run_dir}"
 
     # Step 5: Run truvari stratify for each genomic context
+    # truvari stratify takes positional args: BED BENCH_DIR [-o OUTPUT]
     echo "Running truvari stratify..."
     for context in HP TR SD MAP; do
         echo "  Stratifying ${context}..."
         truvari stratify \
-            --base "${BENCH_VCF}" \
-            --comp "${filtered_vcf}" \
-            --bench-dir "${run_dir}" \
-            --regions "${STRAT_DIR}/GRCh38_${context}.bed.gz" \
-            --output "${run_dir}/stratify_${context}.txt"
+            "${STRAT_DIR}/GRCh38_${context}.bed.gz" \
+            "${run_dir}" \
+            -o "${run_dir}/stratify_${context}.txt"
     done
 
     # Cleanup filtered VCF

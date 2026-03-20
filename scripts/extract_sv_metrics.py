@@ -24,6 +24,20 @@ STRAT_DIR = PROJ_DIR / "resources" / "stratifications"
 CALLSETS = ["ont-sniffles", "ont-verkko"]
 CONTEXTS = ["HP", "TR", "SD", "MAP"]
 
+# Map truvari's fine-grained size bins to manuscript-level bins
+SIZEBIN_MAP: dict[str, str] = {
+    "[50,100)": "[50,100)",
+    "[100,200)": "[100,300)",
+    "[200,300)": "[100,300)",
+    "[300,400)": "[300,1000)",
+    "[400,600)": "[300,1000)",
+    "[600,800)": "[300,1000)",
+    "[800,1k)": "[300,1000)",
+    "[1k,2.5k)": "[1000,10000)",
+    "[2.5k,5k)": "[1000,10000)",
+    ">=5k": ">=10000",
+}
+
 
 def get_refine_vcfs(run_dir: Path) -> dict[str, Path]:
     """Return paths to post-refine TP/FP/FN VCFs."""
@@ -54,7 +68,7 @@ def main() -> None:
 
         precision, recall, f1 = truvari.performance_metrics(
             summary["TP-base"],
-            summary["TP-call"],
+            summary["TP-comp"],
             summary["FN"],
             summary["FP"]
         )
@@ -62,7 +76,7 @@ def main() -> None:
         strat_rows.append({
             "callset": callset,
             "context": "Overall",
-            "tp": summary["TP-call"],
+            "tp": summary["TP-comp"],
             "fp": summary["FP"],
             "fn": summary["FN"],
             "recall": round(recall, 4),
@@ -133,8 +147,8 @@ def main() -> None:
                 "tp": tp,
                 "fp": fp,
                 "fn": fn,
-                "recall": round(recall, 4),
-                "precision": round(precision, 4),
+                "recall": round(recall, 4) if recall is not None else 0.0,
+                "precision": round(precision, 4) if precision is not None else 0.0,
             })
 
     svtype_path = STVAR_DIR / "svtype_metrics.csv"
@@ -155,10 +169,13 @@ def main() -> None:
             # Load VCF and add size_bin column
             df = truvari.vcf_to_df(str(vcf_path))
             df["size_bin"] = df["svlen"].apply(
-                lambda x: truvari.get_sizebin(abs(x) if x else 0)
+                lambda x: SIZEBIN_MAP.get(
+                    truvari.get_sizebin(abs(x) if x else 0), "other"
+                )
             )
+            df = df[df["size_bin"] != "other"]
 
-            # Count by (svtype, size_bin)
+            # Count by (svtype, size_bin) — aggregated to manuscript bins
             counts = df.groupby(["svtype", "size_bin"]).size().reset_index(name="count")
             counts["callset"] = callset
             counts["category"] = category
