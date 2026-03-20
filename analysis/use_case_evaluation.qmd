@@ -22,12 +22,12 @@ analysis_setup(load_plot_themes = TRUE)
 source(here::here("scripts/happy_giab.R"))  ## imports convert_to_phred()
 
 callset_colors <- c(
-  "Baylor ONT (Sniffles2)" = "#2ca02c",
-  "Illumina DRAGEN" = "#1f77b4"
+  "ONT-Sniffles (Sniffles2)" = "#2ca02c",
+  "ONT-Verkko (dipcall)" = "#1f77b4"
 )
 
 size_bin_levels <- c("SNP", "1-4bp", "5-14bp", "15-49bp")
-sv_size_levels <- c("50-99bp", "100-299bp", "300-999bp", "1-10kb", ">=10kb")
+sv_size_levels <- c("[50,100)", "[100,300)", "[300,1000)", "[1000,10000)", ">=10000")
 
 ## Phred-scale ggplot2 transformation ----------------------------------------
 phred_trans <- scales::trans_new(
@@ -413,10 +413,10 @@ Against the v5.0q benchmark, the same callset showed substantially lower perform
 Performance differences were particularly pronounced for INDELs compared to SNVs. Against v5.0q, INDEL recall dropped to 93.3% in homopolymers and 90.4% in tandem repeats, compared to >99.3% for both variant types against v4.2.1. By variant size, the largest performance decrease was observed for INDELs in the 5–14 bp and 15–49 bp size ranges, where the v5.0q benchmark includes substantially more variants in repetitive regions.
 
 
-## Structural Variant Benchmarking: Baylor ONT vs Illumina DRAGEN
+## Structural Variant Benchmarking: ONT-Sniffles vs ONT-Verkko
 
-Comparison of Baylor ONT (Sniffles2) and Illumina DRAGEN SV callsets
-against the v5.0q GRCh38 structural variant benchmark.
+Comparison of ONT-Sniffles (Sniffles2, mapping-based) and ONT-Verkko (dipcall, assembly-based)
+SV callsets against the v5.0q GRCh38 structural variant benchmark.
 Evaluated with `truvari bench` and `truvari refine` using GIAB v5.0q recommended parameters (`--pick ac --passonly -r 2000 -C 5000 --refine`).
 
 ```{r stvar_data}
@@ -435,8 +435,8 @@ stvar_df <- read_csv(
                  "Segmental Duplications", "Tandem Repeats")
     ),
     callset_label = case_when(
-      callset == "baylor_ont" ~ "Baylor ONT (Sniffles2)",
-      callset == "dragen" ~ "Illumina DRAGEN"
+      callset == "ont-sniffles" ~ "ONT-Sniffles (Sniffles2)",
+      callset == "ont-verkko" ~ "ONT-Verkko (dipcall)"
     ),
     f1 = 2 * (precision * recall) / (precision + recall)
   )
@@ -448,8 +448,8 @@ svtype_df <- read_csv(
 ) %>%
   mutate(
     callset_label = case_when(
-      callset == "baylor_ont" ~ "Baylor ONT (Sniffles2)",
-      callset == "dragen" ~ "Illumina DRAGEN"
+      callset == "ont-sniffles" ~ "ONT-Sniffles (Sniffles2)",
+      callset == "ont-verkko" ~ "ONT-Verkko (dipcall)"
     ),
     f1 = 2 * (precision * recall) / (precision + recall)
   )
@@ -466,23 +466,24 @@ sv_size_df <- read_csv(
   mutate(
     size_bin = factor(size_bin, levels = sv_size_levels),
     callset_label = case_when(
-      callset == "baylor_ont" ~ "Baylor ONT (Sniffles2)",
-      callset == "dragen" ~ "Illumina DRAGEN"
+      callset == "ont-sniffles" ~ "ONT-Sniffles (Sniffles2)",
+      callset == "ont-verkko" ~ "ONT-Verkko (dipcall)"
     )
   )
 ```
 
-### Callset Comparison Scatter: ONT vs DRAGEN by Context
+### Callset Comparison Scatter: ONT-Sniffles vs ONT-Verkko by Context
 
 ```{r stvar_scatter, fig.width = 10, fig.height = 4}
 stvar_compare_df <- stvar_df |>
   select(callset, context_label, precision, recall, f1) |>
   pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
   pivot_wider(names_from = callset, values_from = value) |>
+  rename(ont_sniffles = `ont-sniffles`, ont_verkko = `ont-verkko`) |>
   mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
 
 (stvar_scatter_plt <- stvar_compare_df |>
-  ggplot(aes(x = baylor_ont, y = dragen, color = context_label, shape = context_label)) +
+  ggplot(aes(x = ont_sniffles, y = ont_verkko, color = context_label, shape = context_label)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
   geom_point(size = 3.5, stroke = 0.8) +
   ggrepel::geom_text_repel(
@@ -503,8 +504,8 @@ stvar_compare_df <- stvar_df |>
   scale_color_manual(values = context_label_colors) +
   scale_shape_manual(values = context_label_shapes) +
   labs(
-    x = "Baylor ONT (Sniffles2)",
-    y = "Illumina DRAGEN",
+    x = "ONT-Sniffles (Sniffles2)",
+    y = "ONT-Verkko (dipcall)",
     color = "Genomic Context",
     shape = "Genomic Context"
   ) +
@@ -542,17 +543,18 @@ sv_size_long <- sv_size_df %>%
   ))
 ```
 
-### Callset Comparison Scatter: By SV Type and Size
+### Callset Comparison Scatter: ONT-Sniffles vs ONT-Verkko by SV Type and Size
 
 ```{r stvar_size_scatter, fig.width = 10, fig.height = 7}
 sv_size_compare_df <- sv_size_df |>
   select(callset, svtype, size_bin, precision, recall, f1) |>
   pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
   pivot_wider(names_from = callset, values_from = value) |>
+  rename(ont_sniffles = `ont-sniffles`, ont_verkko = `ont-verkko`) |>
   mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
 
 (stvar_size_scatter_plt <- sv_size_compare_df |>
-  ggplot(aes(x = baylor_ont, y = dragen, color = svtype, shape = size_bin)) +
+  ggplot(aes(x = ont_sniffles, y = ont_verkko, color = svtype, shape = size_bin)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
   geom_point(size = 3, stroke = 0.8) +
   ggrepel::geom_text_repel(
@@ -573,8 +575,8 @@ sv_size_compare_df <- sv_size_df |>
   scale_color_manual(values = c("DEL" = "#D95F02", "INS" = "#1B9E77")) +
   scale_shape_manual(values = c(16, 17, 15, 18, 8)) +
   labs(
-    x = "Baylor ONT (Sniffles2)",
-    y = "Illumina DRAGEN",
+    x = "ONT-Sniffles (Sniffles2)",
+    y = "ONT-Verkko (dipcall)",
     color = "SV Type",
     shape = "SV Size"
   ) +
@@ -604,19 +606,13 @@ ggsave(
 
 ### Figure Legend
 
-**Figure use_case_stvar: Structural variant benchmarking of Baylor ONT (Sniffles2) and Illumina DRAGEN callsets against the v5.0q GRCh38 SV benchmark.**
-(A) Callset comparison scatter plots for overall and stratified performance (homopolymers, low mappability, segmental duplications, tandem repeats) using GIAB v3.6 stratifications and `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine`. Each panel shows one performance metric (recall, precision, F1); x-axis is Baylor ONT (Sniffles2), y-axis is Illumina DRAGEN. Axes are phred-scaled; the dashed diagonal marks equal performance between callsets.
-(B) Recall and precision by SV type (DEL and INS) and size bin (50–99 bp, 100–299 bp, 300–999 bp, 1–10 kb, ≥10 kb) on a phred-scaled y-axis.
+**Figure use_case_stvar: Structural variant benchmarking of ONT-Sniffles (Sniffles2, mapping-based) and ONT-Verkko (dipcall, assembly-based) callsets against the v5.0q GRCh38 SV benchmark.**
+(A) Callset comparison scatter plots for overall and stratified performance (homopolymers, low mappability, segmental duplications, tandem repeats) using GIAB v3.6 stratifications and `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine`. Each panel shows one performance metric (recall, precision, F1); x-axis is ONT-Sniffles (Sniffles2), y-axis is ONT-Verkko (dipcall). Axes are phred-scaled; the dashed diagonal marks equal performance between callsets.
+(B) Recall and precision by SV type (DEL and INS) and size bin on a phred-scaled y-axis.
 (C) Callset comparison scatter by SV type and size bin, faceted by SV type and performance metric. Axes are phred-scaled.
 
 ### Results Text
 
-To illustrate how the v5.0q SV benchmark enables differentiation of variant calling approaches, we compared the Baylor ONT (Sniffles2) and Illumina DRAGEN SV callsets against the v5.0q GRCh38 structural variant benchmark using `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine` for MSA-based re-evaluation of candidate regions. ALT="*" spanning deletion records were filtered prior to benchmarking per GIAB v5.0q README guidance.
+To demonstrate the practical impact of SV calling methodology on benchmarking performance, we compared mapping-based (ONT-Sniffles2) and assembly-based (ONT-Verkko dipcall) structural variant callsets against the v5.0q GRCh38 benchmark using `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine` for MSA-based re-evaluation. ALT="*" spanning deletion records were filtered prior to benchmarking per GIAB v5.0q README guidance.
 
-The Baylor ONT callset achieved higher overall recall (74.5% vs. 64.2%) and precision (93.6% vs. 78.6%) compared to DRAGEN. This performance advantage was consistent across all genomic contexts. Both callsets showed highest recall in homopolymers (ONT: 87.6%, DRAGEN: 77.9%) and lowest recall in segmental duplications (ONT: 45.0%, DRAGEN: 35.4%), where sequence similarity between duplicated loci presents challenges for both short and long read alignment.
-
-The precision advantage of ONT over DRAGEN was most pronounced in tandem repeats (92.8% vs. 77.9%) and segmental duplications (80.4% vs. 65.9%). DRAGEN produced substantially more false positives overall (4,909 vs. 1,431), particularly in tandem repeats (3,334 vs. 1,106), likely reflecting the inherent difficulty of resolving repeat-length variation from short reads.
-
-By SV type, both callsets had higher recall for deletions than insertions (ONT: DEL 77.3% vs. INS 73.0%; DRAGEN: DEL 64.8% vs. INS 63.9%). Precision was similar for both SV types in the ONT callset (~93–94%), while DRAGEN showed higher precision for deletions (88.4%) than insertions (85.8%). Across size bins, the ONT callset maintained relatively consistent recall for deletions from 50 bp to 10 kb, while DRAGEN recall dropped more steeply for larger deletions. For insertions, both callsets showed decreased recall for variants ≥10 kb, though the ONT callset retained a clear advantage at all size ranges.
-
-These results demonstrate that the expanded v5.0q SV benchmark, which includes challenging repetitive regions, reveals meaningful performance differences between sequencing technologies and variant callers that would not be apparent with a benchmark limited to easier genomic contexts.
+[Add performance comparison results after reviewing actual metrics]
