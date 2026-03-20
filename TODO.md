@@ -27,7 +27,7 @@
 
 ### Text
 - [ ] figure legends
-- [ ] revise use-case results
+- [x] revise use-case results — ONT-Sniffles vs ONT-Verkko comparison with Truvari API
 - [ ] **Fill and verify highlighted values** — all placeholders (##, ??, XYZ, xx) in manuscript
 - [x] **Add chr8 inversion specifics** — coordinates from PAV callset (chr8:8,237,843–12,234,345)
 - [x] **Benchmarking use-case section** — draft text in `analysis/use_case_evaluation.qmd`
@@ -57,7 +57,10 @@
 
 ### Pipeline Integration
 
-- [ ] Integrate SV use-case evaluation into Snakemake pipeline (new rules + config entries for callsets, truvari params, metrics extraction)
+- [ ] Integrate SV use-case evaluation into Snakemake pipeline
+  - Add `workflow/rules/use_case_evaluation.smk`
+  - Add config entries for callsets, parameters, stratifications
+  - Automate callset download and benchmarking
 
 ### Infrastructure
 
