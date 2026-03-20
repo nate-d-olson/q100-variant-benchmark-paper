@@ -4,123 +4,34 @@
 Reads post-refine truvari output for both SV callsets and generates three
 CSV files matching the format expected by use_case_evaluation.qmd.
 
-Requires: bcftools, bedtools (available in truvari conda env)
+Requires: truvari, pandas (available in truvari conda env)
 
 AI Disclosure: Developed with assistance from Claude Opus 4.6 (Anthropic).
 """
 
 import csv
-import subprocess
+import json
 import sys
 from pathlib import Path
+
+import pandas as pd
+import truvari
 
 PROJ_DIR = Path(__file__).resolve().parent.parent
 STVAR_DIR = PROJ_DIR / "results" / "use_case" / "stvar"
 STRAT_DIR = PROJ_DIR / "resources" / "stratifications"
 
-CALLSETS = ["baylor_ont", "dragen"]
+CALLSETS = ["ont-sniffles", "ont-verkko"]
 CONTEXTS = ["HP", "TR", "SD", "MAP"]
-SIZE_BINS = [
-    (50, 100, "50-99bp"),
-    (100, 300, "100-299bp"),
-    (300, 1000, "300-999bp"),
-    (1000, 10000, "1-10kb"),
-    (10000, float("inf"), ">=10kb"),
-]
 
 
 def get_refine_vcfs(run_dir: Path) -> dict[str, Path]:
-    """Return paths to post-refine TP/FP/FN VCFs.
-
-    Truvari refine updates tp-base.vcf.gz, fp.vcf.gz, fn.vcf.gz in-place.
-    Note: refine.base.vcf.gz contains ALL base variants (TP+FN), not just TPs.
-    """
+    """Return paths to post-refine TP/FP/FN VCFs."""
     return {
         "TP": run_dir / "tp-base.vcf.gz",
         "FP": run_dir / "fp.vcf.gz",
         "FN": run_dir / "fn.vcf.gz",
     }
-
-
-def count_vcf_records(vcf_path: Path) -> int:
-    """Count records in a VCF file."""
-    result = subprocess.run(
-        ["bcftools", "view", "-H", str(vcf_path)],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return len(result.stdout.strip().split("\n")) if result.stdout.strip() else 0
-
-
-def count_intersecting_variants(vcf_path: Path, bed_path: Path) -> int:
-    """Count VCF records overlapping a BED file using bedtools."""
-    result = subprocess.run(
-        ["bedtools", "intersect", "-u", "-a", str(vcf_path), "-b", str(bed_path)],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    # Filter to data lines (skip headers)
-    lines = [l for l in result.stdout.strip().split("\n") if l and not l.startswith("#")]
-    return len(lines)
-
-
-def get_svtype_counts(vcf_path: Path) -> dict[str, int]:
-    """Count variants by SVTYPE from a VCF."""
-    result = subprocess.run(
-        ["bcftools", "query", "-f", "%INFO/SVTYPE\n", str(vcf_path)],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    counts: dict[str, int] = {}
-    for line in result.stdout.strip().split("\n"):
-        if line:
-            svtype = line.strip()
-            counts[svtype] = counts.get(svtype, 0) + 1
-    return counts
-
-
-def get_svtype_size_counts(vcf_path: Path) -> dict[tuple[str, str], int]:
-    """Count variants by SVTYPE and size bin."""
-    result = subprocess.run(
-        ["bcftools", "query", "-f", "%INFO/SVTYPE\t%INFO/SVLEN\n", str(vcf_path)],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    counts: dict[tuple[str, str], int] = {}
-    for line in result.stdout.strip().split("\n"):
-        if not line:
-            continue
-        parts = line.strip().split("\t")
-        if len(parts) < 2:
-            continue
-        svtype = parts[0]
-        try:
-            svlen = abs(int(parts[1]))
-        except ValueError:
-            svlen = 50  # default for missing SVLEN
-        if svlen == 0:
-            svlen = 50
-
-        size_bin = ">=10kb"  # default
-        for lo, hi, label in SIZE_BINS:
-            if lo <= svlen < hi:
-                size_bin = label
-                break
-
-        key = (svtype, size_bin)
-        counts[key] = counts.get(key, 0) + 1
-    return counts
-
-
-def compute_metrics(tp: int, fp: int, fn: int) -> tuple[float, float]:
-    """Compute recall and precision."""
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    return recall, precision
 
 
 def main() -> None:
@@ -131,35 +42,60 @@ def main() -> None:
             print(f"ERROR: {run_dir} does not exist. Run scripts/run_sv_use_case.sh first.", file=sys.stderr)
             sys.exit(1)
 
-    # === 1. Stratified metrics ===
+    # === 1. Stratified metrics (Overall + per-context) ===
     strat_rows: list[dict[str, str | int | float]] = []
 
     for callset in CALLSETS:
         run_dir = STVAR_DIR / f"{callset}_v5.0q"
-        vcfs = get_refine_vcfs(run_dir)
 
-        # Overall counts from VCF records (consistent with per-context counts)
-        tp_overall = count_vcf_records(vcfs["TP"])
-        fp_overall = count_vcf_records(vcfs["FP"])
-        fn_overall = count_vcf_records(vcfs["FN"])
-        recall, precision = compute_metrics(tp_overall, fp_overall, fn_overall)
+        # Overall metrics from summary.json
+        with open(run_dir / "summary.json") as f:
+            summary = json.load(f)
+
+        precision, recall, f1 = truvari.performance_metrics(
+            summary["TP-base"],
+            summary["TP-call"],
+            summary["FN"],
+            summary["FP"]
+        )
+
         strat_rows.append({
-            "callset": callset, "context": "Overall",
-            "tp": tp_overall, "fp": fp_overall, "fn": fn_overall,
-            "recall": round(recall, 4), "precision": round(precision, 4),
+            "callset": callset,
+            "context": "Overall",
+            "tp": summary["TP-call"],
+            "fp": summary["FP"],
+            "fn": summary["FN"],
+            "recall": round(recall, 4),
+            "precision": round(precision, 4),
         })
 
-        # Per-context counts via bedtools intersect
-        for ctx in CONTEXTS:
-            bed = STRAT_DIR / f"GRCh38_{ctx}.bed.gz"
-            tp = count_intersecting_variants(vcfs["TP"], bed)
-            fp = count_intersecting_variants(vcfs["FP"], bed)
-            fn = count_intersecting_variants(vcfs["FN"], bed)
-            recall, precision = compute_metrics(tp, fp, fn)
+        # Per-context metrics from stratify text files
+        for context in CONTEXTS:
+            strat_file = run_dir / f"stratify_{context}.txt"
+            strat_df = pd.read_csv(
+                strat_file,
+                sep='\t',
+                names=['chrom', 'start', 'end', 'tpbase', 'tp', 'fn', 'fp']
+            )
+
+            # Sum across all regions in this context
+            totals = strat_df[["tpbase", "tp", "fn", "fp"]].sum()
+
+            precision, recall, f1 = truvari.performance_metrics(
+                int(totals["tpbase"]),
+                int(totals["tp"]),
+                int(totals["fn"]),
+                int(totals["fp"])
+            )
+
             strat_rows.append({
-                "callset": callset, "context": ctx,
-                "tp": tp, "fp": fp, "fn": fn,
-                "recall": round(recall, 4), "precision": round(precision, 4),
+                "callset": callset,
+                "context": context,
+                "tp": int(totals["tp"]),
+                "fp": int(totals["fp"]),
+                "fn": int(totals["fn"]),
+                "recall": round(recall, 4),
+                "precision": round(precision, 4),
             })
 
     strat_path = STVAR_DIR / "stratified_metrics.csv"
@@ -175,20 +111,30 @@ def main() -> None:
     for callset in CALLSETS:
         run_dir = STVAR_DIR / f"{callset}_v5.0q"
         vcfs = get_refine_vcfs(run_dir)
-        tp_counts = get_svtype_counts(vcfs["TP"])
-        fp_counts = get_svtype_counts(vcfs["FP"])
-        fn_counts = get_svtype_counts(vcfs["FN"])
 
-        all_types = sorted(set(tp_counts) | set(fp_counts) | set(fn_counts))
+        # Load VCFs via Truvari API
+        tp_df = truvari.vcf_to_df(str(vcfs["TP"]))
+        fp_df = truvari.vcf_to_df(str(vcfs["FP"]))
+        fn_df = truvari.vcf_to_df(str(vcfs["FN"]))
+
+        # Get all SV types present in any category
+        all_types = sorted(set(tp_df["svtype"]) | set(fp_df["svtype"]) | set(fn_df["svtype"]))
+
         for svtype in all_types:
-            tp = tp_counts.get(svtype, 0)
-            fp = fp_counts.get(svtype, 0)
-            fn = fn_counts.get(svtype, 0)
-            recall, precision = compute_metrics(tp, fp, fn)
+            tp = len(tp_df[tp_df["svtype"] == svtype])
+            fp = len(fp_df[fp_df["svtype"] == svtype])
+            fn = len(fn_df[fn_df["svtype"] == svtype])
+
+            precision, recall, f1 = truvari.performance_metrics(tp, tp, fn, fp)
+
             svtype_rows.append({
-                "callset": callset, "svtype": svtype,
-                "tp": tp, "fp": fp, "fn": fn,
-                "recall": round(recall, 4), "precision": round(precision, 4),
+                "callset": callset,
+                "svtype": svtype,
+                "tp": tp,
+                "fp": fp,
+                "fn": fn,
+                "recall": round(recall, 4),
+                "precision": round(precision, 4),
             })
 
     svtype_path = STVAR_DIR / "svtype_metrics.csv"
@@ -204,14 +150,20 @@ def main() -> None:
     for callset in CALLSETS:
         run_dir = STVAR_DIR / f"{callset}_v5.0q"
         vcfs = get_refine_vcfs(run_dir)
+
         for category, vcf_path in vcfs.items():
-            counts = get_svtype_size_counts(vcf_path)
-            for (svtype, size_bin), count in sorted(counts.items()):
-                size_rows.append({
-                    "callset": callset, "category": category,
-                    "svtype": svtype, "size_bin": size_bin,
-                    "count": count,
-                })
+            # Load VCF and add size_bin column
+            df = truvari.vcf_to_df(str(vcf_path))
+            df["size_bin"] = df["svlen"].apply(
+                lambda x: truvari.get_sizebin(abs(x) if x else 0)
+            )
+
+            # Count by (svtype, size_bin)
+            counts = df.groupby(["svtype", "size_bin"]).size().reset_index(name="count")
+            counts["callset"] = callset
+            counts["category"] = category
+
+            size_rows.extend(counts.to_dict("records"))
 
     size_path = STVAR_DIR / "svtype_size_counts.csv"
     with open(size_path, "w", newline="") as f:
