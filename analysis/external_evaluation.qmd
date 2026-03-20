@@ -7,8 +7,6 @@ editor: source
 embed-resources: true
 ---
 
-__TODO__: linear model to get confidence intervals for curations
-
 Update curations with JZ notes https://docs.google.com/spreadsheets/d/1evd6q8jqF51IM_uX6XrTlc-3f7dDUvurlGI-_vcV6t0/edit?usp=sharing
 
 ```{r setup}
@@ -131,7 +129,8 @@ stvar_curations <- full_join(stvar_evals, stvar_evals_jz) %>%
       levels = c("no", "unsure", "yes")
     )
   ) %>%
-  mutate(callset = stvar_callsets[callset])
+  mutate(callset = stvar_callsets[callset]) %>% 
+  filter(callset != "Manta", callset != "Delly")
 ```
 
 
@@ -185,7 +184,7 @@ A total of `r total_smvs` small variants were evaluated, of which
 ```{r smvar_by_callset, fig.width = 7, fig.height = 3.5}
 (smvar_eval_callset_plt <- smvar_curations %>%
   count(callset, curation) %>%
-  ggplot(aes(x = callset, y = n, fill = curation)) +
+  ggplot(aes(y = callset, x = n, fill = curation)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   scale_fill_brewer(palette = "Set2") +
   labs(x = "Callset", y = "# of Variants", fill = "Correct in\nBenchmark") +
@@ -207,7 +206,7 @@ A total of `r total_smvs` small variants were evaluated, of which
   labs(x = "# of Variants", y = NULL, fill = "Correct in\nBenchmark") +
   theme_manuscript() +
   theme(
-    legend.position = "right",
+    legend.position = "bottom",
     strip.text.y = element_text(angle = 0)
   ))
 ```
@@ -281,17 +280,11 @@ ggsave(
 ```
 
 
-### Structural Variants External Evaluations (UCLA Ensemble Only)
-
-```{r stvar_ensemble_filter}
-## Filter to UCLA Ensemble callset only
-stvar_curations_ensemble <- stvar_curations %>%
-  filter(callset == "Ensamble")
-```
+### Structural Variants 
 
 ```{r stvar_by_strata, fig.width = 7, fig.height = 4}
 ## Create readable strata labels for SV
-(stvar_eval_strata_plt <- stvar_curations_ensemble %>%
+(stvar_eval_strata_plt <- stvar_curations %>%
   mutate(
     strata_label = str_replace_all(strata, "\n", " "),
     strata_label = str_replace(strata_label, "nonTR", "Non-TR"),
@@ -308,25 +301,382 @@ stvar_curations_ensemble <- stvar_curations %>%
   labs(
     x = "# of Variants", y = NULL,
     fill = "Correct in\nBenchmark",
-    title = "UCLA Ensemble SV Callset"
   ) +
   theme_manuscript() +
-  theme(legend.position = "right"))
-
-ggsave(
-  filename = here("manuscript", "figs", "stvar_eval_strata_supplemental.png"),
-  plot = stvar_eval_strata_plt,
-  width = 7, height = 4, dpi = 300
-)
+  theme(legend.position = "bottom"))
 ```
 
+```{r smvar_by_callset, fig.width = 7, fig.height = 3.5}
+(stvar_eval_callset_plt <- stvar_curations %>%
+  count(callset, curation) %>%
+  ggplot(aes(y = callset, x = n, fill = curation)) +
+  geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "Callset", y = "# of Variants", fill = "Correct in\nBenchmark") +
+  theme_manuscript() +
+  theme(legend.position = "bottom"))
+```
+
+## Binomial Model: Probability Discrepancy is Error in Comparison Callset
+
+A binomial GLM estimates the probability that a discrepancy between the
+benchmark and a comparison callset is an error in the comparison callset
+(i.e., the benchmark is correct). The outcome is binarized from the curation:
+`yes` = correct in benchmark vs. `no`/`unsure` = not confirmed correct.
+Separate models are fit for small and structural variants. Because the goal
+is to establish a lower bound on benchmark reliability, one-sided 95% lower
+confidence bounds are reported.
+
+A sensitivity analysis treats "unsure" curations as correct in the benchmark
+(combining with "yes") rather than incorrect (combining with "no"), providing
+an upper range on the estimated probabilities.
+
+```{r ci_data_prep}
+library(emmeans)
+library(brglm2)
+
+## Shared feature preparation
+prepare_smvar_features <- function(df) {
+  df |>
+    mutate(
+      genomic_context = str_extract(strata_label, "(?<=: ).*"),
+      genomic_context = factor(genomic_context,
+                               levels = c("Autosome", "TR", "HP >6bp",
+                                          "Low Map", "XY nonPAR")),
+      genomic_context = droplevels(genomic_context),
+      var_type = factor(var_type, levels = c("SNP", "INDEL")),
+      unique_to = factor(unique_to, levels = c("Query", "Benchmark"))
+    )
+}
+
+prepare_stvar_features <- function(df) {
+  df |>
+    mutate(
+      TR_anno = factor(TR_anno, levels = c("nonTR", "TR")),
+      sv_cat = factor(sv_cat, levels = c("DEL", "INS")),
+      unique_to = factor(unique_to, levels = c("query", "bench"))
+    )
+}
+
+## Primary analysis: unsure = incorrect (conservative)
+smvar_model_df <- smvar_curations |>
+  mutate(correct_binary = as.integer(curation == "yes")) |>
+  prepare_smvar_features()
+
+stvar_model_df <- stvar_curations |>
+  mutate(correct_binary = as.integer(curation == "yes")) |>
+  prepare_stvar_features()
+
+## Sensitivity analysis: unsure = correct
+smvar_sens_df <- smvar_curations |>
+  mutate(correct_binary = as.integer(curation %in% c("yes", "unsure"))) |>
+  prepare_smvar_features()
+
+stvar_sens_df <- stvar_curations |>
+  mutate(correct_binary = as.integer(curation %in% c("yes", "unsure"))) |>
+  prepare_stvar_features()
+```
+
+```{r ci_models}
+## Primary models (standard GLM)
+smvar_glm <- glm(correct_binary ~ var_type + genomic_context + unique_to,
+                 family = binomial, data = smvar_model_df)
+stvar_glm <- glm(correct_binary ~ TR_anno + sv_cat + unique_to,
+                 family = binomial, data = stvar_model_df)
+
+## Sensitivity models
+## smvar sensitivity has quasi-complete separation (only 5 "no" curations
+## with 0 in the Low Map context), so bias-reduced estimation is used.
+smvar_sens_glm <- glm(correct_binary ~ var_type + genomic_context + unique_to,
+                      family = binomial, data = smvar_sens_df,
+                      method = "brglmFit")
+stvar_sens_glm <- glm(correct_binary ~ TR_anno + sv_cat + unique_to,
+                      family = binomial, data = stvar_sens_df)
+```
+
+```{r ci_emmeans}
+## Helper to extract emmeans with one-sided 95% lower bound
+extract_emmeans <- function(em, benchmarkset, feature_name) {
+  as_tibble(summary(em, side = ">")) |>
+    mutate(
+      benchmarkset = benchmarkset,
+      feature = feature_name,
+      level = if ("1" %in% names(pick(everything()))) "Overall"
+              else as.character(pick(1)[[1]])
+    ) |>
+    select(benchmarkset, feature, level, prob, SE, asymp.LCL)
+}
+
+## Compute emmeans for all four models
+compute_all_emmeans <- function(smvar_fit, stvar_fit) {
+  bind_rows(
+    extract_emmeans(
+      emmeans(smvar_fit, ~ 1, type = "response", weights = "proportional"),
+      "Small Variant", "Overall"),
+    extract_emmeans(
+      emmeans(smvar_fit, ~ var_type, type = "response", weights = "proportional"),
+      "Small Variant", "Variant Type"),
+    extract_emmeans(
+      emmeans(smvar_fit, ~ genomic_context, type = "response", weights = "proportional"),
+      "Small Variant", "Genomic Context"),
+    extract_emmeans(
+      emmeans(smvar_fit, ~ unique_to, type = "response", weights = "proportional"),
+      "Small Variant", "Unique To"),
+    extract_emmeans(
+      emmeans(stvar_fit, ~ 1, type = "response", weights = "proportional"),
+      "Structural Variant", "Overall"),
+    extract_emmeans(
+      emmeans(stvar_fit, ~ TR_anno, type = "response", weights = "proportional"),
+      "Structural Variant", "TR Annotation"),
+    extract_emmeans(
+      emmeans(stvar_fit, ~ sv_cat, type = "response", weights = "proportional"),
+      "Structural Variant", "SV Category"),
+    extract_emmeans(
+      emmeans(stvar_fit, ~ unique_to, type = "response", weights = "proportional"),
+      "Structural Variant", "Unique To")
+  )
+}
+
+primary_results <- compute_all_emmeans(smvar_glm, stvar_glm) |>
+  mutate(analysis = "Conservative (unsure = incorrect)")
+sens_results <- compute_all_emmeans(smvar_sens_glm, stvar_sens_glm) |>
+  mutate(analysis = "Sensitive (unsure = correct)")
+
+ci_results <- bind_rows(primary_results, sens_results)
+```
+
+```{r ci_forest_plot, fig.width = 7, fig.height = 5.5}
+## Prepare display labels
+ci_plot_df <- ci_results |>
+  mutate(
+    label = if_else(feature == "Overall", "Overall", level),
+    label = case_when(
+      label == "nonTR" ~ "Non-TR",
+      label == "bench" ~ "Benchmark",
+      label == "query" ~ "Query",
+      .default = label
+    ),
+    feature = factor(feature,
+      levels = rev(c("Overall", "Variant Type", "Genomic Context",
+                      "Unique To", "TR Annotation", "SV Category"))
+    ),
+    benchmarkset = factor(benchmarkset,
+      levels = c("Small Variant", "Structural Variant"))
+  )
+
+(ci_forest_plt <- ggplot(ci_plot_df,
+       aes(x = prob, y = reorder(label, prob),
+           xmin = asymp.LCL, xmax = prob,
+           color = analysis, shape = analysis)) +
+  geom_pointrange(size = 0.4,
+                  position = position_dodge(width = 0.5)) +
+  facet_grid(
+    rows = vars(feature),
+    cols = vars(benchmarkset),
+    scales = "free_y",
+    space = "free_y"
+  ) +
+  scale_x_continuous(labels = scales::percent, limits = c(0.6, 1)) +
+  scale_color_brewer(palette = "Set1") +
+  labs(
+    x = "Probability Discrepancy is Error in Comparison Callset",
+    y = NULL,
+    color = "Unsure Classification",
+    shape = "Unsure Classification"
+  ) +
+  theme_manuscript() +
+  theme(
+    strip.text.y = element_text(angle = 0),
+    legend.position = "bottom"
+  ))
+```
+
+```{r ci_summary_table}
+## Per-level sample sizes
+smvar_n <- smvar_model_df |>
+  summarise(
+    Overall = n(), SNP = sum(var_type == "SNP"),
+    INDEL = sum(var_type == "INDEL"),
+    Autosome = sum(genomic_context == "Autosome"),
+    TR = sum(genomic_context == "TR"),
+    `HP >6bp` = sum(genomic_context == "HP >6bp"),
+    `Low Map` = sum(genomic_context == "Low Map"),
+    Query = sum(unique_to == "Query"),
+    Benchmark = sum(unique_to == "Benchmark")
+  ) |>
+  pivot_longer(everything(), names_to = "level", values_to = "n") |>
+  mutate(level = if_else(level == "Overall", "", level),
+         benchmarkset = "Small Variant")
+
+stvar_n <- stvar_model_df |>
+  summarise(
+    Overall = n(), `Non-TR` = sum(TR_anno == "nonTR"),
+    TR = sum(TR_anno == "TR"), DEL = sum(sv_cat == "DEL"),
+    INS = sum(sv_cat == "INS"), Query = sum(unique_to == "query"),
+    Benchmark = sum(unique_to == "bench")
+  ) |>
+  pivot_longer(everything(), names_to = "level", values_to = "n") |>
+  mutate(level = if_else(level == "Overall", "", level),
+         benchmarkset = "Structural Variant")
+
+n_lookup <- bind_rows(smvar_n, stvar_n)
+
+## Build table with both analyses side by side
+ci_table_wide <- ci_results |>
+  mutate(
+    level = case_when(
+      feature == "Overall" ~ "",
+      level == "nonTR" ~ "Non-TR",
+      level == "bench" ~ "Benchmark",
+      level == "query" ~ "Query",
+      .default = level
+    )
+  ) |>
+  select(benchmarkset, feature, level, analysis, prob, asymp.LCL) |>
+  pivot_wider(
+    names_from = analysis,
+    values_from = c(prob, asymp.LCL),
+    names_glue = "{analysis}|{.value}"
+  ) |>
+  left_join(n_lookup, by = c("benchmarkset", "level"))
+
+ci_table_wide |>
+  select(
+    benchmarkset, feature, level, n,
+    `Conservative (unsure = incorrect)|prob`,
+    `Conservative (unsure = incorrect)|asymp.LCL`,
+    `Sensitive (unsure = correct)|prob`,
+    `Sensitive (unsure = correct)|asymp.LCL`
+  ) |>
+  gt(groupname_col = "benchmarkset", rowname_col = "level") |>
+  cols_label(
+    feature = "Feature", n = "N",
+    `Conservative (unsure = incorrect)|prob` = "Est. (%)",
+    `Conservative (unsure = incorrect)|asymp.LCL` = "LCB (%)",
+    `Sensitive (unsure = correct)|prob` = "Est. (%)",
+    `Sensitive (unsure = correct)|asymp.LCL` = "LCB (%)"
+  ) |>
+  cols_align(align = "center",
+             columns = -c(feature, level)) |>
+  cols_align(align = "left", columns = feature) |>
+  fmt_percent(
+    columns = c(
+      `Conservative (unsure = incorrect)|prob`,
+      `Conservative (unsure = incorrect)|asymp.LCL`,
+      `Sensitive (unsure = correct)|prob`,
+      `Sensitive (unsure = correct)|asymp.LCL`
+    ),
+    decimals = 1
+  ) |>
+  tab_spanner(
+    label = "Conservative (unsure = incorrect)",
+    columns = c(`Conservative (unsure = incorrect)|prob`,
+                `Conservative (unsure = incorrect)|asymp.LCL`)
+  ) |>
+  tab_spanner(
+    label = "Sensitive (unsure = correct)",
+    columns = c(`Sensitive (unsure = correct)|prob`,
+                `Sensitive (unsure = correct)|asymp.LCL`)
+  ) |>
+  tab_header(
+    title = "Estimated Probability That a Discrepancy is an Error in the Comparison Callset",
+    subtitle = "Marginal estimates from binomial GLMs with one-sided 95% lower confidence bounds (LCB)"
+  ) |>
+  tab_footnote(
+    footnote = "Marginal probabilities via emmeans with proportional weighting, averaging over other model terms.",
+    locations = cells_column_spanners()
+  ) |>
+  tab_footnote(
+    footnote = "HP >6bp stratum applies only to INDELs.",
+    locations = cells_body(columns = feature, rows = level == "HP >6bp")
+  ) |>
+  tab_footnote(
+    footnote = "Small variant sensitivity model fit with bias-reduced logistic regression (brglm2) due to quasi-complete separation.",
+    locations = cells_column_spanners(
+      spanners = "Sensitive (unsure = correct)")
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = everything(), rows = feature == "Overall")
+  )
+```
+
+### Methods: External Evaluation Confidence Intervals
+
+To estimate the probability that a discrepancy between the benchmark set and
+a comparison callset represents an error in the comparison callset (i.e., the
+benchmark is correct), we fit separate binomial generalized linear models
+(GLMs) with a logit link for small variants and structural variants.
+
+For each comparison callset, five discrepancies per stratum were randomly
+selected for manual curation. Each discrepancy was classified as "correct in
+benchmark" (yes), "not correct in benchmark" (no), or "unsure." A subset of
+curations were independently re-reviewed by a second expert (JZ); where
+available, the second reviewer's assessment was used as the final curation.
+The primary analysis binarized the outcome conservatively: "yes" was treated
+as a success (the discrepancy is an error in the comparison callset), while
+"no" and "unsure" were combined as failures. A sensitivity analysis treated
+"unsure" as successes (combining with "yes"), providing an upper range for
+the estimated probabilities.
+
+For small variants (N = `r nrow(smvar_model_df)`;
+`r length(unique(smvar_model_df$callset))` callsets), the model included
+three additive predictors: variant type (SNP vs. INDEL), genomic context
+(Autosome, tandem repeat, homopolymer >6 bp, or low mappability region),
+and whether the discrepancy was unique to the query callset or the benchmark.
+For structural variants (N = `r nrow(stvar_model_df)`;
+`r length(unique(stvar_model_df$callset))` callsets), predictors were tandem
+repeat annotation (TR vs. non-TR), SV category (DEL vs. INS), and unique-to
+status (query vs. benchmark). All predictors were entered as main effects
+without interactions. Because different sets of variants were curated for
+each callset, each observation represents an independent evaluation at a
+distinct genomic position, and callset was not included as a model term.
+
+Because the goal is to establish a lower bound on how reliably the benchmark
+identifies errors in comparison callsets, one-sided 95% lower confidence
+bounds were reported rather than two-sided intervals. Marginal probabilities
+and confidence bounds on the probability scale were obtained using the
+`emmeans` R package with proportional weighting to average over the other
+model terms. Proportional weighting ensures that factor levels are weighted
+by their observed frequencies in the data, which is relevant because the
+homopolymer >6 bp context applies only to INDELs. In the sensitivity
+analysis, the small variant model was fit using bias-reduced logistic
+regression (Firth penalization via the `brglm2` R package) because treating
+"unsure" as correct left only 5 failures across 350 observations, causing
+quasi-complete separation in the low mappability stratum.
+
+**Assumptions.** The binomial GLM assumes that curations are independent
+Bernoulli trials, that the log-odds of the outcome are a linear additive
+function of the predictors, and that the effect of each predictor is
+constant across levels of the other predictors (no interactions).
+Independence is reasonable given that each observation is a unique genomic
+position evaluated by a single curator. The additive assumption implies,
+for example, that the difference in log-odds between TR and autosomal
+contexts is the same for SNPs and INDELs. Given the sample sizes, there was
+insufficient power to test interactions. The one-sided Wald confidence bounds
+rely on asymptotic normality of the maximum likelihood estimates, which is
+generally adequate for these sample sizes but may be slightly liberal for
+cells with very high observed proportions.
+
+**Limitations.** The XY non-PAR strata had no discrepancies for small
+variants and were excluded from the small variant model. The treatment of
+"unsure" curations has a notable effect on the results, particularly for
+structural variants where "unsure" curations were more common; the
+sensitivity analysis brackets this uncertainty. The models do not include
+callset-specific effects, so the estimated probabilities reflect an average
+across all comparison callsets evaluated. The curated discrepancies were
+selected from specific callsets and may not be representative of all possible
+discrepancies. Finally, the additive model does not capture potential
+interactions between predictors (e.g., whether TR effects differ for INS
+vs. DEL in structural variants); the data would support such extensions but
+at the cost of wider confidence intervals.
 
 ## Combined Evaluation Figure
 
 ```{r combined_eval, fig.width = 8, fig.height = 8}
 (combined_eval_plt <- (
   smvar_eval_callset_plt + smvar_eval_strata_plt +
-    stvar_eval_strata_plt + plot_spacer()
+    stvar_eval_callset_plt + stvar_eval_strata_plt
 ) +
   plot_annotation(tag_levels = "A") +
   plot_layout(guides = "collect", ncol = 2, nrow = 2) &
