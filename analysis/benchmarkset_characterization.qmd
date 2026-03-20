@@ -49,7 +49,9 @@ Consolidated summary of variant counts and benchmark region sizes across
 benchmark versions. GRCh38 is the primary reference for the manuscript;
 GRCh37 and CHM13v2.0 are included in supplemental tables.
 
+
 ```{r benchmark_summary_data}
+
 ## Compute benchmark region sizes
 bench_region_stats_df <- bench_regions_df %>%
   filter(
@@ -59,7 +61,8 @@ bench_region_stats_df <- bench_regions_df %>%
   group_by(bench_type, ref, bench_version) %>%
   summarise(total_bp = sum(interval_size), .groups = "drop") %>%
   left_join(total_ref_asm_bp, by = "ref") %>%
-  mutate(pct_ref_cvg = 100 * (total_bp / total_asm_bp)) %>%
+  mutate(pct_ref_cvg = 100 * (total_bp / total_asm_bp),
+         pct_asm_cvg = 100* (total_bp / hg002q100_size)) %>%
   select(-total_asm_bp)
 
 ## Compute variant counts by type
@@ -83,16 +86,17 @@ bench_summary_df <- bench_var_cnt_df %>%
 ## Shared formatting function for benchmark summary tables
 format_bench_table <- function(df, var_cols) {
   df %>%
-    select(ref, bench_version, all_of(var_cols), Total, bench_mb, pct_ref_cvg) %>%
+    select(ref, bench_version, all_of(var_cols), Total, bench_mb, pct_ref_cvg, pct_asm_cvg) %>%
     as_flextable(show_coltype = FALSE) %>%
     fmt_integer_flextable(columns = c(var_cols, "Total", "bench_mb")) %>%
-    fmt_number_flextable(columns = "pct_ref_cvg", decimals = 1) %>%
+    fmt_number_flextable(columns = c("pct_ref_cvg", "pct_asm_cvg"), decimals = 1) %>%
     cols_label_flextable(
       ref = "Reference",
       bench_version = "Version",
       Total = "Total Variants",
       bench_mb = "Bench (Mb)",
-      pct_ref_cvg = "% Ref"
+      pct_ref_cvg = "% Ref",
+      pct_asm_cvg = "% Asm"
     ) %>%
     flextable::align(j = "ref", align = "right", part = "body") %>%
     theme_flextable_manuscript()
@@ -128,6 +132,10 @@ bench_summary_df %>%
 bench_summary_df %>%
   filter(bench_type == "stvar") %>%
   format_bench_table(var_cols = c("DEL", "INS"))
+```
+
+```{r}
+flextable::
 ```
 
 

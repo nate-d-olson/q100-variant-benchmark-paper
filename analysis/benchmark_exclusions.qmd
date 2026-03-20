@@ -401,8 +401,18 @@ for (ref in refs) {
 p_vars_smvar <- create_variant_upset(interaction_summary_tbl, "GRCh38", "smvar")
 p_vars_stvar <- create_variant_upset(interaction_summary_tbl, "GRCh38", "stvar")
 
-p_vars_smvar / p_vars_stvar +
-  plot_annotation(tag_levels = "A")
+(grch38_upset_var_plt <- p_vars_smvar / p_vars_stvar +
+  plot_annotation(tag_levels = "A"))
+```
+
+```{r}
+ggsave(
+  filename = here::here("manuscript", "figs", "grch38_exclusion_var_upset.png"),
+  plot = grch38_upset_var_plt,
+  width = 12,
+  height = 8,
+  dpi = 300
+)
 ```
 
 ### All References Variant Exclusion Patterns

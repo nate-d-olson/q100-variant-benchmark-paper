@@ -98,3 +98,4 @@ node_modules/
 
 # Manuscript PDF (reference copy, not versioned)
 HG002v5-variant-benchmark-manuscript.pdf
+.positai
