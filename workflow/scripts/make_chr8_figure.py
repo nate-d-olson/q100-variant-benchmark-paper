@@ -4,19 +4,32 @@
 make_chr8_figure.py — multi-panel Chr8 synteny figure using plotsr
 =============================================================
 
-Panel A  Full Chr8: REF <-> MAT <-> PAT synteny (plotsr)
-Panel B  Zoomed view of the largest inversion on the PAT haplotype
-Panel C  Structural-annotation colour legend
+Generates a two-panel figure comparing GRCh38 chr8 to HG002 maternal (MAT)
+and paternal (PAT) haplotypes using plotsr for synteny visualization.
 
-Dependencies (install via conda/bioconda):
-  conda install -c bioconda plotsr syri minimap2
-  conda install matplotlib Pillow
+Panel A  Full Chr8 synteny: REF <-> MAT <-> PAT with structural annotations
+         and markers for the PAV-excluded inversion region.
+Panel B  Zoomed view of the largest inversion on the PAT haplotype, showing
+         the region excluded from the v5.0q benchmark (chr8:8.2-12.2 Mb).
+
+The colour legend for structural annotations (syntenic, inverted, translocated,
+duplicated) is embedded in the plotsr output in Panel A.
+
+Dependencies (conda env: plotsr.yaml):
+  plotsr, syri, minimap2, matplotlib, Pillow
 
 Snakemake usage
 ---------------
   Called by workflow/rules/chr8_synteny.smk via the chr8_make_figure rule.
-  Inversion coordinates are pre-computed by the chr8_find_inversion rule and
-  passed via --coords (JSON file written by find_chr8_inversion.py).
+  Inversion coordinates are pre-computed by the chr8_find_inversion rule
+  (find_chr8_inversion.py) and passed via --coords JSON file.
+
+  Required SyRI inputs (consecutive genome pairs for plotsr):
+    --rm  ref_matsyri.out  (REF <-> MAT)
+    --mp  mat_patsyri.out  (MAT <-> PAT)
+
+  The PAV exclusion region (chr8:8,237,843-12,234,345) is hardcoded based
+  on the PAV callset inversion coordinates.
 """
 
 import argparse

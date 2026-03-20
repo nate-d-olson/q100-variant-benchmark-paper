@@ -62,8 +62,9 @@ get_color_palettes <- function() {
       "stvar" = "#D95F02" # Orange (structural variants)
     ),
 
-    # Genomic contexts - distinctive palette for 6 categories
+    # Genomic contexts - distinctive palette for 7 categories
     context_name = c(
+      "COMPLEX" = "#984EA3", # Purple (Complex Variants)
       "HP" = "#E41A1C", # Red (Homopolymers)
       "MAP" = "#377EB8", # Blue (Low Mappability)
       "SD" = "#4DAF4A", # Green (Segmental Duplications)
@@ -307,6 +308,7 @@ scale_genomic_context <- function(
 
   # Create readable labels for genomic contexts
   context_labels <- c(
+    "COMPLEX" = "Complex Variants",
     "HP" = "Homopolymers",
     "MAP" = "Low Mappability",
     "SD" = "Segmental Duplications",
@@ -620,6 +622,7 @@ as_grouped_flextable <- function(df, groupname_col) {
 #' @export
 get_context_labels <- function(context_names = NULL) {
   all_labels <- c(
+    "COMPLEX" = "Complex Variants",
     "HP" = "Homopolymers",
     "MAP" = "Low Mappability",
     "SD" = "Segmental Duplications",

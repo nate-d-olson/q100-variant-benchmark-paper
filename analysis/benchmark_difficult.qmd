@@ -42,69 +42,126 @@ variants_df <- load_all_variant_tables() %>%
 Compute fold change in total variant counts (v5.0q vs legacy) per context.
 Small variants: GRCh38 v5.0q / v4.2.1. Structural variants: GRCh37 v5.0q / v0.6.
 
+Complex variants are defined following the GIAB genome stratifications
+(v3.6 GenomeSpecific): regions with two or more variants within 10 bp of
+each other on the same chromosome.
+
+```{r complex_variants}
+## Identify complex variants: >=2 variants within 10bp on the same chromosome.
+## A variant is "complex" if it is within 10bp of at least one other variant
+## in the same benchmark set.
+complex_counts <- variants_df %>%
+  arrange(bench_version, ref, bench_type, chrom, pos) %>%
+  group_by(bench_version, ref, bench_type, chrom) %>%
+  mutate(
+    dist_to_next = lead(pos) - pos,
+    dist_to_prev = pos - lag(pos)
+  ) %>%
+  ungroup() %>%
+  filter(
+    (!is.na(dist_to_next) & dist_to_next <= 10) |
+      (!is.na(dist_to_prev) & dist_to_prev <= 10)
+  ) %>%
+  count(bench_version, ref, bench_type, name = "count") %>%
+  mutate(context_ids = "COMPLEX")
+```
+
 ```{r fold_change_data}
 ## Total variant counts per context (no size bin breakdown)
 ## Explode comma-separated context_ids so variants in multiple contexts
 ## (e.g., "SD,TR") are counted once per context
-context_totals <- variants_df %>%
+genomic_context_counts <- variants_df %>%
   filter(!is.na(context_ids), context_ids != "") %>%
   separate_rows(context_ids, sep = ",") %>%
   mutate(context_ids = str_trim(context_ids)) %>%
   filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
-  count(bench_version, ref, bench_type, context_ids, name = "count") %>%
-  pivot_wider(
-    names_from = bench_version,
-    values_from = count,
-    id_cols = c(ref, bench_type, context_ids)
-  ) %>%
+  count(bench_version, ref, bench_type, context_ids, name = "count")
+
+## Combine genomic context counts with complex variant counts
+## Keep long format for grouped bar plot (one row per version x context)
+## Drop contexts with only one version (no paired comparison possible)
+context_counts_long <- bind_rows(genomic_context_counts, complex_counts) %>%
   filter(
-    (bench_type == "smvar" & ref == "GRCh38" & !is.na(v4.2.1)) |
-      (bench_type == "stvar" & ref == "GRCh37" & !is.na(v0.6))
+    (bench_type == "smvar" & ref == "GRCh38" &
+      bench_version %in% c("v5.0q", "v4.2.1")) |
+      (bench_type == "stvar" & ref == "GRCh37" &
+        bench_version %in% c("v5.0q", "v0.6"))
   ) %>%
+  group_by(bench_type, context_ids) %>%
+  filter(n_distinct(bench_version) >= 2) %>%
+  ungroup() %>%
   mutate(
-    legacy_count = coalesce(v4.2.1, v0.6),
-    fold_chg = v5.0q / legacy_count,
     context_label = get_context_labels()[as.character(context_ids)],
     bench_type_label = get_bench_type_labels()[as.character(bench_type)]
   )
+
+## Compute fold change for text labels (one row per context x bench_type)
+context_fold_chg <- context_counts_long %>%
+  pivot_wider(
+    names_from = bench_version,
+    values_from = count,
+    id_cols = c(ref, bench_type, context_ids, context_label, bench_type_label)
+  ) %>%
+  mutate(
+    legacy_count = coalesce(v4.2.1, v0.6),
+    fold_chg = v5.0q / legacy_count
+  ) %>%
+  filter(!is.na(fold_chg)) %>%
+  ## Position fold change label above the taller bar (v5.0q)
+  mutate(label_y = v5.0q)
 ```
 
-### Figure 3: Fold Change in Variant Counts by Genomic Context
+### Figure 3: Variant Counts by Genomic Context
 
-```{r fold_change_main_plot, fig.width = 7, fig.height = 4}
-(fold_change_plt <- context_totals %>%
+```{r variant_count_main_plot, fig.width = 8, fig.height = 4.5}
+(variant_count_plt <- context_counts_long %>%
   ggplot(aes(
     x = context_label,
-    y = fold_chg,
-    fill = context_ids
+    y = count,
+    fill = bench_version
   )) +
-  geom_col(color = "grey30", linewidth = 0.3) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
-  geom_text(
-    aes(label = sprintf("%.1fx", fold_chg)),
-    vjust = -0.5,
-    size = 3
+  geom_col(
+    position = position_dodge(width = 0.8),
+    color = "grey30",
+    linewidth = 0.3,
+    width = 0.7
   ) +
-  facet_wrap(~bench_type_label, scales = "free_x") +
+  geom_text(
+    data = context_fold_chg,
+    aes(
+      x = context_label,
+      y = label_y,
+      label = sprintf("%.1fx", fold_chg)
+    ),
+    inherit.aes = FALSE,
+    vjust = -0.5,
+    size = 3,
+    fontface = "bold"
+  ) +
+  facet_wrap(~bench_type_label, scales = "free") +
   scale_y_continuous(
-    expand = expansion(mult = c(0, 0.15)),
+    expand = expansion(mult = c(0, 0.2)),
+    labels = scales::comma,
     breaks = scales::pretty_breaks(n = 5)
   ) +
-  scale_genomic_context(aesthetic = "fill", guide = "none") +
+  scale_benchmark_version(aesthetic = "fill") +
   labs(
     x = "Genomic Context",
-    y = "Fold Change (v5.0q / legacy)"
+    y = "Variant Count",
+    fill = "Benchmark Version"
   ) +
   theme_manuscript() +
   theme(
-    axis.text.x = element_text(angle = -30, hjust = 0)
+    axis.text.x = element_text(angle = -30, hjust = 0),
+    legend.position = "bottom",
+    plot.margin = margin(5, 25, 5, 5)
   ))
 
 ggsave(
   filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
-  plot = fold_change_plt,
-  width = 7,
-  height = 4,
+  plot = variant_count_plt,
+  width = 8.5,
+  height = 4.5,
   dpi = 300
 )
 ```
@@ -112,21 +169,48 @@ ggsave(
 ### Supplemental: Fold Change by Variant Size Bin
 
 ```{r fold_change_by_size_data}
-genomic_context_var_fld_chg <- variants_df %>%
+size_bin_levels <- c("<15bp", "15-49bp", "50-1,000bp", "1,001-10,000bp", ">10kb")
+
+add_size_bin <- function(df) {
+  df %>%
+    mutate(
+      var_size_bin = factor(case_when(
+        abs(var_size) < 15 ~ "<15bp",
+        abs(var_size) < 50 ~ "15-49bp",
+        abs(var_size) < 1001 ~ "50-1,000bp",
+        abs(var_size) < 10001 ~ "1,001-10,000bp",
+        .default = ">10kb"
+      ), levels = size_bin_levels)
+    )
+}
+
+## Genomic context counts by size bin
+gc_size_counts <- variants_df %>%
   filter(!is.na(context_ids), context_ids != "") %>%
   separate_rows(context_ids, sep = ",") %>%
   mutate(context_ids = str_trim(context_ids)) %>%
   filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  add_size_bin() %>%
+  count(bench_version, ref, bench_type, var_type, var_size_bin, context_ids)
+
+## Complex variant counts by size bin
+complex_size_counts <- variants_df %>%
+  arrange(bench_version, ref, bench_type, chrom, pos) %>%
+  group_by(bench_version, ref, bench_type, chrom) %>%
   mutate(
-    var_size_bin = factor(case_when(
-      abs(var_size) < 15 ~ "<15bp",
-      abs(var_size) < 50 ~ "15-49bp",
-      abs(var_size) < 1001 ~ "50-1,000bp",
-      abs(var_size) < 10001 ~ "1,001-10,000bp",
-      .default = ">10kb"
-    ), levels = c("<15bp", "15-49bp", "50-1,000bp", "1,001-10,000bp", ">10kb"))
+    dist_to_next = lead(pos) - pos,
+    dist_to_prev = pos - lag(pos)
   ) %>%
-  count(bench_version, ref, bench_type, var_type, var_size_bin, context_ids) %>%
+  ungroup() %>%
+  filter(
+    (!is.na(dist_to_next) & dist_to_next <= 10) |
+      (!is.na(dist_to_prev) & dist_to_prev <= 10)
+  ) %>%
+  add_size_bin() %>%
+  count(bench_version, ref, bench_type, var_type, var_size_bin) %>%
+  mutate(context_ids = "COMPLEX")
+
+genomic_context_var_fld_chg <- bind_rows(gc_size_counts, complex_size_counts) %>%
   pivot_wider(
     names_from = bench_version,
     values_from = n,
