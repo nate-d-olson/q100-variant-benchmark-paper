@@ -21,12 +21,7 @@ analysis_setup(load_plot_themes = TRUE)
 
 source(here::here("scripts/happy_giab.R"))  ## imports convert_to_phred()
 
-callset_colors <- c(
-  "ONT-Sniffles (Sniffles2)" = "#2ca02c",
-  "ONT-Verkko (dipcall)" = "#1f77b4"
-)
-
-size_bin_levels <- c("SNP", "1-4bp", "5-14bp", "15-49bp")
+size_bin_levels <- c("SNP", "1-5bp", "6-15bp", "16+bp")
 sv_size_levels <- c("[50,100)", "[100,300)", "[300,1000)", "[1000,10000)", ">=10000")
 
 ## Phred-scale ggplot2 transformation ----------------------------------------
@@ -200,150 +195,217 @@ annotation_phredticks <- function(
 }
 ```
 
-## Small Variant Benchmarking: Roche Neusomatic
+## Small Variant Benchmarking: Roche NeuSomatic
 
-Comparison of Roche Neusomatic (pFDA Truth Challenge V2) callset against
-v4.2.1 and v5.0q small variant benchmarks on GRCh38, using GIAB v3.6
-stratifications. Evaluated with `rtg vcfeval`.
+Comparison of Roche NeuSomatic (pFDA Truth Challenge V2) callset against
+v4.2.1 and v5.0q small variant benchmarks on GRCh38, evaluated with hap.py.
 
 ```{r smvar_data}
-## Helper to compute recall/precision from TP/FP/FN counts
-compute_metrics <- function(df) {
-  df %>%
-    mutate(
-      recall = tp / (tp + fn),
-      precision = tp / (tp + fp),
-      f1 = 2 * (precision * recall) / (precision + recall)
-    )
-}
-
-## Load vcfeval ROC metrics (from extract_smvar_metrics.py)
-## 8-column ROC files (Overall, SNP, NON_SNP): have fn, precision, sensitivity
-## 4-column ROC files (HP, TR, SD, MAP): have tp_baseline and fp only
-smvar_roc_df <- read_csv(
-  here("results", "use_case", "smvar", "vcfeval_roc_metrics.csv"),
-  show_col_types = FALSE
+## Context mapping: v4 and v5 use different stratification BED names
+v4_context_map <- c(
+  "HP"  = "GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz",
+  "TR"  = "GRCh38_AllTandemRepeatsandHomopolymers_slop5.bed.gz",
+  "SD"  = "GRCh38_segdups.bed.gz",
+  "MAP" = "GRCh38_lowmappabilityall.bed.gz"
 )
 
-## Overall and per-type metrics (from 8-column ROC files)
-smvar_full_df <- smvar_roc_df %>%
-  filter(subset %in% c("Overall", "SNP", "NON_SNP")) %>%
-  mutate(
-    recall = sensitivity,
-    f1 = f_measure,
-    var_type_label = case_when(
-      subset == "SNP" ~ "SNV",
-      subset == "NON_SNP" ~ "INDEL",
-      .default = NA_character_
-    )
-  )
+v5_context_map <- c(
+  "HP"  = "AllHomopolymers_ge7bp_imperfectge11bp_slop5",
+  "TR"  = "AllTandemRepeatsandHomopolymers_slop5",
+  "SD"  = "segdups",
+  "MAP" = "lowmappabilityall"
+)
 
-## Per-context metrics (from 4-column ROC files — no FN/recall)
-smvar_context_df <- smvar_roc_df %>%
-  filter(subset %in% c("HP", "TR", "SD", "MAP")) %>%
-  mutate(
-    context_label = get_context_labels()[subset],
-    context_label = factor(
-      context_label,
-      levels = c("Homopolymers", "Low Mappability",
-                 "Segmental Duplications", "Tandem Repeats")
-    )
+## Read hap.py extended CSVs
+v4_happy <- read_happy_extended(here("data", "IA789_HG002.extended.csv"))
+v5_happy <- read_happy_extended(
+  here(
+    "data",
+    "GRCh38_HG002_T~T2TQ100v1.1_Q~EEroche_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_smvar-excluded",
+    "GRCh38_HG2Q100EE-roche-neusomatic_HG2-T2TQ100-V1.1_smvar_dipcall-z2k.extended.csv"
   )
+)
 
-## By size bin
-smvar_size_df <- read_csv(
-  here("results", "use_case", "smvar", "size_bin_counts.csv"),
-  show_col_types = FALSE
+## Helper to extract metrics from a happy df for given subsets
+extract_happy_metrics <- function(happy_df, subset_filter, bench_version) {
+  happy_df %>%
+    filter(Filter == "PASS", Subtype == "*", Subset %in% subset_filter) %>%
+    select(
+      Type, Subset,
+      METRIC.Recall, METRIC.Precision, METRIC.F1_Score,
+      TRUTH.TP, TRUTH.FN, QUERY.FP
+    ) %>%
+    mutate(bench_version = bench_version)
+}
+
+## Overall + per-type metrics
+smvar_overall_df <- bind_rows(
+  extract_happy_metrics(v4_happy, "*", "v4.2.1"),
+  extract_happy_metrics(v5_happy, "*", "v5.0q")
 ) %>%
-  pivot_wider(names_from = category, values_from = count, values_fill = 0L) %>%
-  rename(tp = TP, fp = FP, fn = FN) %>%
-  compute_metrics() %>%
-  filter(size_bin %in% size_bin_levels) %>%
-  mutate(size_bin = factor(size_bin, levels = size_bin_levels))
+  filter(Type %in% c("SNP", "INDEL")) %>%
+  mutate(
+    context = case_when(
+      Type == "SNP" ~ "SNV",
+      Type == "INDEL" ~ "INDEL"
+    )
+  )
+
+## Per-context metrics
+v4_context_df <- extract_happy_metrics(v4_happy, v4_context_map, "v4.2.1") %>%
+  mutate(context = names(v4_context_map)[match(Subset, v4_context_map)])
+v5_context_df <- extract_happy_metrics(v5_happy, v5_context_map, "v5.0q") %>%
+  mutate(context = names(v5_context_map)[match(Subset, v5_context_map)])
+
+## Combine overall + context with labels
+smvar_all_df <- bind_rows(
+  smvar_overall_df %>%
+    select(bench_version, context, Type,
+           recall = METRIC.Recall, precision = METRIC.Precision,
+           f1 = METRIC.F1_Score, tp = TRUTH.TP, fn = TRUTH.FN, fp = QUERY.FP),
+  bind_rows(v4_context_df, v5_context_df) %>%
+    filter(Type == "INDEL") %>%
+    mutate(context_label = get_context_labels()[context]) %>%
+    select(bench_version, context, Type,
+           recall = METRIC.Recall, precision = METRIC.Precision,
+           f1 = METRIC.F1_Score, tp = TRUTH.TP, fn = TRUTH.FN, fp = QUERY.FP)
+) %>%
+  mutate(
+    context_label = case_when(
+      context %in% c("SNV", "INDEL") ~ context,
+      context == "Overall" ~ "Overall",
+      .default = get_context_labels()[context]
+    )
+  )
+
+## Also get overall "all variants" row
+smvar_total_df <- bind_rows(
+  v4_happy %>%
+    filter(Filter == "PASS", Subtype == "*", Subset == "*", Type == "INDEL") %>%
+    mutate(bench_version = "v4.2.1"),
+  v5_happy %>%
+    filter(Filter == "PASS", Subtype == "*", Subset == "*", Type == "INDEL") %>%
+    mutate(bench_version = "v5.0q")
+)
 ```
 
-### Benchmark Comparison: v4.2.1 vs v5.0q by Variant Type
+### Benchmark Comparison: v4.2.1 vs v5.0q
 
-Overall and per-type metrics from vcfeval's 8-column ROC output (full metrics
-including FN, precision, recall).
+```{r smvar_scatter, fig.width = 10, fig.height = 7}
+## Combine per-type + per-context for scatter
+scatter_labels <- c("SNV", "INDEL", "Homopolymers", "Low Mappability",
+                    "Segmental Duplications", "Tandem Repeats")
 
-```{r smvar_type_scatter, fig.width = 10, fig.height = 7}
-smvar_type_compare_df <- smvar_full_df |>
-  filter(!is.na(var_type_label)) |>
-  select(bench_version, var_type_label, recall, precision, f1) |>
-  pivot_longer(c(recall, precision, f1), names_to = "metric", values_to = "value") |>
-  pivot_wider(names_from = bench_version, values_from = value) |>
-  rename(v421 = `v4.2.1`, v50q = `v5.0q`) |>
-  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
-
-## Overall metrics for annotation
-smvar_overall_compare_df <- smvar_full_df |>
-  filter(subset == "Overall") |>
-  select(bench_version, recall, precision, f1) |>
-  pivot_longer(c(recall, precision, f1), names_to = "metric", values_to = "value") |>
-  pivot_wider(names_from = bench_version, values_from = value) |>
-  rename(v421 = `v4.2.1`, v50q = `v5.0q`) |>
+## For per-type: use both SNP and INDEL rows
+## For per-context: use INDEL rows (Type == "INDEL")
+smvar_scatter_df <- smvar_all_df %>%
+  filter(!is.na(context_label), context_label %in% scatter_labels) %>%
+  select(bench_version, context_label, recall, precision, f1) %>%
+  pivot_longer(c(recall, precision, f1), names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = bench_version, values_from = value) %>%
+  rename(v421 = `v4.2.1`, v50q = `v5.0q`) %>%
   mutate(
     metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")),
-    var_type_label = "Overall"
+    context_label = factor(context_label, levels = scatter_labels)
   )
 
-smvar_all_compare_df <- bind_rows(smvar_type_compare_df, smvar_overall_compare_df) |>
-  mutate(var_type_label = factor(var_type_label, levels = c("Overall", "SNV", "INDEL")))
+## Shape and color maps
+scatter_colors <- c(
+  "SNV"                    = "#1f77b4",
+  "INDEL"                  = "#ff7f0e",
+  "Homopolymers"           = "#E41A1C",
+  "Low Mappability"        = "#377EB8",
+  "Segmental Duplications" = "#4DAF4A",
+  "Tandem Repeats"         = "#FF7F00"
+)
+scatter_shapes <- c(
+  "SNV"                    = 24,
+  "INDEL"                  = 22,
+  "Homopolymers"           = 24,
+  "Low Mappability"        = 22,
+  "Segmental Duplications" = 23,
+  "Tandem Repeats"         = 25
+)
 
-smvar_type_xy_range <- range(c(smvar_all_compare_df$v421, smvar_all_compare_df$v50q), na.rm = TRUE)
-
-(smvar_type_plt <- smvar_all_compare_df |>
-  ggplot(aes(x = v421, y = v50q, fill = var_type_label, shape = var_type_label)) +
+(smvar_scatter_plt <- smvar_scatter_df %>%
+  ggplot(aes(x = v421, y = v50q, fill = context_label, shape = context_label)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
   geom_point(color = "grey30", size = 3.5, stroke = 0.8) +
   facet_wrap(~metric) +
   scale_x_continuous(
-    trans = phred_trans,
-    breaks = phred_smvar_pcts, labels = phred_smvar_labels,
-    limits = smvar_type_xy_range
+    trans   = phred_trans,
+    breaks  = phred_smvar_pcts,
+    labels  = phred_smvar_labels,
+    limits  = c(0.90, 0.9999),
+    oob     = scales::squish
   ) +
   scale_y_continuous(
-    trans = phred_trans,
-    breaks = phred_smvar_pcts, labels = phred_smvar_labels,
-    limits = smvar_type_xy_range
+    trans   = phred_trans,
+    breaks  = phred_smvar_pcts,
+    labels  = phred_smvar_labels,
+    limits  = c(0.90, 0.9999),
+    oob     = scales::squish
   ) +
-  annotation_phredticks(sides = "bl") +
-  scale_fill_manual(values = c("Overall" = "black", "SNV" = "#1f77b4", "INDEL" = "#ff7f0e")) +
-  scale_shape_manual(values = c("Overall" = 21, "SNV" = 24, "INDEL" = 22)) +
+  scale_fill_manual(values = scatter_colors) +
+  scale_shape_manual(values = scatter_shapes) +
   labs(
     x = "v4.2.1",
     y = "v5.0q",
-    fill = "Variant Type",
-    shape = "Variant Type"
+    fill = NULL,
+    shape = NULL
   ) +
-  coord_equal(clip = "off") +
+  coord_cartesian(clip = "off") +
   theme_manuscript() +
-  theme(legend.position = "bottom"))
-```
-
-### Per-Context TP and FP (4-column ROC data)
-
-Per-context metrics from vcfeval's 4-column ROC output. These provide
-TP (baseline-rescaled) and FP directly from vcfeval's matching engine.
-FN and recall are not available from these files.
-
-```{r smvar_context_table}
-smvar_context_df |>
-  select(bench_version, context_label, tp_baseline, fp) |>
-  arrange(bench_version, context_label) |>
-  gt::gt() |>
-  gt::fmt_number(columns = c(tp_baseline, fp), decimals = 1) |>
-  gt::cols_label(
-    bench_version = "Benchmark",
-    context_label = "Context",
-    tp_baseline = "TP (baseline)",
-    fp = "FP"
-  ) |>
-  theme_gt_manuscript()
+  theme(legend.position = "bottom", aspect.ratio = 1))
 ```
 
 ### By Variant Size
+
+```{r smvar_size_data}
+## Extract size bin metrics from hap.py Subtype column
+## Subtype values: I1_5/D1_5/C1_5 → "1-5bp", I6_15/D6_15/C6_15 → "6-15bp",
+## I16_PLUS/D16_PLUS/C16_PLUS → "16+bp"
+subtype_to_sizebin <- c(
+  "I1_5" = "1-5bp", "D1_5" = "1-5bp", "C1_5" = "1-5bp",
+  "I6_15" = "6-15bp", "D6_15" = "6-15bp", "C6_15" = "6-15bp",
+  "I16_PLUS" = "16+bp", "D16_PLUS" = "16+bp", "C16_PLUS" = "16+bp"
+)
+
+extract_size_metrics <- function(happy_df, bench_version) {
+  ## INDEL size bins
+  indel_size <- happy_df %>%
+    filter(Filter == "PASS", Subset == "*", Type == "INDEL",
+           Subtype %in% names(subtype_to_sizebin)) %>%
+    mutate(size_bin = subtype_to_sizebin[Subtype]) %>%
+    group_by(size_bin) %>%
+    summarise(
+      tp = sum(TRUTH.TP), fn = sum(TRUTH.FN), fp = sum(QUERY.FP),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      recall = tp / (tp + fn),
+      precision = tp / (tp + fp)
+    )
+
+  ## SNP row
+  snp_row <- happy_df %>%
+    filter(Filter == "PASS", Subset == "*", Type == "SNP", Subtype == "*") %>%
+    transmute(
+      size_bin = "SNP",
+      tp = TRUTH.TP, fn = TRUTH.FN, fp = QUERY.FP,
+      recall = METRIC.Recall, precision = METRIC.Precision
+    )
+
+  bind_rows(snp_row, indel_size) %>%
+    mutate(bench_version = bench_version)
+}
+
+smvar_size_df <- bind_rows(
+  extract_size_metrics(v4_happy, "v4.2.1"),
+  extract_size_metrics(v5_happy, "v5.0q")
+) %>%
+  mutate(size_bin = factor(size_bin, levels = size_bin_levels))
+```
 
 ```{r smvar_size_plot, fig.width = 7, fig.height = 5}
 smvar_size_long <- smvar_size_df %>%
@@ -381,8 +443,7 @@ smvar_size_long <- smvar_size_df %>%
 ```{r combined_smvar, fig.width = 8, fig.height = 10}
 design <- c(area(l = 1, r = 8, t = 1, b = 8), area(l = 1, r = 8, t = 8, b = 10))
 (combined_smvar_plt <-
-  # (smvar_scatter_plt + theme(legend.position = "bottom")) /
-  (smvar_type_plt) /
+  (smvar_scatter_plt) /
   (smvar_size_plt) &
   plot_annotation(tag_levels = "A") &
   plot_layout(design = design)
@@ -401,25 +462,35 @@ ggsave(
 ### Figure Legend
 
 **Figure use_case_smvar: Small variant benchmarking of the Roche NeuSomatic callset against v4.2.1 and v5.0q benchmark sets.**
-(A) Benchmark comparison scatter plots for the Roche NeuSomatic HG002 callset (Illumina + PacBio + ONT input data) evaluated against the v4.2.1 and v5.0q GRCh38 small variant benchmarks using `rtg vcfeval`. Each panel shows one performance metric (recall, precision, F1); each point represents a variant type (overall, SNV, INDEL) with metrics computed from vcfeval's ROC output. Axes are phred-scaled; the dashed diagonal marks equal performance between the two benchmarks.
-(B) Recall and precision by variant size bin (SNP, 1–4 bp, 5–14 bp, 15–49 bp) on a phred-scaled y-axis.
+(A) Benchmark comparison scatter plots for the Roche NeuSomatic HG002 callset (Illumina + PacBio + ONT input data) evaluated against the v4.2.1 and v5.0q GRCh38 small variant benchmarks using hap.py. Each panel shows one performance metric (recall, precision, F1); points represent variant types (SNV, INDEL) and per-context INDEL performance in genomic contexts (homopolymers, low mappability, segmental duplications, tandem repeats). Note that v4.2.1 and v5.0q use slightly different BED definitions for context stratifications. Axes are phred-scaled; the dashed diagonal marks equal performance between the two benchmarks.
+(B) Recall and precision by variant size bin (SNP, 1–5 bp, 6–15 bp, 16+ bp) on a phred-scaled y-axis.
 
 ### Results Text
 
-To demonstrate the practical impact of the expanded v5.0q benchmark regions on variant caller evaluation, we benchmarked the Roche NeuSomatic HG002 callset from the precisionFDA Truth Challenge V2 against both the v4.2.1 and v5.0q GRCh38 small variant benchmark sets using `rtg vcfeval` with `--roc-subset snp,non-snp` for per-type stratification.
+To demonstrate the practical impact of the expanded v5.0q benchmark regions on variant caller evaluation, we benchmarked the Roche NeuSomatic HG002 callset from the precisionFDA Truth Challenge V2 against both the v4.2.1 and v5.0q GRCh38 small variant benchmark sets using hap.py with GIAB stratifications.
 
-Against the v4.2.1 benchmark, the NeuSomatic callset achieved near-perfect performance overall (F1 = 0.9997, recall = 99.96%, precision = 99.98%), with only 612 false positives and 1,685 false negatives across 3.89 million true positives. Both SNVs (F1 = 0.9998) and INDELs (F1 = 0.9988) showed high concordance, reflecting the limited scope of the v4.2.1 benchmark which largely excluded the most challenging repetitive regions.
+Against the v4.2.1 benchmark, the NeuSomatic callset achieved near-perfect performance for both SNVs (F1 = 0.9998, recall = 99.97%, precision = 100.00%) and INDELs (F1 = 0.9989, recall = 99.87%, precision = 99.90%), with only 116 SNV and 549 INDEL false positives across 3.36 million SNV and 525K INDEL true positives. Per-context INDEL performance was similarly high, with recall exceeding 99.5% in all four genomic contexts (HP: 99.85%, TR: 99.83%, SD: 99.60%, MAP: 99.51%).
 
-Against the v5.0q benchmark, the same callset showed substantially lower performance (F1 = 0.9827, recall = 97.99%, precision = 98.55%), with 64,931 false positives and 90,686 false negatives across 4.43 million true positives. Performance differences were particularly pronounced for INDELs (F1 = 0.9329, recall = 92.56%, precision = 94.03%) compared to SNVs (F1 = 0.9947, recall = 99.30%, precision = 99.65%). By variant size, the largest performance decrease was observed for INDELs in the 5–14 bp and 15–49 bp size ranges, where the v5.0q benchmark includes substantially more variants in repetitive regions.
+Against the v5.0q benchmark, the same callset showed substantially lower performance, reflecting the inclusion of more difficult genomic regions. SNV performance remained high but decreased (F1 = 0.9942, recall = 99.24%, precision = 99.61%), while INDEL performance dropped more substantially (F1 = 0.9456, recall = 94.16%, precision = 94.95%) with 50,522 false negatives and 46,678 false positives across 815K INDEL true positives. Per-context INDEL performance revealed the source of these differences: homopolymers (recall = 92.24%), tandem repeats (recall = 92.54%), segmental duplications (recall = 84.67%), and low mappability regions (recall = 81.42%) all showed markedly lower recall than against v4.2.1. By variant size, the largest performance decreases were observed for larger INDELs: 6–15 bp recall dropped from 99.7% (v4.2.1) to 87.3% (v5.0q), and 16+ bp recall dropped from 99.7% to 79.8%.
 
 
-## Structural Variant Benchmarking: ONT-Sniffles vs ONT-Verkko
+## Structural Variant Benchmarking: Sniffles1 vs Sniffles2
 
-Comparison of ONT-Sniffles (Sniffles2, mapping-based) and ONT-Verkko (dipcall, assembly-based)
-SV callsets against the v5.0q GRCh38 structural variant benchmark.
+Comparison of Sniffles1 and Sniffles2 SV callsets from HiFi and ONT platforms
+against the v5.0q GRCh38 structural variant benchmark.
 Evaluated with `truvari bench` and `truvari refine` using GIAB v5.0q recommended parameters (`--pick ac --passonly -r 2000 -C 5000 --refine`).
 
 ```{r stvar_data}
+## Helper to compute recall/precision from TP/FP/FN counts
+compute_metrics <- function(df) {
+  df %>%
+    mutate(
+      recall = tp / (tp + fn),
+      precision = tp / (tp + fp),
+      f1 = 2 * (precision * recall) / (precision + recall)
+    )
+}
+
 stvar_df <- read_csv(
   here("results", "use_case", "stvar", "stratified_metrics.csv"),
   show_col_types = FALSE
@@ -434,10 +505,7 @@ stvar_df <- read_csv(
       levels = c("Overall", "Homopolymers", "Low Mappability",
                  "Segmental Duplications", "Tandem Repeats")
     ),
-    callset_label = case_when(
-      callset == "ont-sniffles" ~ "ONT-Sniffles (Sniffles2)",
-      callset == "ont-verkko" ~ "ONT-Verkko (dipcall)"
-    ),
+    callset_label = str_to_title(callset),
     f1 = 2 * (precision * recall) / (precision + recall)
   )
 
@@ -447,10 +515,7 @@ svtype_df <- read_csv(
   show_col_types = FALSE
 ) %>%
   mutate(
-    callset_label = case_when(
-      callset == "ont-sniffles" ~ "ONT-Sniffles (Sniffles2)",
-      callset == "ont-verkko" ~ "ONT-Verkko (dipcall)"
-    ),
+    callset_label = str_to_title(callset),
     f1 = 2 * (precision * recall) / (precision + recall)
   )
 
@@ -465,137 +530,118 @@ sv_size_df <- read_csv(
   compute_metrics() %>%
   mutate(
     size_bin = factor(size_bin, levels = sv_size_levels),
-    callset_label = case_when(
-      callset == "ont-sniffles" ~ "ONT-Sniffles (Sniffles2)",
-      callset == "ont-verkko" ~ "ONT-Verkko (dipcall)"
-    )
+    callset_label = str_to_title(callset)
   )
+
+## Callset colors
+callset_colors <- c("Sniffles1" = "#D95F02", "Sniffles2" = "#7570B3")
 ```
 
-### Callset Comparison Scatter: ONT-Sniffles vs ONT-Verkko by Context
+### ONT: Sniffles1 vs Sniffles2
 
-```{r stvar_scatter, fig.width = 10, fig.height = 4}
-stvar_compare_df <- stvar_df |>
-  select(callset, context_label, precision, recall, f1) |>
-  pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
-  pivot_wider(names_from = callset, values_from = value) |>
-  rename(ont_sniffles = `ont-sniffles`, ont_verkko = `ont-verkko`) |>
-  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
+```{r stvar_ont_scatter, fig.width = 10, fig.height = 4}
+make_stvar_scatter <- function(df, platform_filter) {
+  compare_df <- df %>%
+    filter(platform == platform_filter) %>%
+    select(callset, context_label, precision, recall, f1) %>%
+    pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") %>%
+    pivot_wider(names_from = callset, values_from = value) %>%
+    mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
 
-stvar_xy_range <- range(c(stvar_compare_df$ont_sniffles, stvar_compare_df$ont_verkko), na.rm = TRUE)
+  xy_range <- range(c(compare_df$sniffles1, compare_df$sniffles2), na.rm = TRUE)
 
-(stvar_scatter_plt <- stvar_compare_df |>
-  ggplot(aes(x = ont_sniffles, y = ont_verkko, fill = context_label, shape = context_label)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
-  geom_point(color = "grey30", size = 3.5, stroke = 0.8) +
-  facet_wrap(~metric) +
-  scale_x_continuous(
-    trans = phred_trans,
-    breaks = phred_stvar_pcts, labels = phred_stvar_labels,
-    limits = stvar_xy_range
-  ) +
-  scale_y_continuous(
-    trans = phred_trans,
-    breaks = phred_stvar_pcts, labels = phred_stvar_labels,
-    limits = stvar_xy_range
-  ) +
-  annotation_phredticks(sides = "bl") +
-  scale_fill_manual(values = context_label_colors) +
-  scale_shape_manual(values = context_label_shapes) +
-  labs(
-    x = "ONT-Sniffles (Sniffles2)",
-    y = "ONT-Verkko (dipcall)",
-    fill = "Genomic Context",
-    shape = "Genomic Context"
-  ) +
-  coord_equal(clip = "off") +
-  theme_manuscript() +
-  theme(legend.position = "right"))
+  compare_df %>%
+    ggplot(aes(x = sniffles1, y = sniffles2, fill = context_label, shape = context_label)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
+    geom_point(color = "grey30", size = 3.5, stroke = 0.8) +
+    facet_wrap(~metric) +
+    scale_x_continuous(
+      trans = phred_trans,
+      breaks = phred_stvar_pcts, labels = phred_stvar_labels,
+      limits = xy_range
+    ) +
+    scale_y_continuous(
+      trans = phred_trans,
+      breaks = phred_stvar_pcts, labels = phred_stvar_labels,
+      limits = xy_range
+    ) +
+    annotation_phredticks(sides = "bl") +
+    scale_fill_manual(values = context_label_colors) +
+    scale_shape_manual(values = context_label_shapes) +
+    labs(
+      x = "Sniffles1",
+      y = "Sniffles2",
+      fill = "Genomic Context",
+      shape = "Genomic Context"
+    ) +
+    coord_cartesian(clip = "off") +
+    theme_manuscript() +
+    theme(legend.position = "right", aspect.ratio = 1)
+}
+
+(ont_scatter_plt <- make_stvar_scatter(stvar_df, "ONT"))
 ```
 
-### By SV Type and Size
+```{r stvar_ont_size_scatter, fig.width = 10, fig.height = 7}
+make_stvar_size_scatter <- function(size_df, platform_filter) {
+  compare_df <- size_df %>%
+    filter(platform == platform_filter) %>%
+    select(callset, svtype, size_bin, precision, recall, f1) %>%
+    pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") %>%
+    pivot_wider(names_from = callset, values_from = value) %>%
+    mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
 
-```{r stvar_size_plot, fig.width = 8, fig.height = 5}
-sv_size_long <- sv_size_df %>%
-  pivot_longer(cols = c(recall, precision), names_to = "metric", values_to = "value") %>%
-  mutate(metric = str_to_title(metric))
+  compare_df %>%
+    ggplot(aes(x = sniffles1, y = sniffles2, fill = svtype, size = size_bin)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
+    geom_point(shape = 21, color = "grey30", stroke = 0.6) +
+    facet_wrap(~metric) +
+    scale_fill_manual(values = c("DEL" = "#D95F02", "INS" = "#1B9E77")) +
+    labs(
+      x = "Sniffles1",
+      y = "Sniffles2",
+      fill = "SV Type",
+      size = "SV Size"
+    ) +
+    coord_equal(clip = "off") +
+    theme_manuscript() +
+    theme(legend.position = "right")
+}
 
-(stvar_size_plt <- sv_size_long %>%
-  ggplot(aes(x = size_bin, y = value, fill = callset_label)) +
-  geom_col(
-    position = position_dodge(width = 0.8), width = 0.7,
-    color = "grey30", linewidth = 0.3
-  ) +
-  facet_grid(svtype ~ metric) +
-  scale_y_continuous(
-    trans   = phred_trans,
-    breaks  = phred_stvar_pcts,
-    labels  = phred_stvar_labels,
-    limits  = c(0, 0.99)
-  ) +
-  scale_fill_manual(values = callset_colors) +
-  labs(x = "SV Size", y = NULL, fill = "Callset") +
-  theme_manuscript() +
-  theme(
-    axis.text.x = element_text(angle = -30, hjust = 0),
-    legend.position = "bottom"
-  ))
+(ont_size_scatter_plt <- make_stvar_size_scatter(sv_size_df, "ONT"))
 ```
 
-### Callset Comparison Scatter: ONT-Sniffles vs ONT-Verkko by SV Type and Size
-
-```{r stvar_size_scatter, fig.width = 10, fig.height = 7}
-sv_size_compare_df <- sv_size_df |>
-  select(callset, svtype, size_bin, precision, recall, f1) |>
-  pivot_longer(c(precision, recall, f1), names_to = "metric", values_to = "value") |>
-  pivot_wider(names_from = callset, values_from = value) |>
-  rename(ont_sniffles = `ont-sniffles`, ont_verkko = `ont-verkko`) |>
-  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision", "F1")))
-
-stvar_size_xy_vals <- c(sv_size_compare_df$ont_sniffles, sv_size_compare_df$ont_verkko)
-stvar_size_xy_range <- range(stvar_size_xy_vals[!is.na(stvar_size_xy_vals) & stvar_size_xy_vals < 1])
-
-(stvar_size_scatter_plt <- sv_size_compare_df |>
-  ggplot(aes(x = ont_sniffles, y = ont_verkko, fill = svtype, size = size_bin)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
-  geom_point(shape = 21, color = "grey30", stroke = 0.6) +
-  facet_wrap(~metric) +
-  # scale_x_continuous(
-  #   trans = phred_trans,
-  #   breaks = phred_stvar_pcts, labels = phred_stvar_labels,
-  #   limits = stvar_size_xy_range
-  # ) +
-  # scale_y_continuous(
-  #   trans = phred_trans,
-  #   breaks = phred_stvar_pcts, labels = phred_stvar_labels,
-  #   limits = stvar_size_xy_range
-  # ) +
-  # annotation_phredticks(sides = "bl") +
-  scale_fill_manual(values = c("DEL" = "#D95F02", "INS" = "#1B9E77")) +
-  # scale_size_manual(values = c("50-99bp" = 2, "100-299bp" = 3, "300-999bp" = 4, "1-10kb" = 5, ">=10kb" = 6)) +
-  labs(
-    x = "ONT-Sniffles (Sniffles2)",
-    y = "ONT-Verkko (dipcall)",
-    fill = "SV Type",
-    size = "SV Size"
-  ) +
-  coord_equal(clip = "off") +
-  theme_manuscript() +
-  theme(legend.position = "right"))
-```
-
-### Combined SV Figure
-
-```{r combined_stvar, fig.width = 8, fig.height = 8}
-(combined_stvar_plt <-
-  (stvar_scatter_plt + theme(legend.position = "bottom")) /
-  (stvar_size_scatter_plt + theme(legend.position = "bottom")) +
+```{r combined_stvar_ont, fig.width = 8, fig.height = 8}
+(combined_ont_plt <-
+  (ont_scatter_plt + theme(legend.position = "bottom")) /
+  (ont_size_scatter_plt + theme(legend.position = "bottom")) +
   plot_annotation(tag_levels = "A") &
-  theme(margins = unit(c(1, 1, 1, 1), "pt")))
+  theme(plot.margin = unit(c(1, 1, 1, 1), "pt")))
 
 ggsave(
-  filename = here("manuscript", "figs", "use_case_stvar.png"),
-  plot = combined_stvar_plt,
+  filename = here("manuscript", "figs", "use_case_stvar_ont.png"),
+  plot = combined_ont_plt,
+  width = 8,
+  height = 8,
+  dpi = 300
+)
+```
+
+### HiFi: Sniffles1 vs Sniffles2
+
+```{r stvar_hifi, fig.width = 8, fig.height = 8}
+hifi_scatter_plt <- make_stvar_scatter(stvar_df, "HiFi")
+hifi_size_scatter_plt <- make_stvar_size_scatter(sv_size_df, "HiFi")
+
+(combined_hifi_plt <-
+  (hifi_scatter_plt + theme(legend.position = "bottom")) /
+  (hifi_size_scatter_plt + theme(legend.position = "bottom")) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.margin = unit(c(1, 1, 1, 1), "pt")))
+
+ggsave(
+  filename = here("manuscript", "figs", "use_case_stvar_hifi.png"),
+  plot = combined_hifi_plt,
   width = 8,
   height = 8,
   dpi = 300
@@ -604,13 +650,59 @@ ggsave(
 
 ### Figure Legend
 
-**Figure use_case_stvar: Structural variant benchmarking of ONT-Sniffles (Sniffles2, mapping-based) and ONT-Verkko (dipcall, assembly-based) callsets against the v5.0q GRCh38 SV benchmark.**
-(A) Callset comparison scatter plots for overall and stratified performance (homopolymers, low mappability, segmental duplications, tandem repeats) using GIAB v3.6 stratifications and `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine`. Each panel shows one performance metric (recall, precision, F1); x-axis is ONT-Sniffles (Sniffles2), y-axis is ONT-Verkko (dipcall). Axes are phred-scaled; the dashed diagonal marks equal performance between callsets.
-(B) Recall and precision by SV type (DEL and INS) and size bin on a phred-scaled y-axis.
-(C) Callset comparison scatter by SV type and size bin, faceted by SV type and performance metric. Axes are phred-scaled.
+**Figure use_case_stvar_ont: ONT structural variant benchmarking comparing Sniffles1 and Sniffles2 callsets against the v5.0q GRCh38 SV benchmark.**
+(A) Callset comparison scatter plots for overall and stratified performance (homopolymers, low mappability, segmental duplications, tandem repeats) using `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine`. Each panel shows one performance metric (recall, precision, F1); x-axis is Sniffles1, y-axis is Sniffles2. Axes are phred-scaled; the dashed diagonal marks equal performance between callsets.
+(B) Callset comparison scatter by SV type (DEL, INS) and size bin, faceted by performance metric.
+
+**Figure use_case_stvar_hifi: HiFi structural variant benchmarking comparing Sniffles1 and Sniffles2 callsets against the v5.0q GRCh38 SV benchmark.** Same layout and parameters as the ONT figure.
 
 ### Results Text
 
-To demonstrate the practical impact of SV calling methodology on benchmarking performance, we compared mapping-based (ONT-Sniffles2) and assembly-based (ONT-Verkko dipcall) structural variant callsets against the v5.0q GRCh38 benchmark using `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine` for MSA-based re-evaluation. ALT="*" spanning deletion records were filtered prior to benchmarking per GIAB v5.0q README guidance.
+To demonstrate the utility of the v5.0q SV benchmark for evaluating caller improvements, we compared Sniffles1 and Sniffles2 SV callsets from both ONT and HiFi platforms against the v5.0q GRCh38 benchmark using `truvari bench` with GIAB-recommended parameters (`--pick ac --passonly -r 2000 -C 5000`) followed by `truvari refine` for MSA-based re-evaluation.
 
-[Add performance comparison results after reviewing actual metrics]
+For ONT data, Sniffles2 improved overall recall from 85.98% (Sniffles1) to 91.80% while maintaining comparable precision (99.34% vs 98.86%). Recall improvements were consistent across genomic contexts, with the largest absolute gains in tandem repeats (55.10% to 61.88%) and low mappability regions (46.44% to 52.27%). By SV type, Sniffles2 improved both deletion recall (65.99% to 67.88%) and insertion recall (59.57% to 70.13%), with insertions showing the larger gain.
+
+For HiFi data, the improvement was even more pronounced. Sniffles2 increased overall recall from 71.39% to 91.36%, a 20 percentage-point gain, while precision remained high (98.29% vs 98.94%). Deletion recall improved from 48.76% to 68.96%, and insertion recall from 55.27% to 71.26%. Per-context recall gains were substantial: tandem repeats (45.62% to 63.80%), segmental duplications (24.19% to 38.69%), and low mappability (39.58% to 56.06%). The larger gains on HiFi suggest that Sniffles1 was less optimized for HiFi-specific characteristics (e.g., longer reads, different error profiles) compared to ONT.
+
+Precision for per-context metrics was generally lower for Sniffles2 than Sniffles1, particularly in segmental duplications (HiFi: 87.77% to 72.96%; ONT: 82.70% to 75.41%), suggesting a recall-precision tradeoff in these challenging regions.
+
+
+## Metrics Cross-Reference
+
+Numbers used in the results text above, for verification against manuscript.
+
+```{r metrics_crossref}
+#| echo: false
+
+## ── Small Variant Metrics ──
+cat("=== Small Variant Metrics (hap.py, PASS, Subtype=*, Subset=*) ===\n\n")
+
+smvar_metrics <- smvar_all_df %>%
+  filter(context_label %in% c("SNV", "INDEL")) %>%
+  select(bench_version, context_label, recall, precision, f1, tp, fn, fp)
+cat("-- Overall by type --\n")
+print(as.data.frame(smvar_metrics), row.names = FALSE)
+
+cat("\n-- INDEL per-context --\n")
+ctx_metrics <- smvar_all_df %>%
+  filter(!context_label %in% c("SNV", "INDEL", "Overall"), !is.na(context_label)) %>%
+  select(bench_version, context_label, recall, precision, f1, tp, fn, fp)
+print(as.data.frame(ctx_metrics), row.names = FALSE)
+
+cat("\n-- By size bin --\n")
+print(as.data.frame(smvar_size_df %>% select(bench_version, size_bin, recall, precision, tp, fn, fp)),
+      row.names = FALSE)
+
+## ── SV Metrics ──
+cat("\n\n=== Structural Variant Metrics (truvari bench+refine) ===\n\n")
+
+cat("-- Overall + per-context (from stratified_metrics.csv) --\n")
+stvar_print <- stvar_df %>%
+  select(platform, callset, context_label, tp, fp, fn, recall, precision, f1)
+print(as.data.frame(stvar_print), row.names = FALSE)
+
+cat("\n-- By SV type (from svtype_metrics.csv) --\n")
+svtype_print <- svtype_df %>%
+  select(platform, callset, svtype, tp, fp, fn, recall, precision, f1)
+print(as.data.frame(svtype_print), row.names = FALSE)
+```
