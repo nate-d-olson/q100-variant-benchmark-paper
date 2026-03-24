@@ -1,0 +1,3 @@
+[proxy-config]
+https = "https://prefix.dev/"
+http = "https://prefix.dev/"

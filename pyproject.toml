@@ -34,3 +34,13 @@ select = ["F"]
 "workflow/scripts/validate_vcf.py" = ["F821"]  # snakemake object
 # Note: exceptions.py, validators.py, logging_config.py, combine_beds_with_id.py,
 # and generate_header_lines.py are NOT in this list - they should catch undefined names
+
+[tool.pixi.workspace]
+name = "q100-variant-benchmark"
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+q100-variant-benchmark = { path = ".", editable = true }
+
+[tool.pixi.tasks]
