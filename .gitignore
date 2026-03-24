@@ -40,6 +40,7 @@ Thumbs.db
 /.pytest_cache/
 analysis/*_files/**
 /etc/**
+/.claude/settings.local.json
 
 # Root-level generated exports and archives
 /index.tex
