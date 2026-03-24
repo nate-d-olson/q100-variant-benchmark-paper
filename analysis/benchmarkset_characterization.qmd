@@ -134,10 +134,6 @@ bench_summary_df %>%
   format_bench_table(var_cols = c("DEL", "INS"))
 ```
 
-```{r}
-flextable::
-```
-
 
 ## Variant Size Distributions
 
