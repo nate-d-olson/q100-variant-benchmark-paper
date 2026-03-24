@@ -95,14 +95,22 @@ smvar_curations <- full_join(smvar_evals, smvar_evals_jz) %>%
     callset,
     GRCh38_chr, GRCh38_start, GRCh38_end,
     correct.in.benchmark, JZcorrect.in.benchmark,
+    correct.in.callset, JZcorrect.in.callset,
     var_type, strata, unique_to
   ) %>%
   mutate(
-    curation = if_else(!is.na(JZcorrect.in.benchmark),
+    curation_benchmark = if_else(!is.na(JZcorrect.in.benchmark),
       JZcorrect.in.benchmark,
       correct.in.benchmark
     ),
-    curation = factor(curation,
+    curation_benchmark = factor(curation_benchmark,
+      levels = c("no", "unsure", "yes")
+    ),
+    curation_callset = if_else(!is.na(JZcorrect.in.callset),
+      JZcorrect.in.callset,
+      correct.in.callset
+    ),
+    curation_callset = factor(curation_callset,
       levels = c("no", "unsure", "yes")
     )
   ) %>%
@@ -118,14 +126,22 @@ stvar_curations <- full_join(stvar_evals, stvar_evals_jz) %>%
     callset,
     GRCh38_chr, GRCh38_start, GRCh38_end,
     correct.in.benchmark, JZcorrect.in.benchmark,
-    var_type, strata, unique_to
+    correct.in.callset, JZcorrect.in.callset,
+    var_type, strata, unique_to, TR_anno, sv_cat, unique_to
   ) %>%
   mutate(
-    curation = if_else(!is.na(JZcorrect.in.benchmark),
+    curation_benchmark = if_else(!is.na(JZcorrect.in.benchmark),
       JZcorrect.in.benchmark,
       correct.in.benchmark
     ),
-    curation = factor(curation,
+    curation_benchmark = factor(curation_benchmark,
+      levels = c("no", "unsure", "yes")
+    ),
+    curation_callset = if_else(!is.na(JZcorrect.in.callset),
+      JZcorrect.in.callset,
+      correct.in.callset
+    ),
+    curation_callset = factor(curation_callset,
       levels = c("no", "unsure", "yes")
     )
   ) %>%
@@ -183,8 +199,8 @@ A total of `r total_smvs` small variants were evaluated, of which
 
 ```{r smvar_by_callset, fig.width = 7, fig.height = 3.5}
 (smvar_eval_callset_plt <- smvar_curations %>%
-  count(callset, curation) %>%
-  ggplot(aes(y = callset, x = n, fill = curation)) +
+  count(callset, curation_benchmark) %>%
+  ggplot(aes(y = callset, x = n, fill = curation_benchmark)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   scale_fill_brewer(palette = "Set2") +
   labs(x = "Callset", y = "# of Variants", fill = "Correct in\nBenchmark") +
@@ -192,10 +208,21 @@ A total of `r total_smvs` small variants were evaluated, of which
   theme(legend.position = "right"))
 ```
 
+```{r smvar_by_callset_cs, fig.width = 7, fig.height = 3.5}
+(smvar_eval_callset_cs_plt <- smvar_curations %>%
+  count(callset, curation_callset) %>%
+  ggplot(aes(y = callset, x = n, fill = curation_callset)) +
+  geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "Callset", y = "# of Variants", fill = "Correct in\nCallset") +
+  theme_manuscript() +
+  theme(legend.position = "right"))
+```
+
 ```{r smvar_by_strata, fig.width = 7, fig.height = 4}
 (smvar_eval_strata_plt <- smvar_curations %>%
-  count(strata_label, unique_to, curation) %>%
-  ggplot(aes(y = strata_label, x = n, fill = curation)) +
+  count(strata_label, unique_to, curation_benchmark) %>%
+  ggplot(aes(y = strata_label, x = n, fill = curation_benchmark)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   facet_grid(
     rows = vars(unique_to),
@@ -204,6 +231,25 @@ A total of `r total_smvs` small variants were evaluated, of which
   ) +
   scale_fill_brewer(palette = "Set2") +
   labs(x = "# of Variants", y = NULL, fill = "Correct in\nBenchmark") +
+  theme_manuscript() +
+  theme(
+    legend.position = "bottom",
+    strip.text.y = element_text(angle = 0)
+  ))
+```
+
+```{r smvar_by_strata_cs, fig.width = 7, fig.height = 4}
+(smvar_eval_strata_cs_plt <- smvar_curations %>%
+  count(strata_label, unique_to, curation_callset) %>%
+  ggplot(aes(y = strata_label, x = n, fill = curation_callset)) +
+  geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
+  facet_grid(
+    rows = vars(unique_to),
+    scales = "free_y",
+    space = "free_y"
+  ) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "# of Variants", y = NULL, fill = "Correct in\nCallset") +
   theme_manuscript() +
   theme(
     legend.position = "bottom",
@@ -289,13 +335,13 @@ ggsave(
     strata_label = str_replace_all(strata, "\n", " "),
     strata_label = str_replace(strata_label, "nonTR", "Non-TR"),
     strata_label = str_replace(strata_label, "TR", "TR"),
-    curation = factor(
-      coalesce(as.character(curation), correct.in.benchmark),
+    curation_benchmark = factor(
+      coalesce(as.character(curation_benchmark), correct.in.benchmark),
       levels = c("no", "unsure", "yes")
     )
   ) %>%
-  count(strata_label, curation) %>%
-  ggplot(aes(y = strata_label, x = n, fill = curation)) +
+  count(strata_label, curation_benchmark) %>%
+  ggplot(aes(y = strata_label, x = n, fill = curation_benchmark)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   scale_fill_brewer(palette = "Set2") +
   labs(
@@ -306,15 +352,85 @@ ggsave(
   theme(legend.position = "bottom"))
 ```
 
-```{r smvar_by_callset, fig.width = 7, fig.height = 3.5}
+```{r stvar_by_strata_cs, fig.width = 7, fig.height = 4}
+(stvar_eval_strata_cs_plt <- stvar_curations %>%
+  mutate(
+    strata_label = str_replace_all(strata, "\n", " "),
+    strata_label = str_replace(strata_label, "nonTR", "Non-TR"),
+    strata_label = str_replace(strata_label, "TR", "TR"),
+    curation_callset = factor(
+      coalesce(as.character(curation_callset), correct.in.callset),
+      levels = c("no", "unsure", "yes")
+    )
+  ) %>%
+  count(strata_label, curation_callset) %>%
+  ggplot(aes(y = strata_label, x = n, fill = curation_callset)) +
+  geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    x = "# of Variants", y = NULL,
+    fill = "Correct in\nCallset",
+  ) +
+  theme_manuscript() +
+  theme(legend.position = "bottom"))
+```
+
+```{r stvar_by_callset, fig.width = 7, fig.height = 3.5}
 (stvar_eval_callset_plt <- stvar_curations %>%
-  count(callset, curation) %>%
-  ggplot(aes(y = callset, x = n, fill = curation)) +
+  count(callset, curation_benchmark) %>%
+  ggplot(aes(y = callset, x = n, fill = curation_benchmark)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   scale_fill_brewer(palette = "Set2") +
   labs(x = "Callset", y = "# of Variants", fill = "Correct in\nBenchmark") +
   theme_manuscript() +
   theme(legend.position = "bottom"))
+```
+
+```{r stvar_by_callset_cs, fig.width = 7, fig.height = 3.5}
+(stvar_eval_callset_cs_plt <- stvar_curations %>%
+  count(callset, curation_callset) %>%
+  ggplot(aes(y = callset, x = n, fill = curation_callset)) +
+  geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "Callset", y = "# of Variants", fill = "Correct in\nCallset") +
+  theme_manuscript() +
+  theme(legend.position = "bottom"))
+```
+
+## Combined Evaluation Figure
+
+```{r combined_eval, fig.width = 8, fig.height = 8}
+(combined_eval_plt <- (
+  smvar_eval_callset_plt + smvar_eval_strata_plt +
+    stvar_eval_callset_plt + stvar_eval_strata_plt
+) +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", ncol = 2, nrow = 2) &
+  theme(legend.position = "bottom"))
+
+ggsave(
+  filename = here("manuscript", "figs", "combined_eval.png"),
+  plot = combined_eval_plt,
+  width = 8, height = 8, dpi = 300
+)
+```
+
+## Combined Evaluation Figure (Correct in Callset)
+
+```{r combined_eval_cs, fig.width = 8, fig.height = 8}
+(combined_eval_cs_plt <- (
+  smvar_eval_callset_cs_plt + smvar_eval_strata_cs_plt +
+    stvar_eval_callset_cs_plt + stvar_eval_strata_cs_plt
+) +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", ncol = 2, nrow = 2) &
+  theme(legend.position = "bottom"))
+
+ggsave(
+  filename = here("manuscript", "figs", "combined_eval_callset.png"),
+  plot = combined_eval_cs_plt,
+  width = 8, height = 8, dpi = 300
+)
 ```
 
 ## Binomial Model: Probability Discrepancy is Error in Comparison Callset
@@ -330,6 +446,7 @@ confidence bounds are reported.
 A sensitivity analysis treats "unsure" curations as correct in the benchmark
 (combining with "yes") rather than incorrect (combining with "no"), providing
 an upper range on the estimated probabilities.
+
 
 ```{r ci_data_prep}
 library(emmeans)
@@ -360,20 +477,20 @@ prepare_stvar_features <- function(df) {
 
 ## Primary analysis: unsure = incorrect (conservative)
 smvar_model_df <- smvar_curations |>
-  mutate(correct_binary = as.integer(curation == "yes")) |>
+  mutate(correct_binary = as.integer(curation_benchmark == "yes")) |>
   prepare_smvar_features()
 
 stvar_model_df <- stvar_curations |>
-  mutate(correct_binary = as.integer(curation == "yes")) |>
+  mutate(correct_binary = as.integer(curation_benchmark == "yes")) |>
   prepare_stvar_features()
 
 ## Sensitivity analysis: unsure = correct
 smvar_sens_df <- smvar_curations |>
-  mutate(correct_binary = as.integer(curation %in% c("yes", "unsure"))) |>
+  mutate(correct_binary = as.integer(curation_benchmark %in% c("yes", "unsure"))) |>
   prepare_smvar_features()
 
 stvar_sens_df <- stvar_curations |>
-  mutate(correct_binary = as.integer(curation %in% c("yes", "unsure"))) |>
+  mutate(correct_binary = as.integer(curation_benchmark %in% c("yes", "unsure"))) |>
   prepare_stvar_features()
 ```
 
@@ -491,6 +608,15 @@ ci_plot_df <- ci_results |>
   ))
 ```
 
+
+```{r}
+ggsave(
+  filename = here("manuscript", "figs", "ride_estimates.png"),
+  plot = ci_forest_plt,
+  width = 8, height = 8, dpi = 300
+)
+```
+
 ```{r ci_summary_table}
 ## Per-level sample sizes
 smvar_n <- smvar_model_df |>
@@ -601,6 +727,240 @@ ci_table_wide |>
   )
 ```
 
+## Binomial Model: Benchmark Identifies Errors in Comparison Callset (Callset-Based)
+
+This analysis uses the `correct.in.callset` curation to estimate the
+probability that a discrepancy reflects an error in the comparison callset.
+When the comparison callset is judged "not correct" (`no`), the benchmark has
+identified a real error — even if the benchmark's own call at that site is
+also imperfect. This captures the broader utility of the benchmark for
+flagging comparison callset errors.
+
+The outcome is inverted relative to the curation values: `no` = the
+comparison is wrong (success), `yes` = the comparison is correct (failure).
+The conservative analysis treats `unsure` as the comparison being correct
+(fewer successes); the sensitivity analysis treats `unsure` as the comparison
+being wrong (more successes).
+
+```{r cs_data_prep}
+## Primary analysis: unsure = callset correct (conservative)
+smvar_model_df_cs <- smvar_curations |>
+  mutate(correct_binary = as.integer(curation_callset == "no")) |>
+  prepare_smvar_features()
+
+stvar_model_df_cs <- stvar_curations |>
+  mutate(correct_binary = as.integer(curation_callset == "no")) |>
+  prepare_stvar_features()
+
+## Sensitivity analysis: unsure = callset incorrect
+smvar_sens_df_cs <- smvar_curations |>
+  mutate(correct_binary = as.integer(curation_callset %in% c("no", "unsure"))) |>
+  prepare_smvar_features()
+
+stvar_sens_df_cs <- stvar_curations |>
+  mutate(correct_binary = as.integer(curation_callset %in% c("no", "unsure"))) |>
+  prepare_stvar_features()
+```
+
+```{r cs_models}
+## Primary models
+smvar_glm_cs <- glm(correct_binary ~ var_type + genomic_context + unique_to,
+                    family = binomial, data = smvar_model_df_cs)
+stvar_glm_cs <- glm(correct_binary ~ TR_anno + sv_cat + unique_to,
+                    family = binomial, data = stvar_model_df_cs)
+
+## Sensitivity models — use brglmFit if quasi-complete separation is detected
+smvar_sens_glm_cs <- tryCatch(
+  glm(correct_binary ~ var_type + genomic_context + unique_to,
+      family = binomial, data = smvar_sens_df_cs),
+  warning = function(w) {
+    glm(correct_binary ~ var_type + genomic_context + unique_to,
+        family = binomial, data = smvar_sens_df_cs,
+        method = "brglmFit")
+  }
+)
+stvar_sens_glm_cs <- tryCatch(
+  glm(correct_binary ~ TR_anno + sv_cat + unique_to,
+      family = binomial, data = stvar_sens_df_cs),
+  warning = function(w) {
+    glm(correct_binary ~ TR_anno + sv_cat + unique_to,
+        family = binomial, data = stvar_sens_df_cs,
+        method = "brglmFit")
+  }
+)
+```
+
+```{r cs_emmeans}
+primary_results_cs <- compute_all_emmeans(smvar_glm_cs, stvar_glm_cs) |>
+  mutate(analysis = "Conservative (unsure = callset correct)")
+sens_results_cs <- compute_all_emmeans(smvar_sens_glm_cs, stvar_sens_glm_cs) |>
+  mutate(analysis = "Sensitive (unsure = callset incorrect)")
+
+ci_results_cs <- bind_rows(primary_results_cs, sens_results_cs)
+```
+
+```{r cs_forest_plot, fig.width = 7, fig.height = 5.5}
+ci_plot_df_cs <- ci_results_cs |>
+  mutate(
+    label = if_else(feature == "Overall", "Overall", level),
+    label = case_when(
+      label == "nonTR" ~ "Non-TR",
+      label == "bench" ~ "Benchmark",
+      label == "query" ~ "Query",
+      .default = label
+    ),
+    feature = factor(feature,
+      levels = rev(c("Overall", "Variant Type", "Genomic Context",
+                      "Unique To", "TR Annotation", "SV Category"))
+    ),
+    benchmarkset = factor(benchmarkset,
+      levels = c("Small Variant", "Structural Variant"))
+  )
+
+(ci_forest_cs_plt <- ggplot(ci_plot_df_cs,
+       aes(x = prob, y = reorder(label, prob),
+           xmin = asymp.LCL, xmax = prob,
+           color = analysis, shape = analysis)) +
+  geom_pointrange(size = 0.4,
+                  position = position_dodge(width = 0.5)) +
+  facet_grid(
+    rows = vars(feature),
+    cols = vars(benchmarkset),
+    scales = "free_y",
+    space = "free_y"
+  ) +
+  scale_x_continuous(labels = scales::percent, limits = c(0.6, 1)) +
+  scale_color_brewer(palette = "Set1") +
+  labs(
+    x = "Probability Benchmark Identifies Error in Comparison Callset",
+    y = NULL,
+    color = "Unsure Classification",
+    shape = "Unsure Classification"
+  ) +
+  theme_manuscript() +
+  theme(
+    strip.text.y = element_text(angle = 0),
+    legend.position = "bottom"
+  ))
+```
+
+```{r}
+ggsave(
+  filename = here("manuscript", "figs", "ride_estimates_callset.png"),
+  plot = ci_forest_cs_plt,
+  width = 8, height = 8, dpi = 300
+)
+```
+
+```{r cs_summary_table}
+## Per-level sample sizes (same as benchmark analysis)
+smvar_n_cs <- smvar_model_df_cs |>
+  summarise(
+    Overall = n(), SNP = sum(var_type == "SNP"),
+    INDEL = sum(var_type == "INDEL"),
+    Autosome = sum(genomic_context == "Autosome"),
+    TR = sum(genomic_context == "TR"),
+    `HP >6bp` = sum(genomic_context == "HP >6bp"),
+    `Low Map` = sum(genomic_context == "Low Map"),
+    Query = sum(unique_to == "Query"),
+    Benchmark = sum(unique_to == "Benchmark")
+  ) |>
+  pivot_longer(everything(), names_to = "level", values_to = "n") |>
+  mutate(level = if_else(level == "Overall", "", level),
+         benchmarkset = "Small Variant")
+
+stvar_n_cs <- stvar_model_df_cs |>
+  summarise(
+    Overall = n(), `Non-TR` = sum(TR_anno == "nonTR"),
+    TR = sum(TR_anno == "TR"), DEL = sum(sv_cat == "DEL"),
+    INS = sum(sv_cat == "INS"), Query = sum(unique_to == "query"),
+    Benchmark = sum(unique_to == "bench")
+  ) |>
+  pivot_longer(everything(), names_to = "level", values_to = "n") |>
+  mutate(level = if_else(level == "Overall", "", level),
+         benchmarkset = "Structural Variant")
+
+n_lookup_cs <- bind_rows(smvar_n_cs, stvar_n_cs)
+
+ci_table_wide_cs <- ci_results_cs |>
+  mutate(
+    level = case_when(
+      feature == "Overall" ~ "",
+      level == "nonTR" ~ "Non-TR",
+      level == "bench" ~ "Benchmark",
+      level == "query" ~ "Query",
+      .default = level
+    )
+  ) |>
+  select(benchmarkset, feature, level, analysis, prob, asymp.LCL) |>
+  pivot_wider(
+    names_from = analysis,
+    values_from = c(prob, asymp.LCL),
+    names_glue = "{analysis}|{.value}"
+  ) |>
+  left_join(n_lookup_cs, by = c("benchmarkset", "level"))
+
+ci_table_wide_cs |>
+  select(
+    benchmarkset, feature, level, n,
+    `Conservative (unsure = callset correct)|prob`,
+    `Conservative (unsure = callset correct)|asymp.LCL`,
+    `Sensitive (unsure = callset incorrect)|prob`,
+    `Sensitive (unsure = callset incorrect)|asymp.LCL`
+  ) |>
+  gt(groupname_col = "benchmarkset", rowname_col = "level") |>
+  cols_label(
+    feature = "Feature", n = "N",
+    `Conservative (unsure = callset correct)|prob` = "Est. (%)",
+    `Conservative (unsure = callset correct)|asymp.LCL` = "LCB (%)",
+    `Sensitive (unsure = callset incorrect)|prob` = "Est. (%)",
+    `Sensitive (unsure = callset incorrect)|asymp.LCL` = "LCB (%)"
+  ) |>
+  cols_align(align = "center",
+             columns = -c(feature, level)) |>
+  cols_align(align = "left", columns = feature) |>
+  fmt_percent(
+    columns = c(
+      `Conservative (unsure = callset correct)|prob`,
+      `Conservative (unsure = callset correct)|asymp.LCL`,
+      `Sensitive (unsure = callset incorrect)|prob`,
+      `Sensitive (unsure = callset incorrect)|asymp.LCL`
+    ),
+    decimals = 1
+  ) |>
+  tab_spanner(
+    label = "Conservative (unsure = callset correct)",
+    columns = c(`Conservative (unsure = callset correct)|prob`,
+                `Conservative (unsure = callset correct)|asymp.LCL`)
+  ) |>
+  tab_spanner(
+    label = "Sensitive (unsure = callset incorrect)",
+    columns = c(`Sensitive (unsure = callset incorrect)|prob`,
+                `Sensitive (unsure = callset incorrect)|asymp.LCL`)
+  ) |>
+  tab_header(
+    title = "Estimated Probability That Benchmark Identifies an Error in the Comparison Callset",
+    subtitle = "Based on correct-in-callset curations; marginal estimates from binomial GLMs with one-sided 95% LCB"
+  ) |>
+  tab_footnote(
+    footnote = "Marginal probabilities via emmeans with proportional weighting, averaging over other model terms.",
+    locations = cells_column_spanners()
+  ) |>
+  tab_footnote(
+    footnote = "HP >6bp stratum applies only to INDELs.",
+    locations = cells_body(columns = feature, rows = level == "HP >6bp")
+  ) |>
+  tab_footnote(
+    footnote = "Bias-reduced logistic regression (brglm2) used where quasi-complete separation was detected.",
+    locations = cells_column_spanners(
+      spanners = "Sensitive (unsure = callset incorrect)")
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = everything(), rows = feature == "Overall")
+  )
+```
+
 ### Methods: External Evaluation Confidence Intervals
 
 To estimate the probability that a discrepancy between the benchmark set and
@@ -658,6 +1018,18 @@ rely on asymptotic normality of the maximum likelihood estimates, which is
 generally adequate for these sample sizes but may be slightly liberal for
 cells with very high observed proportions.
 
+**Callset-based complementary analysis.** A parallel set of binomial GLMs
+was fit using the "correct in callset" curation as the outcome variable. In
+this analysis, a discrepancy is classified as a success (benchmark identified
+an error) when the comparison callset is judged "not correct" (`no`). This
+perspective captures cases where both the benchmark and comparison callset
+may be imperfect at a site, but the benchmark nonetheless correctly flagged
+an error in the comparison. The conservative analysis treats "unsure" as the
+comparison being correct (fewer successes); the sensitivity analysis treats
+"unsure" as the comparison being wrong (more successes). The same model
+structure, predictors, and emmeans extraction were used. Bias-reduced
+logistic regression was applied where quasi-complete separation was detected.
+
 **Limitations.** The XY non-PAR strata had no discrepancies for small
 variants and were excluded from the small variant model. The treatment of
 "unsure" curations has a notable effect on the results, particularly for
@@ -671,21 +1043,5 @@ interactions between predictors (e.g., whether TR effects differ for INS
 vs. DEL in structural variants); the data would support such extensions but
 at the cost of wider confidence intervals.
 
-## Combined Evaluation Figure
 
-```{r combined_eval, fig.width = 8, fig.height = 8}
-(combined_eval_plt <- (
-  smvar_eval_callset_plt + smvar_eval_strata_plt +
-    stvar_eval_callset_plt + stvar_eval_strata_plt
-) +
-  plot_annotation(tag_levels = "A") +
-  plot_layout(guides = "collect", ncol = 2, nrow = 2) &
-  theme(legend.position = "bottom"))
-
-ggsave(
-  filename = here("manuscript", "figs", "combined_eval.png"),
-  plot = combined_eval_plt,
-  width = 8, height = 8, dpi = 300
-)
-```
 
