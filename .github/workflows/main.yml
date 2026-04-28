@@ -45,6 +45,24 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
 
+  py-tests:
+    name: py-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install pytest
+        run: pip install pytest
+      # test_common_helpers.py imports `common` (Snakemake DSL, not importable as Python);
+      # excluded until rewritten or removed. R tests deferred — see TODO.md.
+      - name: Run unit tests
+        run: pytest tests/unit/ --ignore=tests/unit/test_common_helpers.py -v
+
   snk-linting:
     name: snk-linting
     runs-on: ubuntu-latest

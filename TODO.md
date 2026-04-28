@@ -60,3 +60,11 @@
 
 - [ ] Address documentation debt in `docs/` files
 - [ ] Look into intervals <100bp (potential exclusions bug)
+- [ ] Fix R tests and wire into CI
+  - `tests/test_schema_update.R` asserts `var_size` is `int32` but `R/schemas.R:42` declares `int64` (test fails)
+  - `tests/test_data_loading.R` references pre-refactor paths (`var_counts/`) and column names (`strat_name`, `strat_filter`)
+  - Once fixed, add an `r-tests` job to `.github/workflows/main.yml` analogous to `py-tests`
+- [ ] Repair or remove `tests/unit/test_common_helpers.py`
+  - Imports `common` (Snakemake DSL — not importable as Python module)
+  - References `get_exclusion_file_path` and `_format_exclusion_name`, neither of which exist in current `common.smk`
+  - Currently excluded from CI via `--ignore` in `.github/workflows/main.yml`
