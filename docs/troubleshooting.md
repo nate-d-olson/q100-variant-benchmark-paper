@@ -1,150 +1,19 @@
-# Q100 Variant Benchmark Pipeline - Troubleshooting Guide
+# Troubleshooting Guide
 
-## Common Issues and Solutions
+Common pipeline and analysis issues encountered in this repo, with verified fixes.
+Focus: things that are non-obvious from the error message or that have bitten us
+more than once. Generic Snakemake/conda issues are not duplicated here.
 
-### Download Failures
+## Conda / Environment Setup
 
-#### Issue: SHA256 checksum mismatch
+### Anaconda CDN blocked by org firewall
 
-```
-Error: SHA256 checksum verification failed
-Expected: abc123...
-Actual: def456...
-```
+**Symptom:** `mamba` / `conda` fails when downloading from `conda.anaconda.org` or
+`repo.anaconda.com`.
 
-**Causes:**
+**Cause:** Org firewall blocks Anaconda CDN URLs.
 
-- Incomplete download due to network interruption
-- Corrupted transfer
-- File changed at source
-
-**Solutions:**
-
-1. Delete the partially downloaded file:
-
-   ```bash
-   rm resources/benchmarks/{benchmark}/{ref}/variants.vcf.gz
-   ```
-
-2. Re-run the pipeline:
-
-   ```bash
-   snakemake --cores 4
-   ```
-
-3. If checksum continues to fail, verify the URL and checksum in `config/config.yaml`
-
----
-
-#### Issue: Connection timeout during download
-
-```
-Error: Read timed out after 300 seconds
-```
-
-**Causes:**
-
-- Slow or unstable network connection
-- Large file download interrupted
-
-**Solutions:**
-
-1. Increase timeout in download rules (edit `workflow/rules/downloads.smk`):
-
-   ```python
-   params:
-       timeout=3600  # Increase from 300 to 3600 seconds
-   ```
-
-2. Use manual download with resume capability:
-
-   ```bash
-   wget -c -O resources/benchmarks/v5q/GRCh38/variants.vcf.gz [URL]
-   ```
-
-3. Verify downloaded file checksum manually:
-
-   ```bash
-   sha256sum resources/benchmarks/v5q/GRCh38/variants.vcf.gz
-   ```
-
----
-
-### Memory Issues
-
-#### Issue: Killed process during VCF annotation
-
-```
-Killed
-[snakemake] Error in rule annotate_vcf
-```
-
-**Causes:**
-
-- Insufficient memory for large VCF files (multi-GB files)
-- Too many parallel jobs competing for memory
-
-**Solutions:**
-
-1. Reduce parallel jobs:
-
-   ```bash
-   snakemake --cores 1  # Run sequentially
-   ```
-
-2. Request more memory (if using cluster):
-
-   ```python
-   # Add to rule
-   resources:
-       mem_mb=32000  # Request 32GB
-   ```
-
-3. Monitor memory usage:
-
-   ```bash
-   watch -n 1 'free -h'
-   ```
-
----
-
-#### Issue: Large stratification TSV files (600MB+)
-
-```
-Warning: v5_grch38_strat.tsv is 650MB
-```
-
-**Causes:**
-
-- Comprehensive stratification across entire genome
-- Normal for this pipeline
-
-**Solutions:**
-
-1. This is expected behavior - no action needed
-
-2. If disk space is limited, add cleanup rules:
-
-   ```python
-   temp("results/var_tables/{benchmark}/{ref}/annotated.tsv")
-   ```
-
-3. Use `--delete-temp-output` flag to auto-clean temporary files:
-
-   ```bash
-   snakemake --cores 4 --delete-temp-output
-   ```
-
----
-
-### Anaconda URLs Blocked by Firewall
-
-**Symptom**: `mamba` or `conda` fails to download packages with connection errors to `conda.anaconda.org`
-or `repo.anaconda.com`.
-
-**Cause**: The organization firewall blocks Anaconda CDN URLs to prevent unlicensed commercial use.
-
-**Fix**: Configure `~/.condarc` to remap `conda-forge` and `bioconda` channel names to prefix.dev:
+**Fix:** Configure `~/.condarc` to remap `conda-forge` and `bioconda` to prefix.dev:
 
 ```yaml
 custom_multichannels:
@@ -155,698 +24,208 @@ custom_multichannels:
 default_channels: []
 ```
 
-**Why `custom_multichannels` not `channel_alias`**: prefix.dev serves channels at
-`https://prefix.dev/conda-forge` (no `/channels/` component). The `channel_alias` setting prepends
-the alias to the channel name (`alias/conda-forge`), which produces the wrong URL. `custom_multichannels`
-remaps the name to an explicit URL directly.
+`channel_alias` does **not** work for prefix.dev — its URL path (`/conda-forge`)
+differs from the conda channel-alias convention (`/channels/conda-forge`). Use
+`custom_multichannels`.
 
-**Verification**:
+Verify:
 
 ```bash
-conda config --show custom_multichannels
-mamba search --channel bioconda samtools  # should show "prefix.dev" in output
+mamba search --channel bioconda samtools  # should show "prefix.dev"
 ```
 
----
+### Snakemake-managed conda envs out of date
 
-### Conda Environment Conflicts
+After editing `workflow/envs/*.yaml`, force a rebuild:
 
-#### Issue: Package version conflicts
-
-```
-Error: Solving environment: failed
-Conflicts: bcftools-1.18 requires libdeflate>=1.10
+```bash
+rm -rf .snakemake/conda
+snakemake --cores 4 --sdm conda --conda-create-envs-only
 ```
 
-**Causes:**
+The pipeline uses `--sdm conda` (Snakemake 8 syntax), not the older `--use-conda`.
+See `Makefile` `make run` for the canonical invocation.
 
-- Incompatible package versions in environment files
-- Outdated conda solver
+## Pipeline Execution
 
-**Solutions:**
+### Stale annotation header — "INFO tag CONTEXT_IDS not defined"
 
-1. Update conda/mamba:
+**Cause:** Header file in `results/generate_annotation_headers/` was cached before
+a change to the heredoc in `workflow/rules/annotation.smk`.
 
-   ```bash
-   mamba update -n base mamba
-   ```
+**Fix:** Delete the stale outputs so they rebuild:
 
-2. Clear conda cache:
-
-   ```bash
-   mamba clean --all
-   ```
-
-3. Force environment recreation:
-
-   ```bash
-   snakemake --cores 4 --use-conda --conda-create-envs-only --force
-   ```
-
-4. Pin specific versions in `workflow/envs/*.yaml`:
-
-   ```yaml
-   dependencies:
-     - bcftools=1.17 # Pin specific version
-   ```
-
----
-
-#### Issue: Conda environment activation fails
-
-```
-Error: CondaEnvException: Could not find conda environment: /path/to/env
+```bash
+rm -rf results/generate_annotation_headers/
+rm -rf results/annotate_vcf_genomic_contexts/
+rm -rf results/annotate_vcf_regions/
+rm -rf results/combine_genomic_context_beds/
+rm -rf results/variant_tables/
 ```
 
-**Causes:**
+Snakemake does not detect script-only changes — when modifying a script that
+generates headers or annotations, always clear downstream outputs manually.
 
-- Corrupted environment
-- Missing conda/mamba installation
+### Wildcard constraint errors
 
-**Solutions:**
+Constraints live in `workflow/rules/common.smk` under `wildcard_constraints`.
+The pattern is `strat_name="|".join(sorted(_all_strat_names))`. New context rules
+should use `get_stratifications_for_ref()`. Internal helpers use a `_` prefix
+(e.g., `_get_exclusion_config`).
 
-1. Verify conda/mamba is in PATH:
+### Missing chromosome in output
 
-   ```bash
-   which mamba
-   ```
+Chromosome lists live in `config.yaml` under `chromosomes:`, not hardcoded.
+`get_chromosomes()` reads them and applies the GRCh37/GRCh38 prefix. If a chromosome
+is missing from outputs, check the config.
 
-2. Recreate environments:
+## Variant Tables
 
-   ```bash
-   rm -rf .snakemake/conda
-   snakemake --cores 4 --use-conda --conda-create-envs-only
-   ```
+### Empty variant counts with malformed context IDs
 
-3. Use micromamba if mamba fails:
+**Symptom:** Logs show `Contexts: ["'MAP'", "'MAP')", "('HP'", ...]` — i.e.,
+fragments of Python tuple `repr()` instead of clean context names.
 
-   ```bash
-   snakemake --cores 4 --use-conda --conda-frontend micromamba
-   ```
+**Status:** Fixed February 2026 in commit `78747aa` ("convert Truvari tuple
+objects to comma-separated strings in variant tables"). The fix lives in
+`normalize_annotation()` at `workflow/scripts/generate_variant_parquet.py:66`.
 
----
-
-### Data Validation Errors (NEW)
-
-#### Issue: VCF header validation fails
+**Verification:** Logs should show clean names:
 
 ```
-DataFormatError: VCF header missing ##fileformat line
-File: resources/benchmarks/v5q/GRCh38/variants.vcf.gz
+Contexts: ['HP', 'MAP', 'SD', ...]
 ```
 
-**Causes:**
+If you regenerate variant Parquet from an old branch and see the broken output,
+update to current `main` and re-run; no manual workaround is needed on current code.
 
-- Corrupted VCF file
-- Incomplete download
-- Non-VCF file with wrong extension
+### Comma-separated context_ids not exploded for filtering
 
-**Solutions:**
+**Symptom:** Filtering `variants_df` by a single context misses variants whose
+`context_ids` contains multiple comma-separated entries.
 
-1. Check file is actually a VCF:
+**Status:** Fixed in commit `35bc5fd` for the fold-change analysis. When writing
+new analysis code, `tidyr::separate_rows(context_ids, sep = ",")` (or the parquet
+loader's filter API) before grouping by context.
 
-   ```bash
-   zcat resources/benchmarks/v5q/GRCh38/variants.vcf.gz | head -20
-   ```
+## Chr8 Synteny
 
-2. Re-download the file (see download troubleshooting above)
+### SyRI crash — `ValueError: buffer source array is read-only`
 
-3. Validate with bcftools:
+**Cause:** pandas 2.0 Copy-on-Write makes DataFrame slice arrays non-writeable;
+SyRI's Cython code (`synsearchFunctions.pyx:534`) needs a writable memoryview.
 
-   ```bash
-   bcftools view --header-only resources/benchmarks/v5q/GRCh38/variants.vcf.gz
-   ```
-
----
-
-#### Issue: BED file not sorted
-
-```
-ValidationError: File not sorted - position 10500 comes after 10600 on chr1
-Line: 523
-```
-
-**Causes:**
-
-- BED file not sorted by position
-- Custom BED file added without sorting
-
-**Solutions:**
-
-1. Sort BED file:
-
-   ```bash
-   sort -k1,1 -k2,2n input.bed > sorted.bed
-   mv sorted.bed input.bed
-   ```
-
-2. Use bedtools sort:
-
-   ```bash
-   bedtools sort -i input.bed > sorted.bed
-   ```
-
-3. Disable sort checking (if intentional):
-   - Edit `workflow/scripts/validators.py`:
-
-   ```python
-   validate_bed_format(file_path, check_sorted=False)
-   ```
-
----
-
-#### Issue: Empty variant counts with malformed context IDs
-
-```
-INFO - Contexts: ["'MAP'", "'MAP')", "'SD'", "'SD')", "('HP'", "('MAP'", ')']
-```
-
-**Causes:**
-
-- Truvari's `vcf_to_df()` converts multi-value VCF INFO fields into Python tuples/lists
-- When written to Parquet without conversion, these become string representations: `"('HP', 'MAP')"`
-- Downstream scripts splitting by comma produce malformed values
-
-**Fixed in:** February 2026 (commit XXXXXXX)
-
-**Solution (if using older version):**
-
-The fix is in `workflow/scripts/generate_variant_parquet.py`. If you see this issue:
-
-1. Update the script to convert tuple/list objects to comma-separated strings:
-
-   ```python
-   # In generate_variant_parquet.py, around line 226
-   for col in ["context_ids", "region_ids"]:
-       if col in df.columns:
-           # Convert tuple/list to comma-separated string
-           df[col] = df[col].apply(
-               lambda x: (
-                   ",".join(str(item) for item in x)
-                   if isinstance(x, (tuple, list))
-                   else x
-               )
-           )
-           df[col] = df[col].replace({".": pd.NA, "": pd.NA}).astype("string")
-   ```
-
-2. Regenerate all variant tables:
-
-   ```bash
-   rm -rf results/variant_tables/*/variants.parquet
-   rm -rf results/genomic_context/*/variants_by_genomic_context.parquet
-   snakemake --cores 4
-   ```
-
-3. Verify the fix in the log:
-
-   ```bash
-   tail logs/genomic_context/*/count_by_genomic_context.log
-   # Should show: Contexts: ['HP', 'MAP', 'SD', ...]
-   ```
-
-**Impact:** This bug caused empty variant count tables for genomic contexts and exclusions in all benchmarks.
-
----
-
-### Chr8 Synteny Pipeline Errors
-
-#### Issue: SyRI crash — `ValueError: buffer source array is read-only`
-
-```
-ValueError: buffer source array is read-only
-  File "syri/pyxFiles/synsearchFunctions.pyx", line 534, in syri.synsearchFunctions.syri
-```
-
-**Cause**: pandas 2.0 introduced Copy-on-Write semantics. DataFrame slice arrays become non-writeable,
-causing SyRI's Cython code to fail when creating a writable memoryview.
-
-**Fix**: Pin `pandas<2.0` in `workflow/envs/plotsr.yaml`:
-
-```yaml
-dependencies:
-  - pandas<2.0  # pandas 2.0+ CoW causes SyRI crash (read-only array in Cython)
-```
-
-Then force the conda env to rebuild and clear failed SyRI outputs:
+**Fix:** `workflow/envs/plotsr.yaml` pins `pandas<2.0`. If you see this error,
+rebuild the env and clear failed outputs:
 
 ```bash
 rm -rf results/chr8_synteny/syri/
-# Snakemake will rebuild the plotsr env automatically due to the yaml change
-snakemake chr8_synteny
+snakemake chr8_synteny --sdm conda
 ```
 
----
+### SyRI `--prefix` deprecation
 
-#### Issue: SyRI deprecation warning about `--prefix`
+**Symptom:** "For specifying output folder use --dir, use --prefix for modifying
+the output file names" — may crash on some SyRI versions.
 
-```
-Warning: For specifying output folder use --dir, use --prefix for modifying the output
-file names. Current --prefix (results/chr8_synteny/syri/ref_pat) may result in crashes.
-```
+**Status:** `chr8_syri` rule already uses `--dir {params.outdir} --prefix {params.prefix}`.
 
-**Fix**: The `chr8_syri` rule already uses `--dir {params.outdir} --prefix {params.prefix}`
-(basename only). If you see this warning in older outputs it is from before the fix.
+### plotsr produces wrong figure with 3 genomes
 
----
+**Cause:** plotsr requires *consecutive-genome* SyRI files. For layout
+[REF, MAT, PAT] it needs `ref_matsyri.out` and **`mat_patsyri.out`** — not
+`ref_patsyri.out`.
 
-#### Issue: plotsr produces wrong figure or fails with 3 genomes
+**Status:** Pipeline produces all three (`ref_mat`, `mat_pat`, `ref_pat`).
+`chr8_make_figure` consumes `mat_patsyri.out`; `chr8_find_inversion` separately
+consumes `ref_patsyri.out` to detect PAT inversions in REF coordinate space.
 
-**Cause**: plotsr requires *consecutive-genome* SyRI files. For layout [REF, MAT, PAT] it needs
-REF↔MAT and MAT↔PAT comparisons — not REF↔MAT and REF↔PAT.
+### `find_chr8_inversion.py` — "ValueError: int('chr8')"
 
-**Fix**: The pipeline runs a `mat_pat` alignment and SyRI run. `chr8_make_figure` takes
-`mat_patsyri.out` (via `--mp`). `chr8_find_inversion` still uses `ref_patsyri.out` since it
-detects PAT inversions in REF coordinate space.
+**Cause:** SyRI `.out` query columns are 6 and 7 (0-indexed), not 5 and 6.
+Column 5 is `qryChr` (a string).
 
----
+**Status:** Fixed in `find_chr8_inversion.py`. If you write new SyRI parsers:
+0=refChr, 1=refStart, 2=refEnd, 5=qryChr, 6=qryStart, 7=qryEnd, 10=type.
 
-### Pipeline Execution Errors
+## Tooling
 
-#### Issue: Missing input files
+### `gh` CLI fails with x509 certificate error
 
-```
-MissingInputException: Missing input files for rule all:
-resources/benchmarks/v5q/GRCh38/variants.vcf.gz
-```
+**Symptom:** `gh` returns `tls: failed to verify certificate: x509: OSStatus -26276`
+intermittently.
 
-**Causes:**
+**Cause:** Org network proxy.
 
-- Download rule hasn't run
-- File path mismatch in config
-- Download failed silently
+**Workaround:** Use the MCP GitHub tools (e.g., `mcp__plugin_github_github__merge_pull_request`)
+for PR operations. Git over SSH is unaffected.
 
-**Solutions:**
+## R Caching
 
-1. Run downloads explicitly:
+### Stale cache after pipeline re-run
 
-   ```bash
-   snakemake --cores 4 --forceall download_benchmark_vcf
-   ```
-
-2. Check config URLs are accessible:
-
-   ```bash
-   curl -I [URL from config.yaml]
-   ```
-
-3. Verify file paths match config:
-
-   ```bash
-   grep -A 5 "v5q:" config/config.yaml
-   ```
-
----
-
-#### Issue: Locked directory
-
-```
-WorkflowError: Directory cannot be locked
-```
-
-**Causes:**
-
-- Previous Snakemake run crashed
-- Lock file not cleaned up
-
-**Solutions:**
-
-1. Remove lock file:
-
-   ```bash
-   rm -rf .snakemake/locks
-   ```
-
-2. Force unlock:
-
-   ```bash
-   snakemake --unlock
-   ```
-
-3. Check for zombie processes:
-
-   ```bash
-   ps aux | grep snakemake
-   kill [PID if found]
-   ```
-
----
-
-### Logging and Debugging
-
-#### Issue: Need more detailed logs
-
-```
-Rule X failed but log doesn't show why
-```
-
-**Solutions:**
-
-1. Enable verbose logging:
-
-   ```bash
-   snakemake --cores 4 --verbose
-   ```
-
-2. Check rule-specific log files:
-
-   ```bash
-   cat logs/{rule_name}/{wildcards}.log
-   ```
-
-3. Run rule in isolation with detailed output:
-
-   ```bash
-   snakemake --cores 1 --forcerun {rule_name} --printshellcmds
-   ```
-
-4. For Python scripts with new logging (NEW):
-
-   ```bash
-   # Logs now include structured format:
-   # [2026-01-13 10:30:45] [INFO] [script_name] Message
-   tail -f logs/{rule_name}/{wildcards}.log
-   ```
-
----
-
-#### Issue: Understanding pipeline progress
-
-```
-How do I know if my pipeline is stuck or just slow?
-```
-
-**Solutions:**
-
-1. Use `--verbose` to see active jobs:
-
-   ```bash
-   snakemake --cores 4 --verbose
-   ```
-
-2. Monitor system resources:
-
-   ```bash
-   # Terminal 1
-   htop
-
-   # Terminal 2
-   watch -n 2 'ls -lh results/*/* | tail -20'
-   ```
-
-3. Generate DAG to understand dependencies:
-
-   ```bash
-   snakemake --dag | dot -Tpdf > dag.pdf
-   ```
-
-4. Use dry-run to see what will execute:
-
-   ```bash
-   snakemake --cores 4 --dry-run
-   ```
-
----
-
-### Configuration Errors
-
-#### Issue: Invalid YAML syntax
-
-```
-SyntaxError: while scanning a simple key
-  in "config/config.yaml", line 42, column 3
-```
-
-**Causes:**
-
-- Incorrect YAML indentation
-- Missing quotes around special characters
-- Tabs instead of spaces
-
-**Solutions:**
-
-1. Validate YAML syntax:
-
-   ```bash
-   python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
-   ```
-
-2. Use YAML linter:
-
-   ```bash
-   yamllint config/config.yaml
-   ```
-
-3. Common fixes:
-   - Use spaces, not tabs
-   - Quote strings with special characters: `url: "http://example.com?query=value"`
-   - Ensure consistent indentation (2 or 4 spaces)
-
----
-
-#### Issue: Schema validation fails
-
-```
-WorkflowError: Config validation failed
-```
-
-**Causes:**
-
-- Missing required fields
-- Incorrect data types
-- Invalid values
-
-**Solutions:**
-
-1. Check schema requirements:
-
-   ```bash
-   cat config/schema/config.schema.yaml
-   ```
-
-2. Validate config against schema manually:
-
-   ```bash
-   python -c "from snakemake.utils import validate; import yaml; config=yaml.safe_load(open('config/config.yaml')); validate(config, 'config/schema/config.schema.yaml')"
-   ```
-
-3. Compare with example config in documentation
-
----
-
-## R Data Caching Issues
-
-### Stale cached data after pipeline re-run
-
-**Symptom:** Notebooks show old data after re-running the Snakemake pipeline
-
-The cache should auto-invalidate when source file modification times change. If it doesn't:
+The cache invalidates on source-file mtime changes. If a notebook still shows old
+data:
 
 ```r
-source("R/data_loading.R")
+source(here::here("R/data_loading.R"))
 
-# Option 1: Force refresh a specific dataset
 variants <- load_variant_table("v5.0q_GRCh38_smvar", force_refresh = TRUE)
-
-# Option 2: Clear all cached data
+# or:
 clear_cache()
 ```
 
----
+### Cache write failures (non-fatal)
 
-### Cache directory consuming too much disk space
+Loaders return data even when caching fails (warning emitted). Common causes:
+disk full, write permissions on `analysis/cache/`, or schema validation failure
+against `R/schemas.R`. Inspect with `cache_info()`.
 
-**Symptom:** `analysis/cache/` grows large with multiple cached datasets
-
-```r
-source("R/data_loading.R")
-
-# Check what's cached
-cache_info()
-
-# Remove cache for a specific dataset
-invalidate_cache("variant_table")
-
-# Or remove everything
-clear_cache()
-```
-
----
-
-### Cache write failures
-
-**Symptom:** Warning message like "Failed to write cache for variant_table: ..."
-
-Cache write failures are non-fatal -- the data is still returned from the loading function. Common causes:
-
-- **Disk full:** Free space in `analysis/cache/`
-- **Permission errors:** Check write access to `analysis/cache/`
-- **Validation failure:** Data doesn't match schema in `R/schemas.R`
-
-```bash
-# Check permissions
-ls -la analysis/cache/
-
-# Check disk space
-df -h .
-```
-
----
-
-### Using a different cache directory
-
-Set the `q100.cache_dir` option before loading data:
+### Custom cache directory
 
 ```r
-options(q100.cache_dir = "/path/to/custom/cache")
-source("R/data_loading.R")
+options(q100.cache_dir = "/path/to/cache")
+source(here::here("R/data_loading.R"))
 ```
 
----
-
-## Performance Optimization
-
-### Slow Pipeline Execution
-
-**Issue**: Pipeline takes hours to complete
-
-**Diagnostic Steps**:
-
-1. Identify bottleneck rules:
-
-   ```bash
-   snakemake --cores 4 --profile --printshellcmds 2>&1 | grep "seconds"
-   ```
-
-2. Check if rules can be parallelized:
-
-   ```bash
-   snakemake --dag | grep -A 5 -B 5 "bottleneck_rule"
-   ```
-
-**Solutions**:
-
-1. Increase parallel jobs:
-
-   ```bash
-   snakemake --cores 8  # Use more cores
-   ```
-
-2. Use cluster execution for large datasets:
-
-   ```bash
-   snakemake --cluster "sbatch --mem=16G --time=4:00:00" --jobs 20
-   ```
-
-3. Add benchmark directives to rules (see `docs/performance.md` - coming soon)
-
----
-
-### Disk Space Issues
-
-**Issue**: Running out of disk space
-
-**Diagnostic**:
-
-```bash
-du -sh results/* | sort -h
-```
-
-**Solutions**:
-
-1. Clean intermediate files:
-
-   ```bash
-   snakemake --delete-temp-output
-   ```
-
-2. Remove old logs:
-
-   ```bash
-   find logs -mtime +30 -delete  # Delete logs older than 30 days
-   ```
-
-3. Compress large TSV files:
-
-   ```bash
-   gzip results/var_tables/*/*.tsv
-   ```
-
----
-
-## Getting Help
-
-### Reporting Issues
-
-When reporting issues, include:
-
-1. **Exact error message**:
-
-   ```bash
-   snakemake --cores 4 2>&1 | tee error.log
-   ```
-
-2. **Snakemake version**:
-
-   ```bash
-   snakemake --version
-   ```
-
-3. **Conda environment info**:
-
-   ```bash
-   conda list
-   ```
-
-4. **Config file** (sanitize sensitive data):
-
-   ```bash
-   cat config/config.yaml
-   ```
-
-5. **Log files** from failed rules:
-
-   ```bash
-   cat logs/{rule_name}/{wildcards}.log
-   ```
-
-### Useful Diagnostic Commands
+## Diagnostic Commands
 
 ```bash
 # Show pipeline status
 snakemake --summary
 
-# List all rules
-snakemake --list
+# Why a rule needs to re-run
+snakemake -n --reason {rule_name}
 
-# Show reason for rule execution
-snakemake --reason
+# Print shell commands for a target
+snakemake --dry-run --printshellcmds {target}
 
-# Print shell commands without executing
-snakemake --dry-run --printshellcmds
-
-# Generate rule graph
+# DAG / rule graph
+make dag                                 # results/dag/pipeline.pdf
 snakemake --rulegraph | dot -Tpng > rulegraph.png
 
-# Check for circular dependencies
-snakemake --dag 2>&1 | grep -i "cycle"
-```
+# Lint everything (Snakemake + Python + R)
+make lint
 
----
+# Pre-merge gate
+make test                                # lint + format-check + dry-run
+```
 
 ## Quick Reference
 
-| Symptom             | Likely Cause        | Quick Fix                    |
-| ------------------- | ------------------- | ---------------------------- |
-| "Checksum mismatch" | Incomplete download | Delete file, re-run          |
-| "Killed"            | Out of memory       | Reduce `--cores`             |
-| "Missing input"     | Download failed     | Check logs, re-run downloads |
-| "Locked directory"  | Crashed run         | `snakemake --unlock`         |
-| "Invalid YAML"      | Syntax error        | Check indentation, quotes    |
-| Slow execution      | Single-threaded     | Increase `--cores`           |
-| Disk full           | Temp files          | `--delete-temp-output`       |
-| Conda error         | Corrupted env       | `rm -rf .snakemake/conda`    |
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| "INFO tag CONTEXT_IDS not defined" | Stale annotation header cache | `rm -rf results/generate_annotation_headers/` and downstream |
+| Mojibake context names in logs | Pre-`78747aa` Truvari output | Update to current main |
+| SyRI `read-only buffer` crash | pandas ≥ 2.0 in plotsr env | Rebuild env (already pinned) |
+| Empty `load_exclusion_metrics()` | Not a v5.0q benchmark | Expected; warning is informational |
+| `gh` x509 error | Org proxy | Use MCP GitHub tools |
+| Wildcard constraint mismatch | Missing entry in `common.smk` | Add to `wildcard_constraints` |
+| Snakemake doesn't re-run after script edit | Snakemake doesn't track scripts | `rm -rf` the affected output dir |
 
----
+## Related Docs
 
-*Last Updated: 2026-02-18*
+- [Architecture Overview](architecture.md)
+- [Pipeline Outputs Reference](pipeline-outputs.md)
+- `workflow/envs/README.md` — env consolidation notes
+- `CLAUDE.md` — project-specific conventions

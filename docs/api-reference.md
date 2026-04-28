@@ -1,599 +1,198 @@
-# API Reference - Helper Functions
+# API Reference — Snakemake Helper Functions
 
-This document provides detailed reference for helper functions in the Q100 variant benchmark pipeline, primarily from `workflow/rules/common.smk`.
+Helper functions exposed by `workflow/rules/common.smk`. These are imported into
+all rule files via the include order in `workflow/Snakefile`.
 
-## Table of Contents
+For R-side loaders, see [pipeline-outputs.md](pipeline-outputs.md) and
+[data-dictionary.md](data-dictionary.md).
 
-- [Benchmark Configuration Functions](#benchmark-configuration-functions)
-- [Exclusion Management Functions](#exclusion-management-functions)
-- [Stratification Management Functions](#stratification-management-functions)
-- [Region Management Functions](#region-management-functions)
-- [Reference Genome Functions](#reference-genome-functions)
-- [Input Aggregation Functions](#input-aggregation-functions)
+## Top-level Variables
 
----
+### `BENCHMARKS_WITH_EXCLUSIONS`
 
-## Benchmark Configuration Functions
-
-### `get_exclusion_config(benchmark)`
-
-Get exclusion configuration for a benchmark set.
-
-**Parameters:**
-
-- `benchmark` (str): Benchmark set name (e.g., "v5.0q_GRCh38")
-
-**Returns:**
-
-- `list`: List of exclusion dictionaries with keys: `name`, `type`, `files`
-
-**Example:**
+List of benchmark IDs that have an `exclusions:` block in `config.yaml`. Used by
+target generators to skip benchmarks without exclusions.
 
 ```python
-exclusions = get_exclusion_config("v5.0q_GRCh38")
-# Returns: [
-#     {"name": "consecutive-svs", "type": "single", "files": [{"url": "...", "sha256": "..."}]},
-#     {"name": "lc-regions", "type": "single", "files": [...]},
-#     ...
-# ]
+BENCHMARKS_WITH_EXCLUSIONS = [
+    bid
+    for bid in config["benchmarksets"]
+    if config["benchmarksets"][bid].get("exclusions")
+]
 ```
 
-**Notes:**
-
-- Returns empty list if benchmark has no exclusions configured
-- Used by other exclusion functions to access config
-
----
-
-## Exclusion Management Functions
-
-### `get_exclusion_items(wildcards)`
-
-Get list of exclusion names for a benchmark set.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards object with `benchmark` attribute
-
-**Returns:**
-
-- `list[str]`: List of exclusion names
-
-**Example:**
+### `wildcard_constraints`
 
 ```python
-# In Snakemake rule:
-rule process_exclusions:
-    input:
-        lambda wildcards: get_exclusion_items(wildcards)
-# Returns: ["consecutive-svs", "lc-regions", "tandem-repeats-strs"]
+wildcard_constraints:
+    comp_id="[^/]+",
+    strat_name="|".join(sorted(_all_strat_names)),
+    genomic_context="|".join(sorted(_all_strat_names)),
 ```
 
----
+`_all_strat_names` is built at config parse time from every reference's
+`stratifications` map — when adding a new reference or stratification name, it
+is automatically picked up.
 
-### `get_exclusion_entry(benchmark, exclusion_name)`
+## Chromosome Helpers
 
-Get a specific exclusion entry by name.
+### `get_chromosomes(wildcards) -> str`
 
-**Parameters:**
+Space-separated chromosome list with the ref-specific prefix:
 
-- `benchmark` (str): Benchmark set name
-- `exclusion_name` (str): Name of the exclusion category
+- `GRCh37` → `1 2 … 22 X Y` (no prefix)
+- All other refs → `chr1 chr2 … chr22 chrX chrY`
 
-**Returns:**
+Reads `config["chromosomes"]["autosomes"]` and `config["chromosomes"]["sex"]`.
 
-- `dict`: Exclusion entry with keys: `name`, `type`, `files`
+## Genomic Context Helpers
 
-**Raises:**
+### `get_stratifications_for_ref(ref: str) -> List[str]`
 
-- `ValueError`: If exclusion_name not found for the benchmark
+List of stratification (genomic context) names configured for a reference, e.g.
+`["HP", "MAP", "SD", "SD10kb", "TR", "TR10kb"]`.
 
-**Example:**
+### `get_genomic_context_ids(wildcards) -> List[str]`
 
-```python
-entry = get_exclusion_entry("v5.0q_GRCh38", "consecutive-svs")
-# Returns: {"name": "consecutive-svs", "type": "single", "files": [...]}
+Same as above, looked up via the benchmark's reference. Used by rules that take
+`{benchmark}` as a wildcard.
+
+### `get_genomic_context_cov_beds(wildcards) -> List[str]`
+
+Coverage BED paths for all of a benchmark's genomic contexts:
+
+```
+results/genomic_context/{benchmark}/coverage/HP_cov.bed
+results/genomic_context/{benchmark}/coverage/MAP_cov.bed
+…
 ```
 
----
+### `get_genomic_context_bed_specs(wildcards) -> List[str]`
 
-### `get_exclusion_file_path(benchmark, exclusion_name, file_idx)`
+`path:name` specs (one per context) consumed by `combine_beds_with_id.py`. The
+suffix after `:` becomes the value written to `INFO/CONTEXT_IDS`.
 
-Get the standardized local path for an exclusion file.
-
-**Parameters:**
-
-- `benchmark` (str): Benchmark set name
-- `exclusion_name` (str): Name of the exclusion category
-- `file_idx` (int): Index of the file (0-based)
-
-**Returns:**
-
-- `str`: Local file path where downloaded exclusion file will be stored
-
-**Example:**
-
-```python
-path = get_exclusion_file_path("v5.0q_GRCh38", "consecutive-svs", 0)
-# Returns: "resources/exclusions/v5.0q_GRCh38/consecutive-svs_0.bed"
+```
+resources/stratifications/GRCh38_HP.bed.gz:HP
+resources/stratifications/GRCh38_MAP.bed.gz:MAP
+…
 ```
 
-**Notes:**
+## Region Helpers
 
-- Used by download rules and input functions
-- Ensures consistent naming convention
+### `get_region_beds(wildcards) -> List[str]`
 
----
+`path:ID` specs for the benchmark BED plus all configured exclusions. The
+`BMKREGIONS` ID marks the benchmark itself; exclusion IDs are derived from the
+config name (e.g. `consecutive-svs` → `EXCL_CONSECUTIVE_SVS`).
 
-### `get_exclusion_inputs(wildcards)`
-
-Get input file paths for an exclusion.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards with `benchmark` and `exclusion` attributes
-
-**Returns:**
-
-- `list[str]`: List of file paths for exclusion BED files
-
-**Example:**
-
-```python
-# For exclusion with 2 files:
-paths = get_exclusion_inputs(wildcards)
-# Returns: [
-#     "resources/exclusions/v5.0q_GRCh38/consecutive-svs_0.bed",
-#     "resources/exclusions/v5.0q_GRCh38/consecutive-svs_1.bed"
-# ]
+```
+resources/benchmarksets/{benchmark}_benchmark.bed:BMKREGIONS
+resources/exclusions/{benchmark}/consecutive-svs_0.bed:EXCL_CONSECUTIVE_SVS
+…
 ```
 
----
+## Comparison Helpers
 
-### `get_exclusion_type(wildcards)`
+### `get_comparison_files(wildcards) -> Dict[str, str]`
 
-Get type (single/pair) for an exclusion.
+Dict of inputs for a `{comp_id}` benchmark comparison: paired VCFs+indexes,
+BEDs, and the reference FASTA. Driven by `config["comparisons"][comp_id]` with
+keys `new_benchmark`, `old_benchmark`, `ref`.
 
-**Parameters:**
+## Exclusion Helpers
 
-- `wildcards`: Snakemake wildcards with `benchmark` and `exclusion` attributes
+### `get_exclusion_inputs(wildcards) -> List[str]`
 
-**Returns:**
+Per-file BED paths for `{wildcards.exclusion}`, matching the `download_exclusion`
+rule outputs. For multi-file exclusions (`type: pair`) returns one path per file.
 
-- `str`: "single" or "pair"
+### `get_exclusion_type(wildcards) -> str`
 
-**Example:**
+Returns `"single"` or `"pair"` from the config entry — controls how
+`materialize_exclusion` combines source BEDs.
 
-```python
-excl_type = get_exclusion_type(wildcards)
-# Returns: "single" or "pair"
+### `get_exclusion_file_url(benchmark, exclusion_name, file_idx) -> str`
+### `get_exclusion_file_checksum(benchmark, exclusion_name, file_idx) -> str`
+
+URL and SHA256 lookups for a specific exclusion file. Called from `download_exclusion`.
+
+### `get_exclusion_name_mapping(benchmark: str) -> Dict[str, str]`
+
+Maps `EXCL_*` IDs back to canonical exclusion names (e.g.
+`EXCL_CONSECUTIVE_SVS` → `consecutive-svs`). Used by Python scripts that read
+the annotated VCF and need to reconstruct config-level names.
+
+### `get_exclusion_impact_inputs(wildcards) -> Dict[str, Any]`
+
+Inputs for `compute_exclusion_impact`: variant Parquet + per-exclusion coverage
+TSVs. Returned as a dict to be unpacked with `unpack(...)`.
+
+### `get_exclusion_interaction_inputs(wildcards) -> Dict[str, Any]`
+
+Inputs for `compute_exclusion_interactions`: dip.bed, benchmark.bed, all
+materialized exclusion BEDs, and the variant Parquet. Returned as a dict.
+
+### `get_old_benchmark_analysis_inputs(wildcards) -> Dict[str, Any]`
+
+Inputs for `annotate_old_benchmark_status`: old benchmark VCF/BED plus the new
+benchmark's dip.bed, benchmark.bed, and exclusion BEDs. Looks up
+`config["comparisons"][comp_id]` for `new_benchmark` / `old_benchmark`.
+
+### Private helpers
+
+- `_get_exclusion_config(benchmark)` — list of exclusion entries from config
+- `_get_exclusion_entry(benchmark, name)` — single exclusion entry by name
+- `_get_exclusion_bed_paths(benchmark)` — materialized BED paths for all exclusions
+
+Underscore prefix marks them as not part of the documented surface; rules should
+use the public wrappers above.
+
+## Reference & Stratification Download Helpers
+
+### `get_reference_checksum(ref_name: str) -> str`
+
+Returns SHA256 (preferred) or MD5 from the reference config. Used by
+`download_reference`.
+
+### `get_stratification_url(wildcards) -> str`
+### `get_stratification_sha256(wildcards) -> str`
+
+URL / SHA256 for a stratification BED. Used by `download_stratification`.
+
+## Rule-All Target Generators
+
+### `get_exclusion_impact_targets(wildcards) -> List[str]`
+
+```
+results/exclusions/{benchmark}/exclusion_impact.csv
 ```
 
----
+for each benchmark in `BENCHMARKS_WITH_EXCLUSIONS`.
 
-## Stratification Management Functions
+### `get_exclusion_interaction_targets(wildcards) -> List[str]`
 
-### `get_stratification_beds(wildcards)`
-
-Get list of stratification BED files with IDs.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards with `benchmark` attribute
-
-**Returns:**
-
-- `list[str]`: List of BED file paths with IDs in "path:ID" format
-
-**Example:**
-
-```python
-beds = get_stratification_beds(wildcards)
-# Returns: [
-#     "resources/stratifications/GRCh38_TR.bed.gz:TR",
-#     "resources/stratifications/GRCh38_HOMOPOLYMERS_7BP.bed.gz:HOMOPOLYMERS_7BP",
-#     "resources/stratifications/GRCh38_SEGDUPS.bed.gz:SEGDUPS"
-# ]
+```
+results/exclusions/{benchmark}/exclusion_interactions.csv
 ```
 
-**Format:**
+for each benchmark in `BENCHMARKS_WITH_EXCLUSIONS`.
 
-- Each entry is `{file_path}:{strat_id}`
-- Used by annotation rules to add stratification IDs
+### `get_chr8_synteny_targets(wildcards) -> List[str]`
 
----
+Returns `chr8_figure.pdf` + `chr8_figure.png` if `chr8_synteny:` is present in
+config, else an empty list. Allows the chr8 pipeline to be opt-in.
 
-### `get_strat_ids(wildcards)`
+## Adding a Helper
 
-Get list of stratification IDs for a benchmark.
+1. Add the function to the appropriate section header in `common.smk`
+2. Use `_underscore_prefix` for private helpers
+3. Add a one-line docstring (used by `snakemake --list` and IDE tooltips)
+4. Document publicly-used helpers in this file
+5. If the helper changes a wildcard pattern, update `wildcard_constraints` too
 
-**Parameters:**
+## Related
 
-- `wildcards`: Snakemake wildcards with `benchmark` attribute
-
-**Returns:**
-
-- `list[str]`: List of stratification IDs (short names)
-
-**Example:**
-
-```python
-ids = get_strat_ids(wildcards)
-# Returns: ["TR", "HOMOPOLYMERS_7BP", "SEGDUPS", "LOWMAP", ...]
-```
-
-**Alias:**
-
-- `get_stratification_ids(wildcards)` - Same functionality, different name
-
----
-
-## Region Management Functions
-
-### `get_region_beds(wildcards)`
-
-Get benchmark region BED and exclusion BEDs with IDs.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards with `benchmark` attribute
-
-**Returns:**
-
-- `list[str]`: List of BED file paths with IDs in "path:ID" format
-
-**Example:**
-
-```python
-beds = get_region_beds(wildcards)
-# Returns: [
-#     "resources/benchmarksets/v5.0q_GRCh38_benchmark.bed:BMKREGIONS",
-#     "resources/exclusions/v5.0q_GRCh38/consecutive-svs_0.bed:EXCL_CONSECUTIVE_SVS",
-#     "resources/exclusions/v5.0q_GRCh38/lc-regions_0.bed:EXCL_LC_REGIONS",
-#     ...
-# ]
-```
-
-**Format:**
-
-- Benchmark regions always have ID "BMKREGIONS"
-- Exclusions have ID format "EXCL\_{EXCLUSION_NAME}"
-- Exclusion names converted: "consecutive-svs" → "CONSECUTIVE_SVS"
-
-**Logic:**
-
-1. Always includes benchmark regions BED
-2. For v5q benchmarks, adds all configured exclusion BEDs
-3. Each exclusion file gets unique ID suffix if multiple files
-
-**Notes:**
-
-- Central function for combining benchmark and exclusion regions
-- Used by annotation pipeline to track which regions variants fall in
-
----
-
-### `get_region_ids(wildcards)`
-
-Get list of region IDs (benchmark + exclusions).
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards with `benchmark` attribute
-
-**Returns:**
-
-- `list[str]`: List of region ID strings
-
-**Example:**
-
-```python
-ids = get_region_ids(wildcards)
-# Returns: [
-#     "BMKREGIONS",
-#     "EXCL_CONSECUTIVE_SVS",
-#     "EXCL_LC_REGIONS",
-#     "EXCL_TANDEM_REPEATS_STRS"
-# ]
-```
-
-**Notes:**
-
-- Matches the IDs used in `get_region_beds()`
-- Used by `expand_annotations.py` to create binary columns
-
----
-
-## Reference Genome Functions
-
-### `get_reference_checksum(ref_name)`
-
-Get checksum value for a reference genome.
-
-**Parameters:**
-
-- `ref_name` (str): Name of the reference in `config["references"]`
-
-**Returns:**
-
-- `str`: Checksum string (MD5 or SHA256)
-
-**Raises:**
-
-- `ValueError`: If no checksum found for reference
-
-**Example:**
-
-```python
-checksum = get_reference_checksum("GRCh38")
-# Returns: "abc123def456..." (SHA256 or MD5 value)
-```
-
----
-
-### `get_reference_checksum_type(ref_name)`
-
-Determine checksum type for a reference genome.
-
-**Parameters:**
-
-- `ref_name` (str): Name of the reference in `config["references"]`
-
-**Returns:**
-
-- `str`: "md5" or "sha256"
-
-**Raises:**
-
-- `ValueError`: If no checksum found for reference
-
-**Example:**
-
-```python
-checksum_type = get_reference_checksum_type("GRCh38")
-# Returns: "sha256" or "md5"
-```
-
-**Notes:**
-
-- Checks for SHA256 first, then MD5
-- Used by download rules to select appropriate hash algorithm
-
----
-
-## Input Aggregation Functions
-
-### `get_var_table_inputs(wildcards)`
-
-Generate list of variant table files for all benchmarks.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards (unused but required by Snakemake)
-
-**Returns:**
-
-- `list[str]`: List of variant table file paths
-
-**Example:**
-
-```python
-files = get_var_table_inputs(wildcards)
-# Returns: [
-#     "results/variant_tables/v5.0q_GRCh38/variants.parquet",
-#     "results/variant_tables/v5.0q_GRCh37/variants.parquet",
-#     "results/variant_tables/v4.2.1_GRCh38/variants.parquet",
-#     ...
-# ]
-```
-
----
-
-### `get_exclusion_table_inputs(wildcards)`
-
-Generate list of exclusion intersection tables for all benchmarks that have exclusions configured.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards (unused but required by Snakemake)
-
-**Returns:**
-
-- `list[str]`: List of exclusion table file paths
-
-**Example:**
-
-```python
-files = get_exclusion_table_inputs(wildcards)
-# Returns: [
-#     "results/exclusions/v5.0q_GRCh38/exclusions_intersection_table.csv",
-#     "results/exclusions/v5.0q_GRCh37/exclusions_intersection_table.csv",
-#     ...
-# ]
-```
-
-**Notes:**
-
-- Only includes benchmarks with `"exclusions"` in config
-- Returns empty list if no benchmarks have exclusions
-
----
-
-### `get_strat_metrics_inputs(wildcards)`
-
-Generate list of stratification metrics table files for all benchmarks.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards (unused but required by Snakemake)
-
-**Returns:**
-
-- `list[str]`: List of stratification metrics file paths
-
-**Example:**
-
-```python
-files = get_strat_metrics_inputs(wildcards)
-# Returns: [
-#     "results/genomic_context/v5.0q_GRCh38/genomic_context_coverage_table.csv",
-#     "results/genomic_context/v5.0q_GRCh37/genomic_context_coverage_table.csv",
-#     ...
-# ]
-```
-
-**Notes:**
-
-- Only includes benchmarks with `"dip_bed"` configured
-- Stratification metrics require dip.bed file for computation
-
----
-
-### `get_var_counts_inputs(wildcards)`
-
-Generate list of variant count table files for all benchmarks.
-
-**Parameters:**
-
-- `wildcards`: Snakemake wildcards (unused but required by Snakemake)
-
-**Returns:**
-
-- `list[str]`: List of variant count file paths
-
-**Example:**
-
-```python
-files = get_var_counts_inputs(wildcards)
-# Returns: [
-#     "results/genomic_context/v5.0q_GRCh38/combined_metrics.csv",
-#     "results/genomic_context/v5.0q_GRCh37/combined_metrics.csv",
-#     ...
-# ]
-```
-
-**Notes:**
-
-- Only includes benchmarks with `"dip_bed"` configured
-- Variant counts depend on stratification metrics
-
----
-
-## Common Patterns
-
-### Path Construction Pattern
-
-Many functions follow this pattern for building standardized paths:
-
-```python
-# General pattern:
-"{base_dir}/{entity_type}/{identifier}/{file_name}"
-
-# Examples:
-"resources/benchmarksets/{benchmark}_benchmark.bed"
-"resources/exclusions/{benchmark}/{exclusion}_{idx}.bed"
-"resources/stratifications/{ref}_{strat}.bed.gz"
-"results/var_tables/{benchmark}/{ref}/annotated.tsv"
-```
-
-### ID Transformation Pattern
-
-Exclusion names undergo consistent transformation:
-
-```python
-# Pattern: dash-separated → underscore-uppercase
-"consecutive-svs" → "CONSECUTIVE_SVS"
-"lc-regions" → "LC_REGIONS"
-
-# Implementation:
-name.replace("-", "_").upper()
-```
-
-### Config Lookup Pattern
-
-Helper functions consistently access config with safe defaults:
-
-```python
-# Safe access with get():
-config["benchmarksets"].get(benchmark, {}).get("exclusions", [])
-
-# Raises KeyError if required:
-config["benchmarksets"][benchmark]["ref"]
-```
-
----
-
-## Usage in Snakemake Rules
-
-### Input Function Example
-
-```python
-rule combine_region_beds:
-    input:
-        beds=get_region_beds  # Function reference (no parentheses)
-    output:
-        "results/{benchmark}/combined_regions.bed"
-    shell:
-        "cat {input.beds} > {output}"
-```
-
-### Expand with Helper Function
-
-```python
-rule aggregate:
-    input:
-        expand(
-            "results/{benchmark}/output.txt",
-            benchmark=[b for b in config["benchmarksets"]]
-        )
-```
-
-### Lambda Wrapper for Complex Logic
-
-```python
-rule process:
-    input:
-        lambda wildcards: get_exclusion_inputs(wildcards)
-    output:
-        "results/{benchmark}/{exclusion}/processed.bed"
-```
-
----
-
-## Debugging Helper Functions
-
-### Print Function Output
-
-```python
-# In Python script or interactive session:
-from snakemake import Wildcards
-
-wildcards = Wildcards(benchmark="v5.0q_GRCh38", exclusion="consecutive-svs")
-print(get_exclusion_inputs(wildcards))
-```
-
-### Test Config Access
-
-```python
-# Load config and test functions:
-import yaml
-config = yaml.safe_load(open("config/config.yaml"))
-
-# Test function:
-print(get_region_beds(Wildcards(benchmark="v5.0q_GRCh38")))
-```
-
-### Dry-run to See Resolved Paths
-
-```bash
-# See what paths will be used:
-snakemake --dry-run --printshellcmds target_rule
-
-# See full DAG with resolved wildcards:
-snakemake --dag target_rule | dot -Tpdf > dag.pdf
-```
-
----
-
-_Last Updated: 2026-01-13_
-_Branch: feature/codebase-improvements_
+- [Architecture Overview](architecture.md) — module-level layout
+- [Pipeline Outputs Reference](pipeline-outputs.md) — what the rules produce
+- `workflow/rules/common.smk` — source of truth

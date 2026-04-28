@@ -1,414 +1,176 @@
 # Plot Themes and Styling Guide
 
-This guide explains how to use the consistent ggplot2 and gt table styling for manuscript-ready figures and tables.
+Consistent ggplot2 and table styling for manuscript-ready figures and tables.
+Designed for Cell Genomics submission requirements.
+
+All exports live in `R/plot_themes.R` and are loaded by `analysis/_notebook_setup.R`.
 
 ## Quick Start
 
-### Load the Themes Module
-
 ```r
-source(here("R/plot_themes.R"))
+source(here::here("R/plot_themes.R"))
 ```
 
 ## ggplot2 Figures
 
-### Basic Usage with Theme
+### Basic Usage
 
 ```r
-library(ggplot2)
-
 ggplot(data, aes(x = context_name, y = variant_count, fill = bench_version)) +
   geom_col(position = "dodge") +
   scale_benchmark_version(aesthetic = "fill") +
   scale_genomic_context(aesthetic = "x") +
   theme_manuscript() +
-  labs(
-    title = "Variant Counts by Genomic Context",
-    x = "Genomic Context",
-    y = "Number of Variants"
-  )
+  labs(x = "Genomic Context", y = "Number of Variants")
 ```
+
+### Theme Function
+
+`theme_manuscript(...)` — base manuscript theme.
+
+- 8–11 pt fonts; 85–180 mm figure widths (Cell Genomics)
+- Bottom horizontal legend, gray facet panels, clean minimal grid
+- Accepts `...` to override any theme element:
+  ```r
+  theme_manuscript(axis.title = element_text(size = 12, face = "italic"))
+  ```
 
 ### Color Scales
 
-All color scales follow the same pattern and are designed to be:
+All scales accept `aesthetic`, `name`, `guide`, and `...` (passed to underlying ggplot2 scale).
 
-- **Colorblind-friendly** (deuteranopia, protanopia, tritanopia compatible)
-- **Print-ready** (work in black & white)
-- **Publication-quality** (meet journal standards)
+| Function | Maps |
+|---|---|
+| `scale_benchmark_version()` | `v0.6`, `v4.2.1`, `v5.0q`, `PP` |
+| `scale_bench_type()` | `smvar` → "Small Variants", `stvar` → "Structural Variants" |
+| `scale_genomic_context()` | `HP`, `MAP`, `SD`, `SD10kb`, `TR`, `TR10kb` (auto-applies readable labels) |
 
-#### Available Scales
+Example with overrides:
 
 ```r
-# For benchmark versions
-scale_benchmark_version(aesthetic = "color", name = "Benchmark")
-scale_benchmark_version(aesthetic = "fill", name = "Benchmark")
-
-# For benchmark set types
-scale_bench_type(aesthetic = "color", name = "Benchmark Type")
-scale_bench_type(aesthetic = "fill")
-
-# For genomic contexts
-scale_genomic_context(aesthetic = "color", name = "Genomic Context")
-scale_genomic_context(aesthetic = "fill")
+scale_benchmark_version(fill = "color", limits = c("v5.0q"))
 ```
 
 ### Color Palettes
 
-Access all colors directly with `get_color_palettes()`:
+Direct access via `get_color_palettes()`:
+
+| Palette | Keys |
+|---|---|
+| `bench_version` | v0.6, v4.2.1, v5.0q, PP |
+| `ref` | GRCh37, GRCh38, CHM13v2.0 |
+| `bench_type` | smvar, stvar |
+| `context_name` | HP, MAP, SD, SD10kb, TR, TR10kb |
+| `chrom_type` | autosomes, sex chromosomes |
+| `binary` | TRUE/FALSE, Yes/No |
+
+All palettes are colorblind-friendly (deuteranopia/protanopia/tritanopia tested) and print-friendly.
+
+### Figure Export
 
 ```r
-palettes <- get_color_palettes()
-
-# Benchmark versions
-palettes$bench_version
-# v0.6     = "#1B9E77" (teal)
-# v4.2.1   = "#D95F02" (orange)
-# v5.0q    = "#7570B3" (purple)
-
-# Reference genomes
-palettes$ref
-# GRCh37   = "#E41A1C" (red)
-# GRCh38   = "#377EB8" (blue)
-# CHM13v2.0 = "#4DAF4A" (green)
-
-# Genomic contexts
-palettes$context_name
-# HP       = "#E41A1C" (red)
-# MAP      = "#377EB8" (blue)
-# SD       = "#4DAF4A" (green)
-# SD10kb   = "#984EA3" (purple)
-# TR       = "#FF7F00" (orange)
-# TR10kb   = "#A65628" (brown)
-
-# Benchmark set types
-palettes$bench_type
-# smvar    = "#1B9E77" (teal)
-# stvar    = "#D95F02" (orange)
-```
-
-### Theme Features
-
-`theme_manuscript()` includes:
-
-- **Font sizing:** 9pt body, 8pt axis labels, 8pt legend text (Cell Genomics standard)
-- **Professional layout:** Clean minimal design with proper spacing
-- **Figure width optimized:** For 85-180mm journal figures
-- **Legend positioning:** Bottom, horizontal layout
-- **Grid styling:** Removed for clean appearance
-- **Border styling:** Professional black borders with appropriate linewidths
-- **Facet styling:** Gray background for panel distinction
-
-### Figure Size Guidelines
-
-For Cell Genomics:
-
-```r
-# Single-column figure (85 mm = 3.35 in)
+# Single column (85 mm)
 ggsave("figure.pdf", width = 3.35, height = 3.5, dpi = 300)
-
-# Multi-column figure (120-180 mm)
-ggsave("figure.pdf", width = 5, height = 3.5, dpi = 300)
-
-# Full-page width figure (180 mm = 7 in)
-ggsave("figure.pdf", width = 7, height = 4, dpi = 300)
+# 1.5 column (120 mm)
+ggsave("figure.pdf", width = 4.7,  height = 3.5, dpi = 300)
+# Full page (180 mm)
+ggsave("figure.pdf", width = 7.0,  height = 4.0, dpi = 300)
 ```
 
-### Example: Complete Figure
+`get_figure_params()` returns standardized export params:
 
 ```r
-metrics %>%
-  # Data preparation
-  filter(ref == "GRCh38") %>%
-  group_by(bench_version, bench_type, context_name) %>%
-  summarise(total_variants = sum(total_variants), .groups = "drop") %>%
-
-  # Visualization
-  ggplot(aes(
-    x = context_name,
-    y = total_variants,
-    fill = bench_version
-  )) +
-  geom_col(position = "dodge") +
-  facet_wrap(~bench_type, scales = "free_y") +
-
-  # Theming
-  scale_benchmark_version(aesthetic = "fill") +
-  scale_genomic_context(aesthetic = "x") +
-  theme_manuscript() +
-
-  # Labels
-  labs(
-    title = "Variant Counts by Genomic Context",
-    subtitle = "GRCh38 reference",
-    x = "Genomic Context",
-    y = "Variant Count",
-    fill = "Benchmark"
-  )
-
-# Export for publication
-ggsave("Figure2_variant_counts.pdf", width = 5, height = 3.5, dpi = 300)
+params <- get_figure_params(figure_name = "variant_counts", figure_number = 2,
+                            format = "pdf", width = 5, height = 3.5)
+ggsave(params$filename, width = params$width, height = params$height,
+       dpi = params$dpi, units = params$units, bg = params$bg)
 ```
 
-## GT Tables
+## Tables — flextable (primary)
 
-### Basic Usage with Theme
+`flextable` is the table library used across all analysis notebooks; it produces
+Word/Google Docs–compatible output suitable for the manuscript.
+
+### Basic Usage
 
 ```r
-library(gt)
+library(flextable)
 
 data %>%
-  gt() %>%
-  theme_gt_manuscript() %>%
-  gt::fmt_number(
-    columns = c(total_variants, snv_count),
-    decimals = 0,
-    use_seps = TRUE
-  )
+  flextable() %>%
+  theme_flextable_manuscript() %>%
+  fmt_integer_flextable(columns = c("total_variants", "snv_count"))
 ```
 
-### Theme Features
+### Theme Function
 
-`theme_gt_manuscript()` includes:
+`theme_flextable_manuscript(ft, striped = TRUE, font_family = "Roboto", base_font_size = 9, header_bg = "#F5F5F5", stripe_color = "#FAFAFA", ...)`
 
-- **Font sizing:** 9pt body, 10pt headers (Cell Genomics standard)
-- **Professional structure:** Black borders at top/bottom, gray column headers
-- **Striped rows:** Optional alternating row colors for readability
-- **Proper spacing:** 10px header padding, 8px data cell padding
-- **Responsive:** Adjusts to fit available width
+- Roboto 9 pt body / 10 pt bold header
+- 2 px black top/bottom borders, 1 px header separator
+- Optional alternating row stripes
+- Autofit table layout
 
-### Example: Complete Table
+### Helper Functions
+
+| Helper | Wraps | Purpose |
+|---|---|---|
+| `fmt_integer_flextable(ft, columns, big_mark = ",")` | `colformat_int()` | Thousands-separated integers |
+| `fmt_number_flextable(ft, columns, decimals = 2)` | `colformat_double()` | Fixed-decimal numbers |
+| `fmt_percent_flextable(ft, columns, decimals = 1, scale_values = FALSE)` | `set_formatter()` | Percent strings (set `scale_values = TRUE` for fractions like 0.85) |
+| `cols_label_flextable(ft, ...)` | `set_header_labels()` | Rename header columns |
+| `as_grouped_flextable(df, groupname_col)` | `as_grouped_data()` + `as_flextable()` | Grouped row headers (replaces `gt::gt(groupname_col = ...)`) |
+
+### Example: Grouped Table with Formatting
 
 ```r
 metrics %>%
   filter(ref == "GRCh38", bench_type == "smvar") %>%
   select(bench_version, context_name, total_variants, snv_count, indel_count) %>%
   arrange(bench_version, context_name) %>%
-
-  # Create table
-  gt(groupname_col = "bench_version") %>%
-
-  # Apply theme
-  theme_gt_manuscript(striped = TRUE) %>%
-
-  # Format columns
-  gt::fmt_number(
-    columns = c(total_variants, snv_count, indel_count),
-    decimals = 0,
-    use_seps = TRUE
-  ) %>%
-
-  # Labels
-  gt::cols_label(
+  as_grouped_flextable(groupname_col = "bench_version") %>%
+  theme_flextable_manuscript(striped = TRUE) %>%
+  fmt_integer_flextable(columns = c("total_variants", "snv_count", "indel_count")) %>%
+  cols_label_flextable(
     context_name = "Genomic Context",
     total_variants = "Total Variants",
     snv_count = "SNVs",
     indel_count = "Indels"
   ) %>%
-
-  # Title and subtitle
-  gt::tab_header(
-    title = "Variant Counts by Genomic Context",
-    subtitle = "Small variants (SNVs and Indels) in GRCh38"
-  )
+  flextable::set_caption("Variant counts by genomic context (GRCh38, small variants).")
 ```
 
-## Helper Functions
+## Tables — gt (legacy support)
 
-### Get Context Labels
-
-Convert abbreviations to full names:
+`theme_gt_manuscript(gt_object, striped = TRUE, ...)` is still exported for
+backward compatibility, but new tables should use flextable. Two notebooks
+(`analysis/external_evaluation.qmd`) still contain `gt()` calls that have not
+been migrated.
 
 ```r
-get_context_labels()
-# Returns all context labels
-
-get_context_labels(c("HP", "TR", "SD"))
-# Returns named character vector with specified contexts
+data %>% gt() %>% theme_gt_manuscript()
 ```
 
-### Get Benchmark Type Labels
+## Label Helpers
 
 ```r
-get_bench_type_labels()
-# Returns: smvar = "Small Variants", stvar = "Structural Variants"
-
-get_bench_type_labels(c("smvar"))
-# Returns: smvar = "Small Variants"
+get_context_labels()                  # all context labels (named vector)
+get_context_labels(c("HP", "TR"))     # subset
+get_bench_type_labels()               # smvar = "Small Variants", stvar = "Structural Variants"
 ```
 
-### Figure Parameters
+## Cell Genomics Compliance
 
-Generate standardized export parameters:
-
-```r
-params <- get_figure_params(
-  figure_name = "variant_counts",
-  figure_number = 2,
-  format = "pdf",
-  width = 5,
-  height = 3.5
-)
-
-ggsave(
-  filename = params$filename,
-  width = params$width,
-  height = params$height,
-  dpi = params$dpi,
-  units = params$units,
-  bg = params$bg
-)
-```
-
-## Color Palette Specifications
-
-### Design Principles
-
-1. **Colorblind-friendly:** All palettes tested for deuteranopia, protanopia, tritanopia
-2. **Print-ready:** Work in grayscale and color
-3. **Distinct:** Easy to distinguish in small figures
-4. **Professional:** Suitable for journal publication
-5. **Consistent:** Same colors used across all figures and tables
-
-### Benchmark Versions
-
-- **v0.6** (#1B9E77): Teal - oldest version
-- **v4.2.1** (#D95F02): Orange - intermediate version
-- **v5.0q** (#7570B3): Purple - newest version
-
-_Progression suggests upgrade path from old (teal) → new (purple)_
-
-### Reference Genomes
-
-- **GRCh37** (#E41A1C): Red - older human reference
-- **GRCh38** (#377EB8): Blue - current human reference
-- **CHM13v2.0** (#4DAF4A): Green - telomere-to-telomere assembly
-
-_Colors chosen for maximum contrast and colorblind compatibility_
-
-### Genomic Contexts
-
-- **HP** (#E41A1C): Red - Homopolymers
-- **MAP** (#377EB8): Blue - Low Mappability regions
-- **SD** (#4DAF4A): Green - Segmental Duplications
-- **SD10kb** (#984EA3): Purple - Large Segmental Duplications
-- **TR** (#FF7F00): Orange - Tandem Repeats
-- **TR10kb** (#A65628): Brown - Large Tandem Repeats
-
-_All six colors are easily distinguishable and colorblind-friendly_
-
-## Cell Genomics Requirements Compliance
-
-### Figure Specifications
-
-✓ Width: 85-180 mm (supported by theme spacing)
-✓ Font: Sans-serif (Roboto/Arial), 9-10pt body, 8pt labels
-✓ Resolution: 300 dpi (use `dpi = 300` in ggsave)
-✓ Colors: Colorblind-friendly, print-ready
-✓ Format: PDF/EPS (vector), PNG (raster high-res)
-
-### Table Specifications
-
-✓ Font: Sans-serif, 9pt body, 10pt headers
-✓ Borders: Clear top/bottom borders, column headers distinct
-✓ Color: Minimal, professional appearance
-✓ Readability: Proper spacing and optional striping
-
-### File Format Guidelines
-
-```r
-# Vector formats (preferred for publication)
-ggsave("figure.pdf", width = 5, height = 3.5, dpi = 300)
-ggsave("figure.eps", width = 5, height = 3.5, dpi = 300)
-
-# High-resolution raster (fallback)
-ggsave("figure.png", width = 5, height = 3.5, dpi = 300)
-
-# Tables - save as PDF or PNG
-gt_object %>%
-  gtsave("table.pdf")  # requires webshot2
-```
-
-## Updating Existing Figures
-
-To apply the manuscript theme to existing plots:
-
-```r
-# Before
-plot <- ggplot(...) +
-  geom_point() +
-  theme_minimal()
-
-# After
-plot <- ggplot(...) +
-  geom_point() +
-  scale_benchmark_version(aesthetic = "color") +
-  theme_manuscript()
-```
+- Figures: 85–180 mm width, 9 pt body / 8 pt labels, 300 dpi, vector (PDF/EPS) preferred
+- Tables: sans-serif 9 pt body / 10 pt header, top/bottom borders, optional striping
+- Colors: colorblind-friendly, render in grayscale
 
 ## Troubleshooting
 
-### Legends appear in wrong position
+**Wrong legend position** — pass `legend.position` via `theme_manuscript(legend.position = "right")` or `+ guides(color = "none")` to hide.
 
-- Check `legend.position` in `theme_manuscript()`
-- Use `+ guides(color = "none")` to hide unwanted legends
+**Roboto font missing** — falls back to default sans; install Roboto or pass `font_family = "Arial"` to `theme_flextable_manuscript()`.
 
-### Font sizes look wrong
+**Word export issues with `flextable::save_as_docx()`** — confirm `officer` is installed (already required by `flextable`).
 
-- Verify figure width/height matches publication specifications
-- Export with `dpi = 300`
-- Check font rendering in PDF viewer (may appear different than on screen)
-
-### Colors don't match expectations
-
-- Verify color blindness mode in graphic software
-- Export to PDF and check in Adobe Reader (more accurate colors)
-- Compare with Cell Genomics figure examples
-
-### Table formatting issues
-
-- Ensure data is a data frame or tibble
-- Check gt::opt_table_font() compatibility
-- Use gt::tab_options() to override specific settings if needed
-
-## Advanced Customization
-
-### Create Custom Palette
-
-```r
-my_palette <- c(
-  "Option1" = "#E41A1C",
-  "Option2" = "#377EB8",
-  "Option3" = "#4DAF4A"
-)
-
-scale_custom <- function(aesthetic = "color") {
-  switch(aesthetic,
-    color = scale_color_manual(values = my_palette),
-    fill = scale_fill_manual(values = my_palette)
-  )
-}
-```
-
-### Modify Theme
-
-```r
-theme_manuscript_custom <- function() {
-  theme_manuscript() +
-    theme(
-      axis.title.x = element_blank(),
-      legend.position = "right"
-    )
-}
-```
-
-### Custom GT Table Theme
-
-```r
-theme_gt_custom <- function(gt_object) {
-  theme_gt_manuscript(gt_object) %>%
-    gt::tab_options(
-      column_labels.background.color = "#E8E8E8"
-    )
-}
-```
+**Stripes look wrong on small tables** — `theme_flextable_manuscript()` skips striping when `nrow <= 1`; for two-row tables disable with `striped = FALSE`.

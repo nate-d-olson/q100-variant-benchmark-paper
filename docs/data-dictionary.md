@@ -5,7 +5,7 @@ This document is the single reference for all data structures in the Q100 varian
 1. **R Loading Function Schemas** — column types and descriptions for data frames returned by `R/data_loading.R`
 2. **Pipeline Metric Definitions** — detailed interpretations of metrics, genomic contexts, exclusions, and variant classifications
 
-> **Maintenance Note:** Update this document whenever changes are made to `R/data_loading.R`, `R/schemas.R`, or pipeline output formats.
+> **Maintenance Note:** Update this document whenever changes are made to `R/data_loading.R`, `R/schemas.R`, `R/cache.R`, `R/bed_helpers.R`, or pipeline output formats (especially `workflow/scripts/generate_variant_parquet.py` and `workflow/scripts/count_*.py`).
 
 ---
 
@@ -77,54 +77,92 @@ The functions in `R/data_loading.R` load and standardize pipeline outputs. This 
 
 **Function:** `load_exclusion_metrics()`
 
-Available for v5.0q benchmarks only.
+Loads `results/exclusions/{benchmark}/exclusion_impact.csv` (v5.0q benchmarks only). Source CSV columns are renamed: `exclusion` → `exclusions`, `dip_intersect_bp` → `intersect_bp`, `snp_count` → `snv_count`, `sv_ins_count` → `ins_count`, `sv_del_count` → `del_count`.
 
-| Column             | Type      | Description                                          |
-| :----------------- | :-------- | :--------------------------------------------------- |
-| `bench_version`    | Factor    | Benchmark version (e.g., `v5.0q`)                    |
-| `ref`              | Factor    | Reference genome                                     |
-| `bench_type`       | Factor    | Benchmark set type                                   |
-| `exclusions`       | Character | Name of the exclusion region                         |
-| `exclusion_bp`     | Numeric   | Total size of the exclusion region                   |
-| `intersect_bp`     | Numeric   | Overlap with benchmark                               |
-| `pct_of_exclusion` | Numeric   | Percentage of exclusion region overlapping benchmark |
-| `pct_of_dip`       | Numeric   | Percentage of diploid genome overlapping benchmark   |
-| `total_variants`   | Integer   | Total variants in this exclusion                     |
+| Column             | Type      | Description                                                       |
+| :----------------- | :-------- | :---------------------------------------------------------------- |
+| `bench_version`    | Factor    | Benchmark version (e.g., `v5.0q`)                                 |
+| `ref`              | Factor    | Reference genome                                                  |
+| `bench_type`       | Factor    | Benchmark set type                                                |
+| `exclusions`       | Character | Name of the exclusion region (config key from `config.yaml`)      |
+| `excl_id`          | Character | Exclusion region ID used in VCF `INFO/REGION_IDS` annotations     |
+| `exclusion_bp`     | Numeric   | Total size of the exclusion region                                |
+| `intersect_bp`     | Numeric   | Bases in exclusion that overlap dip.bed                           |
+| `pct_of_exclusion` | Numeric   | % of exclusion bases that overlap dip.bed                         |
+| `pct_of_dip`       | Numeric   | % of dip.bed removed by this exclusion                            |
+| `total_variants`   | Integer   | Total variants in dip.bed removed by this exclusion               |
+| `snv_count`        | Integer   | SNVs removed (smvar)                                              |
+| `indel_count`      | Integer   | INDELs removed (smvar)                                            |
+| `del_count`        | Integer   | Structural deletions removed (stvar)                              |
+| `ins_count`        | Integer   | Structural insertions removed (stvar)                             |
+
+### Exclusion Interactions
+
+**Function:** `load_exclusion_interactions()`
+
+Loads `results/exclusions/{benchmark}/exclusion_interactions.csv` — upset-style decomposition of which exclusion combinations overlap.
+
+| Column                  | Type      | Description                                              |
+| :---------------------- | :-------- | :------------------------------------------------------- |
+| `bench_version`         | Factor    | Benchmark version (e.g., `v5.0q`)                        |
+| `ref`                   | Factor    | Reference genome                                         |
+| `bench_type`            | Factor    | Benchmark set type                                       |
+| `exclusion_combination` | Character | Pipe-delimited exclusion names (e.g., `segdups|gaps`)    |
+| `n_exclusions`          | Integer   | Number of exclusions in this combination                 |
+| `bases_bp`              | Numeric   | Bases excluded by exactly this combination               |
+| `variant_count`         | Integer   | Variants excluded by exactly this combination            |
+
+### Platinum Pedigree Regions
+
+**Function:** `load_platinum_pedigree_regions()`
+
+Loads Platinum Pedigree confident region BEDs for cross-benchmark comparison. Same column schema as `load_benchmark_regions()`.
 
 ### Reference Genome Sizes
 
 **Function:** `load_reference_sizes()`
+
+Reads `results/ref_genome_sizes/*_size.tsv` files generated by `samtools faidx` + `seqkit stats`.
 
 | Column   | Type    | Description                                      |
 | :------- | :------ | :----------------------------------------------- |
 | `ref`    | Factor  | Reference genome name                            |
 | `chrom`  | Factor  | Chromosome name (standardized with "chr" prefix) |
 | `length` | Integer | Total length of the chromosome                   |
+| `atgcs`  | Integer | Number of A/T/G/C bases                          |
 | `ns`     | Integer | Number of 'N' bases (gaps)                       |
 | `asm_bp` | Integer | Assembled bases (`length` - `ns`)                |
 
 ### Variant Table
 
-**Function:** `load_variant_table()` or `load_all_variant_tables()`
+**Function:** `load_variant_table(benchmark_id, results_dir = NULL, filters = NULL, ...)` or `load_all_variant_tables()`
 
-Large datasets. Columns may vary slightly between benchmark versions.
+Large datasets (~1 GB per benchmark). Columns are defined by the Arrow schema in `R/schemas.R::get_arrow_schema("variant_table")` and produced by `workflow/scripts/generate_variant_parquet.py`.
 
 | Column          | Type      | Description                                                     |
 | :-------------- | :-------- | :-------------------------------------------------------------- |
-| `bench_version` | Factor    | Benchmark version                                               |
-| `ref`           | Factor    | Reference genome                                                |
-| `bench_type`    | Factor    | Benchmark set type                                              |
-| `chrom`         | Factor    | Chromosome                                                      |
+| `bench_version` | Factor    | Benchmark version (`v0.6`, `v4.2.1`, `v5.0q`)                   |
+| `ref`           | Factor    | Reference genome (`GRCh37`, `GRCh38`, `CHM13v2.0`)              |
+| `bench_type`    | Factor    | Benchmark set type (`smvar`, `stvar`)                           |
+| `chrom`         | Factor    | Chromosome (standardized with `chr` prefix)                     |
 | `pos`           | Integer   | 1-based start position                                          |
 | `end`           | Integer   | End position                                                    |
-| `gt`            | Character | Genotype                                                        |
-| `vkx`           | Character | Variant class                                                   |
-| `var_type`      | Character | Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER)             |
-| `len_ref`       | Integer   | Length of reference allele                                      |
-| `len_alt`       | Integer   | Length of alternate allele                                      |
-| `var_size`      | Integer   | Size of the variant                                             |
-| `region_ids`    | Character | Comma-separated IDs of regions overlapping the variant          |
-| `context_ids`   | Character | Comma-separated IDs of genomic contexts overlapping the variant |
+| `gt`            | Character | Genotype string from `truvari.get_gt()` (`HET`, `HOM`, `REF`, `NON`, `UNK`) |
+| `var_type`      | Character | Variant type from `VariantRecord.var_type()` (`SNP`, `DEL`, `INS`, `DUP`, `INV`, `BND`, `UNK`) |
+| `var_size`      | Integer   | Signed size: positive for INS, negative for DEL, 0 for SNP      |
+| `szbin`         | Character | Truvari size bin string (`SNP`, `[1,5)`, `[50,100)`, `>=5k`, …) |
+| `ref_len`       | Integer   | Length of reference allele                                      |
+| `alt_len`       | Integer   | Length of alternate allele                                      |
+| `qual`          | Numeric   | VCF QUAL score                                                  |
+| `filter`        | Character | VCF FILTER value                                                |
+| `is_pass`       | Logical   | TRUE if FILTER is `.` or `PASS`                                 |
+| `context_ids`   | Character | Comma-separated genomic context IDs overlapping the variant     |
+| `region_ids`    | Character | Comma-separated benchmark + exclusion region IDs                |
+
+**Notes:**
+- No `vkx` column — earlier docs referenced one that was never produced.
+- For smvar size filtering: `abs(var_size) < 50`. For stvar: `abs(var_size) >= 50`.
+- See **Variant Type Classification** in CLAUDE.md for the full Truvari API mapping.
 
 ### Genomic Context Coverage
 
@@ -159,9 +197,26 @@ Base-level coverage metrics for difficult genomic contexts.
 
 ### HG002 Q100 Assembly Size
 
-**Function:** `load_hg002q100_size()`
+**Function:** `load_hg002q100_size(asm_version = "v1.1", fai_url = ..., fai_md5 = ...)`
 
-Returns a single numeric value representing the total base pairs of the HG002 Q100 maternal assembly (v1.1).
+Downloads the maternal `.fai` from the HumanPangenomics S3 bucket, verifies the MD5, and returns a single numeric value: the total bp of chr1–22, X, Y in the HG002 Q100 maternal assembly. Used by `load_primary_analysis_data()` for genome-size denominators.
+
+### Primary Analysis Bundle
+
+**Function:** `load_primary_analysis_data(results_dir = NULL, resources_dir = NULL, include_variants = TRUE, include_reference_sizes = TRUE, include_hg002q100_size = TRUE, include_benchmark_regions = TRUE, benchmark_filter = NULL, use_cache = TRUE, force_refresh = FALSE)`
+
+Convenience loader that returns a named list bundling the common analysis inputs:
+
+| Element                     | Source function                |
+| :-------------------------- | :----------------------------- |
+| `genomic_context_metrics_df` | `load_genomic_context_metrics()` |
+| `variants_df`               | `load_all_variant_tables()`    |
+| `ref_sizes_df`              | `load_reference_sizes()`       |
+| `total_ref_asm_bp`          | computed from `ref_sizes_df`   |
+| `hg002q100_size`            | `load_hg002q100_size()`        |
+| `bench_regions_df`          | `load_benchmark_regions()`     |
+
+Each `include_*` flag toggles whether that element is loaded.
 
 ---
 
