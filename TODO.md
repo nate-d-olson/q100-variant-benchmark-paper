@@ -68,3 +68,7 @@
   - Imports `common` (Snakemake DSL — not importable as Python module)
   - References `get_exclusion_file_path` and `_format_exclusion_name`, neither of which exist in current `common.smk`
   - Currently excluded from CI via `--ignore` in `.github/workflows/main.yml`
+- [ ] Migrate remaining gt() calls in `analysis/external_evaluation.qmd` (lines 677, 911) to flextable
+  - Two complex tables using gt-specific features: `tab_spanner`, `tab_footnote` with `cells_column_spanners`, `rowname_col`, multiple `tab_style` location selectors
+  - Currently documented as legacy-supported in `docs/plot_themes_guide.md`
+  - Only blocker for fully removing gt from the project

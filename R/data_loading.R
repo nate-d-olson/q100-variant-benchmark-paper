@@ -960,15 +960,15 @@ load_hg002q100_size <- function(
 #'   - `chromosomes`: Character vector of chromosomes to include
 #'   - `in_benchmark_only`: Logical, keep only variants in benchmark regions (default: TRUE)
 #'
-#' @return Tibble with variant-level data:
+#' @return Tibble with variant-level data (full schema in `R/schemas.R::get_arrow_schema("variant_table")`):
 #'   - chrom, pos, end: Genomic coordinates
-#'   - gt: Genotype
-#'   - vkx: Variant class
-#'   - var_type: Variant type (SNV, INDEL, DEL, INS, COMPLEX, OTHER)
-#'   - len_ref, len_alt: Reference and alternate allele lengths
-#'   - var_size: Size of variant (len_alt - len_ref for small variants)
-#'   - region_ids: Region classification
-#'   - Additional columns from original file
+#'   - gt: Genotype string from `truvari.get_gt()` (HET, HOM, REF, NON, UNK)
+#'   - var_type: Variant type from `VariantRecord.var_type()` (SNP, DEL, INS, DUP, INV, BND, UNK)
+#'   - var_size: Signed size (positive for INS, negative for DEL, 0 for SNP)
+#'   - szbin: Truvari size bin string (SNP, [1,5), [50,100), >=5k, ...)
+#'   - ref_len, alt_len: Reference and alternate allele lengths
+#'   - qual, filter, is_pass: VCF QUAL/FILTER columns
+#'   - context_ids, region_ids: Comma-separated annotation IDs from VCF INFO
 #'
 #' @examples
 #' \dontrun{
