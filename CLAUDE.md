@@ -43,7 +43,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
    - `annotate_vcf_regions` → adds INFO/REGION_IDS to VCF
 3. **Comparisons** (`workflow/rules/benchmark_comparisons.smk`): Truvari comparison between benchmark versions
    - Uses "stratification" terminology (not genomic_context) for GIAB comparison analysis
-4. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
+4. **SV Use-Case Evaluation** (`workflow/rules/use_case_evaluation.smk`): Wraps `scripts/extract_sv_metrics.py` to aggregate post-refine truvari outputs from external stvar callsets (HiFi/ONT × Sniffles1/Sniffles2) into 3 CSVs consumed by `analysis/use_case_evaluation.qmd`. Opt-in target: `snakemake use_case_evaluation`. Inputs in `data/` are externally delivered; smvar (hap.py) workflow remains manual.
+5. **Exclusions** (`workflow/rules/exclusions.smk`): Exclusion analysis for v5.0q benchmarks only
    - `materialize_exclusion`: Sort/merge exclusion BED files (NOT symlinks—performs data processing)
    - `compute_exclusion_metrics`: Per-exclusion BED overlap with dip.bed (inline bedtools shell commands)
    - `compute_exclusion_impact`: Per-exclusion variant counts + BED metrics (Q1)
@@ -65,7 +66,7 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 **Snakemake Environment:**
 
-- Activate with: `micromamba activate q100-smk`
+- Activate with: `mamba activate q100-smk`
 - Dry-run: `snakemake -n <target>`
 - Snakemake version: 8.x (`min_version("8.0")` in Snakefile)
 
@@ -103,19 +104,6 @@ from the conda channel alias convention (`/channels/conda-forge`). Use `custom_m
 **GitHub CLI TLS issue:**
 
 The `gh` CLI intermittently fails with `tls: failed to verify certificate: x509: OSStatus -26276` due to the organization network proxy. When this occurs, use the MCP GitHub tools (e.g., `mcp__plugin_github_github__merge_pull_request`) as a fallback for PR operations. Git push/pull over SSH is unaffected.
-
-**Conda Environments:**
-
-The pipeline uses 6 conda environments (consolidated from 8 on 2026-02-23 for ~800 MB disk savings):
-
-- **biotools.yaml** — Core CLI tools (bcftools, rtg-tools); used by VCF processing and benchmark comparisons
-- **python-biotools.yaml** — Python data processing + genomic tools (python=3.11, pandas, pyarrow, bcftools, bedtools, tabix); used by annotation, genomic context analysis, exclusions
-- **samtools.yaml** — Sequence handling (samtools, seqkit); used by reference processing, chr8 synteny
-- **downloads.yaml** — File retrieval (wget); used by download rules
-- **plotsr.yaml** — Chr8 synteny visualization (minimap2, syri, plotsr, **pandas<2.0**); **MUST remain isolated** due to SyRI Cython bug with pandas 2.0+
-- **truvari.yaml** — Variant analysis (Truvari==5.4.0 pip, bcftools=1.20, bedtools, pandas, pyarrow=14.0); kept separate due to bcftools version conflict (uses 1.20 vs 1.22)
-
-See `workflow/envs/README.md` for detailed documentation, consolidation rationale, and testing protocol.
 
 ## Chr8 Synteny Figure Pipeline
 

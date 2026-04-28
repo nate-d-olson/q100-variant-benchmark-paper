@@ -21,6 +21,7 @@
 - [ ] Figure use_case_smvar - clearer presentation, revise based on feedback
 - [ ] Figure use_case_stvar - clearer presentation, revise based on feedback
 - [ ] Miqa platform evaluation figure
+- [ ] rerun test surfaced error iwth external_evaluation.qmd likely issue with not having the correct evaluation input file but could also be bug in R code. Will want to check later, not pressing though.
 
 
 
@@ -51,10 +52,9 @@
 
 ### Pipeline Integration
 
-- [ ] Integrate SV use-case evaluation into Snakemake pipeline
-  - Add `workflow/rules/use_case_evaluation.smk`
-  - Add config entries for callsets, parameters, stratifications
-  - Automate callset download and benchmarking
+- [x] Integrate SV use-case evaluation into Snakemake pipeline (Light scope)
+  - [x] Added `workflow/rules/use_case_evaluation.smk` with `extract_sv_use_case_metrics` rule + `use_case_evaluation` target alias
+  - [ ] Medium/Heavy scope deferred: callset download rules, native `truvari bench/refine/stratify` rules, config entries for callsets/parameters. Would let the pipeline produce the `data/` truvari dirs that are currently externally delivered.
 
 ### Infrastructure
 

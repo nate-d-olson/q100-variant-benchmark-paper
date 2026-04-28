@@ -34,6 +34,7 @@ resources/                # gitignored downloaded benchmarks/refs/strats
 | `exclusions.smk` | 258 | v5.0q exclusion impact, interactions, cross-version analysis |
 | `benchmark_comparisons.smk` | 123 | Truvari comparison between benchmark versions |
 | `chr8_synteny.smk` | 247 | Chr8 multi-panel SyRI/plotsr figure pipeline |
+| `use_case_evaluation.smk` | 53 | SV use-case metric extraction (wraps `scripts/extract_sv_metrics.py`); opt-in target `snakemake use_case_evaluation` |
 
 `common.smk` reads `config.yaml`, builds `BENCHMARKS_WITH_EXCLUSIONS` from
 benchmarks that have exclusions configured, and exposes `get_*` helpers used by

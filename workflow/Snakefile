@@ -56,6 +56,7 @@ include: "rules/genomic_context_analysis.smk"
 include: "rules/exclusions.smk"
 include: "rules/benchmark_comparisons.smk"
 include: "rules/chr8_synteny.smk"
+include: "rules/use_case_evaluation.smk"
 
 
 rule all:
