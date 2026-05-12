@@ -200,7 +200,9 @@ def classify_variant(ref: str, alt: str, info: dict[str, str]) -> str:
     return "COMPLEX"
 
 
-def variant_size_bp(ref: str, alt: str, start0: int, end0: int, info: dict[str, str]) -> int:
+def variant_size_bp(
+    ref: str, alt: str, start0: int, end0: int, info: dict[str, str]
+) -> int:
     svlen = parse_svlen(info)
     if svlen is not None:
         return max(1, svlen)
@@ -479,7 +481,8 @@ def main() -> None:
             for region in REGIONS
         ],
         "constraint_checks": {
-            "one_region_per_chromosome": len({r.chrom for r in REGIONS}) == len(REGIONS),
+            "one_region_per_chromosome": len({r.chrom for r in REGIONS})
+            == len(REGIONS),
             "autosome_count": sum(1 for r in REGIONS if r.chrom[3:].isdigit()),
             "includes_chrX": any(r.chrom == "chrX" for r in REGIONS),
             "includes_chrY": any(r.chrom == "chrY" for r in REGIONS),
@@ -511,7 +514,9 @@ def main() -> None:
 
     summary_path = output_root / "subset_summary.json"
     ensure_parent(summary_path)
-    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     write_readme(output_root)
     print(f"Wrote GRCh38 debug subset to: {output_root}")

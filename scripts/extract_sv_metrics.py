@@ -26,10 +26,22 @@ STRAT_DIR = PROJ_DIR / "resources" / "stratifications"
 OUTPUT_DIR = PROJ_DIR / "results" / "use_case" / "stvar"
 
 CALLSET_CONFIG: dict[tuple[str, str], str] = {
-    ("HiFi", "sniffles1"): "GRCh38_HG002_T~T2TQ100v1.1_Q~HiFi-Snifpub-sniffles1_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
-    ("HiFi", "sniffles2"): "GRCh38_HG002_T~T2TQ100v1.1_Q~HiFi-Snifpub-sniffles2_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
-    ("ONT", "sniffles1"): "GRCh38_HG002_T~T2TQ100v1.1_Q~ONT-Snifpub-sniffles1_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
-    ("ONT", "sniffles2"): "GRCh38_HG002_T~T2TQ100v1.1_Q~ONT-Snifpub-sniffles2_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
+    (
+        "HiFi",
+        "sniffles1",
+    ): "GRCh38_HG002_T~T2TQ100v1.1_Q~HiFi-Snifpub-sniffles1_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
+    (
+        "HiFi",
+        "sniffles2",
+    ): "GRCh38_HG002_T~T2TQ100v1.1_Q~HiFi-Snifpub-sniffles2_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
+    (
+        "ONT",
+        "sniffles1",
+    ): "GRCh38_HG002_T~T2TQ100v1.1_Q~ONT-Snifpub-sniffles1_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
+    (
+        "ONT",
+        "sniffles2",
+    ): "GRCh38_HG002_T~T2TQ100v1.1_Q~ONT-Snifpub-sniffles2_TR~none_GRCh38_HG002-T2TQ100v1.1-dipz2k_stvar-excluded",
 }
 
 CONTEXTS = ["HP", "TR", "SD", "MAP"]
@@ -55,16 +67,21 @@ def find_truvari_dir(top_dir: Path) -> Path:
         if p.is_dir() and p.name != "phab_bench":
             if (p / "refine.variant_summary.json").exists():
                 return p
-    raise FileNotFoundError(f"No truvari output dir with refine.variant_summary.json in {top_dir}")
+    raise FileNotFoundError(
+        f"No truvari output dir with refine.variant_summary.json in {top_dir}"
+    )
 
 
 def run_truvari_stratify(bed_path: Path, truvari_dir: Path, output_path: Path) -> None:
     """Run truvari stratify on a truvari output directory via Python API."""
-    stratify_main([
-        str(bed_path),
-        str(truvari_dir),
-        "-o", str(output_path),
-    ])
+    stratify_main(
+        [
+            str(bed_path),
+            str(truvari_dir),
+            "-o",
+            str(output_path),
+        ]
+    )
 
 
 def get_refine_vcfs(run_dir: Path) -> dict[str, Path]:
@@ -96,29 +113,35 @@ def main() -> None:
         with open(run_dir / "refine.variant_summary.json") as f:
             summary = json.load(f)
 
-        strat_rows.append({
-            "platform": platform,
-            "callset": callset,
-            "context": "Overall",
-            "tp": summary["TP-comp"],
-            "fp": summary["FP"],
-            "fn": summary["FN"],
-            "recall": round(summary["recall"], 4),
-            "precision": round(summary["precision"], 4),
-        })
+        strat_rows.append(
+            {
+                "platform": platform,
+                "callset": callset,
+                "context": "Overall",
+                "tp": summary["TP-comp"],
+                "fp": summary["FP"],
+                "fn": summary["FN"],
+                "recall": round(summary["recall"], 4),
+                "precision": round(summary["precision"], 4),
+            }
+        )
 
         # Per-context: run truvari stratify
         for context in CONTEXTS:
             bed_path = STRAT_DIR / f"GRCh38_{context}.bed.gz"
             if not bed_path.exists():
-                print(f"WARNING: {bed_path} not found, skipping {context}", file=sys.stderr)
+                print(
+                    f"WARNING: {bed_path} not found, skipping {context}",
+                    file=sys.stderr,
+                )
                 continue
 
             strat_out = OUTPUT_DIR / f"stratify_{platform}_{callset}_{context}.txt"
             run_truvari_stratify(bed_path, run_dir, strat_out)
 
             strat_df = pd.read_csv(
-                strat_out, sep="\t",
+                strat_out,
+                sep="\t",
                 names=["chrom", "start", "end", "tpbase", "tp", "fn", "fp"],
             )
             totals = strat_df[["tpbase", "tp", "fn", "fp"]].sum()
@@ -130,21 +153,33 @@ def main() -> None:
                 int(totals["fp"]),
             )
 
-            strat_rows.append({
-                "platform": platform,
-                "callset": callset,
-                "context": context,
-                "tp": int(totals["tp"]),
-                "fp": int(totals["fp"]),
-                "fn": int(totals["fn"]),
-                "recall": round(recall, 4),
-                "precision": round(precision, 4),
-            })
+            strat_rows.append(
+                {
+                    "platform": platform,
+                    "callset": callset,
+                    "context": context,
+                    "tp": int(totals["tp"]),
+                    "fp": int(totals["fp"]),
+                    "fn": int(totals["fn"]),
+                    "recall": round(recall, 4),
+                    "precision": round(precision, 4),
+                }
+            )
 
     strat_path = OUTPUT_DIR / "stratified_metrics.csv"
     with open(strat_path, "w", newline="") as f:
         writer = csv.DictWriter(
-            f, fieldnames=["platform", "callset", "context", "tp", "fp", "fn", "recall", "precision"]
+            f,
+            fieldnames=[
+                "platform",
+                "callset",
+                "context",
+                "tp",
+                "fp",
+                "fn",
+                "recall",
+                "precision",
+            ],
         )
         writer.writeheader()
         writer.writerows(strat_rows)
@@ -160,7 +195,9 @@ def main() -> None:
         fp_df = truvari.vcf_to_df(str(vcfs["FP"]))
         fn_df = truvari.vcf_to_df(str(vcfs["FN"]))
 
-        all_types = sorted(set(tp_df["svtype"]) | set(fp_df["svtype"]) | set(fn_df["svtype"]))
+        all_types = sorted(
+            set(tp_df["svtype"]) | set(fp_df["svtype"]) | set(fn_df["svtype"])
+        )
 
         for svtype in all_types:
             tp = len(tp_df[tp_df["svtype"] == svtype])
@@ -169,21 +206,33 @@ def main() -> None:
 
             precision, recall, f1 = truvari.performance_metrics(tp, tp, fn, fp)
 
-            svtype_rows.append({
-                "platform": platform,
-                "callset": callset,
-                "svtype": svtype,
-                "tp": tp,
-                "fp": fp,
-                "fn": fn,
-                "recall": round(recall, 4) if recall is not None else 0.0,
-                "precision": round(precision, 4) if precision is not None else 0.0,
-            })
+            svtype_rows.append(
+                {
+                    "platform": platform,
+                    "callset": callset,
+                    "svtype": svtype,
+                    "tp": tp,
+                    "fp": fp,
+                    "fn": fn,
+                    "recall": round(recall, 4) if recall is not None else 0.0,
+                    "precision": round(precision, 4) if precision is not None else 0.0,
+                }
+            )
 
     svtype_path = OUTPUT_DIR / "svtype_metrics.csv"
     with open(svtype_path, "w", newline="") as f:
         writer = csv.DictWriter(
-            f, fieldnames=["platform", "callset", "svtype", "tp", "fp", "fn", "recall", "precision"]
+            f,
+            fieldnames=[
+                "platform",
+                "callset",
+                "svtype",
+                "tp",
+                "fp",
+                "fn",
+                "recall",
+                "precision",
+            ],
         )
         writer.writeheader()
         writer.writerows(svtype_rows)
@@ -214,7 +263,15 @@ def main() -> None:
     size_path = OUTPUT_DIR / "svtype_size_counts.csv"
     with open(size_path, "w", newline="") as f:
         writer = csv.DictWriter(
-            f, fieldnames=["platform", "callset", "category", "svtype", "size_bin", "count"]
+            f,
+            fieldnames=[
+                "platform",
+                "callset",
+                "category",
+                "svtype",
+                "size_bin",
+                "count",
+            ],
         )
         writer.writeheader()
         writer.writerows(size_rows)

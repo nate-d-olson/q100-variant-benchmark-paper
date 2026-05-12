@@ -15,8 +15,21 @@ def _syri_line(ref_start, ref_end, qry_start, qry_end, ann_type, chrom="chr8"):
     """Build a minimal 11-column SyRI .out line."""
     # SyRI columns (0-indexed): 0=refChr, 1=refStart, 2=refEnd, 5=qryChr,
     # 6=qryStart, 7=qryEnd, 10=type
-    return "\t".join([chrom, str(ref_start), str(ref_end), "-", "-",
-                      chrom, str(qry_start), str(qry_end), "-", "-", ann_type])
+    return "\t".join(
+        [
+            chrom,
+            str(ref_start),
+            str(ref_end),
+            "-",
+            "-",
+            chrom,
+            str(qry_start),
+            str(qry_end),
+            "-",
+            "-",
+            ann_type,
+        ]
+    )
 
 
 @pytest.fixture
@@ -25,6 +38,7 @@ def tmp_syri(tmp_path):
         p = tmp_path / "test.syri.out"
         p.write_text("\n".join(lines) + "\n")
         return str(p)
+
     return _write
 
 
