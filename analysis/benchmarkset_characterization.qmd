@@ -228,6 +228,12 @@ ggsave(
   height = 4,
   dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "var_len_dist.pdf"),
+  plot = combined_var_len_dist_plt,
+  width = 8,
+  height = 4
+)
 ```
 
 
@@ -303,6 +309,12 @@ ggsave(
   height = 4,
   dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "benchmark_region_size_change.pdf"),
+  plot = coverage_change_plt,
+  width = 8,
+  height = 4
+)
 ```
 
 ## Variant Fold Change by Genomic Context
@@ -377,5 +389,11 @@ ggsave(
   width = 8,
   height = 8,
   dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "combined_coverage_variant_change.pdf"),
+  plot = combined_coverage_variant_plt,
+  width = 8,
+  height = 8
 )
 ```

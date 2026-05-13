@@ -323,6 +323,11 @@ ggsave(
   plot = smvar_flow,
   width = 8, height = 8, dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "smvar_strat_flow.pdf"),
+  plot = smvar_flow,
+  width = 8, height = 8
+)
 ```
 
 
@@ -413,6 +418,11 @@ ggsave(
   plot = combined_eval_plt,
   width = 8, height = 8, dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "combined_eval.pdf"),
+  plot = combined_eval_plt,
+  width = 8, height = 8
+)
 ```
 
 ## Combined Evaluation Figure (Correct in Callset)
@@ -430,6 +440,11 @@ ggsave(
   filename = here("manuscript", "figs", "combined_eval_callset.png"),
   plot = combined_eval_cs_plt,
   width = 8, height = 8, dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "combined_eval_callset.pdf"),
+  plot = combined_eval_cs_plt,
+  width = 8, height = 8
 )
 ```
 
@@ -614,6 +629,11 @@ ggsave(
   filename = here("manuscript", "figs", "ride_estimates.png"),
   plot = ci_forest_plt,
   width = 8, height = 8, dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "ride_estimates.pdf"),
+  plot = ci_forest_plt,
+  width = 8, height = 8
 )
 ```
 
@@ -849,6 +869,11 @@ ggsave(
   filename = here("manuscript", "figs", "ride_estimates_callset.png"),
   plot = ci_forest_cs_plt,
   width = 8, height = 8, dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "ride_estimates_callset.pdf"),
+  plot = ci_forest_cs_plt,
+  width = 8, height = 8
 )
 ```
 
