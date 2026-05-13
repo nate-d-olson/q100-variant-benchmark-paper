@@ -260,12 +260,9 @@ def assemble_figure(
 
     excl_label = ""
     if excl_start is not None and excl_end is not None:
-        excl_label = (
-            f"  |  Excluded: {excl_start / 1e6:.1f} – {excl_end / 1e6:.1f} Mb"
-        )
+        excl_label = f"  |  Excluded: {excl_start / 1e6:.1f} – {excl_end / 1e6:.1f} Mb"
     ax_b.set_title(
-        f"Zoomed: REF {ref_start / 1e6:.1f} – {ref_end / 1e6:.1f} Mb"
-        f"{excl_label}",
+        f"Zoomed: REF {ref_start / 1e6:.1f} – {ref_end / 1e6:.1f} Mb{excl_label}",
         fontsize=9,
         pad=4,
     )
@@ -320,10 +317,7 @@ def main():
         f"PAT {args.chrom}:{inv_start}-{inv_end}, "
         f"size {coords['size']:,} bp"
     )
-    print(
-        f"[INFO] Excluded region (PAV): "
-        f"REF {args.chrom}:{excl_start}-{excl_end}"
-    )
+    print(f"[INFO] Excluded region (PAV): REF {args.chrom}:{excl_start}-{excl_end}")
 
     sr_files = [args.syri_rm, args.syri_mp]
 

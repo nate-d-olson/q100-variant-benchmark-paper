@@ -41,25 +41,42 @@ from pathlib import Path
 
 # ---------- colour palette (colorblind-friendly) ----------
 C = {
-    "dip": "#B8C9E1",           # light blue — dip.bed
-    "bench": "#4A90D9",         # blue — benchmark regions
+    "dip": "#B8C9E1",  # light blue — dip.bed
+    "bench": "#4A90D9",  # blue — benchmark regions
     "asm_agnostic": "#E07B54",  # orange — asm-agnostic exclusions
-    "asm_intersect": "#8E6BB0", # purple — asm-intersect exclusions
+    "asm_intersect": "#8E6BB0",  # purple — asm-intersect exclusions
     "ref_agnostic": "#5AAA46",  # green — ref-agnostic exclusions
-    "slop": "#FADCB0",          # light orange — slop buffer
-    "break": "#D94E4E",         # red — assembly breaks
-    "excluded": "#F0F0F0",      # light grey — excluded from benchmark
+    "slop": "#FADCB0",  # light orange — slop buffer
+    "break": "#D94E4E",  # red — assembly breaks
+    "excluded": "#F0F0F0",  # light grey — excluded from benchmark
     "bg": "#FFFFFF",
 }
 
 
-def draw_bar(ax, start, end, y, height, color, edgecolor="grey",
-             linewidth=0.5, alpha=1.0, label=None, zorder=2):
+def draw_bar(
+    ax,
+    start,
+    end,
+    y,
+    height,
+    color,
+    edgecolor="grey",
+    linewidth=0.5,
+    alpha=1.0,
+    label=None,
+    zorder=2,
+):
     """Draw a horizontal bar representing a genomic interval."""
     rect = mpatches.FancyBboxPatch(
-        (start, y - height / 2), end - start, height,
-        boxstyle="round,pad=0.002", facecolor=color,
-        edgecolor=edgecolor, linewidth=linewidth, alpha=alpha, zorder=zorder,
+        (start, y - height / 2),
+        end - start,
+        height,
+        boxstyle="round,pad=0.002",
+        facecolor=color,
+        edgecolor=edgecolor,
+        linewidth=linewidth,
+        alpha=alpha,
+        zorder=zorder,
     )
     ax.add_patch(rect)
     return rect
@@ -68,11 +85,20 @@ def draw_bar(ax, start, end, y, height, color, edgecolor="grey",
 def add_bracket(ax, x1, x2, y, text, color="grey", fontsize=7):
     """Add a bracket annotation with label."""
     ax.annotate(
-        "", xy=(x1, y), xytext=(x2, y),
+        "",
+        xy=(x1, y),
+        xytext=(x2, y),
         arrowprops=dict(arrowstyle="<->", color=color, lw=1),
     )
-    ax.text((x1 + x2) / 2, y + 0.12, text, ha="center", va="bottom",
-            fontsize=fontsize, color=color)
+    ax.text(
+        (x1 + x2) / 2,
+        y + 0.12,
+        text,
+        ha="center",
+        va="bottom",
+        fontsize=fontsize,
+        color=color,
+    )
 
 
 def panel_a(ax):
@@ -80,15 +106,29 @@ def panel_a(ax):
 
     ax.set_xlim(-0.5, 24)
     ax.set_ylim(-1, 8.5)
-    ax.set_title("A. BED Operations for Exclusion Processing",
-                 fontsize=10, fontweight="bold", loc="left", pad=8)
+    ax.set_title(
+        "A. BED Operations for Exclusion Processing",
+        fontsize=10,
+        fontweight="bold",
+        loc="left",
+        pad=8,
+    )
 
     # --- Row 1: Slop ---
     y = 7.0
     ax.text(-0.3, y, "slop", fontsize=9, fontweight="bold", va="center")
     # Original interval
     draw_bar(ax, 3, 7, y + 0.5, 0.4, C["asm_agnostic"], label="Original")
-    ax.text(5, y + 0.5, "Original", ha="center", va="center", fontsize=6.5, color="white", fontweight="bold")
+    ax.text(
+        5,
+        y + 0.5,
+        "Original",
+        ha="center",
+        va="center",
+        fontsize=6.5,
+        color="white",
+        fontweight="bold",
+    )
     # After slop
     draw_bar(ax, 0.5, 9.5, y - 0.5, 0.4, C["slop"])
     draw_bar(ax, 3, 7, y - 0.5, 0.4, C["asm_agnostic"])
@@ -102,8 +142,26 @@ def panel_a(ax):
     # Two nearby intervals
     draw_bar(ax, 2, 5, y + 0.8, 0.4, C["asm_intersect"])
     draw_bar(ax, 7, 10, y + 0.8, 0.4, C["asm_intersect"])
-    ax.text(3.5, y + 0.8, "A", ha="center", va="center", fontsize=7, color="white", fontweight="bold")
-    ax.text(8.5, y + 0.8, "B", ha="center", va="center", fontsize=7, color="white", fontweight="bold")
+    ax.text(
+        3.5,
+        y + 0.8,
+        "A",
+        ha="center",
+        va="center",
+        fontsize=7,
+        color="white",
+        fontweight="bold",
+    )
+    ax.text(
+        8.5,
+        y + 0.8,
+        "B",
+        ha="center",
+        va="center",
+        fontsize=7,
+        color="white",
+        fontweight="bold",
+    )
     add_bracket(ax, 5, 7, y + 1.2, "gap < 10 kb", color="#888")
 
     # After slop (before merge)
@@ -114,7 +172,16 @@ def panel_a(ax):
 
     # After merge
     draw_bar(ax, 0, 12, y - 1.0, 0.4, C["asm_intersect"])
-    ax.text(6, y - 1.0, "Merged single region", ha="center", va="center", fontsize=6.5, color="white", fontweight="bold")
+    ax.text(
+        6,
+        y - 1.0,
+        "Merged single region",
+        ha="center",
+        va="center",
+        fontsize=6.5,
+        color="white",
+        fontweight="bold",
+    )
 
     # --- Row 3: Assembly-break filtering ---
     y = 1.5
@@ -126,8 +193,16 @@ def panel_a(ax):
     # Break markers
     ax.plot([8, 8], [y + 0.5, y + 1.1], color=C["break"], lw=2, zorder=3)
     ax.plot([9, 9], [y + 0.5, y + 1.1], color=C["break"], lw=2, zorder=3)
-    ax.text(8.5, y + 1.25, "break", ha="center", va="bottom", fontsize=6,
-            color=C["break"], fontweight="bold")
+    ax.text(
+        8.5,
+        y + 1.25,
+        "break",
+        ha="center",
+        va="bottom",
+        fontsize=6,
+        color=C["break"],
+        fontweight="bold",
+    )
     ax.text(4.5, y + 0.8, "dip.bed", ha="center", va="center", fontsize=6.5)
 
     # Exclusion regions (e.g. segdups)
@@ -140,10 +215,26 @@ def panel_a(ax):
 
     # Result — only region B overlaps break
     draw_bar(ax, 7.5, 11, y - 1.0, 0.3, C["asm_intersect"])
-    ax.text(9.25, y - 1.0, "Only B excluded", ha="center", va="center",
-            fontsize=6.5, color="white", fontweight="bold")
-    ax.text(4.5, y - 1.0, "A: no break overlap → kept", ha="center", va="center",
-            fontsize=6, color="#888", style="italic")
+    ax.text(
+        9.25,
+        y - 1.0,
+        "Only B excluded",
+        ha="center",
+        va="center",
+        fontsize=6.5,
+        color="white",
+        fontweight="bold",
+    )
+    ax.text(
+        4.5,
+        y - 1.0,
+        "A: no break overlap → kept",
+        ha="center",
+        va="center",
+        fontsize=6,
+        color="#888",
+        style="italic",
+    )
 
     ax.set_axis_off()
 
@@ -153,20 +244,40 @@ def panel_b(ax):
 
     ax.set_xlim(-1, 26)
     ax.set_ylim(-1.5, 9)
-    ax.set_title("B. Exclusion Categories and Benchmark Region Construction",
-                 fontsize=10, fontweight="bold", loc="left", pad=8)
+    ax.set_title(
+        "B. Exclusion Categories and Benchmark Region Construction",
+        fontsize=10,
+        fontweight="bold",
+        loc="left",
+        pad=8,
+    )
 
     # --- dip.bed row ---
     y = 8
     ax.text(-0.5, y, "dip.bed", fontsize=8, fontweight="bold", va="center")
     draw_bar(ax, 2, 25, y, 0.5, C["dip"])
-    ax.text(13.5, y, "Dipcall assembly regions", ha="center", va="center",
-            fontsize=7, color="#333")
+    ax.text(
+        13.5,
+        y,
+        "Dipcall assembly regions",
+        ha="center",
+        va="center",
+        fontsize=7,
+        color="#333",
+    )
 
     # --- Assembly-agnostic exclusions ---
     y = 6.2
-    ax.text(-0.5, y, "Assembly-\nagnostic", fontsize=7.5, fontweight="bold",
-            va="center", color=C["asm_agnostic"], linespacing=1.3)
+    ax.text(
+        -0.5,
+        y,
+        "Assembly-\nagnostic",
+        fontsize=7.5,
+        fontweight="bold",
+        va="center",
+        color=C["asm_agnostic"],
+        linespacing=1.3,
+    )
     # gaps (with slop)
     draw_bar(ax, 3, 3.5, y + 0.3, 0.3, C["slop"])
     draw_bar(ax, 3.1, 3.4, y + 0.3, 0.3, C["asm_agnostic"])
@@ -181,32 +292,82 @@ def panel_b(ax):
     draw_bar(ax, 20, 23, y + 0.3, 0.3, C["asm_agnostic"])
     ax.text(21.5, y + 0.65, "PAV inv.", ha="center", va="bottom", fontsize=5.5)
     # Description
-    ax.text(13.5, y - 0.3, "Entire regions excluded regardless of assembly quality",
-            ha="center", va="top", fontsize=6, color="#666", style="italic")
+    ax.text(
+        13.5,
+        y - 0.3,
+        "Entire regions excluded regardless of assembly quality",
+        ha="center",
+        va="top",
+        fontsize=6,
+        color="#666",
+        style="italic",
+    )
 
     # --- Assembly-intersect exclusions ---
     y = 4.2
-    ax.text(-0.5, y, "Assembly-\nintersect", fontsize=7.5, fontweight="bold",
-            va="center", color=C["asm_intersect"], linespacing=1.3)
+    ax.text(
+        -0.5,
+        y,
+        "Assembly-\nintersect",
+        fontsize=7.5,
+        fontweight="bold",
+        va="center",
+        color=C["asm_intersect"],
+        linespacing=1.3,
+    )
     # segdups (with slopmerge, filtered to breaks)
     draw_bar(ax, 5, 7, y + 0.3, 0.3, C["asm_intersect"])
-    ax.text(6, y + 0.65, "segdups\n(+slopmerge, breaks only)", ha="center",
-            va="bottom", fontsize=5.5)
+    ax.text(
+        6,
+        y + 0.65,
+        "segdups\n(+slopmerge, breaks only)",
+        ha="center",
+        va="bottom",
+        fontsize=5.5,
+    )
     # tandem-repeats (with slop, filtered to breaks)
     draw_bar(ax, 12, 13.5, y + 0.3, 0.3, C["asm_intersect"])
-    ax.text(12.75, y + 0.65, "TR\n(+slop, breaks only)", ha="center",
-            va="bottom", fontsize=5.5)
+    ax.text(
+        12.75,
+        y + 0.65,
+        "TR\n(+slop, breaks only)",
+        ha="center",
+        va="bottom",
+        fontsize=5.5,
+    )
     # satellites (with slopmerge, filtered)
     draw_bar(ax, 18, 20, y + 0.3, 0.3, C["asm_intersect"])
-    ax.text(19, y + 0.65, "satellites\n(+slopmerge, breaks only)", ha="center",
-            va="bottom", fontsize=5.5)
-    ax.text(13.5, y - 0.3, "Only excluded where assembly has alignment breaks",
-            ha="center", va="top", fontsize=6, color="#666", style="italic")
+    ax.text(
+        19,
+        y + 0.65,
+        "satellites\n(+slopmerge, breaks only)",
+        ha="center",
+        va="bottom",
+        fontsize=5.5,
+    )
+    ax.text(
+        13.5,
+        y - 0.3,
+        "Only excluded where assembly has alignment breaks",
+        ha="center",
+        va="top",
+        fontsize=6,
+        color="#666",
+        style="italic",
+    )
 
     # --- Ref-agnostic exclusions ---
     y = 2.2
-    ax.text(-0.5, y, "Ref-\nagnostic", fontsize=7.5, fontweight="bold",
-            va="center", color=C["ref_agnostic"], linespacing=1.3)
+    ax.text(
+        -0.5,
+        y,
+        "Ref-\nagnostic",
+        fontsize=7.5,
+        fontweight="bold",
+        va="center",
+        color=C["ref_agnostic"],
+        linespacing=1.3,
+    )
     # flanks
     draw_bar(ax, 2, 2.5, y + 0.3, 0.3, C["ref_agnostic"])
     draw_bar(ax, 25, 25.5, y + 0.3, 0.3, C["ref_agnostic"], edgecolor="grey")
@@ -221,56 +382,134 @@ def panel_b(ax):
     # self-discrep
     draw_bar(ax, 17, 17.3, y + 0.3, 0.3, C["ref_agnostic"])
     ax.text(17.15, y + 0.65, "self-\ndiscrep", ha="center", va="bottom", fontsize=5.5)
-    ax.text(13.5, y - 0.3, "Derived from assembly alignments and variant calls (reference-independent)",
-            ha="center", va="top", fontsize=6, color="#666", style="italic")
+    ax.text(
+        13.5,
+        y - 0.3,
+        "Derived from assembly alignments and variant calls (reference-independent)",
+        ha="center",
+        va="top",
+        fontsize=6,
+        color="#666",
+        style="italic",
+    )
 
     # --- Subtraction arrow ---
     y_arrow = 0.8
-    ax.annotate("", xy=(13.5, 0.55), xytext=(13.5, 1.2),
-                arrowprops=dict(arrowstyle="->", color="#333", lw=1.5))
-    ax.text(14.5, 0.9, "subtract all\nexclusions", ha="left", va="center",
-            fontsize=6.5, color="#555", style="italic")
+    ax.annotate(
+        "",
+        xy=(13.5, 0.55),
+        xytext=(13.5, 1.2),
+        arrowprops=dict(arrowstyle="->", color="#333", lw=1.5),
+    )
+    ax.text(
+        14.5,
+        0.9,
+        "subtract all\nexclusions",
+        ha="left",
+        va="center",
+        fontsize=6.5,
+        color="#555",
+        style="italic",
+    )
 
     # --- Benchmark regions ---
     y = 0
-    ax.text(-0.5, y, "benchmark\n.bed", fontsize=8, fontweight="bold", va="center",
-            color=C["bench"])
+    ax.text(
+        -0.5,
+        y,
+        "benchmark\n.bed",
+        fontsize=8,
+        fontweight="bold",
+        va="center",
+        color=C["bench"],
+    )
     # Draw full dip.bed background (excluded = grey)
     draw_bar(ax, 2, 25, y, 0.5, C["excluded"], edgecolor="#ccc", linewidth=0.3)
     # Overlay benchmark (non-excluded) segments — gaps where exclusions were
-    bench_segs = [(2.5, 3), (3.5, 5), (7.8, 8), (11, 12), (13.5, 14),
-                  (14.5, 15), (16.5, 17), (17.3, 18), (23, 25)]
+    bench_segs = [
+        (2.5, 3),
+        (3.5, 5),
+        (7.8, 8),
+        (11, 12),
+        (13.5, 14),
+        (14.5, 15),
+        (16.5, 17),
+        (17.3, 18),
+        (23, 25),
+    ]
     for s, e in bench_segs:
         draw_bar(ax, s, e, y, 0.5, C["bench"])
 
-    ax.text(13.5, y - 0.6, "dip.bed − (assembly-agnostic ∪ assembly-intersect ∪ ref-agnostic) = benchmark.bed",
-            ha="center", va="top", fontsize=7, fontweight="bold", color="#333")
+    ax.text(
+        13.5,
+        y - 0.6,
+        "dip.bed − (assembly-agnostic ∪ assembly-intersect ∪ ref-agnostic) = benchmark.bed",
+        ha="center",
+        va="top",
+        fontsize=7,
+        fontweight="bold",
+        color="#333",
+    )
 
     ax.set_axis_off()
 
 
 def main():
-    fig, axes = plt.subplots(2, 1, figsize=(12, 10),
-                              gridspec_kw={"height_ratios": [1, 1], "hspace": 0.3})
+    fig, axes = plt.subplots(
+        2, 1, figsize=(12, 10), gridspec_kw={"height_ratios": [1, 1], "hspace": 0.3}
+    )
 
     panel_a(axes[0])
     panel_b(axes[1])
 
     # Legend
     legend_elements = [
-        mpatches.Patch(facecolor=C["dip"], edgecolor="grey", label="Dipcall assembly regions (dip.bed)"),
-        mpatches.Patch(facecolor=C["bench"], edgecolor="grey", label="Final benchmark regions"),
-        mpatches.Patch(facecolor=C["asm_agnostic"], edgecolor="grey", label="Assembly-agnostic exclusions (gaps, VDJ, errors, PAV inv.)"),
-        mpatches.Patch(facecolor=C["asm_intersect"], edgecolor="grey", label="Assembly-intersect exclusions (segdups, TR, satellites)"),
-        mpatches.Patch(facecolor=C["ref_agnostic"], edgecolor="grey", label="Ref-agnostic exclusions (flanks, SVs∩repeats, self-discrep)"),
-        mpatches.Patch(facecolor=C["slop"], edgecolor="grey", label="Slop buffer (±15 kb)"),
-        mpatches.Patch(facecolor=C["break"], edgecolor="grey", label="Assembly alignment break"),
+        mpatches.Patch(
+            facecolor=C["dip"],
+            edgecolor="grey",
+            label="Dipcall assembly regions (dip.bed)",
+        ),
+        mpatches.Patch(
+            facecolor=C["bench"], edgecolor="grey", label="Final benchmark regions"
+        ),
+        mpatches.Patch(
+            facecolor=C["asm_agnostic"],
+            edgecolor="grey",
+            label="Assembly-agnostic exclusions (gaps, VDJ, errors, PAV inv.)",
+        ),
+        mpatches.Patch(
+            facecolor=C["asm_intersect"],
+            edgecolor="grey",
+            label="Assembly-intersect exclusions (segdups, TR, satellites)",
+        ),
+        mpatches.Patch(
+            facecolor=C["ref_agnostic"],
+            edgecolor="grey",
+            label="Ref-agnostic exclusions (flanks, SVs∩repeats, self-discrep)",
+        ),
+        mpatches.Patch(
+            facecolor=C["slop"], edgecolor="grey", label="Slop buffer (±15 kb)"
+        ),
+        mpatches.Patch(
+            facecolor=C["break"], edgecolor="grey", label="Assembly alignment break"
+        ),
     ]
-    fig.legend(handles=legend_elements, loc="lower center", ncol=3,
-               fontsize=7.5, frameon=True, edgecolor="#ccc",
-               bbox_to_anchor=(0.5, -0.02))
+    fig.legend(
+        handles=legend_elements,
+        loc="lower center",
+        ncol=3,
+        fontsize=7.5,
+        frameon=True,
+        edgecolor="#ccc",
+        bbox_to_anchor=(0.5, -0.02),
+    )
 
-    outpath = Path(__file__).resolve().parent.parent / "manuscript" / "figs" / "exclusion_diagram.png"
+    outpath = (
+        Path(__file__).resolve().parent.parent
+        / "manuscript"
+        / "figs"
+        / "exclusion_diagram.png"
+    )
     fig.savefig(outpath, dpi=300, bbox_inches="tight", facecolor="white")
     print(f"Saved to {outpath}")
     plt.close()
