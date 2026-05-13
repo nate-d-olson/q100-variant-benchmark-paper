@@ -34,8 +34,6 @@ Suggested IGV session setup:
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.patches import FancyBboxPatch
-import numpy as np
 from pathlib import Path
 
 
@@ -394,7 +392,6 @@ def panel_b(ax):
     )
 
     # --- Subtraction arrow ---
-    y_arrow = 0.8
     ax.annotate(
         "",
         xy=(13.5, 0.55),
