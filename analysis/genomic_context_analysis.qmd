@@ -181,6 +181,12 @@ ggsave(
   height = 8,
   dpi = 300
 )
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_coverage.pdf"),
+  plot = coverage_combined_plt,
+  width = 8,
+  height = 8
+)
 ```
 
 ## Coverage Change Across Benchmark Versions
@@ -244,6 +250,12 @@ ggsave(
   width = 8,
   height = 5,
   dpi = 300
+)
+ggsave(
+  filename = here::here("manuscript", "figs", "genomic_context_coverage_change.pdf"),
+  plot = coverage_change_plt,
+  width = 8,
+  height = 5
 )
 ```
 

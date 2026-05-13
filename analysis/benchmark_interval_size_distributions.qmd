@@ -134,6 +134,12 @@ ggsave(
   height = 7,
   dpi = 300
 )
+ggsave(
+  here("manuscript/figs/benchmark_intervals.pdf"),
+  interval_plt,
+  width = 8,
+  height = 7
+)
 ```
 
 ## Interval Summary Table
