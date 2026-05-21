@@ -59,70 +59,86 @@ bench_type_labels <- c(
   stvar = "Structural Variants"
 )
 
-interval_size_dist_plt <- interval_regions_df %>%
-  ggplot(aes(x = interval_size, fill = bench_version)) +
-  geom_density(
-    alpha = 0.45,
-    adjust = 0.20,
-    outline.type = "upper",
-    trim = TRUE
-  ) +
-  scale_x_log10(labels = scales::comma) +
-  annotation_logticks(sides = "b") +
-  scale_benchmark_version(aesthetic = "fill", name = "Benchmark Version") +
-  facet_wrap(
-    ~bench_type,
-    ncol = 1,
-    scales = "free_y",
-    labeller = as_labeller(bench_type_labels)
-  ) +
-  labs(
-    x = "Benchmark Interval Size (bp)",
-    y = "Density"
-  ) +
-  theme_manuscript()
-
-interval_size_dist_plt
+# Function: interval size density panel for a given bench_type
+interval_size_dist_plt <- function(df, bt) {
+  df %>%
+    dplyr::filter(bench_type == bt) %>%
+    ggplot(aes(x = interval_size, fill = bench_version)) +
+    geom_density(
+      alpha = 0.45,
+      adjust = 0.20,
+      outline.type = "upper",
+      trim = TRUE
+    ) +
+    scale_x_log10(labels = scales::comma) +
+    annotation_logticks(sides = "b") +
+    scale_benchmark_version(aesthetic = "fill", name = "Benchmark Version") +
+    labs(
+      x = "Interval Size (bp)",
+      y = "Density"
+    ) +
+    theme_manuscript(
+      axis.text = element_text(size = 11),
+      axis.title = element_text(size = 12),
+      plot.margin = margin(3, 6, 3, 6, unit = "pt")
+    )
+}
 ```
 
 ## Interval Counts
 
 ```{r interval-counts-plot}
-interval_count_plt <- interval_regions_df %>%
-  ggplot(aes(x = bench_version, fill = bench_version)) +
-  geom_bar(
-    color = "grey20",
-    alpha = 0.60,
-    linewidth = 0.35
-  ) +
-  facet_wrap(
-    ~bench_type,
-    ncol = 2,
-    scales = "free",
-    labeller = as_labeller(bench_type_labels)
-  ) +
-  scale_benchmark_version(
-    aesthetic = "fill",
-    name = "Benchmark Version",
-    guide = "none"
-  ) +
-  scale_y_continuous(labels = scales::comma) +
-  labs(
-    x = "Benchmark Version",
-    y = "Number of Intervals"
-  ) +
-  theme_manuscript() +
-  theme(legend.position = "none")
-
-interval_count_plt
+# Function: interval count panel for a given bench_type, scaled to thousands
+interval_count_plt <- function(df, bt) {
+  df %>%
+    dplyr::filter(bench_type == bt) %>%
+    ggplot(aes(x = bench_version, fill = bench_version)) +
+    geom_bar(
+      aes(y = after_stat(count) / 1000),
+      color = "grey20",
+      alpha = 0.60,
+      linewidth = 0.35
+    ) +
+    scale_benchmark_version(
+      aesthetic = "fill",
+      name = "Benchmarkset Version",
+      guide = "none"
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    labs(
+      x = "Benchmarkset Version",
+      y = "Intervals (×1,000)"
+    ) +
+    theme_manuscript(
+      axis.text = element_text(size = 10),
+      axis.title = element_text(size = 12),
+      plot.margin = margin(3, 6, 3, 6, unit = "pt")
+    ) +
+    theme(legend.position = "none")
+}
 ```
 
 ## Combined Figure
 
 ```{r combined-interval-figure}
-interval_plt <- interval_count_plt / interval_size_dist_plt +
-  patchwork::plot_layout(heights = c(1, 1.4), guides = "collect") +
-  plot_annotation(tag_levels = "A") & theme(legend.position = "bottom")
+# Build four panels: A(smvar density), B(smvar counts), C(stvar density), D(stvar counts)
+A <- interval_size_dist_plt(interval_regions_df, "smvar") + labs(x = NULL)
+B <- interval_count_plt(interval_regions_df, "smvar") + labs(x = NULL)
+C <- interval_size_dist_plt(interval_regions_df, "stvar")
+D <- interval_count_plt(interval_regions_df, "stvar")
+
+interval_plt <- A +
+  B +
+  C +
+  D +
+  patchwork::plot_layout(ncol = 2, widths = c(2, 1), guides = "collect") +
+  plot_annotation(tag_levels = "A") &
+  theme(
+    legend.position = "none",
+    panel.spacing = unit(4, "pt"),
+    plot.tag = element_text(size = 14, face = "bold")
+  )
+
 interval_plt
 ```
 
@@ -131,7 +147,7 @@ ggsave(
   here("manuscript/figs/benchmark_intervals.png"),
   interval_plt,
   width = 8,
-  height = 7,
+  height = 6,
   dpi = 300
 )
 ```
