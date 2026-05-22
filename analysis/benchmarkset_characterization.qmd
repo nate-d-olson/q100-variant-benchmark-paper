@@ -99,25 +99,151 @@ format_bench_table <- function(df, var_cols) {
       pct_asm_cvg = "% Asm"
     ) %>%
     flextable::align(j = "ref", align = "right", part = "body") %>%
-    theme_flextable_manuscript()
+    theme_flextable_manuscript() %>%
+    knitr::knit_print()
 }
 ```
 
 ### Main Text: Summary (Table 1)
 
-Small variants on GRCh38 (v5.0q vs v4.2.1). Structural variants on GRCh37
-(v5.0q vs v0.6) since v0.6 was only generated for GRCh37.
+Small variants use GRCh38 (v5.0q vs v4.2.1); structural variants use GRCh37
+(v5.0q vs v0.6) since v0.6 was not generated for GRCh38.
 
-```{r table1_smvar}
-bench_summary_df %>%
-  filter(bench_type == "smvar", ref == "GRCh38") %>%
-  format_bench_table(var_cols = c("SNV", "INDEL"))
-```
+```{r table1_combined}
+## Compute Total Variation (sum of absolute variant lengths, in Mb)
+total_var_df <- variants_df %>%
+  group_by(bench_type, ref, bench_version) %>%
+  summarise(total_var_mb = sum(abs(var_size)) / 1e6, .groups = "drop") %>%
+  mutate(
+    ref = std_references(ref),
+    bench_version = std_bench_versions(bench_version)
+  )
 
-```{r table1_stvar}
-bench_summary_df %>%
-  filter(bench_type == "stvar", ref == "GRCh37") %>%
-  format_bench_table(var_cols = c("DEL", "INS"))
+bench_full_df <- bench_summary_df %>%
+  left_join(total_var_df, by = c("bench_type", "ref", "bench_version"))
+
+## Build 6 metric rows for one bench type
+build_metric_rows <- function(bt, type_label, var1_col, var1_label,
+                               var2_col, var2_label, delta_ref, legacy_ver) {
+  gv5 <- function(r) bench_full_df %>%
+    filter(bench_type == bt, bench_version == "v5.0q", ref == r)
+
+  v5_37 <- gv5("GRCh37")
+  v5_38 <- gv5("GRCh38")
+  v5_c  <- gv5("CHM13v2.0")
+  v5_d  <- gv5(delta_ref)
+  leg   <- bench_full_df %>%
+    filter(bench_type == bt, bench_version == legacy_ver, ref == delta_ref)
+
+  p1 <- function(df, col) {
+    v <- df[[col]]
+    if (length(v) == 0 || is.na(v[1])) NA_real_ else as.numeric(v[1])
+  }
+  fk   <- function(x) if (is.na(x)) "—" else prettyNum(as.integer(round(x)), big.mark = ",")
+  fmb  <- function(x) if (is.na(x)) "—" else sprintf("%.1f", x)
+  fr   <- function(x) if (is.na(x)) "—" else prettyNum(round(x), big.mark = ",")
+  fp   <- function(x) if (is.na(x)) "—" else sprintf("%.1f%%", x)
+  dn_k  <- function(v, l) {
+    if (anyNA(c(v, l)) || l == 0) return("—")
+    diff <- as.integer(round(v - l))
+    paste0(if (diff >= 0) "+" else "", prettyNum(diff, big.mark = ","))
+  }
+  dn_mb <- function(v, l) if (anyNA(c(v, l)) || l == 0) "—" else sprintf("%+.1f Mb", v - l)
+  dn_r  <- function(v, l) if (anyNA(c(v, l)) || l == 0) "—" else sprintf("%+.0f Mb", v - l)
+  dp    <- function(v, l) if (anyNA(c(v, l)) || l == 0) "—" else sprintf("%+.1f%%", 100 * (v - l) / l)
+  dpp   <- function(v, l) if (anyNA(c(v, l))) "—" else sprintf("%+.1f pp", v - l)
+
+  v1 <- list(r37 = p1(v5_37, var1_col), r38 = p1(v5_38, var1_col), rc = p1(v5_c, var1_col),
+             d = p1(v5_d, var1_col), l = p1(leg, var1_col))
+  v2 <- list(r37 = p1(v5_37, var2_col), r38 = p1(v5_38, var2_col), rc = p1(v5_c, var2_col),
+             d = p1(v5_d, var2_col), l = p1(leg, var2_col))
+  tt <- list(r37 = p1(v5_37, "Total"), r38 = p1(v5_38, "Total"), rc = p1(v5_c, "Total"),
+             d = p1(v5_d, "Total"), l = p1(leg, "Total"))
+  vm <- list(r37 = p1(v5_37, "total_var_mb"), r38 = p1(v5_38, "total_var_mb"),
+             rc = p1(v5_c, "total_var_mb"), d = p1(v5_d, "total_var_mb"), l = p1(leg, "total_var_mb"))
+  rg <- list(r37 = p1(v5_37, "bench_mb"), r38 = p1(v5_38, "bench_mb"), rc = p1(v5_c, "bench_mb"),
+             d = p1(v5_d, "bench_mb"), l = p1(leg, "bench_mb"))
+  pr <- list(r37 = p1(v5_37, "pct_ref_cvg"), r38 = p1(v5_38, "pct_ref_cvg"),
+             rc = p1(v5_c, "pct_ref_cvg"), d = p1(v5_d, "pct_ref_cvg"), l = p1(leg, "pct_ref_cvg"))
+
+  tibble(
+    bench_type_label = type_label,
+    col_a = c(var1_label, var2_label, "Total", "Total", "Region (Mb)", "% Reference"),
+    col_b = c("", "", "Variants", "Variation (Mb)", "", ""),
+    grch37 = c(fk(v1$r37), fk(v2$r37), fk(tt$r37), fmb(vm$r37), fr(rg$r37), fp(pr$r37)),
+    grch38 = c(fk(v1$r38), fk(v2$r38), fk(tt$r38), fmb(vm$r38), fr(rg$r38), fp(pr$r38)),
+    chm13  = c(fk(v1$rc),  fk(v2$rc),  fk(tt$rc),  fmb(vm$rc),  fr(rg$rc),  fp(pr$rc)),
+    delta_n = c(
+      dn_k(v1$d, v1$l), dn_k(v2$d, v2$l), dn_k(tt$d, tt$l),
+      dn_mb(vm$d, vm$l), dn_r(rg$d, rg$l), "—"
+    ),
+    delta_pct = c(
+      dp(v1$d, v1$l), dp(v2$d, v2$l), dp(tt$d, tt$l),
+      dp(vm$d, vm$l), dp(rg$d, rg$l), dpp(pr$d, pr$l)
+    )
+  )
+}
+
+smvar_rows <- build_metric_rows(
+  bt = "smvar", type_label = "Small\nVariants",
+  var1_col = "SNV", var1_label = "SNV",
+  var2_col = "INDEL", var2_label = "INDEL",
+  delta_ref = "GRCh38", legacy_ver = "v4.2.1"
+)
+
+stvar_rows <- build_metric_rows(
+  bt = "stvar", type_label = "Structural\nVariants",
+  var1_col = "DEL", var1_label = "DEL",
+  var2_col = "INS", var2_label = "INS",
+  delta_ref = "GRCh37", legacy_ver = "v0.6"
+)
+
+table1_df <- bind_rows(smvar_rows, stvar_rows)
+
+n_sm <- nrow(smvar_rows)
+smvar_total_rows <- which(smvar_rows$col_b != "")
+stvar_total_rows <- which(stvar_rows$col_b != "") + n_sm
+non_total_rows   <- setdiff(seq_len(nrow(table1_df)), c(smvar_total_rows, stvar_total_rows))
+
+ft <- flextable::flextable(table1_df) %>%
+  flextable::set_header_labels(
+    bench_type_label = "Bench Type",
+    col_a = "Metric",
+    col_b = "",
+    grch37 = "GRCh37",
+    grch38 = "GRCh38",
+    chm13 = "CHM13v2.0",
+    delta_n = "n",
+    delta_pct = "%"
+  ) %>%
+  flextable::add_header_row(
+    values = c("", "", "v5.0q", "Δ vs Legacy"),
+    colwidths = c(1, 2, 3, 2),
+    top = TRUE
+  ) %>%
+  flextable::merge_at(i = 2, j = 2:3, part = "header") %>%
+  flextable::merge_v(j = "bench_type_label") %>%
+  flextable::merge_at(i = smvar_total_rows, j = 2) %>%
+  flextable::merge_at(i = stvar_total_rows, j = 2) %>%
+  flextable::align(j = 1, align = "left", part = "body") %>%
+  flextable::align(j = 2:3, align = "right", part = "body") %>%
+  flextable::align(j = 4:8, align = "right", part = "body") %>%
+  flextable::align(j = 4:8, align = "right", part = "header") %>%
+  flextable::valign(j = 1:2, valign = "center", part = "body") %>%
+  flextable::add_footer_lines(
+    paste0(
+      "Δ compares v5.0q (GRCh38) vs v4.2.1 (GRCh38) for small variants; ",
+      "v5.0q (GRCh37) vs v0.6 (GRCh37) for structural variants. ",
+      "pp = percentage points."
+    )
+  ) %>%
+  theme_flextable_manuscript()
+
+for (i in non_total_rows) {
+  ft <- flextable::merge_at(ft, i = i, j = 2:3)
+}
+
+ft %>% knitr::knit_print()
 ```
 
 ### Supplemental: All References
@@ -158,12 +284,9 @@ smvar_len_df <- variants_df %>%
     binwidth = 1,
     position = "identity",
     alpha = 0.7,
-    color = NA
+    color = "grey20"
   ) +
-  scale_fill_manual(
-    values = c("v5.0q" = get_color_palettes()$bench_version["v5.0q"],
-               "v4.2.1" = get_color_palettes()$bench_version["v4.2.1"])
-  ) +
+  scale_benchmark_version(aesthetic = "fill", name = "Version") +
   scale_y_continuous(labels = scales::comma) +
   labs(x = "INDEL Length (bp)", y = "Count", fill = "Version") +
   theme_manuscript() +
@@ -187,15 +310,11 @@ stvar_len_df <- variants_df %>%
     bins = 50,
     position = "identity",
     alpha = 0.7,
-    color = NA
+    color = "grey20"
   ) +
-  scale_fill_manual(
-    values = c("v5.0q" = get_color_palettes()$bench_version["v5.0q"],
-               "v0.6" = get_color_palettes()$bench_version["v0.6"])
-  ) +
+  scale_benchmark_version(aesthetic = "fill", name = "Version") +
   scale_x_continuous(
-    breaks = c(-10000, -5000, -1000, -500, -100, -50,
-               0, 50, 100, 500, 1000, 5000, 10000),
+    breaks = c(-10000, -5000, -1000, -500, -100, -50, 0, 50, 100, 500, 1000, 5000, 10000),
     trans = scales::pseudo_log_trans(sigma = 100, base = 10),
     labels = scales::comma
   ) +
@@ -208,11 +327,17 @@ stvar_len_df <- variants_df %>%
   ))
 ```
 
-```{r combined_var_len_dist}
-(combined_var_len_dist_plt <- smvar_len_dist_plt + stvar_len_dist_plt +
-  plot_layout(ncol = 2, guides = "collect", widths = c(1, 2)) +
+```{r combined_var_len_dist, width = 4, height = 10}
+(combined_var_len_dist_plt <- smvar_len_dist_plt +
+  stvar_len_dist_plt +
+  plot_layout(ncol = 1, guides = "collect") + #, widths = c(1, 2)) +
   plot_annotation(tag_levels = "A") &
-  theme_manuscript() +
+  theme_manuscript(
+    strip.background = element_rect(fill = "grey92", color = NA),
+    strip.text = element_text(color = "grey20", face = "bold"),
+    panel.grid.major = element_line(color = "grey88"),
+    panel.grid.minor = element_blank()
+  ) +
     theme(
       axis.text.x = element_text(angle = -45, hjust = 0),
       legend.position = "bottom",
@@ -224,8 +349,42 @@ stvar_len_df <- variants_df %>%
 ggsave(
   filename = here("manuscript", "figs", "var_len_dist.png"),
   plot = combined_var_len_dist_plt,
-  width = 8,
-  height = 4,
+  width = 4,
+  height = 8,
+  units = "in",
+  dpi = 300
+)
+```
+
+TODO: change to a facet plot with x ~ INDEL, SV; y ~ insertion, deletion. Use abs var_len on log scale. Position doge for benchmark version
+
+```{r var_len_dist2}
+var_len_df <- bind_rows(smvar = smvar_len_df, stvar = stvar_len_df, .id = "bench_type") %>% 
+  mutate(var_type = if_else(var_size > 0, "Insertion", "Deletion"),
+         var_size_abs = abs(var_size))
+
+(combined_var_len_dist2_plt <- ggplot(var_len_df, aes(x = var_size_abs, fill = bench_version)) +
+  geom_histogram(
+    bins = 50,
+    position = "dodge",
+    alpha = 0.7,
+    color = "grey20"
+  ) +
+  scale_benchmark_version(aesthetic = "fill", name = "Version") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_log10() +
+  labs(x = "Absolute Variant Length (bp)", y = "Count", fill = "Version") +
+  facet_wrap(bench_type ~ var_type, scales = "free") +
+  theme_manuscript())
+```
+
+```{r var_length_dist2_save}
+ggsave(
+  filename = here("manuscript", "figs", "var_len_dist.png"),
+  plot = combined_var_len_dist2_plt,
+  width = 4,
+  height = 8,
+  units = "in",
   dpi = 300
 )
 ```
@@ -310,72 +469,102 @@ ggsave(
 Fold change in variant counts (v5.0q vs legacy) per difficult genomic context.
 
 ```{r fold_change_data}
-context_totals <- variants_df %>%
+smvar_szbin_order <- c(
+  "SNP",
+  "[1,5)",
+  "[5,10)",
+  "[10,15)",
+  "[15,20)",
+  "[20,30)",
+  "[30,40)",
+  "[40,50)"
+)
+stvar_szbin_order <- c(
+  "[50,100)",
+  "[100,200)",
+  "[200,300)",
+  "[300,400)",
+  "[400,600)",
+  "[600,800)",
+  "[800,1k)",
+  "[1k,2.5k)",
+  "[2.5k,5k)",
+  ">=5k"
+)
+
+context_totals_bytype <- variants_df %>%
   filter(!is.na(context_ids), context_ids != "") %>%
   separate_rows(context_ids, sep = ",") %>%
   mutate(context_ids = str_trim(context_ids)) %>%
   filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
-  count(bench_version, ref, bench_type, context_ids, name = "count") %>%
+  count(bench_version, ref, bench_type, context_ids, var_type, szbin, name = "count") %>%
   pivot_wider(
     names_from = bench_version,
     values_from = count,
-    id_cols = c(ref, bench_type, context_ids)
+    id_cols = c(ref, bench_type, context_ids, var_type, szbin)
   ) %>%
   filter(
-    (bench_type == "smvar" & ref == "GRCh38" & !is.na(v4.2.1)) |
-      (bench_type == "stvar" & ref == "GRCh37" & !is.na(v0.6))
+    (bench_type == "smvar" & ref == "GRCh38") |
+      (bench_type == "stvar" & ref == "GRCh37")
   ) %>%
   mutate(
     legacy_count = coalesce(v4.2.1, v0.6),
-    fold_chg = v5.0q / legacy_count,
+    fold_chg = v5.0q / legacy_count
+  ) %>%
+  filter(!is.na(fold_chg), is.finite(fold_chg), fold_chg > 0) %>%
+  mutate(
     context_label = get_context_labels()[as.character(context_ids)],
-    bench_type_label = get_bench_type_labels()[as.character(bench_type)]
+    szbin = factor(szbin, levels = c(smvar_szbin_order, stvar_szbin_order)),
+    var_type = factor(var_type)
   )
 ```
 
-```{r fold_change_plot, fig.width = 7, fig.height = 4}
-(fold_change_plt <- context_totals %>%
-  ggplot(aes(
-    x = context_label,
-    y = fold_chg,
-    fill = context_ids
-  )) +
-  geom_col(color = "grey30", linewidth = 0.3) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
-  geom_text(
-    aes(label = sprintf("%.1fx", fold_chg)),
-    vjust = -0.5,
-    size = 3
-  ) +
-  facet_wrap(~bench_type_label, scales = "free_x") +
-  scale_y_continuous(
-    expand = expansion(mult = c(0, 0.15)),
-    breaks = scales::pretty_breaks(n = 5)
-  ) +
-  scale_genomic_context(aesthetic = "fill", guide = "none") +
-  labs(
-    x = "Genomic Context",
-    y = "Fold Change (v5.0q / legacy)"
-  ) +
-  theme_manuscript() +
-  theme(
-    axis.text.x = element_text(angle = -30, hjust = 0)
-  ))
+```{r fold_change_plot, fig.width = 10, fig.height = 8}
+make_fc_panel <- function(df, y_label) {
+  ggplot(df, aes(x = szbin, y = fold_chg, color = var_type, shape = var_type)) +
+    geom_line(aes(group = var_type), linewidth = 0.4, alpha = 0.6) +
+    geom_point(size = 2) +
+    geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
+    facet_wrap(~context_label, ncol = 2) +
+    scale_y_continuous(
+      trans = "log2",
+      breaks = c(0.25, 0.5, 1, 2, 4, 8),
+      labels = scales::label_number(accuracy = 0.01, drop0trailing = TRUE)
+    ) +
+    scale_color_brewer(palette = "Set1", name = "Variant Type") +
+    scale_shape_discrete(name = "Variant Type") +
+    labs(x = "Size Bin", y = y_label) +
+    theme_manuscript() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+smvar_fc_plt <- context_totals_bytype %>%
+  filter(bench_type == "smvar") %>%
+  make_fc_panel("Fold Change (v5.0q / v4.2.1)")
+
+stvar_fc_plt <- context_totals_bytype %>%
+  filter(bench_type == "stvar") %>%
+  make_fc_panel("Fold Change (v5.0q / v0.6)")
+
+(fold_change_plt <- (smvar_fc_plt + stvar_fc_plt) +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom"))
 ```
 
 ## Combined Coverage and Variant Change Figure (Figure 4)
 
-```{r combined_coverage_variant, fig.width = 8, fig.height = 8}
+```{r combined_coverage_variant, fig.width = 10, fig.height = 10}
 (combined_coverage_variant_plt <- coverage_change_plt /
   fold_change_plt +
-  plot_annotation(tag_levels = "A") &
+  plot_layout(heights = c(1, 2)) &
   theme(plot.margin = unit(c(5, 5, 5, 5), "pt")))
 
 ggsave(
   filename = here("manuscript", "figs", "combined_coverage_variant_change.png"),
   plot = combined_coverage_variant_plt,
-  width = 8,
-  height = 8,
+  width = 10,
+  height = 10,
   dpi = 300
 )
 ```
