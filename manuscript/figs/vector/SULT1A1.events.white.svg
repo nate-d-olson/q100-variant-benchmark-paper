@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="7in" height="1.623in" viewBox="0 0 1510 350">
+  <title>SULT1A1 HG002 haplotype events</title>
+  <rect width="100%" height="100%" fill="white" />
+  <text x="20" y="24" font-family="Helvetica,Arial,sans-serif" font-size="12pt" font-weight="700" fill="#222222">SULT1A1 region: HG002 haplotype-specific events</text>
+  <text x="20" y="99" font-family="monospace" font-size="10pt" fill="#222222">GRCh38</text>
+  <line x1="110" y1="95" x2="1265" y2="95" stroke="#d0d0d0" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="20" y="184" font-family="monospace" font-size="10pt" fill="#222222">HG002#1</text>
+  <line x1="110" y1="180" x2="1265" y2="180" stroke="#d0d0d0" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="20" y="269" font-family="monospace" font-size="10pt" fill="#222222">HG002#2</text>
+  <line x1="110" y1="265" x2="1265" y2="265" stroke="#d0d0d0" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <g class="collapsed-block" data-label="XPO6-SBK1"><rect x="130" y="85" width="100" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="180" y="79" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">XPO6-SBK1</text></g>
+  <g class="collapsed-block" data-label="NPIPB7-SULT1A2"><rect x="440" y="85" width="120" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="500" y="79" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">NPIPB7-SULT1A2</text></g>
+  <g class="collapsed-block" data-label="NPIPB8-NPIPB11"><rect x="750" y="85" width="120" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="810" y="79" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">NPIPB8-NPIPB11</text></g>
+  <g class="collapsed-block" data-label="XPO6-SBK1"><rect x="130" y="170" width="100" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="180" y="164" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">XPO6-SBK1</text></g>
+  <g class="collapsed-block" data-label="NPIPB7-SULT1A2"><rect x="440" y="170" width="120" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="500" y="164" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">NPIPB7-SULT1A2</text></g>
+  <g class="collapsed-block" data-label="NPIPB8-NPIPB11"><rect x="750" y="170" width="120" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="810" y="164" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">NPIPB8-NPIPB11</text></g>
+  <g class="collapsed-block" data-label="XPO6-SBK1"><rect x="130" y="255" width="100" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="180" y="249" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">XPO6-SBK1</text></g>
+  <g class="collapsed-block" data-label="NPIPB7-SULT1A2"><rect x="440" y="255" width="120" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="500" y="249" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">NPIPB7-SULT1A2</text></g>
+  <g class="collapsed-block" data-label="NPIPB8-NPIPB11"><rect x="750" y="255" width="120" height="20" rx="3" fill="#f2f2f2" stroke="#9a9a9a" stroke-width="1" vector-effect="non-scaling-stroke" /><text x="810" y="249" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#606060">NPIPB8-NPIPB11</text></g>
+  <g class="gene event-gene" data-gene="NPIPB6">
+  <polygon points="270,95 262,87 308,87 316,95 308,103 262,103" fill="#d29b2d" stroke="#d29b2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="EIF3C">
+  <polygon points="328,95 320,87 366,87 374,95 366,103 320,103" fill="#342dd2" stroke="#342dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="NPIPB6">
+  <polygon points="270,180 262,172 308,172 316,180 308,188 262,188" fill="#d29b2d" stroke="#d29b2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="EIF3C">
+  <polygon points="328,180 320,172 366,172 374,180 366,188 320,188" fill="#342dd2" stroke="#342dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="event deletion" data-label="114 kb deletion"><rect x="270" y="255" width="104" height="20" fill="none" stroke="#4d4d4d" stroke-width="1.2" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" /><text x="322" y="291" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#4d4d4d">114 kb deletion</text></g>
+  <line x1="270" y1="52" x2="374" y2="52" stroke="#4d4d4d" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="270" y1="52" x2="270" y2="59" stroke="#4d4d4d" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="374" y1="52" x2="374" y2="59" stroke="#4d4d4d" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <text x="322" y="47" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#4d4d4d">maternal deletion: NPIPB6 + EIF3C</text>
+  <g class="gene event-gene" data-gene="SULT1A1">
+  <polygon points="610,95 602,87 652,87 660,95 652,103 602,103" fill="#d2422d" stroke="#d2422d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A1">
+  <polygon points="582,180 590,172 640,172 632,180 640,188 590,188" fill="#d2422d" stroke="#d2422d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A1">
+  <polygon points="638,180 630,172 680,172 688,180 680,188 630,188" fill="#d2422d" stroke="#d2422d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A1">
+  <polygon points="610,265 602,257 652,257 660,265 652,273 602,273" fill="#d2422d" stroke="#d2422d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <line x1="582" y1="137" x2="688" y2="137" stroke="#d2422d" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="582" y1="137" x2="582" y2="144" stroke="#d2422d" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="688" y1="137" x2="688" y2="144" stroke="#d2422d" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <text x="635" y="132" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#d2422d">paternal +SULT1A1, 13 kbp</text>
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="900,95 892,87 926,87 934,95 926,103 892,103" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="938,95 946,87 976,87 968,95 976,103 946,103" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="972,95 980,87 1022,87 1014,95 1022,103 980,103" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="1024,95 1016,87 1050,87 1058,95 1050,103 1016,103" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="1062,95 1070,87 1100,87 1092,95 1100,103 1070,103" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="1096,95 1104,87 1146,87 1138,95 1146,103 1104,103" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="900,180 892,172 926,172 934,180 926,188 892,188" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="938,180 946,172 976,172 968,180 976,188 946,188" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="972,180 980,172 1022,172 1014,180 1022,188 980,188" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="1024,180 1016,172 1050,172 1058,180 1050,188 1016,188" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="1062,180 1070,172 1100,172 1092,180 1100,188 1070,188" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="1096,180 1104,172 1146,172 1138,180 1146,188 1104,188" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="1148,180 1140,172 1174,172 1182,180 1174,188 1140,188" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="1186,180 1194,172 1224,172 1216,180 1224,188 1194,188" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="1220,180 1228,172 1270,172 1262,180 1270,188 1228,188" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <rect x="1145" y="167" width="120" height="26" fill="none" stroke="#D55E00" stroke-width="1" stroke-dasharray="3 2" vector-effect="non-scaling-stroke" />
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="1272,180 1264,172 1298,172 1306,180 1298,188 1264,188" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="1310,180 1318,172 1348,172 1340,180 1348,188 1318,188" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="1344,180 1352,172 1394,172 1386,180 1394,188 1352,188" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <rect x="1269" y="167" width="120" height="26" fill="none" stroke="#D55E00" stroke-width="1" stroke-dasharray="3 2" vector-effect="non-scaling-stroke" />
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="900,265 892,257 926,257 934,265 926,273 892,273" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="938,265 946,257 976,257 968,265 976,273 946,273" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="972,265 980,257 1022,257 1014,265 1022,273 980,273" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="1024,265 1016,257 1050,257 1058,265 1050,273 1016,273" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="1062,265 1070,257 1100,257 1092,265 1100,273 1070,273" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="1096,265 1104,257 1146,257 1138,265 1146,273 1104,273" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="1148,265 1140,257 1174,257 1182,265 1174,273 1140,273" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="1186,265 1194,257 1224,257 1216,265 1224,273 1194,273" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="1220,265 1228,257 1270,257 1262,265 1270,273 1228,273" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <rect x="1145" y="252" width="120" height="26" fill="none" stroke="#D55E00" stroke-width="1" stroke-dasharray="3 2" vector-effect="non-scaling-stroke" />
+  <g class="gene event-gene" data-gene="BOLA2B">
+  <polygon points="1272,265 1264,257 1298,257 1306,265 1298,273 1264,273" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SLX1A">
+  <polygon points="1310,265 1318,257 1348,257 1340,265 1348,273 1318,273" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <g class="gene event-gene" data-gene="SULT1A3">
+  <polygon points="1344,265 1352,257 1394,257 1386,265 1394,273 1352,273" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  </g>
+  <rect x="1269" y="252" width="120" height="26" fill="none" stroke="#D55E00" stroke-width="1" stroke-dasharray="3 2" vector-effect="non-scaling-stroke" />
+  <line x1="1148" y1="137" x2="1386" y2="137" stroke="#D55E00" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="1148" y1="137" x2="1148" y2="144" stroke="#D55E00" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="1386" y1="137" x2="1386" y2="144" stroke="#D55E00" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <text x="1267" y="132" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#D55E00">+2 tandem BOLA2B-SLX1A-SULT1A3 copies</text>
+  <line x1="1148" y1="222" x2="1386" y2="222" stroke="#D55E00" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="1148" y1="222" x2="1148" y2="229" stroke="#D55E00" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <line x1="1386" y1="222" x2="1386" y2="229" stroke="#D55E00" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+  <text x="1267" y="217" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#D55E00">~102 kbp insertion in v5.0q SV benchmark</text>
+  <g class="event chm13-inversion" opacity="0.9"><line x1="118" y1="325" x2="1425" y2="325" stroke="#6A51A3" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" /><text x="690" y="318" text-anchor="middle" font-family="monospace" font-size="10pt" fill="#6A51A3">common inversion relative to CHM13; excluded from CHM13-based benchmark</text></g>
+</svg>

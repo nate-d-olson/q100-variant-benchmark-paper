@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="584" height="210" viewBox="0 0 584 210">
+  <title>SULT1A1</title>
+  <rect width="100%" height="100%" fill="white" />
+  <g id="edges" opacity="0.8" fill="none">
+    <line x1="52" y1="30" x2="67" y2="30" stroke="#A0A0A0" />
+    <line x1="107" y1="30" x2="122" y2="30" stroke="#A0A0A0" />
+    <line x1="107" y1="30" x2="228" y2="60" stroke="#A0A0A0" />
+    <line x1="107" y1="30" x2="427" y2="120" stroke="#A0A0A0" />
+    <line x1="107" y1="30" x2="228" y2="150" stroke="#A0A0A0" />
+    <line x1="158" y1="30" x2="173" y2="30" stroke="#A0A0A0" />
+    <line x1="158" y1="30" x2="279" y2="150" stroke="#A0A0A0" />
+    <line x1="213" y1="30" x2="122" y2="30" stroke="#A0A0A0" />
+    <line x1="213" y1="30" x2="228" y2="60" stroke="#A0A0A0" />
+    <line x1="213" y1="30" x2="228" y2="30" stroke="#A0A0A0" />
+    <line x1="213" y1="30" x2="427" y2="120" stroke="#A0A0A0" />
+    <line x1="213" y1="30" x2="478" y2="60" stroke="#A0A0A0" />
+    <line x1="213" y1="30" x2="228" y2="150" stroke="#A0A0A0" />
+    <line x1="213" y1="30" x2="279" y2="150" stroke="#A0A0A0" />
+    <line x1="264" y1="60" x2="173" y2="30" stroke="#A0A0A0" />
+    <line x1="264" y1="60" x2="279" y2="150" stroke="#A0A0A0" />
+    <line x1="269" y1="30" x2="284" y2="30" stroke="#A0A0A0" />
+    <line x1="269" y1="30" x2="427" y2="60" stroke="#A0A0A0" />
+    <line x1="269" y1="30" x2="427" y2="90" stroke="#A0A0A0" />
+    <line x1="313" y1="30" x2="328" y2="30" stroke="#A0A0A0" />
+    <line x1="362" y1="30" x2="377" y2="30" stroke="#A0A0A0" />
+    <line x1="412" y1="30" x2="228" y2="30" stroke="#A0A0A0" />
+    <line x1="412" y1="30" x2="284" y2="30" stroke="#A0A0A0" />
+    <line x1="412" y1="30" x2="427" y2="60" stroke="#A0A0A0" />
+    <line x1="412" y1="30" x2="427" y2="90" stroke="#A0A0A0" />
+    <line x1="412" y1="30" x2="427" y2="120" stroke="#A0A0A0" />
+    <line x1="463" y1="120" x2="478" y2="30" stroke="#A0A0A0" />
+    <line x1="463" y1="120" x2="478" y2="60" stroke="#A0A0A0" />
+    <line x1="514" y1="60" x2="529" y2="30" stroke="#A0A0A0" />
+    <line x1="264" y1="150" x2="279" y2="150" stroke="#A0A0A0" />
+    <line x1="264" y1="150" x2="329" y2="180" stroke="#A0A0A0" />
+    <line x1="314" y1="150" x2="279" y2="150" stroke="#A0A0A0" />
+    <line x1="314" y1="150" x2="329" y2="180" stroke="#A0A0A0" />
+    <line x1="364" y1="180" x2="379" y2="150" stroke="#A0A0A0" />
+    <line x1="414" y1="150" x2="429" y2="150" stroke="#A0A0A0" />
+  </g>
+  <g id="genes">
+  <polygon points="15,30 10,25 47,25 52,30 47,35 10,35" fill="#8d2dd2" stroke="#8d2dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="33.5" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#8d2dd2">TUFM</text>
+  <polygon points="67,30 72,25 112,25 107,30 112,35 72,35" fill="#d22d4f" stroke="#d22d4f" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="87" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#d22d4f">ATXN2L</text>
+  <polygon points="122,30 127,25 163,25 158,30 163,35 127,35" fill="#d29b2d" stroke="#d29b2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="140" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#d29b2d">NPIPB6</text>
+  <polygon points="173,30 178,25 218,25 213,30 218,35 178,35" fill="#342dd2" stroke="#342dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="193" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#342dd2">EIF3C</text>
+  <polygon points="228,60 233,55 269,55 264,60 269,65 233,65" fill="#78d22d" stroke="#78d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="246" y="53" text-anchor="middle" font-family="monospace" font-size="9" fill="#78d22d">NPIPB9</text>
+  <polygon points="228,30 233,25 274,25 269,30 274,35 233,35" fill="#d22da9" stroke="#d22da9" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="248.5" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#d22da9">NPIPB11</text>
+  <polygon points="284,30 289,25 318,25 313,30 318,35 289,35" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="298.5" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#2db7d2">BOLA2B</text>
+  <polygon points="328,30 323,25 357,25 362,30 357,35 323,35" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="345" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#56d22d">SLX1A</text>
+  <polygon points="377,30 372,25 407,25 412,30 407,35 372,35" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="394.5" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2642d">SULT1A3</text>
+  <polygon points="427,60 432,55 467,55 462,60 467,65 432,65" fill="#d22d86" stroke="#d22d86" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="444.5" y="53" text-anchor="middle" font-family="monospace" font-size="9" fill="#d22d86">CD2BP2</text>
+  <polygon points="427,90 422,85 458,85 463,90 458,95 422,95" fill="#d2be2d" stroke="#d2be2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="445" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2be2d">SPN</text>
+  <polygon points="427,120 432,115 468,115 463,120 468,125 432,125" fill="#2d48d2" stroke="#2d48d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="445" y="113" text-anchor="middle" font-family="monospace" font-size="9" fill="#2d48d2">NPIPB7</text>
+  <polygon points="478,30 483,25 517,25 512,30 517,35 483,35" fill="#2dd2cc" stroke="#2dd2cc" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="495" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#2dd2cc">LAT</text>
+  <polygon points="478,60 483,55 519,55 514,60 519,65 483,65" fill="#c52dd2" stroke="#c52dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="496" y="53" text-anchor="middle" font-family="monospace" font-size="9" fill="#c52dd2">CLN3</text>
+  <polygon points="529,30 524,25 564,25 569,30 564,35 524,35" fill="#6b2dd2" stroke="#6b2dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="549" y="23" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b2dd2">APOBR</text>
+  <polygon points="228,150 233,145 269,145 264,150 269,155 233,155" fill="#2dd23b" stroke="#2dd23b" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="246" y="143" text-anchor="middle" font-family="monospace" font-size="9" fill="#2dd23b">NPIPB8</text>
+  <polygon points="279,150 274,145 309,145 314,150 309,155 274,155" fill="#d2422d" stroke="#d2422d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="296.5" y="143" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2422d">SULT1A1</text>
+  <polygon points="329,180 324,175 359,175 364,180 359,185 324,185" fill="#2d7fd2" stroke="#2d7fd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="346.5" y="173" text-anchor="middle" font-family="monospace" font-size="9" fill="#2d7fd2">SULT1A2</text>
+  <polygon points="379,150 384,145 419,145 414,150 419,155 384,155" fill="#2dd25d" stroke="#2dd25d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="396.5" y="143" text-anchor="middle" font-family="monospace" font-size="9" fill="#2dd25d">SGF29</text>
+  <polygon points="429,150 424,145 453,145 458,150 453,155 424,155" fill="#b0d22d" stroke="#b0d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="443.5" y="143" text-anchor="middle" font-family="monospace" font-size="9" fill="#b0d22d">NUPR1</text>
+  </g>
+</svg>

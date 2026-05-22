@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1479" height="165" viewBox="0 0 1479 165">
+  <title>SULT1A1</title>
+  <rect width="100%" height="100%" fill="white" />
+  <g id="reference-paths">
+  <polyline id="walk-GRCh38_0" points="35.5,90 89,90 140,90 193,90 246,90 297,90 350,90 399.5,90 446.5,90 496.5,90 546.5,90 597,90 650,90 703,90 756,90 809.5,90 860,90 910,90 963.5,90 1013.5,90 1060,90 1109.5,90 1160,90 1207.5,90 1254,90 1303.5,90 1353.5,90" fill="none" stroke="#606060" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.45" vector-effect="non-scaling-stroke" />
+  </g>
+  <g id="highlight-paths">
+  <polyline id="walk-HG002_1" points="35.5,84 89,84 140,84 193,84 246,84 297,84 350,84 399.5,84 446.5,84 496.5,84 546.5,84 596.5,39 597,84 650,84 703,39 756,84 809.5,84 860,84 910,84 963.5,84 1013.5,84 1060,84 1109.5,84 1160,84 1207.5,84 1254,84 1303.5,84 1350.5,39 1397,39 1446.5,39 1353.5,84" fill="none" stroke="#0072B2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" vector-effect="non-scaling-stroke" />
+  <polyline id="walk-HG002_2" points="35.5,96 89,96 246,96 297,96 350,96 399.5,96 446.5,96 496.5,96 546.5,96 597,96 650,96 703,96 756,96 809.5,96 860,96 910,96 963.5,96 1013.5,96 1060,96 1109.5,96 1160,96 1207.5,96 1254,96 1303.5,96 1350.5,141 1397,141 1446.5,141 1353.5,96" fill="none" stroke="#D55E00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" vector-effect="non-scaling-stroke" />
+  </g>
+  <g id="genes">
+  <g class="gene" data-gene="SULT1A1" data-lane="highlight_1" data-occurrence="11" opacity="1">
+  <polygon points="579,45 584,40 619,40 614,45 619,50 584,50" fill="#d2422d" stroke="#d2422d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="596.5" y="38" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2422d">SULT1A1</text>
+  </g>
+  <g class="gene" data-gene="NPIPB6" data-lane="highlight_1" data-occurrence="14" opacity="1">
+  <polygon points="685,45 680,40 716,40 721,45 716,50 680,50" fill="#d29b2d" stroke="#d29b2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="703" y="38" text-anchor="middle" font-family="monospace" font-size="9" fill="#d29b2d">NPIPB6</text>
+  </g>
+  <g class="gene" data-gene="BOLA2B" data-lane="highlight_1" data-occurrence="27" opacity="1">
+  <polygon points="1336,45 1341,40 1370,40 1365,45 1370,50 1341,50" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1350.5" y="38" text-anchor="middle" font-family="monospace" font-size="9" fill="#2db7d2">BOLA2B</text>
+  </g>
+  <g class="gene" data-gene="SLX1A" data-lane="highlight_1" data-occurrence="28" opacity="1">
+  <polygon points="1380,45 1375,40 1409,40 1414,45 1409,50 1375,50" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1397" y="38" text-anchor="middle" font-family="monospace" font-size="9" fill="#56d22d">SLX1A</text>
+  </g>
+  <g class="gene" data-gene="SULT1A3" data-lane="highlight_1" data-occurrence="29" opacity="1">
+  <polygon points="1429,45 1424,40 1459,40 1464,45 1459,50 1424,50" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1446.5" y="38" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2642d">SULT1A3</text>
+  </g>
+  <g class="gene" data-gene="XPO6" data-lane="reference" data-occurrence="0" opacity="1">
+  <polygon points="15,90 20,85 61,85 56,90 61,95 20,95" fill="#2dd294" stroke="#2dd294" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="35.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2dd294">XPO6</text>
+  </g>
+  <g class="gene" data-gene="SBK1" data-lane="reference" data-occurrence="1" opacity="1">
+  <polygon points="71,90 66,85 102,85 107,90 102,95 66,95" fill="#d22d2d" stroke="#d22d2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="89" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d22d2d">SBK1</text>
+  </g>
+  <g class="gene" data-gene="NPIPB6" data-lane="reference" data-occurrence="2" opacity="1">
+  <polygon points="122,90 127,85 163,85 158,90 163,95 127,95" fill="#d29b2d" stroke="#d29b2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="140" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d29b2d">NPIPB6</text>
+  </g>
+  <g class="gene" data-gene="EIF3C" data-lane="reference" data-occurrence="3" opacity="1">
+  <polygon points="173,90 178,85 218,85 213,90 218,95 178,95" fill="#342dd2" stroke="#342dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="193" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#342dd2">EIF3C</text>
+  </g>
+  <g class="gene" data-gene="NPIPB7" data-lane="reference" data-occurrence="4" opacity="1">
+  <polygon points="228,90 233,85 269,85 264,90 269,95 233,95" fill="#2d48d2" stroke="#2d48d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="246" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2d48d2">NPIPB7</text>
+  </g>
+  <g class="gene" data-gene="CLN3" data-lane="reference" data-occurrence="5" opacity="1">
+  <polygon points="279,90 284,85 320,85 315,90 320,95 284,95" fill="#c52dd2" stroke="#c52dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="297" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#c52dd2">CLN3</text>
+  </g>
+  <g class="gene" data-gene="APOBR" data-lane="reference" data-occurrence="6" opacity="1">
+  <polygon points="330,90 325,85 365,85 370,90 365,95 325,95" fill="#6b2dd2" stroke="#6b2dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="350" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b2dd2">APOBR</text>
+  </g>
+  <g class="gene" data-gene="NUPR1" data-lane="reference" data-occurrence="7" opacity="1">
+  <polygon points="385,90 390,85 419,85 414,90 419,95 390,95" fill="#b0d22d" stroke="#b0d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="399.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#b0d22d">NUPR1</text>
+  </g>
+  <g class="gene" data-gene="SGF29" data-lane="reference" data-occurrence="8" opacity="1">
+  <polygon points="429,90 424,85 459,85 464,90 459,95 424,95" fill="#2dd25d" stroke="#2dd25d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="446.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2dd25d">SGF29</text>
+  </g>
+  <g class="gene" data-gene="SULT1A2" data-lane="reference" data-occurrence="9" opacity="1">
+  <polygon points="479,90 484,85 519,85 514,90 519,95 484,95" fill="#2d7fd2" stroke="#2d7fd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="496.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2d7fd2">SULT1A2</text>
+  </g>
+  <g class="gene" data-gene="SULT1A1" data-lane="reference" data-occurrence="10" opacity="1">
+  <polygon points="529,90 534,85 569,85 564,90 569,95 534,95" fill="#d2422d" stroke="#d2422d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="546.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2422d">SULT1A1</text>
+  </g>
+  <g class="gene" data-gene="NPIPB8" data-lane="reference" data-occurrence="11" opacity="1">
+  <polygon points="579,90 574,85 610,85 615,90 610,95 574,95" fill="#2dd23b" stroke="#2dd23b" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="597" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2dd23b">NPIPB8</text>
+  </g>
+  <g class="gene" data-gene="EIF3C" data-lane="reference" data-occurrence="12" opacity="1">
+  <polygon points="630,90 625,85 665,85 670,90 665,95 625,95" fill="#342dd2" stroke="#342dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="650" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#342dd2">EIF3C</text>
+  </g>
+  <g class="gene" data-gene="NPIPB9" data-lane="reference" data-occurrence="13" opacity="1">
+  <polygon points="685,90 680,85 716,85 721,90 716,95 680,95" fill="#78d22d" stroke="#78d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="703" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#78d22d">NPIPB9</text>
+  </g>
+  <g class="gene" data-gene="ATXN2L" data-lane="reference" data-occurrence="14" opacity="1">
+  <polygon points="736,90 731,85 771,85 776,90 771,95 731,95" fill="#d22d4f" stroke="#d22d4f" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="756" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d22d4f">ATXN2L</text>
+  </g>
+  <g class="gene" data-gene="TUFM" data-lane="reference" data-occurrence="15" opacity="1">
+  <polygon points="791,90 796,85 833,85 828,90 833,95 796,95" fill="#8d2dd2" stroke="#8d2dd2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="809.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#8d2dd2">TUFM</text>
+  </g>
+  <g class="gene" data-gene="LAT" data-lane="reference" data-occurrence="16" opacity="1">
+  <polygon points="843,90 838,85 872,85 877,90 872,95 838,95" fill="#2dd2cc" stroke="#2dd2cc" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="860" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2dd2cc">LAT</text>
+  </g>
+  <g class="gene" data-gene="NPIPB7" data-lane="reference" data-occurrence="17" opacity="1">
+  <polygon points="892,90 887,85 923,85 928,90 923,95 887,95" fill="#2d48d2" stroke="#2d48d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="910" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2d48d2">NPIPB7</text>
+  </g>
+  <g class="gene" data-gene="NPIPB11" data-lane="reference" data-occurrence="18" opacity="1">
+  <polygon points="943,90 948,85 989,85 984,90 989,95 948,95" fill="#d22da9" stroke="#d22da9" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="963.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d22da9">NPIPB11</text>
+  </g>
+  <g class="gene" data-gene="BOLA2B" data-lane="reference" data-occurrence="19" opacity="1">
+  <polygon points="999,90 1004,85 1033,85 1028,90 1033,95 1004,95" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1013.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2db7d2">BOLA2B</text>
+  </g>
+  <g class="gene" data-gene="SLX1A" data-lane="reference" data-occurrence="20" opacity="1">
+  <polygon points="1043,90 1038,85 1072,85 1077,90 1072,95 1038,95" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1060" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#56d22d">SLX1A</text>
+  </g>
+  <g class="gene" data-gene="SULT1A3" data-lane="reference" data-occurrence="21" opacity="1">
+  <polygon points="1092,90 1087,85 1122,85 1127,90 1122,95 1087,95" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1109.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2642d">SULT1A3</text>
+  </g>
+  <g class="gene" data-gene="SPN" data-lane="reference" data-occurrence="22" opacity="1">
+  <polygon points="1142,90 1137,85 1173,85 1178,90 1173,95 1137,95" fill="#d2be2d" stroke="#d2be2d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1160" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2be2d">SPN</text>
+  </g>
+  <g class="gene" data-gene="BOLA2B" data-lane="reference" data-occurrence="23" opacity="1">
+  <polygon points="1193,90 1198,85 1227,85 1222,90 1227,95 1198,95" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1207.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#2db7d2">BOLA2B</text>
+  </g>
+  <g class="gene" data-gene="SLX1A" data-lane="reference" data-occurrence="24" opacity="1">
+  <polygon points="1237,90 1232,85 1266,85 1271,90 1266,95 1232,95" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1254" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#56d22d">SLX1A</text>
+  </g>
+  <g class="gene" data-gene="SULT1A3" data-lane="reference" data-occurrence="25" opacity="1">
+  <polygon points="1286,90 1281,85 1316,85 1321,90 1316,95 1281,95" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1303.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2642d">SULT1A3</text>
+  </g>
+  <g class="gene" data-gene="CD2BP2" data-lane="reference" data-occurrence="26" opacity="1">
+  <polygon points="1336,90 1341,85 1376,85 1371,90 1376,95 1341,95" fill="#d22d86" stroke="#d22d86" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1353.5" y="83" text-anchor="middle" font-family="monospace" font-size="9" fill="#d22d86">CD2BP2</text>
+  </g>
+  <g class="gene" data-gene="BOLA2B" data-lane="highlight_2" data-occurrence="24" opacity="1">
+  <polygon points="1336,135 1341,130 1370,130 1365,135 1370,140 1341,140" fill="#2db7d2" stroke="#2db7d2" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1350.5" y="128" text-anchor="middle" font-family="monospace" font-size="9" fill="#2db7d2">BOLA2B</text>
+  </g>
+  <g class="gene" data-gene="SLX1A" data-lane="highlight_2" data-occurrence="25" opacity="1">
+  <polygon points="1380,135 1375,130 1409,130 1414,135 1409,140 1375,140" fill="#56d22d" stroke="#56d22d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1397" y="128" text-anchor="middle" font-family="monospace" font-size="9" fill="#56d22d">SLX1A</text>
+  </g>
+  <g class="gene" data-gene="SULT1A3" data-lane="highlight_2" data-occurrence="26" opacity="1">
+  <polygon points="1429,135 1424,130 1459,130 1464,135 1459,140 1424,140" fill="#d2642d" stroke="#d2642d" stroke-width="1" vector-effect="non-scaling-stroke" />
+  <text x="1446.5" y="128" text-anchor="middle" font-family="monospace" font-size="9" fill="#d2642d">SULT1A3</text>
+  </g>
+  </g>
+</svg>
