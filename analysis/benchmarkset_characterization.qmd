@@ -113,7 +113,8 @@ Small variants use GRCh38 (v5.0q vs v4.2.1); structural variants use GRCh37
 ## Compute Total Variation (sum of absolute variant lengths, in Mb)
 total_var_df <- variants_df %>%
   group_by(bench_type, ref, bench_version) %>%
-  summarise(total_var_mb = sum(abs(var_size)) / 1e6, .groups = "drop") %>%
+  mutate(var_len = if_else(var_size == 0, 1, abs(var_size))) %>% 
+  summarise(total_var_bp = sum(var_len), .groups = "drop") %>%
   mutate(
     ref = std_references(ref),
     bench_version = std_bench_versions(bench_version)
@@ -157,10 +158,10 @@ build_metric_rows <- function(bt, type_label, var1_col, var1_label,
              d = p1(v5_d, var1_col), l = p1(leg, var1_col))
   v2 <- list(r37 = p1(v5_37, var2_col), r38 = p1(v5_38, var2_col), rc = p1(v5_c, var2_col),
              d = p1(v5_d, var2_col), l = p1(leg, var2_col))
-  tt <- list(r37 = p1(v5_37, "Total"), r38 = p1(v5_38, "Total"), rc = p1(v5_c, "Total"),
+  vt <- list(r37 = p1(v5_37, "Total"), r38 = p1(v5_38, "Total"), rc = p1(v5_c, "Total"),
              d = p1(v5_d, "Total"), l = p1(leg, "Total"))
-  vm <- list(r37 = p1(v5_37, "total_var_mb"), r38 = p1(v5_38, "total_var_mb"),
-             rc = p1(v5_c, "total_var_mb"), d = p1(v5_d, "total_var_mb"), l = p1(leg, "total_var_mb"))
+  vbp <- list(r37 = p1(v5_37, "total_var_bp"), r38 = p1(v5_38, "total_var_bp"),
+             rc = p1(v5_c, "total_var_bp"), d = p1(v5_d, "total_var_bp"), l = p1(leg, "total_var_bp"))
   rg <- list(r37 = p1(v5_37, "bench_mb"), r38 = p1(v5_38, "bench_mb"), rc = p1(v5_c, "bench_mb"),
              d = p1(v5_d, "bench_mb"), l = p1(leg, "bench_mb"))
   pr <- list(r37 = p1(v5_37, "pct_ref_cvg"), r38 = p1(v5_38, "pct_ref_cvg"),
@@ -169,17 +170,17 @@ build_metric_rows <- function(bt, type_label, var1_col, var1_label,
   tibble(
     bench_type_label = type_label,
     col_a = c(var1_label, var2_label, "Total", "Total", "Region (Mb)", "% Reference"),
-    col_b = c("", "", "Variants", "Variation (Mb)", "", ""),
-    grch37 = c(fk(v1$r37), fk(v2$r37), fk(tt$r37), fmb(vm$r37), fr(rg$r37), fp(pr$r37)),
-    grch38 = c(fk(v1$r38), fk(v2$r38), fk(tt$r38), fmb(vm$r38), fr(rg$r38), fp(pr$r38)),
-    chm13  = c(fk(v1$rc),  fk(v2$rc),  fk(tt$rc),  fmb(vm$rc),  fr(rg$rc),  fp(pr$rc)),
+    col_b = c("", "", "Variants", "Variation (bp)", "", ""),
+    grch37 = c(fk(v1$r37), fk(v2$r37), fk(vt$r37), fmb(vbp$r37), fr(rg$r37), fp(pr$r37)),
+    grch38 = c(fk(v1$r38), fk(v2$r38), fk(vt$r38), fmb(vbp$r38), fr(rg$r38), fp(pr$r38)),
+    chm13  = c(fk(v1$rc),  fk(v2$rc),  fk(vt$rc),  fmb(vbp$rc),  fr(rg$rc),  fp(pr$rc)),
     delta_n = c(
-      dn_k(v1$d, v1$l), dn_k(v2$d, v2$l), dn_k(tt$d, tt$l),
-      dn_mb(vm$d, vm$l), dn_r(rg$d, rg$l), "—"
+      dn_k(v1$d, v1$l), dn_k(v2$d, v2$l), dn_k(vt$d, vt$l),
+      dn_mb(vbp$d, vbp$l), dn_r(rg$d, rg$l), "—"
     ),
     delta_pct = c(
-      dp(v1$d, v1$l), dp(v2$d, v2$l), dp(tt$d, tt$l),
-      dp(vm$d, vm$l), dp(rg$d, rg$l), dpp(pr$d, pr$l)
+      dp(v1$d, v1$l), dp(v2$d, v2$l), dp(vt$d, vt$l),
+      dp(vbp$d, vbp$l), dp(rg$d, rg$l), dpp(pr$d, pr$l)
     )
   )
 }
@@ -276,21 +277,22 @@ smvar_len_df <- variants_df %>%
     var_type == "INDEL",
     ref == "GRCh38"
   ) %>%
-  select(bench_version, var_size) %>%
-  mutate(var_size = if_else(var_size > 0, var_size + 0.5, var_size - 0.5))
+  select(bench_version, var_size) %>% 
+  mutate(abs_var_size = abs(var_size),
+         var_type = if_else(var_size > 0, "Insertion", "Deletion"))
 
-(smvar_len_dist_plt <- ggplot(smvar_len_df, aes(x = var_size, fill = bench_version)) +
+(smvar_len_dist_plt <- ggplot(smvar_len_df, aes(x = abs_var_size, fill = bench_version)) +
   geom_histogram(
-    binwidth = 1,
-    position = "identity",
-    alpha = 0.7,
+    bins = 15,
+    position = "dodge",
     color = "grey20"
   ) +
   scale_benchmark_version(aesthetic = "fill", name = "Version") +
-  scale_y_continuous(labels = scales::comma) +
-  labs(x = "INDEL Length (bp)", y = "Count", fill = "Version") +
-  theme_manuscript() +
-  theme(legend.position = "none"))
+  scale_x_continuous(
+    breaks = c(1, 5, 10, 15, 20, 30, 40, 50)) +
+  labs(x = "Absolute INDEL Length (bp)", y = "Count", fill = "Version") +
+  facet_wrap(~var_type, ncol = 2) + 
+  theme_manuscript(legend.position = c(0.85, 0.85)))
 ```
 
 ```{r sv_length_distribution}
@@ -303,45 +305,38 @@ stvar_len_df <- variants_df %>%
     ref == "GRCh37"
   ) %>%
   select(bench_version, var_size) %>%
-  filter(abs(var_size) < 20000)
+  filter(abs(var_size) < 10000) %>%  
+  mutate(abs_var_size = abs(var_size),
+         var_type = if_else(var_size > 0, "Insertion", "Deletion"))
 
-(stvar_len_dist_plt <- ggplot(stvar_len_df, aes(x = var_size, fill = bench_version)) +
+(stvar_len_dist_plt <- ggplot(stvar_len_df, aes(x = abs_var_size, fill = bench_version)) +
   geom_histogram(
-    bins = 50,
-    position = "identity",
-    alpha = 0.7,
+    bins = 15,
+    position = "dodge",
     color = "grey20"
   ) +
   scale_benchmark_version(aesthetic = "fill", name = "Version") +
-  scale_x_continuous(
-    breaks = c(-10000, -5000, -1000, -500, -100, -50, 0, 50, 100, 500, 1000, 5000, 10000),
-    trans = scales::pseudo_log_trans(sigma = 100, base = 10),
-    labels = scales::comma
-  ) +
-  scale_y_continuous(labels = scales::comma) +
-  labs(x = "SV Length (bp)", y = "Count", fill = "Version") +
-  theme_manuscript() +
-  theme(
-    axis.text.x = element_text(angle = -45, hjust = 0),
-    legend.position = "none"
-  ))
+  scale_x_log10() +
+  labs(x = "Absolute SV Length (bp)", y = "Count", fill = "Version") +
+  facet_wrap(~var_type, ncol = 2) + 
+  theme_manuscript(legend.position = c(0.85, 0.85)))
 ```
 
-```{r combined_var_len_dist, width = 4, height = 10}
+```{r combined_var_len_dist, width = 4, height = 4}
 (combined_var_len_dist_plt <- smvar_len_dist_plt +
   stvar_len_dist_plt +
-  plot_layout(ncol = 1, guides = "collect") + #, widths = c(1, 2)) +
+   plot_layout(ncol = 1, nrow = 2) + 
   plot_annotation(tag_levels = "A") &
-  theme_manuscript(
-    strip.background = element_rect(fill = "grey92", color = NA),
-    strip.text = element_text(color = "grey20", face = "bold"),
-    panel.grid.major = element_line(color = "grey88"),
-    panel.grid.minor = element_blank()
-  ) +
+  # theme_manuscript(
+  #   strip.background = element_rect(fill = "grey92", color = NA),
+  #   strip.text = element_text(color = "grey20", face = "bold"),
+  #   panel.grid.major = element_line(color = "grey88"),
+  #   panel.grid.minor = element_blank()
+  # ) +
     theme(
-      axis.text.x = element_text(angle = -45, hjust = 0),
-      legend.position = "bottom",
-      plot.margin = unit(c(5, 5, 5, 5), "pt")
+      # axis.text.x = element_text(angle = -45, hjust = 0),
+      # legend.position = "bottom",
+      plot.margin = unit(c(1, 1, 1, 1), "pt")
     ))
 ```
 
@@ -350,40 +345,7 @@ ggsave(
   filename = here("manuscript", "figs", "var_len_dist.png"),
   plot = combined_var_len_dist_plt,
   width = 4,
-  height = 8,
-  units = "in",
-  dpi = 300
-)
-```
-
-TODO: change to a facet plot with x ~ INDEL, SV; y ~ insertion, deletion. Use abs var_len on log scale. Position doge for benchmark version
-
-```{r var_len_dist2}
-var_len_df <- bind_rows(smvar = smvar_len_df, stvar = stvar_len_df, .id = "bench_type") %>% 
-  mutate(var_type = if_else(var_size > 0, "Insertion", "Deletion"),
-         var_size_abs = abs(var_size))
-
-(combined_var_len_dist2_plt <- ggplot(var_len_df, aes(x = var_size_abs, fill = bench_version)) +
-  geom_histogram(
-    bins = 50,
-    position = "dodge",
-    alpha = 0.7,
-    color = "grey20"
-  ) +
-  scale_benchmark_version(aesthetic = "fill", name = "Version") +
-  scale_y_continuous(labels = scales::comma) +
-  scale_x_log10() +
-  labs(x = "Absolute Variant Length (bp)", y = "Count", fill = "Version") +
-  facet_wrap(bench_type ~ var_type, scales = "free") +
-  theme_manuscript())
-```
-
-```{r var_length_dist2_save}
-ggsave(
-  filename = here("manuscript", "figs", "var_len_dist.png"),
-  plot = combined_var_len_dist2_plt,
-  width = 4,
-  height = 8,
+  height = 4,
   units = "in",
   dpi = 300
 )
