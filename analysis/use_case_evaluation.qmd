@@ -332,6 +332,15 @@ scatter_shapes <- c(
   ggplot(aes(x = v421, y = v50q, fill = context_label, shape = context_label)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
   geom_point(color = "grey30", size = 3.5, stroke = 0.8) +
+  ggrepel::geom_text_repel(
+    data = filter(smvar_scatter_df, metric == "Recall"),
+    aes(label = context_label, color = context_label),
+    size = 2.6, fontface = "bold", show.legend = FALSE,
+    box.padding = 0.5, point.padding = 0.3,
+    segment.linetype = "dotted", segment.size = 0.3,
+    min.segment.length = 0, max.overlaps = Inf,
+    seed = 6183
+  ) +
   facet_wrap(~metric) +
   scale_x_continuous(
     trans   = phred_trans,
@@ -348,16 +357,15 @@ scatter_shapes <- c(
     oob     = scales::squish
   ) +
   scale_fill_manual(values = scatter_colors) +
+  scale_color_manual(values = scatter_colors) +
   scale_shape_manual(values = scatter_shapes) +
   labs(
     x = "v4.2.1",
-    y = "v5.0q",
-    fill = NULL,
-    shape = NULL
+    y = "v5.0q"
   ) +
   coord_cartesian(clip = "off") +
   theme_manuscript() +
-  theme(legend.position = "bottom", aspect.ratio = 1))
+  theme(legend.position = "none", aspect.ratio = 1))
 ```
 
 ### By Variant Size
@@ -555,6 +563,16 @@ make_stvar_scatter <- function(df, platform_filter) {
     ggplot(aes(x = sniffles1, y = sniffles2, fill = context_label, shape = context_label)) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.5) +
     geom_point(color = "grey30", size = 3.5, stroke = 0.8) +
+    ggrepel::geom_text_repel(
+      data = filter(compare_df, metric == "Recall"),
+      aes(label = context_label, color = context_label),
+      size = 2.6, fontface = "bold", show.legend = FALSE,
+      box.padding = 0.6, point.padding = 0.4,
+      segment.linetype = "dotted", segment.size = 0.3,
+      min.segment.length = 0, max.overlaps = Inf,
+      direction = "y", nudge_y = 0.05, hjust = 0,
+      seed = 8045
+    ) +
     facet_wrap(~metric) +
     scale_x_continuous(
       trans = phred_trans,
@@ -568,16 +586,15 @@ make_stvar_scatter <- function(df, platform_filter) {
     ) +
     annotation_phredticks(sides = "bl") +
     scale_fill_manual(values = context_label_colors) +
+    scale_color_manual(values = context_label_colors) +
     scale_shape_manual(values = context_label_shapes) +
     labs(
       x = "Sniffles1",
-      y = "Sniffles2",
-      fill = "Genomic Context",
-      shape = "Genomic Context"
+      y = "Sniffles2"
     ) +
     coord_cartesian(clip = "off") +
     theme_manuscript() +
-    theme(legend.position = "right", aspect.ratio = 1)
+    theme(legend.position = "none", aspect.ratio = 1)
 }
 
 (ont_scatter_plt <- make_stvar_scatter(stvar_df, "ONT"))
@@ -614,7 +631,7 @@ make_stvar_size_scatter <- function(size_df, platform_filter) {
 
 ```{r combined_stvar_ont, fig.width = 8, fig.height = 8}
 (combined_ont_plt <-
-  (ont_scatter_plt + theme(legend.position = "bottom")) /
+  ont_scatter_plt /
   (ont_size_scatter_plt + theme(legend.position = "bottom")) +
   plot_annotation(tag_levels = "A") &
   theme(plot.margin = unit(c(1, 1, 1, 1), "pt")))
@@ -635,7 +652,7 @@ hifi_scatter_plt <- make_stvar_scatter(stvar_df, "HiFi")
 hifi_size_scatter_plt <- make_stvar_size_scatter(sv_size_df, "HiFi")
 
 (combined_hifi_plt <-
-  (hifi_scatter_plt + theme(legend.position = "bottom")) /
+  hifi_scatter_plt /
   (hifi_size_scatter_plt + theme(legend.position = "bottom")) +
   plot_annotation(tag_levels = "A") &
   theme(plot.margin = unit(c(1, 1, 1, 1), "pt")))
@@ -667,6 +684,212 @@ For HiFi data, the improvement was even more pronounced. Sniffles2 increased ove
 
 Precision for per-context metrics was generally lower for Sniffles2 than Sniffles1, particularly in segmental duplications (HiFi: 87.77% to 72.96%; ONT: 82.70% to 75.41%), suggesting a recall-precision tradeoff in these challenging regions.
 
+
+## Combined Use-Case Figure
+
+Combined two-panel figure for the manuscript:
+
+- **Panel A** — Small variants (NeuSomatic): ΔF1 (v5.0q − v4.2.1) by INDEL size bin,
+  faceted by genomic context (Overall, Homopolymers, Segmental Duplications).
+  Cross-stratified data (context × size subtype) extracted directly from hap.py extended CSVs.
+- **Panel B** — Structural variants (ONT): connected slope chart showing Recall and Precision
+  for Sniffles1 vs Sniffles2 across genomic contexts.
+
+```{r combined_use_case_data}
+## Helper: extract size-bin F1 within an optional genomic context subset.
+## subset_filter = "*" gives overall (no context restriction).
+## context_label = "Overall" also adds the SNP row.
+extract_size_metrics_ctx <- function(happy_df, bench_version,
+                                     subset_filter = "*",
+                                     context_label = "Overall") {
+  indel_bins <- happy_df |>
+    filter(
+      Filter == "PASS",
+      Subset %in% subset_filter,
+      Type == "INDEL",
+      Subtype %in% names(subtype_to_sizebin)
+    ) |>
+    mutate(size_bin = subtype_to_sizebin[Subtype]) |>
+    group_by(size_bin) |>
+    summarise(tp = sum(TRUTH.TP), fn = sum(TRUTH.FN), fp = sum(QUERY.FP),
+              .groups = "drop") |>
+    mutate(
+      recall    = tp / (tp + fn),
+      precision = tp / (tp + fp),
+      f1        = 2 * precision * recall / (precision + recall)
+    )
+
+  if (context_label == "Overall") {
+    snp_row <- happy_df |>
+      filter(Filter == "PASS", Subset == "*", Type == "SNP", Subtype == "*") |>
+      transmute(
+        size_bin  = "SNP",
+        tp = TRUTH.TP, fn = TRUTH.FN, fp = QUERY.FP,
+        recall    = METRIC.Recall, precision = METRIC.Precision,
+        f1        = METRIC.F1_Score
+      )
+    indel_bins <- bind_rows(snp_row, indel_bins)
+  }
+
+  indel_bins |>
+    mutate(bench_version = bench_version, context = context_label)
+}
+
+## Build Panel A data: ΔF1 across three context levels × size bins
+panel_a_df <- bind_rows(
+  extract_size_metrics_ctx(v4_happy, "v4.2.1", "*",                  "Overall"),
+  extract_size_metrics_ctx(v5_happy, "v5.0q",  "*",                  "Overall"),
+  extract_size_metrics_ctx(v4_happy, "v4.2.1", v4_context_map["HP"], "Homopolymers"),
+  extract_size_metrics_ctx(v5_happy, "v5.0q",  v5_context_map["HP"], "Homopolymers"),
+  extract_size_metrics_ctx(v4_happy, "v4.2.1", v4_context_map["SD"], "Segmental Duplications"),
+  extract_size_metrics_ctx(v5_happy, "v5.0q",  v5_context_map["SD"], "Segmental Duplications")
+) |>
+  select(bench_version, context, size_bin, f1) |>
+  pivot_wider(names_from = bench_version, values_from = f1) |>
+  mutate(
+    delta_f1 = `v5.0q` - `v4.2.1`,
+    context  = factor(context, levels = c("Overall", "Homopolymers", "Segmental Duplications")),
+    size_bin = factor(size_bin, levels = size_bin_levels)
+  )
+
+## Build Panel B data: ONT Sniffles1 vs Sniffles2, Recall and Precision
+panel_b_df <- stvar_df |>
+  filter(platform == "ONT") |>
+  select(callset_label, context_label, recall, precision) |>
+  pivot_longer(c(recall, precision), names_to = "metric", values_to = "value") |>
+  mutate(
+    metric        = factor(str_to_title(metric), levels = c("Recall", "Precision")),
+    callset_label = factor(callset_label, levels = c("Sniffles1", "Sniffles2"))
+  )
+```
+
+```{r panel_a_plt, fig.width = 8, fig.height = 3.5}
+## Label each context line at its largest (last available) size bin
+panel_a_labels <- panel_a_df |>
+  filter(!is.na(delta_f1)) |>
+  group_by(context) |>
+  slice_max(as.integer(size_bin), n = 1) |>
+  ungroup()
+
+panel_a_plt <- panel_a_df |>
+  ggplot(aes(x = size_bin, y = delta_f1,
+             group = context, color = context)) +
+  geom_hline(yintercept = 0, linewidth = 0.4, color = "grey50") +
+  geom_line(linetype = "dashed", linewidth = 0.7) +
+  geom_point(aes(fill = context, shape = context),
+             color = "grey30", size = 3, stroke = 0.8) +
+  ggrepel::geom_text_repel(
+    data = panel_a_labels,
+    aes(label = context, color = context),
+    nudge_x = 0.3, hjust = 0, direction = "y",
+    segment.linetype = "dotted", segment.size = 0.3,
+    size = 3, fontface = "bold", show.legend = FALSE
+  ) +
+  scale_x_discrete(drop = FALSE, expand = expansion(mult = c(0.05, 0.35))) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +
+  scale_color_manual(
+    values = context_label_colors[c("Overall", "Homopolymers", "Segmental Duplications")]
+  ) +
+  scale_fill_manual(
+    values = context_label_colors[c("Overall", "Homopolymers", "Segmental Duplications")]
+  ) +
+  scale_shape_manual(
+    values = context_label_shapes[c("Overall", "Homopolymers", "Segmental Duplications")]
+  ) +
+  labs(
+    x = "Variant Size",
+    y = "\u0394F1 (v5.0q \u2212 v4.2.1)"
+  ) +
+  theme_manuscript() +
+  theme(legend.position = "none")
+
+panel_a_plt
+```
+
+```{r panel_b_plt, fig.width = 8, fig.height = 4}
+panel_b_df_wide <- stvar_df |>
+  filter(platform == "ONT") |>
+  select(callset, context_label, recall, precision) |>
+  pivot_longer(c(recall, precision), names_to = "metric", values_to = "value") |>
+  pivot_wider(names_from = callset, values_from = value) |>
+  mutate(metric = factor(str_to_title(metric), levels = c("Recall", "Precision")))
+
+xy_range <- range(c(panel_b_df_wide$sniffles1, panel_b_df_wide$sniffles2), na.rm = TRUE)
+
+## Label context points in the Recall facet only (avoids duplicate labels)
+panel_b_labels <- panel_b_df_wide |>
+  filter(metric == "Recall")
+
+panel_b_plt <- panel_b_df_wide |>
+  ggplot(aes(x = sniffles1, y = sniffles2,
+             fill = context_label, shape = context_label)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed",
+              color = "grey50", linewidth = 0.5) +
+  geom_point(color = "grey30", size = 3.5, stroke = 0.8) +
+  ggrepel::geom_text_repel(
+    data = panel_b_labels,
+    aes(label = context_label, color = context_label),
+    size = 3, fontface = "bold", show.legend = FALSE,
+    box.padding = 0.5, point.padding = 0.3,
+    segment.linetype = "dotted", segment.size = 0.3,
+    min.segment.length = 0, max.overlaps = Inf,
+    seed = 4729
+  ) +
+  facet_wrap(~ metric, nrow = 1) +
+  scale_x_continuous(
+    trans   = phred_trans,
+    breaks  = phred_stvar_pcts,
+    labels  = phred_stvar_labels,
+    limits  = xy_range
+  ) +
+  scale_y_continuous(
+    trans   = phred_trans,
+    breaks  = phred_stvar_pcts,
+    labels  = phred_stvar_labels,
+    limits  = xy_range
+  ) +
+  annotation_phredticks(sides = "bl") +
+  scale_fill_manual(values  = context_label_colors) +
+  scale_color_manual(values = context_label_colors) +
+  scale_shape_manual(values = context_label_shapes) +
+  labs(x = "Sniffles1", y = "Sniffles2") +
+  coord_cartesian(clip = "off") +
+  theme_manuscript() +
+  theme(legend.position = "none", aspect.ratio = 1,
+        panel.spacing = unit(12, "pt"))
+
+panel_b_plt
+```
+
+```{r combined_use_case_plt, fig.width = 8, fig.height = 8}
+combined_use_case_plt <-
+  panel_a_plt / panel_b_plt +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(heights = c(1, 1.2))
+
+combined_use_case_plt
+
+ggsave(
+  filename = here("manuscript", "figs", "use_case_combined.png"),
+  plot = combined_use_case_plt,
+  width = 8, height = 8, dpi = 300
+)
+```
+
+### Figure Legend
+
+**Figure use_case_combined: Combined small variant and structural variant benchmarking use cases.**
+(A) Difference in F1 score (ΔF1 = v5.0q − v4.2.1) for the Roche NeuSomatic callset benchmarked
+against the v4.2.1 and v5.0q GRCh38 small variant benchmarks, shown by variant size bin with
+genomic context (Overall, Homopolymers, Segmental Duplications) encoded by color and shape.
+INDEL size bins are shown for all three contexts; the SNP bin is Overall only (HP and SD are
+INDEL-only stratifications). Values below zero indicate lower performance against the more
+comprehensive v5.0q benchmark.
+(B) Recall and Precision for Sniffles1 vs Sniffles2 ONT callsets benchmarked against the v5.0q
+GRCh38 structural variant benchmark (truvari bench + refine). Each point represents a genomic
+context (color and shape); axes are phred-scaled and the dashed diagonal marks equal performance.
+Points above the diagonal indicate higher Sniffles2 performance; points below indicate higher
+Sniffles1 performance.
 
 ## Metrics Cross-Reference
 
