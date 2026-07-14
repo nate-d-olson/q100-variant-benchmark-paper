@@ -466,6 +466,12 @@ ggsave(
   height = 10,
   dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "use_case_smvar.pdf"),
+  plot = combined_smvar_plt,
+  width = 8,
+  height = 10
+)
 ```
 
 ### Figure Legend
@@ -643,6 +649,12 @@ ggsave(
   height = 8,
   dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "use_case_stvar_ont.pdf"),
+  plot = combined_ont_plt,
+  width = 8,
+  height = 8
+)
 ```
 
 ### HiFi: Sniffles1 vs Sniffles2
@@ -663,6 +675,12 @@ ggsave(
   width = 8,
   height = 8,
   dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "use_case_stvar_hifi.pdf"),
+  plot = combined_hifi_plt,
+  width = 8,
+  height = 8
 )
 ```
 
@@ -873,6 +891,11 @@ ggsave(
   filename = here("manuscript", "figs", "use_case_combined.png"),
   plot = combined_use_case_plt,
   width = 8, height = 8, dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "use_case_combined.pdf"),
+  plot = combined_use_case_plt,
+  width = 8, height = 8
 )
 ```
 

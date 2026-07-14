@@ -316,6 +316,11 @@ ggsave(
   plot = smvar_flow,
   width = 8, height = 8, dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "smvar_strat_flow.pdf"),
+  plot = smvar_flow,
+  width = 8, height = 8
+)
 ```
 
 
@@ -409,6 +414,11 @@ ggsave(
   height = 3,
   dpi = 450
 )
+ggsave(
+  filename = here("manuscript", "figs", "combined_eval_strata.pdf"),
+  plot = combined_eval_plt,
+  width = 6, height = 3
+)
 ```
 
 ```{r}
@@ -424,6 +434,11 @@ ggsave(
   width = 6,
   height = 3,
   dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "combined_eval_callset.pdf"),
+  plot = combined_eval_callset_plt,
+  width = 6, height = 3
 )
 ```
 
@@ -608,6 +623,11 @@ ggsave(
   filename = here("manuscript", "figs", "ride_estimates.png"),
   plot = ci_forest_plt,
   width = 8, height = 8, dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "ride_estimates.pdf"),
+  plot = ci_forest_plt,
+  width = 8, height = 8
 )
 ```
 
@@ -844,6 +864,11 @@ ggsave(
   plot = ci_forest_cs_plt,
   width = 8, height = 8, dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "ride_estimates_callset.pdf"),
+  plot = ci_forest_cs_plt,
+  width = 8, height = 8
+)
 ```
 
 ```{r cs_summary_table}
@@ -1036,6 +1061,5 @@ discrepancies. Finally, the additive model does not capture potential
 interactions between predictors (e.g., whether TR effects differ for INS
 vs. DEL in structural variants); the data would support such extensions but
 at the cost of wider confidence intervals.
-
 
 

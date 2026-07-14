@@ -164,6 +164,12 @@ ggsave(
   height = 3,
   dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "genomic_context_variant_counts.pdf"),
+  plot = variant_count_plt,
+  width = 6,
+  height = 3
+)
 ```
 
 ### Supplemental: Fold Change by Variant Size Bin
@@ -269,5 +275,10 @@ ggsave(
   height = 6,
   dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "genomic_context_fold_change_by_size.pdf"),
+  plot = fold_change_size_plt,
+  width = 8,
+  height = 6
+)
 ```
-

@@ -349,6 +349,13 @@ ggsave(
   units = "in",
   dpi = 300
 )
+ggsave(
+  filename = here("manuscript", "figs", "var_len_dist.pdf"),
+  plot = combined_var_len_dist_plt,
+  width = 4,
+  height = 4,
+  units = "in"
+)
 ```
 
 
@@ -423,6 +430,12 @@ ggsave(
   width = 8,
   height = 4,
   dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "benchmark_region_size_change.pdf"),
+  plot = coverage_change_plt,
+  width = 8,
+  height = 4
 )
 ```
 
@@ -528,5 +541,11 @@ ggsave(
   width = 10,
   height = 10,
   dpi = 300
+)
+ggsave(
+  filename = here("manuscript", "figs", "combined_coverage_variant_change.pdf"),
+  plot = combined_coverage_variant_plt,
+  width = 10,
+  height = 10
 )
 ```

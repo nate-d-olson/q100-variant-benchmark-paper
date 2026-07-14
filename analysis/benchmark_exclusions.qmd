@@ -362,6 +362,12 @@ ggsave(
   height = 8,
   dpi = 300
 )
+ggsave(
+  filename = here::here("manuscript", "figs", "grch38_exclusion_upset.pdf"),
+  plot = grch38_upset_plt,
+  width = 12,
+  height = 8
+)
 ```
 
 ### All References Exclusion Patterns (Supplemental)
@@ -416,6 +422,12 @@ ggsave(
   width = 12,
   height = 8,
   dpi = 300
+)
+ggsave(
+  filename = here::here("manuscript", "figs", "grch38_exclusion_var_upset.pdf"),
+  plot = grch38_upset_var_plt,
+  width = 12,
+  height = 8
 )
 ```
 
