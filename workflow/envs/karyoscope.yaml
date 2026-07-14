@@ -1,0 +1,27 @@
+# Conda environment for the KaryoScope-style genome-view ideogram figure.
+#
+# Used by `scripts/make_ideogram_karyoscope.py` (Makefile target
+# `ideogram-karyoscope`). This reuses ONLY KaryoScope's SVG renderer
+# (`karyoscope.core.karyotype.render_karyotype`) on benchmark-derived bins; it
+# does NOT run KaryoScope's k-mer annotation pipeline, so the heavy
+# dependencies (KMC, the 17 GB CHM13 database, the C++ get_featureIDs helper)
+# are intentionally omitted.
+#
+# Create with:
+#   mamba env create -f workflow/envs/karyoscope.yaml
+# Channels resolve via the repo's prefix.dev redirect (~/.condarc); pip
+# packages come from PyPI and GitHub.
+name: karyoscope
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.12
+  - pip
+  - cairo # libcairo, required by cairosvg for SVG -> PDF/PNG
+  - bedtools # set ops + makewindows/coverage for per-bin coverage
+  - ucsc-liftover # lift v0.6 stvar GRCh37 -> GRCh38
+  - pip:
+      - drawsvg>=2.4
+      - cairosvg>=2.7
+      - "git+https://github.com/barthel-lab/KaryoScope.git"

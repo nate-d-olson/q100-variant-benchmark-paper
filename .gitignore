@@ -50,6 +50,9 @@ analysis/*_files/**
 
 # Git worktrees
 .worktrees/
+/.claude/worktrees/
+/.positai/
+/Users/
 
 # Snakemake
 logs/
@@ -99,4 +102,4 @@ node_modules/
 
 # Manuscript PDF (reference copy, not versioned)
 HG002v5-variant-benchmark-manuscript.pdf
-.positai
+.posit/assistant

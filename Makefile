@@ -1,4 +1,4 @@
-.PHONY: help dry-run lint format format-check test clean clean-deep dag run pre-commit-install
+.PHONY: help dry-run lint format format-check test test-py test-r clean clean-deep dag run pre-commit-install chr8-preview ideogram ideogram-karyoscope
 
 QMD_FILES := $(shell find . -name '*.qmd' -not -path './.snakemake/*' -not -path './results/*' -not -path './logs/*')
 MD_FILES := "**/*.md"
@@ -14,11 +14,14 @@ help:
 	@echo "  format           - Format all code (Python, Snakemake, Markdown, R)"
 	@echo "  format-check     - Check formatting without modifying files"
 	@echo "  test             - Run all tests (lint + format-check + dry-run)"
+	@echo "  test-py          - Run self-contained Python unit tests"
+	@echo "  test-r           - Run R unit tests"
 	@echo "  pre-commit-install - Install pre-commit hooks for automatic formatting"
 	@echo "  dag              - Generate pipeline DAG visualization (PDF + DOT)"
 	@echo "  run              - Execute the pipeline with conda environments"
 	@echo "  clean            - Remove logs and temporary files"
 	@echo "  clean-deep       - Remove heavier local build/test/cache artifacts"
+	@echo "  chr8-preview     - Regenerate chr8 figure and open PDF at actual size"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make format          # format all files"
@@ -40,7 +43,7 @@ lint-py:
 	ruff check workflow/scripts/
 lint-r:
 	@echo "==> Linting R scripts and Quarto files..."
-	Rscript -e "files <- list.files('.', pattern = '.R$$', full.names = TRUE); paths <- c('R', 'test','analysis'); files <- c(files, unlist(lapply(paths[dir.exists(paths)], function(p) list.files(p, pattern = '(R|r|qmd)$$', recursive = TRUE, full.names = TRUE)))); lints <- do.call(c, lapply(files, lintr::lint)); if (length(lints) > 0) { print(lints); quit(status = 1) }"
+	Rscript -e "files <- list.files('.', pattern = '.R$$', full.names = TRUE); paths <- c('R', 'tests','analysis'); files <- c(files, unlist(lapply(paths[dir.exists(paths)], function(p) list.files(p, pattern = '(R|r|qmd)$$', recursive = TRUE, full.names = TRUE)))); lints <- do.call(c, lapply(files, lintr::lint)); if (length(lints) > 0) { print(lints); quit(status = 1) }"
 lint-md:
 	@echo "==> Linting Markdown files..."
 	markdownlint $(MD_FILES)
@@ -75,8 +78,16 @@ pre-commit-install:
 	pre-commit install
 	@echo "==> Pre-commit hooks installed. Formatting will run automatically on git commit."
 
-# Run all tests
-test: lint format-check dry-run
+# Run self-contained unit tests. test_common_helpers.py targets removed
+# Snakemake helpers and is excluded until it is rewritten or removed.
+test-py:
+	pytest tests/unit/ --ignore=tests/unit/test_common_helpers.py -v
+
+test-r:
+	Rscript -e 'files <- list.files("tests", pattern = "^test_.*\\.R$$", full.names = TRUE); for (file in files) { message("Running ", file); source(file) }'
+
+# Run all checks
+test: lint format-check test-py test-r dry-run
 	@echo "==> All tests passed!"
 
 # Generate pipeline DAG visualization
@@ -95,6 +106,30 @@ run:
 	@echo "==> Running pipeline with conda environments..."
 	time snakemake --cores 20 --sdm conda --conda-frontend conda --report pipeline_run.html --report-after-run
 	@echo "==> Pipeline execution complete"
+
+# Regenerate chr8 synteny figure and open the PDF at actual manuscript size.
+# PDFs carry physical dimensions — Preview → View → Actual Size shows true inches.
+# Edit CONFIG constants in workflow/scripts/make_chr8_figure.py, then rerun.
+chr8-preview:
+	@echo "==> Regenerating chr8 synteny figure..."
+	rm -f results/chr8_synteny/chr8_figure.pdf results/chr8_synteny/chr8_figure.png \
+	      results/chr8_synteny/plotsr_chr8_full.pdf results/chr8_synteny/plotsr_chr8_zoom.pdf
+	snakemake --sdm conda --cores 4 chr8_synteny
+	@echo "==> Opening PDF (View → Actual Size for true manuscript dimensions)..."
+	open results/chr8_synteny/chr8_figure.pdf
+
+# Generate genome-wide ideogram figure
+ideogram: scripts/make_ideogram.R resources/hg19ToHg38.over.chain.gz
+	Rscript scripts/make_ideogram.R
+
+# Alternative genome-view ideogram rendered with KaryoScope's painted-chromosome
+# renderer: horizontal (landscape) chromosomes painted with the actual benchmark
+# regions, with telomere markers (manuscript/figs/ideogram_karyoscope.{svg,pdf,png}).
+# Requires the karyoscope conda env (one-time):
+#   mamba env create -f workflow/envs/karyoscope.yaml
+# --coverage-mode presence|graded switches to the 1 Mb-bin coverage variants.
+ideogram-karyoscope: scripts/make_ideogram_karyoscope.py resources/hg19ToHg38.over.chain.gz workflow/envs/karyoscope.yaml
+	conda run -n karyoscope --no-capture-output python scripts/make_ideogram_karyoscope.py
 
 # Clean logs and temporary files
 clean:

@@ -125,7 +125,14 @@ Use of alpha so small variant and SV are on the same plot. Ideally would like to
     y = "Context Included",
     fill = "Benchmark Version"
   ) +
-  theme_manuscript() +
+  theme_manuscript(
+    text = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 11),
+    strip.text = element_text(size = 11, face = "bold")
+  ) +
   theme(
     legend.position = "bottom"
   ))
@@ -161,9 +168,16 @@ category of difficulty.
     y = "Context in Bench",
     fill = "Benchmark Version"
   ) +
-  theme_manuscript() +
+  theme_manuscript(
+    text = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 11),
+    strip.text = element_text(size = 11, face = "bold")
+  ) +
   theme(
-    axis.text.x = element_text(angle = -45, hjust = 0),
+    axis.text.x = element_text(angle = -45, hjust = 0, size = 10),
     legend.position = "bottom"
   ))
 ```

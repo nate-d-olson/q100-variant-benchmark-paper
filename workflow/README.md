@@ -48,6 +48,8 @@ workflow/
 - `exclusions.smk`: exclusion impact tables, interaction tables, and old-only status outputs.
 - `benchmark_comparisons.smk`: small variant and structural variant comparison runs.
 - `chr8_synteny.smk`: optional chr8 synteny alignment/visualization workflow.
+- `use_case_evaluation.smk`: opt-in extraction of manuscript SV use-case metrics
+  from externally delivered Truvari evaluation directories.
 - `common.smk`: shared helper functions and target generators.
 
 ## Canonical Targets
@@ -62,6 +64,9 @@ Defined by `rule all` in `Snakefile`:
 - `results/exclusions/{benchmark}/exclusion_interactions.csv`
 - `results/exclusions/{comp_id}/old_only_summary.csv`
 - chr8 synteny figure targets when enabled in config
+- `results/use_case/stvar/stratified_metrics.csv`
+- `results/use_case/stvar/svtype_metrics.csv`
+- `results/use_case/stvar/svtype_size_counts.csv`
 
 ## Running
 

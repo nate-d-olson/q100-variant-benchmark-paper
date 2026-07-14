@@ -203,7 +203,7 @@ A total of `r total_smvs` small variants were evaluated, of which
   ggplot(aes(y = callset, x = n, fill = curation_benchmark)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   scale_fill_brewer(palette = "Set2") +
-  labs(x = "Callset", y = "# of Variants", fill = "Correct in\nBenchmark") +
+  labs(y = "Callset", x = "# of Variants", fill = "Correct in\nBenchmark") +
   theme_manuscript() +
   theme(legend.position = "bottom"))
 ```
@@ -214,7 +214,7 @@ A total of `r total_smvs` small variants were evaluated, of which
   ggplot(aes(y = callset, x = n, fill = curation_callset)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   scale_fill_brewer(palette = "Set2") +
-  labs(x = "Callset", y = "# of Variants", fill = "Correct in\nCallset") +
+  labs(y = "Callset", x = "# of Variants", fill = "Correct in\nCallset") +
   theme_manuscript() +
   theme(legend.position = "right"))
 ```
@@ -226,7 +226,7 @@ A total of `r total_smvs` small variants were evaluated, of which
   ggplot(aes(y = strata_label, x = n, fill = curation_benchmark)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
   scale_fill_brewer(palette = "Set2") +
-  labs(x = "# of Variants", y = NULL, fill = "Correct in\nBenchmark") +
+  labs(x = "# of Variants", y = "Strata", fill = "Correct in\nBenchmark") +
   theme_manuscript() +
   theme(legend.position = "bottom"))
 ```
@@ -394,39 +394,36 @@ ggsave(
 
 ## Combined Evaluation Figure
 
-```{r combined_eval, fig.width = 7, fig.height = 7}
-(combined_eval_plt <- (smvar_eval_callset_plt +
+```{r combined_eval, fig.width = 6, fig.height = 3}
+(combined_eval_plt <- (
   smvar_eval_strata_plt +
-  stvar_eval_callset_plt +
   stvar_eval_strata_plt) +
   plot_annotation(tag_levels = "A") +
-  plot_layout(guides = "collect", ncol = 2, nrow = 2) &
-  theme(legend.position = "bottom", plot.margin = margin(0, 0, 0, 0)))
+  plot_layout(guides = "collect", ncol = 2, nrow = 1) &
+  theme(legend.position = "bottom", plot.margin = margin(0, 2, 0, 0)))
 
 ggsave(
-  filename = here("manuscript", "figs", "combined_eval.png"),
+  filename = here("manuscript", "figs", "combined_eval_strata.png"),
   plot = combined_eval_plt,
-  width = 7,
-  height = 7,
-  dpi = 300
+  width = 6,
+  height = 3,
+  dpi = 450
 )
 ```
 
-## Combined Evaluation Figure (Correct in Callset)
-
-```{r combined_eval_cs, fig.width = 8, fig.height = 8}
-(combined_eval_cs_plt <- (
-  smvar_eval_callset_cs_plt + smvar_eval_strata_cs_plt +
-    stvar_eval_callset_cs_plt + stvar_eval_strata_cs_plt
-) +
+```{r}
+(combined_eval_callset_plt <- (smvar_eval_callset_plt +
+  stvar_eval_callset_plt) +
   plot_annotation(tag_levels = "A") +
-  plot_layout(guides = "collect", ncol = 2, nrow = 2) &
-  theme(legend.position = "bottom"))
+  plot_layout(guides = "collect", ncol = 2, nrow = 1) &
+  theme(legend.position = "bottom", plot.margin = margin(0, 2, 0, 0)))
 
 ggsave(
   filename = here("manuscript", "figs", "combined_eval_callset.png"),
-  plot = combined_eval_cs_plt,
-  width = 8, height = 8, dpi = 300
+  plot = combined_eval_callset_plt,
+  width = 6,
+  height = 3,
+  dpi = 300
 )
 ```
 

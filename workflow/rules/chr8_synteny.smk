@@ -209,6 +209,7 @@ rule chr8_make_figure:
         syri_rm="results/chr8_synteny/syri/ref_matsyri.out",
         syri_mp="results/chr8_synteny/syri/mat_patsyri.out",
         coords="results/chr8_synteny/inversion_coords.json",
+        cfg="workflow/scripts/plotsr.cfg",
     output:
         pdf="results/chr8_synteny/chr8_figure.pdf",
         png="results/chr8_synteny/chr8_figure.png",
@@ -234,6 +235,7 @@ rule chr8_make_figure:
             --mp {input.syri_mp} \
             --coords {input.coords} \
             --chrom {params.chrom} \
+            --cfg {input.cfg} \
             --out {params.out_base} >> {log} 2>&1
 
         echo "Completed at $(date)" >> {log}

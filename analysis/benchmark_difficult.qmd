@@ -115,8 +115,9 @@ context_fold_chg <- context_counts_long %>%
 
 ```{r variant_count_main_plot, fig.width = 8, fig.height = 4.5}
 (variant_count_plt <- context_counts_long %>%
+   mutate(context_id = if_else(context_ids == "COMPLEX", "CMPLX", context_ids)) %>% 
   ggplot(aes(
-    x = context_label,
+    x = context_ids,
     y = count,
     fill = bench_version
   )) +
@@ -129,12 +130,12 @@ context_fold_chg <- context_counts_long %>%
   geom_text(
     data = context_fold_chg,
     aes(
-      x = context_label,
+      x = context_ids,
       y = label_y,
       label = sprintf("%.1fx", fold_chg)
     ),
     inherit.aes = FALSE,
-    vjust = -0.5,
+    vjust = -1,
     size = 3,
     fontface = "bold"
   ) +
@@ -152,16 +153,15 @@ context_fold_chg <- context_counts_long %>%
   ) +
   theme_manuscript() +
   theme(
-    axis.text.x = element_text(angle = -30, hjust = 0),
     legend.position = "bottom",
-    plot.margin = margin(5, 25, 5, 5)
+    plot.margin = margin(1, 5, 1, 1)
   ))
 
 ggsave(
   filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
   plot = variant_count_plt,
-  width = 8.5,
-  height = 4.5,
+  width = 6,
+  height = 3,
   dpi = 300
 )
 ```
@@ -231,17 +231,17 @@ genomic_context_var_fld_chg <- bind_rows(gc_size_counts, complex_size_counts) %>
   ggplot() +
   geom_point(
     aes(
-      x = context_ids,
+      x = var_size_bin,
       y = fold_chg,
-      fill = var_size_bin,
-      shape = var_type
+      shape = var_type,
+      fill = var_size_bin
     ),
     size = 3,
     color = "black",
     position = position_jitterdodge(jitter.width = 0.15)
   ) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey50") +
-  facet_wrap(~bench_type_label, scales = "free", ncol = 1) +
+  facet_grid(bench_type_label~context_ids, scales = "free") +
   scale_shape_manual(
     values = c(21, 22, 23, 24),
     guide = guide_legend(override.aes = list(fill = "grey80"))
@@ -251,9 +251,9 @@ genomic_context_var_fld_chg <- bind_rows(gc_size_counts, complex_size_counts) %>
   ) +
   scale_y_continuous(labels = scales::comma) +
   labs(
-    x = "Genomic Context",
+    x = "Variant Size",
     y = "Fold Change (v5.0q / legacy)",
-    fill = "Variant Size",
+    # fill = "Variant Size",
     shape = "Variant Type"
   ) +
   theme_manuscript() +

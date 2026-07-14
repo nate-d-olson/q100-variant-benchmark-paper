@@ -48,6 +48,7 @@ The active rule modules included by `workflow/Snakefile` are:
 - `rules/exclusions.smk`
 - `rules/benchmark_comparisons.smk`
 - `rules/chr8_synteny.smk`
+- `rules/use_case_evaluation.smk`
 
 ## Key Outputs
 
@@ -59,6 +60,8 @@ The active rule modules included by `workflow/Snakefile` are:
 - `results/exclusions/{comp_id}/old_only_summary.csv`
 - `results/ref_genome_sizes/{ref}_size.tsv`
 - `results/chr8_synteny/chr8_figure.{pdf,png}` (when chr8 synteny is enabled)
+- `results/use_case/stvar/{stratified_metrics,svtype_metrics,svtype_size_counts}.csv`
+  (opt-in target using externally delivered callset evaluations)
 
 ## Getting Started
 
@@ -116,10 +119,11 @@ quarto publish gh-pages # Publish to GitHub Pages
 - `docs/data-dictionary.md`: metric/column definitions
 - `docs/api-reference.md`: shared helper/API docs
 - `docs/troubleshooting.md`: common failures and fixes
-- `notes/README.md`: index of dated/working notes
 - `analysis/README.md`: notebook-specific guidance
 - `workflow/README.md`: workflow module and script guide
 - `tests/README.md`: test execution and fixture details
+- `docs/figure-review-dashboard.qmd`: side-by-side review of competing figure versions
+- `docs/figure-manifest.csv`: figure candidates, sources, and outstanding decisions
 
 ## Artifact Policy
 

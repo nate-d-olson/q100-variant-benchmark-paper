@@ -165,7 +165,7 @@ loaders (metrics, exclusions, reference sizes) read directly each call.
 | `benchmark_interval_size_distributions.qmd` | `bench_regions_df` |
 | `genomic_context_analysis.qmd` | per-context overlaps |
 | `external_evaluation.qmd` | external benchmark comparisons |
-| `use_case_evaluation.qmd` | hap.py + Truvari outputs (manual; **not yet wired into Snakemake** — see TODO.md) |
+| `use_case_evaluation.qmd` | hap.py outputs plus SV metrics extracted by the opt-in `use_case_evaluation` Snakemake target; upstream callset evaluation directories are still delivered manually |
 
 `analysis/_notebook_setup.R` provides `analysis_setup()` — loads tidyverse,
 sources `R/data_loading.R` and `R/plot_themes.R`. Call at the top of each notebook.
