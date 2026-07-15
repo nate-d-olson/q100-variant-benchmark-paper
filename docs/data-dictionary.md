@@ -73,6 +73,10 @@ The functions in `R/data_loading.R` load and standardize pipeline outputs. This 
 | `ins_count`              | Integer | Count of Insertions (INS)                                                |
 | `variant_density_per_mb` | Numeric | Number of variants per Megabase                                          |
 
+**Note:** Count columns for a variant type absent from a given `bench_type` (e.g., `indel_count`
+for `stvar` benchmarks) are `0`, not `NA` — these represent an absent variant class, not a missing
+measurement.
+
 ### Exclusion Metrics
 
 **Function:** `load_exclusion_metrics()`
