@@ -7,7 +7,7 @@ source(here::here("R/data_loading.R"))
 test_that("parse_benchmark_id extracts all components", {
   # Test with full path
   result <- parse_benchmark_id(
-    "results/var_counts/v5.0q_GRCh38_smvar/stratification_combined_metrics.csv"
+    "results/genomic_context/v5.0q_GRCh38_smvar/variants_by_genomic_context.parquet"
   )
 
   expect_equal(result$bench_version, "v5.0q")

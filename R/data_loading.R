@@ -535,7 +535,10 @@ load_genomic_context_metrics <- function(
       wide_df <- raw_df %>%
         dplyr::group_by(context_name, var_type) %>%
         dplyr::summarise(count = sum(count), .groups = "drop") %>%
-        dplyr::mutate(var_type = paste0(tolower(var_type), "_count")) %>%
+        dplyr::mutate(
+          var_type = dplyr::recode(toupper(var_type), SNP = "SNV"),
+          var_type = paste0(tolower(var_type), "_count")
+        ) %>%
         tidyr::pivot_wider(
           names_from = var_type,
           values_from = count,
@@ -619,6 +622,18 @@ load_genomic_context_metrics <- function(
 
       .add_benchmark_metadata(wide_df, .benchmark_id_from_file(file))
     })
+
+  # Binding small- and structural-variant benchmarks introduces NA values for
+  # count columns that do not apply to a benchmark type. These are absent
+  # classes, not unknown measurements, so represent them as zero.
+  expected_count_cols <- c("snv_count", "indel_count", "del_count", "ins_count")
+  metrics_df <- metrics_df %>%
+    dplyr::mutate(
+      dplyr::across(
+        dplyr::any_of(expected_count_cols),
+        ~ dplyr::coalesce(.x, 0L)
+      )
+    )
 
   # Apply benchmark filter if provided
   if (!is.null(benchmark_filter)) {

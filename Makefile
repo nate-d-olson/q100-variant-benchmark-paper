@@ -84,7 +84,7 @@ test-py:
 	pytest tests/unit/ --ignore=tests/unit/test_common_helpers.py -v
 
 test-r:
-	Rscript -e 'files <- list.files("tests", pattern = "^test_.*\\.R$$", full.names = TRUE); for (file in files) { message("Running ", file); source(file) }'
+	Rscript -e 'files <- list.files("tests", pattern = "^test_.*[.]R$$", full.names = TRUE); stopifnot(length(files) > 0L); for (file in files) { message("Running ", file); source(file) }'
 
 # Run all checks
 test: lint format-check test-py test-r dry-run

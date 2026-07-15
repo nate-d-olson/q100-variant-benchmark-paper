@@ -27,7 +27,7 @@ From repository root.
 ## R tests
 
 ```bash
-Rscript -e 'testthat::test_dir("tests")'
+make test-r
 ```
 
 Run a single file:
@@ -39,13 +39,13 @@ Rscript -e 'testthat::test_file("tests/test_cache.R")'
 ## Python tests
 
 ```bash
-pytest tests/ -v
+make test-py
 ```
 
 Run a single file:
 
 ```bash
-pytest tests/unit/test_common_helpers.py -v
+pytest tests/unit/test_find_chr8_inversion.py -v
 ```
 
 ## Workflow-level validation
@@ -55,6 +55,10 @@ Use Makefile targets for lint + formatting checks + workflow dry-run:
 ```bash
 make test
 ```
+
+`tests/unit/test_common_helpers.py` is excluded from `make test-py` because it
+imports Snakemake DSL code as a Python module and tests helpers that no longer
+exist. Rewrite or remove it before adding it back to the default test suite.
 
 ## Test Data
 
