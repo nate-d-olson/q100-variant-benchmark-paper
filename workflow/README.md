@@ -1,6 +1,6 @@
 # Snakemake Workflow
 
-This directory contains the active Snakemake pipeline for generating benchmark analysis outputs used across `analysis/`, `manuscript/`, and `docs/`.
+This directory contains the active Snakemake pipeline for generating benchmark analysis outputs consumed by `analysis/` notebooks, which write figures to `figures/` and tables to `tables/`.
 
 ## Structure
 

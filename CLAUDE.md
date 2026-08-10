@@ -10,7 +10,8 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 - `analysis/` - Quarto notebooks and cached data
 - `config/` - Pipeline configuration (config.yaml)
 - `docs/` - Architecture docs, data dictionary, troubleshooting
-- `manuscript/` - Quarto manuscript chapters (introduction, methods, results, discussion)
+- `figures/` - Versioned manuscript figures (PDF + PNG); `figures/vector/` for pangene SVG/PDF exports
+- `tables/` - Versioned manuscript tables (`tables/tables.docx`)
 - `scripts/` - Utility scripts (create_grch38_debug_subset.py, happy_giab.R)
 - `tests/` - R tests (testthat) and Python tests (pytest)
 - `workflow/` - Snakemake rules and Python scripts
@@ -327,7 +328,7 @@ All palettes are colorblind-friendly and print-friendly.
 - `analysis/benchmark_interval_size_distributions.qmd` — Interval size distributions
 - `analysis/benchmark_unique_regions.qmd` — Unique region analysis across benchmark versions
 - `analysis/external_evaluation.qmd` — External benchmark comparisons
-- `analysis/_notebook_setup.R` — `analysis_setup()` helper: loads tidyverse/patchwork, sources `R/data_loading.R` and `R/plot_themes.R`; call at top of each notebook
+- `analysis/_notebook_setup.R` — defines `FIG_DIR <- here::here("figures")` (the figure output root) and `analysis_setup()` helper: loads tidyverse/patchwork, sources `R/data_loading.R` and `R/plot_themes.R`; call at top of each notebook
 
 ## Column Naming Conventions
 

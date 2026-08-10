@@ -2,8 +2,8 @@
 
 Snakemake-based workflow for analyzing the GIAB Q100 HG002 variant benchmark across
 GRCh37, GRCh38, CHM13v2.0 and benchmark versions v0.6, v4.2.1, v5.0q. The pipeline
-produces aggregated metrics consumed by Quarto notebooks in `analysis/` and the
-`manuscript/` chapters.
+produces aggregated metrics consumed by Quarto notebooks in `analysis/`, which write
+figures to `figures/` and tables to `tables/`.
 
 ## Top-level layout
 
@@ -16,7 +16,9 @@ workflow/
 └── envs/                 # 6 conda environments
 R/                        # data loading + plot themes (Quarto consumers)
 analysis/                 # 8 Quarto notebooks
-manuscript/               # Quarto manuscript chapters
+figures/                  # versioned manuscript figures (PDF + PNG)
+├── vector/               # pangene SVG/PDF vector exports
+tables/                   # versioned manuscript tables (tables.docx)
 results/                  # gitignored pipeline outputs
 resources/                # gitignored downloaded benchmarks/refs/strats
 ```
@@ -109,7 +111,7 @@ VCF normalization + indexing            Reference indexing
          R loaders (R/data_loading.R) → Parquet cache (analysis/cache/)
                    │
                    ▼
-         Quarto notebooks → manuscript figures/tables
+         Quarto notebooks → figures/ + tables/
 ```
 
 ## Annotation Model
@@ -167,8 +169,9 @@ loaders (metrics, exclusions, reference sizes) read directly each call.
 | `external_evaluation.qmd` | external benchmark comparisons |
 | `use_case_evaluation.qmd` | hap.py outputs plus SV metrics extracted by the opt-in `use_case_evaluation` Snakemake target; upstream callset evaluation directories are still delivered manually |
 
-`analysis/_notebook_setup.R` provides `analysis_setup()` — loads tidyverse,
-sources `R/data_loading.R` and `R/plot_themes.R`. Call at the top of each notebook.
+`analysis/_notebook_setup.R` defines `FIG_DIR <- here::here("figures")` (the figure
+output root) and provides `analysis_setup()` — loads tidyverse, sources
+`R/data_loading.R` and `R/plot_themes.R`. Call at the top of each notebook.
 
 ## Tooling
 
