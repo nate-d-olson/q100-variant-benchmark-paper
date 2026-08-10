@@ -124,7 +124,7 @@ ideogram: scripts/make_ideogram.R resources/hg19ToHg38.over.chain.gz
 
 # Alternative genome-view ideogram rendered with KaryoScope's painted-chromosome
 # renderer: horizontal (landscape) chromosomes painted with the actual benchmark
-# regions, with telomere markers (manuscript/figs/ideogram_karyoscope.{svg,pdf,png}).
+# regions, with telomere markers (figures/ideogram_karyoscope.{svg,pdf,png}).
 # Requires the karyoscope conda env (one-time):
 #   mamba env create -f workflow/envs/karyoscope.yaml
 # --coverage-mode presence|graded switches to the 1 Mb-bin coverage variants.
@@ -145,8 +145,10 @@ clean:
 # Clean heavier local artifacts (safe to regenerate)
 clean-deep: clean
 	@echo "==> Cleaning deep local artifacts..."
-	rm -rf .quarto/
+	rm -rf .quarto/ _site/ _freeze/ _manuscript/
 	rm -rf .test/
 	rm -rf .pytest_cache/
+	rm -f pipeline_run.html index.log
 	find analysis -maxdepth 1 -type f -name "*.html" -delete 2>/dev/null || true
+	find . -name ".DS_Store" -not -path "./.git/*" -delete 2>/dev/null || true
 	@echo "==> Deep clean complete"

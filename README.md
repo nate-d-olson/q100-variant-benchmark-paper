@@ -20,9 +20,9 @@ project-root/
 ├── config/                   # Runtime config + JSON schema
 ├── R/                        # Shared R helpers (loading, cache, themes)
 ├── analysis/                 # Quarto analysis notebooks
-├── manuscript/figs/           # Generated figures for manuscript
+├── figures/                  # Generated figures (PDF + PNG + vector)
+├── tables/                   # Generated tables (Word .docx)
 ├── docs/                     # Architecture, outputs, troubleshooting
-├── notes/                    # Dated working notes, plans, and prep checklists
 ├── tests/                    # R + Python tests
 ├── scripts/                  # Utility scripts
 ├── resources/                # Downloaded pipeline inputs (gitignored)
@@ -69,7 +69,7 @@ The active rule modules included by `workflow/Snakefile` are:
 
 - Conda or Mamba
 - Snakemake >= 8
-- Quarto (for notebook/manuscript/site rendering)
+- Quarto (for notebook rendering)
 - R with project packages (renv recommended)
 
 ## Environment setup
@@ -92,24 +92,15 @@ make run
 make test
 ```
 
-## Render notebooks/manuscript
+## Render notebooks
 
 ```bash
-# Example notebook
+# Render individual analysis notebook
 quarto render analysis/benchmarkset_characterization.qmd
 
-# Project root Quarto document
-quarto render index.qmd
-```
-
-## Build site
-
-The repository is configured as a Quarto website project. To render:
-
-```bash
-quarto render           # Render full site to _site/
-quarto preview          # Live preview with auto-reload
-quarto publish gh-pages # Publish to GitHub Pages
+# Render the full project site (all notebooks + docs)
+quarto render           # output goes to _site/
+quarto preview          # live preview with auto-reload
 ```
 
 ## Documentation Index
@@ -130,12 +121,12 @@ quarto publish gh-pages # Publish to GitHub Pages
 - Commit source and durable assets: workflow code (`workflow/`, `config/`, `R/`, `scripts/`), notebooks (`analysis/*.qmd`), and docs.
 - Do not commit generated run outputs: `results/`, `resources/`, `logs/`, `.snakemake/`, `analysis/cache/`, rendered notebook HTML, and site build outputs under `_site/` and `_freeze/`.
 - Keep root-level exports/archive files out of git: LaTeX export intermediates (`index.tex`), run reports (`pipeline_run.html`), and archive bundles (`*.tar.gz`).
-- Generated figures for the manuscript are versioned under `manuscript/figs/`.
+- Generated figures for the manuscript are versioned under `figures/`.
 
 ## Workspace Notes
 
 - Large/generated directories (`results/`, `resources/`, `logs/`, `.snakemake/`, `analysis/cache/`, rendered HTML) are expected in local runs and are mostly gitignored.
-- Manuscript figures under `manuscript/figs/` are versioned.
+- Manuscript figures under `figures/` are versioned.
 
 ## License
 

@@ -11,7 +11,7 @@ https://pangene.bioinweb.org/view?graph=human472-1.1a2&gene=SULT1A1&step=3&ori=
 Current local raster reference:
 
 ```text
-manuscript/figs/gene1.png
+figures/gene1.png
 ```
 
 ## What I Verified
@@ -126,7 +126,7 @@ The implemented workflow has two small scripts:
 Create an output directory:
 
 ```bash
-mkdir -p work/pangene manuscript/figs/vector
+mkdir -p work/pangene figures/vector
 ```
 
 Fetch the rendered page from the public server:
@@ -150,7 +150,7 @@ Render SVG:
 ```bash
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.pangene.svg \
+  --output figures/vector/SULT1A1.pangene.svg \
   --title SULT1A1
 ```
 
@@ -170,20 +170,20 @@ Common examples:
 # Transparent background, best as an editable source figure.
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.pangene.svg \
+  --output figures/vector/SULT1A1.pangene.svg \
   --title SULT1A1
 
 # White background, useful for quick previewing.
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.pangene.white.svg \
+  --output figures/vector/SULT1A1.pangene.white.svg \
   --background white \
   --title SULT1A1
 
 # Slightly taller gene blocks if the default looks too thin in a journal figure.
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.pangene.tall.svg \
+  --output figures/vector/SULT1A1.pangene.tall.svg \
   --block-height 14 \
   --title SULT1A1
 ```
@@ -195,14 +195,14 @@ Reference-walk layout:
 # GRCh38, HG002#1, and HG002#2 are defaults when --layout reference-walk is used.
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.hg002-linear.svg \
+  --output figures/vector/SULT1A1.hg002-linear.svg \
   --layout reference-walk \
   --title SULT1A1
 
 # White background variant for previewing.
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.hg002-linear.white.svg \
+  --output figures/vector/SULT1A1.hg002-linear.white.svg \
   --layout reference-walk \
   --background white \
   --title SULT1A1
@@ -213,7 +213,7 @@ Reference-walk mode arranges reference genes in GRCh38 walk order, draws HG002#1
 ```bash
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/MYGENE.gfa \
-  --output manuscript/figs/vector/MYGENE.linear.svg \
+  --output figures/vector/MYGENE.linear.svg \
   --layout reference-walk \
   --reference-walk CHM13#0 \
   --highlight-walk SAMPLE#1 \
@@ -232,14 +232,14 @@ The event-track layouts are formatted for manuscript placement: SVG physical wid
 # Compact schematic for the SULT1A1 HG002 haplotype events described in the manuscript.
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.events.svg \
+  --output figures/vector/SULT1A1.events.svg \
   --layout event-tracks \
   --title "SULT1A1 HG002 haplotype events"
 
 # White-background variant, useful for previewing and direct manuscript placement.
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.events.white.svg \
+  --output figures/vector/SULT1A1.events.white.svg \
   --layout event-tracks \
   --background white \
   --title "SULT1A1 HG002 haplotype events"
@@ -249,12 +249,12 @@ Convert the event schematic to PDF:
 
 ```bash
 rsvg-convert -f pdf \
-  manuscript/figs/vector/SULT1A1.events.svg \
-  -o manuscript/figs/vector/SULT1A1.events.pdf
+  figures/vector/SULT1A1.events.svg \
+  -o figures/vector/SULT1A1.events.pdf
 
 rsvg-convert -f pdf \
-  manuscript/figs/vector/SULT1A1.events.white.svg \
-  -o manuscript/figs/vector/SULT1A1.events.white.pdf
+  figures/vector/SULT1A1.events.white.svg \
+  -o figures/vector/SULT1A1.events.white.pdf
 ```
 
 The `event-tracks` layout is intentionally manuscript-specific. It verifies that the input GFA contains the expected GRCh38, HG002#1, and HG002#2 walks and uses gene colors from the GFA, but it draws a compact schematic of the described events rather than trying to infer every event label generically. The output emphasizes:
@@ -272,14 +272,14 @@ PMS2 inversion event layout:
 # Compact schematic for the PMS2 segmental-duplication-mediated inversion.
 scripts/pangene_gfa_to_svg.js \
   --input pms2.gfa \
-  --output manuscript/figs/vector/PMS2.events.svg \
+  --output figures/vector/PMS2.events.svg \
   --layout pms2-events \
   --title "PMS2 segmental duplication inversion"
 
 # White-background variant for previewing and direct manuscript placement.
 scripts/pangene_gfa_to_svg.js \
   --input pms2.gfa \
-  --output manuscript/figs/vector/PMS2.events.white.svg \
+  --output figures/vector/PMS2.events.white.svg \
   --layout pms2-events \
   --background white \
   --title "PMS2 segmental duplication inversion"
@@ -289,12 +289,12 @@ Convert the PMS2 schematic to PDF:
 
 ```bash
 rsvg-convert -f pdf \
-  manuscript/figs/vector/PMS2.events.svg \
-  -o manuscript/figs/vector/PMS2.events.pdf
+  figures/vector/PMS2.events.svg \
+  -o figures/vector/PMS2.events.pdf
 
 rsvg-convert -f pdf \
-  manuscript/figs/vector/PMS2.events.white.svg \
-  -o manuscript/figs/vector/PMS2.events.white.pdf
+  figures/vector/PMS2.events.white.svg \
+  -o figures/vector/PMS2.events.white.pdf
 ```
 
 The `pms2-events` layout is a PMS2-specific schematic. It counts the inverted walks directly from `pms2.gfa`, chooses a representative inverted haplotype, draws the GRCh38 17-gene block against the inverted order, and annotates the duplicated PMS2/pseudogene segmental-duplication copies that can cause minimap2 to swap mappings between PMS2 and its pseudogene. To force a specific inverted walk instead of the first detected one, pass it explicitly:
@@ -302,7 +302,7 @@ The `pms2-events` layout is a PMS2-specific schematic. It counts the inverted wa
 ```bash
 scripts/pangene_gfa_to_svg.js \
   --input pms2.gfa \
-  --output manuscript/figs/vector/PMS2.events.HG00735.svg \
+  --output figures/vector/PMS2.events.HG00735.svg \
   --layout pms2-events \
   --highlight-walk HG00735#1 \
   --title "PMS2 segmental duplication inversion"
@@ -328,12 +328,12 @@ GENE=MYGENE
 
 scripts/pangene_gfa_to_svg.js \
   --input "work/pangene/${GENE}.gfa" \
-  --output "manuscript/figs/vector/${GENE}.pangene.svg" \
+  --output "figures/vector/${GENE}.pangene.svg" \
   --title "${GENE}"
 
 rsvg-convert -f pdf \
-  "manuscript/figs/vector/${GENE}.pangene.svg" \
-  -o "manuscript/figs/vector/${GENE}.pangene.pdf"
+  "figures/vector/${GENE}.pangene.svg" \
+  -o "figures/vector/${GENE}.pangene.pdf"
 ```
 
 Reference-walk figure with custom haplotypes:
@@ -343,7 +343,7 @@ GENE=MYGENE
 
 scripts/pangene_gfa_to_svg.js \
   --input "work/pangene/${GENE}.gfa" \
-  --output "manuscript/figs/vector/${GENE}.reference-walk.svg" \
+  --output "figures/vector/${GENE}.reference-walk.svg" \
   --layout reference-walk \
   --reference-walk GRCh38 \
   --highlight-walk SAMPLE#1 \
@@ -359,18 +359,18 @@ node --check scripts/pangene_gfa_to_svg.js
 
 scripts/pangene_gfa_to_svg.js \
   --input INPUT.gfa \
-  --output manuscript/figs/vector/FIGURE.events.white.svg \
+  --output figures/vector/FIGURE.events.white.svg \
   --layout LAYOUT_NAME \
   --background white \
   --title "FIGURE TITLE"
 
-xmllint --noout manuscript/figs/vector/FIGURE.events.white.svg
+xmllint --noout figures/vector/FIGURE.events.white.svg
 
 rsvg-convert -f pdf \
-  manuscript/figs/vector/FIGURE.events.white.svg \
-  -o manuscript/figs/vector/FIGURE.events.white.pdf
+  figures/vector/FIGURE.events.white.svg \
+  -o figures/vector/FIGURE.events.white.pdf
 
-pdfinfo manuscript/figs/vector/FIGURE.events.white.pdf
+pdfinfo figures/vector/FIGURE.events.white.pdf
 ```
 
 For event schematics, check that `pdfinfo` reports a page width of `504 pt`, which is 7 inches.
@@ -387,8 +387,8 @@ Please update the existing Pangene event schematic in scripts/pangene_gfa_to_svg
 Target layout: [event-tracks or pms2-events]
 Input GFA: [path/to/input.gfa]
 Outputs to regenerate:
-- manuscript/figs/vector/[NAME].events.svg
-- manuscript/figs/vector/[NAME].events.white.svg
+- figures/vector/[NAME].events.svg
+- figures/vector/[NAME].events.white.svg
 - matching PDFs
 
 Requested visual changes:
@@ -416,7 +416,7 @@ Main manuscript point: [one or two sentences]
 
 Start with --layout reference-walk unless the manuscript point requires a custom schematic.
 If a custom schematic is needed, explain why and then implement the smallest gene-specific layout.
-Regenerate SVG and PDF outputs under manuscript/figs/vector/ and validate them.
+Regenerate SVG and PDF outputs under figures/vector/ and validate them.
 ```
 
 Template: make a new custom event schematic
@@ -425,7 +425,7 @@ Template: make a new custom event schematic
 Please create a new custom event schematic by extending scripts/pangene_gfa_to_svg.js.
 
 Input GFA: [path/to/gene.gfa]
-Output prefix: manuscript/figs/vector/[NAME]
+Output prefix: figures/vector/[NAME]
 Tracks/walks to show: [GRCh38, HG002#1, HG002#2, etc.]
 Reference order: [walk name]
 Events to emphasize:
@@ -461,16 +461,16 @@ Summarize any remaining caveats and provide a short daily-note summary.
 Convert to PDF:
 
 ```bash
-inkscape manuscript/figs/vector/SULT1A1.pangene.svg \
-  --export-filename=manuscript/figs/vector/SULT1A1.pangene.pdf
+inkscape figures/vector/SULT1A1.pangene.svg \
+  --export-filename=figures/vector/SULT1A1.pangene.pdf
 ```
 
 If Inkscape is not installed but `rsvg-convert` is available:
 
 ```bash
 rsvg-convert -f pdf \
-  manuscript/figs/vector/SULT1A1.pangene.svg \
-  -o manuscript/figs/vector/SULT1A1.pangene.pdf
+  figures/vector/SULT1A1.pangene.svg \
+  -o figures/vector/SULT1A1.pangene.pdf
 ```
 
 To apply this to another gene, change the `gene`, output basename, and optional `title`:
@@ -488,7 +488,7 @@ scripts/extract_pangene_gfa.py \
 
 scripts/pangene_gfa_to_svg.js \
   --input "work/pangene/${GENE}.gfa" \
-  --output "manuscript/figs/vector/${GENE}.pangene.svg" \
+  --output "figures/vector/${GENE}.pangene.svg" \
   --title "${GENE}"
 ```
 
@@ -540,10 +540,10 @@ python3 scripts/gfa_to_dot.py \
   > work/pangene/SULT1A1.dot
 
 dot -Tsvg work/pangene/SULT1A1.dot \
-  > manuscript/figs/vector/SULT1A1.graphviz.svg
+  > figures/vector/SULT1A1.graphviz.svg
 
 dot -Tpdf work/pangene/SULT1A1.dot \
-  > manuscript/figs/vector/SULT1A1.graphviz.pdf
+  > figures/vector/SULT1A1.graphviz.pdf
 ```
 
 Pros:
@@ -565,19 +565,19 @@ For this manuscript, Approach 2 is implemented with:
 
 - `scripts/extract_pangene_gfa.py`
 - `scripts/pangene_gfa_to_svg.js`
-- `manuscript/figs/vector/SULT1A1.pangene.svg`
-- `manuscript/figs/vector/SULT1A1.pangene.white.svg`
-- `manuscript/figs/vector/SULT1A1.pangene.pdf`
-- `manuscript/figs/vector/SULT1A1.hg002-linear.svg`
-- `manuscript/figs/vector/SULT1A1.hg002-linear.white.svg`
-- `manuscript/figs/vector/SULT1A1.hg002-linear.pdf`
-- `manuscript/figs/vector/SULT1A1.events.svg`
-- `manuscript/figs/vector/SULT1A1.events.pdf`
-- `manuscript/figs/vector/SULT1A1.events.white.svg`
-- `manuscript/figs/vector/SULT1A1.events.white.pdf`
-- `manuscript/figs/vector/PMS2.events.svg`
-- `manuscript/figs/vector/PMS2.events.pdf`
-- `manuscript/figs/vector/PMS2.events.white.svg`
-- `manuscript/figs/vector/PMS2.events.white.pdf`
+- `figures/vector/SULT1A1.pangene.svg`
+- `figures/vector/SULT1A1.pangene.white.svg`
+- `figures/vector/SULT1A1.pangene.pdf`
+- `figures/vector/SULT1A1.hg002-linear.svg`
+- `figures/vector/SULT1A1.hg002-linear.white.svg`
+- `figures/vector/SULT1A1.hg002-linear.pdf`
+- `figures/vector/SULT1A1.events.svg`
+- `figures/vector/SULT1A1.events.pdf`
+- `figures/vector/SULT1A1.events.white.svg`
+- `figures/vector/SULT1A1.events.white.pdf`
+- `figures/vector/PMS2.events.svg`
+- `figures/vector/PMS2.events.pdf`
+- `figures/vector/PMS2.events.white.svg`
+- `figures/vector/PMS2.events.white.pdf`
 
 If the result is useful beyond this paper, promote the same SVG drawing functions into `gfatools/js/gfa-plot.js` as Approach 1.

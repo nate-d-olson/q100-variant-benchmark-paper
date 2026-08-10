@@ -3,7 +3,7 @@
 # AI Disclosure: Developed with assistance from Claude (Anthropic).
 #
 # Usage: Rscript scripts/export_tables_docx.R
-# Output: manuscript/tables.docx
+# Output: tables/tables.docx
 
 library(tidyverse)
 library(here)
@@ -13,7 +13,7 @@ library(flextable)
 source(here("R/data_loading.R"))
 source(here("R/plot_themes.R"))
 
-output_path <- here("manuscript/tables.docx")
+output_path <- here("tables/tables.docx")
 
 # --- Data Loading -----------------------------------------------------------
 

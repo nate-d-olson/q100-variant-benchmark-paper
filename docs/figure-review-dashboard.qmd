@@ -1,6 +1,6 @@
 ---
 title: "Manuscript Figure Review Dashboard"
-subtitle: "Candidate figures requiring a content or layout decision"
+subtitle: "Figure decisions and remaining revision work"
 format:
   html:
     toc: true
@@ -8,19 +8,19 @@ format:
     self-contained-math: true
 ---
 
-This dashboard is a decision aid, not the final manuscript figure list. Each
-section groups files that appear to be competing versions or alternative panel
-layouts. Review figures at full size before choosing; image dimensions alone do
-not establish publication quality.
+This dashboard records the figure review decisions. Selected figures still
+require final manuscript numbering, legends, and print-size checks. Figures
+marked for revision are not approved for publication in their current form.
 
-## Decisions requested
+## Decisions
 
-| Figure family | Decision | Current recommendation |
+| Figure family | Decision | Status / next action |
 |---|---|---|
-| External evaluation | Select the canonical stratified and callset filenames | Keep `combined_eval_strata` and `combined_eval_callset`; retire ambiguous legacy names after manuscript references are checked |
-| Ideogram | Select the genome-wide design and whether chr8 is a panel or separate figure | Prefer the detailed vertical `ideogram_main` if labels remain readable at manuscript width; otherwise use the KaryoScope version |
-| Use case | Select one combined figure or separate small-/structural-variant figures | Prefer a combined figure only if each panel remains legible at final print size |
-| Chr8 | Decide whether the full chromosome, zoom, or composed synteny figure is primary | Use the composed synteny figure for the scientific result; use an ideogram only as orientation |
+| External evaluation | Proceed with the recommended canonical stratified and callset figures | Selected: `combined_eval_strata` and `combined_eval_callset`; check manuscript references before retiring legacy exports |
+| Ideogram | Use the detailed vertical layout | Selected: `ideogram_main`; verify labels at final manuscript width |
+| Use case | Use the recommended combined figure | Selected: `use_case_combined`; retain the portrait `use_case` as an alternate layout |
+| Chr8 | None of the current options is publication quality | Revise before selection; do not treat any displayed option as approved |
+| Exclusions | Put BED operations in Supplemental Methods and exclusion categories in the main text | Placement selected; simplify the exclusion categories figure before publication |
 
 ## External evaluation layouts
 
@@ -32,25 +32,25 @@ represent different groupings; `combined_eval.png` and
 ::: {.g-col-6}
 ### By strata — proposed canonical
 
-![](../manuscript/figs/combined_eval_strata.png){fig-alt="Evaluation grouped by benchmark strata"}
+![](../figures/combined_eval_strata.png){fig-alt="Evaluation grouped by benchmark strata"}
 :::
 
 ::: {.g-col-6}
 ### By callset — proposed canonical
 
-![](../manuscript/figs/combined_eval_callset.png){fig-alt="Evaluation grouped by callset"}
+![](../figures/combined_eval_callset.png){fig-alt="Evaluation grouped by callset"}
 :::
 
 ::: {.g-col-6}
 ### Legacy `combined_eval`
 
-![](../manuscript/figs/combined_eval.png){fig-alt="Legacy combined evaluation export"}
+![](../figures/combined_eval.png){fig-alt="Legacy combined evaluation export"}
 :::
 
 ::: {.g-col-6}
 ### Alternate `combined_callset_eval`
 
-![](../manuscript/figs/combined_callset_eval.png){fig-alt="Alternate combined callset evaluation export"}
+![](../figures/combined_callset_eval.png){fig-alt="Alternate combined callset evaluation export"}
 :::
 :::
 
@@ -60,19 +60,19 @@ represent different groupings; `combined_eval.png` and
 ::: {.g-col-6}
 ### Detailed vertical layout
 
-![](../manuscript/figs/ideogram_main.png){fig-alt="Detailed vertical genome ideogram"}
+![](../figures/ideogram_main.png){fig-alt="Detailed vertical genome ideogram"}
 :::
 
 ::: {.g-col-6}
 ### KaryoScope painted chromosomes
 
-![](../manuscript/figs/ideogram_karyoscope.png){fig-alt="KaryoScope painted chromosome ideogram"}
+![](../figures/ideogram_karyoscope.png){fig-alt="KaryoScope painted chromosome ideogram"}
 :::
 
 ::: {.g-col-12}
 ### Compact horizontal strip
 
-![](../manuscript/figs/ideogram.png){fig-alt="Compact horizontal genome ideogram"}
+![](../figures/ideogram.png){fig-alt="Compact horizontal genome ideogram"}
 :::
 :::
 
@@ -80,25 +80,27 @@ represent different groupings; `combined_eval.png` and
 
 The ideograms provide orientation; the synteny figure contains the alignment
 evidence. They should not be treated as interchangeable without considering the
-claim made in the manuscript text.
+claim made in the manuscript text. **Review outcome:** none of these options is
+currently publication quality. The Chr8 figure requires revision before a
+layout is selected.
 
 ::: {.grid}
 ::: {.g-col-6}
 ### Composed synteny figure
 
-![](../manuscript/figs/chr8_synteny.png){fig-alt="Chromosome 8 synteny figure"}
+![](../figures/chr8_synteny.png){fig-alt="Chromosome 8 synteny figure"}
 :::
 
 ::: {.g-col-6}
 ### Whole-chromosome ideogram
 
-![](../manuscript/figs/ideogram_chr8.png){fig-alt="Whole chromosome 8 ideogram"}
+![](../figures/ideogram_chr8.png){fig-alt="Whole chromosome 8 ideogram"}
 :::
 
 ::: {.g-col-6}
 ### Zoomed ideogram
 
-![](../manuscript/figs/ideogram_chr8_zoom.png){fig-alt="Zoomed chromosome 8 ideogram"}
+![](../figures/ideogram_chr8_zoom.png){fig-alt="Zoomed chromosome 8 ideogram"}
 :::
 :::
 
@@ -108,51 +110,52 @@ claim made in the manuscript text.
 ::: {.g-col-6}
 ### Current combined square layout
 
-![](../manuscript/figs/use_case_combined.png){fig-alt="Combined small- and structural-variant use-case figure"}
+![](../figures/use_case_combined.png){fig-alt="Combined small- and structural-variant use-case figure"}
 :::
 
 ::: {.g-col-6}
 ### Alternate portrait layout
 
-![](../manuscript/figs/use_case.png){fig-alt="Alternate portrait use-case figure"}
+![](../figures/use_case.png){fig-alt="Alternate portrait use-case figure"}
 :::
 
 ::: {.g-col-4}
 ### Small variants
 
-![](../manuscript/figs/use_case_smvar.png){fig-alt="Small-variant use-case figure"}
+![](../figures/use_case_smvar.png){fig-alt="Small-variant use-case figure"}
 :::
 
 ::: {.g-col-4}
 ### Structural variants — HiFi
 
-![](../manuscript/figs/use_case_stvar_hifi.png){fig-alt="HiFi structural-variant use-case figure"}
+![](../figures/use_case_stvar_hifi.png){fig-alt="HiFi structural-variant use-case figure"}
 :::
 
 ::: {.g-col-4}
 ### Structural variants — ONT
 
-![](../manuscript/figs/use_case_stvar_ont.png){fig-alt="ONT structural-variant use-case figure"}
+![](../figures/use_case_stvar_ont.png){fig-alt="ONT structural-variant use-case figure"}
 :::
 :::
 
 ## Exclusion-method panels
 
-These appear complementary rather than competing: one explains BED operations
-and the other explains the exclusion categories. The likely decision is whether
-to combine them as panels or move one/both to Methods or Supplementary Figures.
+These figures are complementary rather than competing. The BED-operations
+figure will accompany Supplemental Methods. The exclusion-categories figure
+will be a main-text figure, but its categories must be simplified before final
+export.
 
 ::: {.grid}
 ::: {.g-col-6}
 ### BED operations
 
-![](../manuscript/figs/exclusion_bed_operations.png){fig-alt="BED operations used for exclusions"}
+![](../figures/exclusion_bed_operations.png){fig-alt="BED operations used for exclusions"}
 :::
 
 ::: {.g-col-6}
 ### Exclusion categories
 
-![](../manuscript/figs/exclusion_diagram.png){fig-alt="Exclusion categories and benchmark construction"}
+![](../figures/exclusion_diagram.png){fig-alt="Exclusion categories and benchmark construction"}
 :::
 :::
 

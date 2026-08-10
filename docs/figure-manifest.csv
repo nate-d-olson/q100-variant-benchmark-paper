@@ -1,18 +1,18 @@
 family,candidate_file,source,status,decision_needed
-external_evaluation,manuscript/figs/combined_eval_strata.png,analysis/external_evaluation.qmd,proposed,Confirm canonical strata layout
-external_evaluation,manuscript/figs/combined_eval_callset.png,analysis/external_evaluation.qmd,proposed,Confirm canonical callset layout
-external_evaluation,manuscript/figs/combined_eval.png,legacy_or_stale,review,Check manuscript references before retirement
-external_evaluation,manuscript/figs/combined_callset_eval.png,legacy_or_stale,review,Compare with combined_eval_callset
-ideogram,manuscript/figs/ideogram_main.png,scripts/make_ideogram.R,candidate,Choose genome-wide design
-ideogram,manuscript/figs/ideogram_karyoscope.png,scripts/make_ideogram_karyoscope.py,candidate,Choose genome-wide design
-ideogram,manuscript/figs/ideogram.png,scripts/make_ideogram.R,candidate,Choose genome-wide design
-chr8,manuscript/figs/chr8_synteny.png,workflow/scripts/make_chr8_figure.py,proposed,Confirm main versus supplementary placement
-chr8,manuscript/figs/ideogram_chr8.png,scripts/make_ideogram.R,candidate,Decide orientation panel usage
-chr8,manuscript/figs/ideogram_chr8_zoom.png,scripts/make_ideogram.R,candidate,Decide orientation panel usage
-use_case,manuscript/figs/use_case_combined.png,analysis/use_case_evaluation.qmd,candidate,Choose combined versus split layout
-use_case,manuscript/figs/use_case.png,unknown_or_experimental,candidate,Identify source and compare portrait layout
-use_case,manuscript/figs/use_case_smvar.png,analysis/use_case_evaluation.qmd,candidate,Choose combined versus split layout
-use_case,manuscript/figs/use_case_stvar_hifi.png,analysis/use_case_evaluation.qmd,candidate,Choose combined versus split layout
-use_case,manuscript/figs/use_case_stvar_ont.png,analysis/use_case_evaluation.qmd,candidate,Choose combined versus split layout
-exclusions,manuscript/figs/exclusion_bed_operations.png,scripts/make_exclusion_diagram.py,candidate,Choose combined panels and placement
-exclusions,manuscript/figs/exclusion_diagram.png,scripts/make_exclusion_diagram.py,candidate,Choose combined panels and placement
+external_evaluation,figures/combined_eval_strata.png,analysis/external_evaluation.qmd,selected,Canonical strata layout
+external_evaluation,figures/combined_eval_callset.png,analysis/external_evaluation.qmd,selected,Canonical callset layout
+external_evaluation,figures/combined_eval.png,legacy_or_stale,retire_pending_reference_check,Check manuscript references before retirement
+external_evaluation,figures/combined_callset_eval.png,legacy_or_stale,retire_pending_reference_check,Check manuscript references before retirement
+ideogram,figures/ideogram_main.png,scripts/make_ideogram.R,selected,Detailed vertical layout; verify at final width
+ideogram,figures/ideogram_karyoscope.png,scripts/make_ideogram_karyoscope.py,not_selected,Retain as working alternative only
+ideogram,figures/ideogram.png,scripts/make_ideogram.R,not_selected,Retain as working alternative only
+chr8,figures/chr8_synteny.png,workflow/scripts/make_chr8_figure.py,revision_required,None of the current options is publication quality
+chr8,figures/ideogram_chr8.png,scripts/make_ideogram.R,revision_required,None of the current options is publication quality
+chr8,figures/ideogram_chr8_zoom.png,scripts/make_ideogram.R,revision_required,None of the current options is publication quality
+use_case,figures/use_case_combined.png,analysis/use_case_evaluation.qmd,selected,Canonical combined figure
+use_case,figures/use_case.png,unknown_or_experimental,alternate,Retain as alternate portrait layout and identify source
+use_case,figures/use_case_smvar.png,analysis/use_case_evaluation.qmd,not_selected,Retain component export only
+use_case,figures/use_case_stvar_hifi.png,analysis/use_case_evaluation.qmd,not_selected,Retain component export only
+use_case,figures/use_case_stvar_ont.png,analysis/use_case_evaluation.qmd,not_selected,Retain component export only
+exclusions,figures/exclusion_bed_operations.png,scripts/make_exclusion_diagram.py,selected_supplemental_methods,Finalize numbering and legend
+exclusions,figures/exclusion_diagram.png,scripts/make_exclusion_diagram.py,revision_required_main,Simplify categories before final main-text export

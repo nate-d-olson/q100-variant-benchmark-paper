@@ -107,9 +107,9 @@ All files produced by the Snakemake pipeline from the inputs above.
 
 Estimated sizes: ~500 MB – 2 GB per benchmark × 8 benchmarks ≈ 4–16 GB total. Parquet format is compressed and column-oriented, suitable for deposition.
 
-#### Tier 3: Figure Outputs (not released — in manuscript/figs/)
+#### Tier 3: Figure Outputs (not released — in figures/)
 
-Chr8 synteny figure and all manuscript figures are versioned in the repo under `manuscript/figs/` and are not part of the data release.
+Chr8 synteny figure and all manuscript figures are versioned in the repo under `figures/` and are not part of the data release.
 
 ### 3.3 External Evaluation Data
 

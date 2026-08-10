@@ -38,7 +38,7 @@ Environment: see workflow/envs/karyoscope.yaml (provides karyoscope, drawsvg, ca
 bedtools, ucsc-liftover, cairo). PDF/PNG conversion needs libcairo; SVG is always
 written even if cairo is missing.
 
-Output: manuscript/figs/ideogram_karyoscope.{svg,pdf,png}
+Output: figures/ideogram_karyoscope.{svg,pdf,png}
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ RES_DIR = REPO / "resources"
 BMK_DIR = RES_DIR / "benchmarksets"
 STRAT_DIR = RES_DIR / "stratifications"
 CHAIN_FILE = RES_DIR / "hg19ToHg38.over.chain.gz"
-FIGS_DIR = REPO / "manuscript" / "figs"
+FIGS_DIR = REPO / "figures"
 OUTPUT_BASE = FIGS_DIR / "ideogram_karyoscope"
 
 # Source for GRCh38 chromosome sizes (read from the VCF ##contig header).

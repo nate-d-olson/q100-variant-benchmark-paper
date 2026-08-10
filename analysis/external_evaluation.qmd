@@ -312,12 +312,12 @@ nodes <- tribble(
   theme(legend.title = element_blank()))
 
 ggsave(
-  filename = here("manuscript", "figs", "smvar_strat_flow.png"),
+  filename = here("figures", "smvar_strat_flow.png"),
   plot = smvar_flow,
   width = 8, height = 8, dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "smvar_strat_flow.pdf"),
+  filename = here("figures", "smvar_strat_flow.pdf"),
   plot = smvar_flow,
   width = 8, height = 8
 )
@@ -408,14 +408,14 @@ ggsave(
   theme(legend.position = "bottom", plot.margin = margin(0, 2, 0, 0)))
 
 ggsave(
-  filename = here("manuscript", "figs", "combined_eval_strata.png"),
+  filename = here("figures", "combined_eval_strata.png"),
   plot = combined_eval_plt,
   width = 6,
   height = 3,
   dpi = 450
 )
 ggsave(
-  filename = here("manuscript", "figs", "combined_eval_strata.pdf"),
+  filename = here("figures", "combined_eval_strata.pdf"),
   plot = combined_eval_plt,
   width = 6, height = 3
 )
@@ -429,14 +429,14 @@ ggsave(
   theme(legend.position = "bottom", plot.margin = margin(0, 2, 0, 0)))
 
 ggsave(
-  filename = here("manuscript", "figs", "combined_eval_callset.png"),
+  filename = here("figures", "combined_eval_callset.png"),
   plot = combined_eval_callset_plt,
   width = 6,
   height = 3,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "combined_eval_callset.pdf"),
+  filename = here("figures", "combined_eval_callset.pdf"),
   plot = combined_eval_callset_plt,
   width = 6, height = 3
 )
@@ -620,12 +620,12 @@ ci_plot_df <- ci_results |>
 
 ```{r}
 ggsave(
-  filename = here("manuscript", "figs", "ride_estimates.png"),
+  filename = here("figures", "ride_estimates.png"),
   plot = ci_forest_plt,
   width = 8, height = 8, dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "ride_estimates.pdf"),
+  filename = here("figures", "ride_estimates.pdf"),
   plot = ci_forest_plt,
   width = 8, height = 8
 )
@@ -860,12 +860,12 @@ ci_plot_df_cs <- ci_results_cs |>
 
 ```{r}
 ggsave(
-  filename = here("manuscript", "figs", "ride_estimates_callset.png"),
+  filename = here("figures", "ride_estimates_callset.png"),
   plot = ci_forest_cs_plt,
   width = 8, height = 8, dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "ride_estimates_callset.pdf"),
+  filename = here("figures", "ride_estimates_callset.pdf"),
   plot = ci_forest_cs_plt,
   width = 8, height = 8
 )

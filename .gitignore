@@ -41,6 +41,7 @@ Thumbs.db
 analysis/*_files/**
 /etc/**
 /.claude/settings.local.json
+/.claude/skills/retrospecting/reports/
 
 # Root-level generated exports and archives
 /index.tex

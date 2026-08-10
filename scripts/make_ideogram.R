@@ -11,7 +11,7 @@
 #   - v5.0q regions covered by both smvar and stvar
 #
 # Usage: Rscript scripts/make_ideogram.R
-# Output: manuscript/figs/ideogram.pdf, manuscript/figs/ideogram.png
+# Output: figures/ideogram.pdf, figures/ideogram.png
 
 suppressPackageStartupMessages({
   library(karyoploteR)
@@ -379,7 +379,7 @@ save_plot <- function(plot_fn, base_path, width, height, png_res = 300) {
   message(sprintf("  PNG %s (%s bytes)", png_path, format(file.size(png_path), big.mark = ",")))
 }
 
-figs_dir <- here::here("manuscript/figs")
+figs_dir <- here::here("figures")
 
 # All chromosomes: tall portrait (25 rows)
 save_plot(plot_main,      file.path(figs_dir, "ideogram_main"),      width = 7, height = 12)

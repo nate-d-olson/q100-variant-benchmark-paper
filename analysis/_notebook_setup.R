@@ -1,3 +1,5 @@
+FIG_DIR <- here::here("figures")
+
 analysis_setup <- function(
   load_plot_themes = TRUE,
   load_sessioninfo = FALSE,

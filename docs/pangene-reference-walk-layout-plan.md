@@ -35,7 +35,7 @@ The common command should be:
 ```bash
 scripts/pangene_gfa_to_svg.js \
   --input work/pangene/SULT1A1.gfa \
-  --output manuscript/figs/vector/SULT1A1.hg002-linear.svg \
+  --output figures/vector/SULT1A1.hg002-linear.svg \
   --layout reference-walk \
   --title SULT1A1
 ```

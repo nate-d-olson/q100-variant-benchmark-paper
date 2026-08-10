@@ -16,11 +16,11 @@ execute:
 
 ## Exclusion Processing Diagram
 
-![BED operations for exclusion processing](../manuscript/figs/exclusion_bed_operations.png)
+![BED operations for exclusion processing](../figures/exclusion_bed_operations.png)
 
 **Figure exclusion_bed_operations: BED operations applied to exclusion regions before subtraction.** *Slop* adds a ±15 kb buffer to each interval (used for tandem repeats and gaps). *Slopmerge* adds a ±15 kb buffer and then merges intervals within 10 kb (used for segmental duplications and satellites). *Assembly-intersect* filtering retains only exclusion intervals that overlap assembly alignment breaks, preventing over-exclusion in well-assembled regions.
 
-![Exclusion categories and benchmark region construction](../manuscript/figs/exclusion_diagram.png)
+![Exclusion categories and benchmark region construction](../figures/exclusion_diagram.png)
 
 **Figure exclusion_diagram: Three categories of exclusions are subtracted from dipcall assembly regions (dip.bed) to produce the final v5.0q benchmark regions.** Assembly-agnostic exclusions (orange) are applied regardless of assembly quality and include reference gaps, V(D)J recombination regions, manually curated errors, and PAV inversions. Assembly-intersect exclusions (purple) are reference-based regions (segmental duplications, tandem repeats >10 kb, and satellites) that are only excluded where the assembly has alignment breaks. Reference-agnostic exclusions (green) are derived from the assembly alignments and variant calls independent of the reference genome, including 15 kb flanks around alignment breaks, structural variants intersecting simple repeats, consecutive insertion-deletion pairs, and self-comparison discrepancies. The union of all processed exclusions is subtracted from dip.bed to produce the final benchmark BED file. Shaded vertical bands link each exclusion interval to the corresponding gap it carves out of the benchmark track.
 
@@ -356,14 +356,14 @@ p_bases_stvar <- create_base_upset(interaction_summary_tbl, "GRCh38", "stvar")
 
 ```{r}
 ggsave(
-  filename = here::here("manuscript", "figs", "grch38_exclusion_upset.png"),
+  filename = here::here("figures", "grch38_exclusion_upset.png"),
   plot = grch38_upset_plt,
   width = 12,
   height = 8,
   dpi = 300
 )
 ggsave(
-  filename = here::here("manuscript", "figs", "grch38_exclusion_upset.pdf"),
+  filename = here::here("figures", "grch38_exclusion_upset.pdf"),
   plot = grch38_upset_plt,
   width = 12,
   height = 8
@@ -417,14 +417,14 @@ p_vars_stvar <- create_variant_upset(interaction_summary_tbl, "GRCh38", "stvar")
 
 ```{r}
 ggsave(
-  filename = here::here("manuscript", "figs", "grch38_exclusion_var_upset.png"),
+  filename = here::here("figures", "grch38_exclusion_var_upset.png"),
   plot = grch38_upset_var_plt,
   width = 12,
   height = 8,
   dpi = 300
 )
 ggsave(
-  filename = here::here("manuscript", "figs", "grch38_exclusion_var_upset.pdf"),
+  filename = here::here("figures", "grch38_exclusion_var_upset.pdf"),
   plot = grch38_upset_var_plt,
   width = 12,
   height = 8

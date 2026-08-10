@@ -460,14 +460,14 @@ design <- c(area(l = 1, r = 8, t = 1, b = 8), area(l = 1, r = 8, t = 8, b = 10))
 
 
 ggsave(
-  filename = here("manuscript", "figs", "use_case_smvar.png"),
+  filename = here("figures", "use_case_smvar.png"),
   plot = combined_smvar_plt,
   width = 8,
   height = 10,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "use_case_smvar.pdf"),
+  filename = here("figures", "use_case_smvar.pdf"),
   plot = combined_smvar_plt,
   width = 8,
   height = 10
@@ -643,14 +643,14 @@ make_stvar_size_scatter <- function(size_df, platform_filter) {
   theme(plot.margin = unit(c(1, 1, 1, 1), "pt")))
 
 ggsave(
-  filename = here("manuscript", "figs", "use_case_stvar_ont.png"),
+  filename = here("figures", "use_case_stvar_ont.png"),
   plot = combined_ont_plt,
   width = 8,
   height = 8,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "use_case_stvar_ont.pdf"),
+  filename = here("figures", "use_case_stvar_ont.pdf"),
   plot = combined_ont_plt,
   width = 8,
   height = 8
@@ -670,14 +670,14 @@ hifi_size_scatter_plt <- make_stvar_size_scatter(sv_size_df, "HiFi")
   theme(plot.margin = unit(c(1, 1, 1, 1), "pt")))
 
 ggsave(
-  filename = here("manuscript", "figs", "use_case_stvar_hifi.png"),
+  filename = here("figures", "use_case_stvar_hifi.png"),
   plot = combined_hifi_plt,
   width = 8,
   height = 8,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "use_case_stvar_hifi.pdf"),
+  filename = here("figures", "use_case_stvar_hifi.pdf"),
   plot = combined_hifi_plt,
   width = 8,
   height = 8
@@ -888,12 +888,12 @@ combined_use_case_plt <-
 combined_use_case_plt
 
 ggsave(
-  filename = here("manuscript", "figs", "use_case_combined.png"),
+  filename = here("figures", "use_case_combined.png"),
   plot = combined_use_case_plt,
   width = 8, height = 8, dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "use_case_combined.pdf"),
+  filename = here("figures", "use_case_combined.pdf"),
   plot = combined_use_case_plt,
   width = 8, height = 8
 )

@@ -189,14 +189,14 @@ category of difficulty.
   theme(legend.position = "bottom"))
 
 ggsave(
-  filename = here::here("manuscript", "figs", "genomic_context_coverage.png"),
+  filename = here::here("figures", "genomic_context_coverage.png"),
   plot = coverage_combined_plt,
   width = 8,
   height = 8,
   dpi = 300
 )
 ggsave(
-  filename = here::here("manuscript", "figs", "genomic_context_coverage.pdf"),
+  filename = here::here("figures", "genomic_context_coverage.pdf"),
   plot = coverage_combined_plt,
   width = 8,
   height = 8
@@ -259,14 +259,14 @@ coverage_change_df <- genomic_context_metrics_df %>%
   ))
 
 ggsave(
-  filename = here::here("manuscript", "figs", "genomic_context_coverage_change.png"),
+  filename = here::here("figures", "genomic_context_coverage_change.png"),
   plot = coverage_change_plt,
   width = 8,
   height = 5,
   dpi = 300
 )
 ggsave(
-  filename = here::here("manuscript", "figs", "genomic_context_coverage_change.pdf"),
+  filename = here::here("figures", "genomic_context_coverage_change.pdf"),
   plot = coverage_change_plt,
   width = 8,
   height = 5

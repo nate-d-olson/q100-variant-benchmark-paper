@@ -476,7 +476,7 @@ def draw_categories(ax):
 
 
 def main():
-    figs_dir = Path(__file__).resolve().parent.parent / "manuscript" / "figs"
+    figs_dir = Path(__file__).resolve().parent.parent / "figures"
     figs_dir.mkdir(parents=True, exist_ok=True)
 
     # --- Figure 1: BED operations ---

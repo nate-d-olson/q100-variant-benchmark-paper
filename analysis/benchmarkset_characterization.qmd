@@ -342,7 +342,7 @@ stvar_len_df <- variants_df %>%
 
 ```{r var_length_dist_save}
 ggsave(
-  filename = here("manuscript", "figs", "var_len_dist.png"),
+  filename = here("figures", "var_len_dist.png"),
   plot = combined_var_len_dist_plt,
   width = 4,
   height = 4,
@@ -350,7 +350,7 @@ ggsave(
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "var_len_dist.pdf"),
+  filename = here("figures", "var_len_dist.pdf"),
   plot = combined_var_len_dist_plt,
   width = 4,
   height = 4,
@@ -425,14 +425,14 @@ coverage_change_df <- bench_regions_df %>%
   ))
 
 ggsave(
-  filename = here("manuscript", "figs", "benchmark_region_size_change.png"),
+  filename = here("figures", "benchmark_region_size_change.png"),
   plot = coverage_change_plt,
   width = 8,
   height = 4,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "benchmark_region_size_change.pdf"),
+  filename = here("figures", "benchmark_region_size_change.pdf"),
   plot = coverage_change_plt,
   width = 8,
   height = 4
@@ -536,14 +536,14 @@ stvar_fc_plt <- context_totals_bytype %>%
   theme(plot.margin = unit(c(5, 5, 5, 5), "pt")))
 
 ggsave(
-  filename = here("manuscript", "figs", "combined_coverage_variant_change.png"),
+  filename = here("figures", "combined_coverage_variant_change.png"),
   plot = combined_coverage_variant_plt,
   width = 10,
   height = 10,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "combined_coverage_variant_change.pdf"),
+  filename = here("figures", "combined_coverage_variant_change.pdf"),
   plot = combined_coverage_variant_plt,
   width = 10,
   height = 10

@@ -34,18 +34,18 @@ Notebooks primarily consume:
 
 Most rendered figures/tables are written to:
 
-- `manuscript/figs/`
+- `figures/`
 
 Examples currently produced by notebooks include:
 
-- `manuscript/figs/benchmark_intervals.png`
-- `manuscript/figs/benchmark_region_size_change.png`
-- `manuscript/figs/combined_coverage_variant_change.png`
-- `manuscript/figs/genomic_context_variant_counts.png`
-- `manuscript/figs/genomic_context_fold_change_by_size.png`
-- `manuscript/figs/combined_eval.png`
-- `manuscript/figs/use_case_smvar.png`
-- `manuscript/figs/use_case_stvar.png`
+- `figures/benchmark_intervals.png`
+- `figures/benchmark_region_size_change.png`
+- `figures/combined_coverage_variant_change.png`
+- `figures/genomic_context_variant_counts.png`
+- `figures/genomic_context_fold_change_by_size.png`
+- `figures/combined_eval.png`
+- `figures/use_case_smvar.png`
+- `figures/use_case_stvar.png`
 
 ## Running
 

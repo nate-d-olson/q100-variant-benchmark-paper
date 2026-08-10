@@ -158,14 +158,14 @@ context_fold_chg <- context_counts_long %>%
   ))
 
 ggsave(
-  filename = here("manuscript", "figs", "genomic_context_variant_counts.png"),
+  filename = here("figures", "genomic_context_variant_counts.png"),
   plot = variant_count_plt,
   width = 6,
   height = 3,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "genomic_context_variant_counts.pdf"),
+  filename = here("figures", "genomic_context_variant_counts.pdf"),
   plot = variant_count_plt,
   width = 6,
   height = 3
@@ -269,14 +269,14 @@ genomic_context_var_fld_chg <- bind_rows(gc_size_counts, complex_size_counts) %>
   ))
 
 ggsave(
-  filename = here("manuscript", "figs", "genomic_context_fold_change_by_size.png"),
+  filename = here("figures", "genomic_context_fold_change_by_size.png"),
   plot = fold_change_size_plt,
   width = 8,
   height = 6,
   dpi = 300
 )
 ggsave(
-  filename = here("manuscript", "figs", "genomic_context_fold_change_by_size.pdf"),
+  filename = here("figures", "genomic_context_fold_change_by_size.pdf"),
   plot = fold_change_size_plt,
   width = 8,
   height = 6

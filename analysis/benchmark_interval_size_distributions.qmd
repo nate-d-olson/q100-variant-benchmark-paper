@@ -144,14 +144,14 @@ interval_plt
 
 ```{r save-figure}
 ggsave(
-  here("manuscript/figs/benchmark_intervals.png"),
+  here("figures/benchmark_intervals.png"),
   interval_plt,
   width = 8,
   height = 6,
   dpi = 300
 )
 ggsave(
-  here("manuscript/figs/benchmark_intervals.pdf"),
+  here("figures/benchmark_intervals.pdf"),
   interval_plt,
   width = 8,
   height = 6
