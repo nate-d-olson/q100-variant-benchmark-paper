@@ -1,8 +1,8 @@
 # Manuscript TODO
 
-Last consolidated: 2026-07-16. Sources reviewed: repository notes and code
-comments, open GitHub issues, figure review decisions, and
-`docs/agent_work/dataset-release-plan.md`.
+Last consolidated: 2026-08-10. Sources reviewed: full codebase audit (no embedded
+TODO/FIXME markers found in tracked files), TODO.md history, git log, and repo
+cleanup completed 2026-08-10.
 
 ## Next steps (ordered)
 
@@ -21,6 +21,9 @@ comments, open GitHub issues, figure review decisions, and
 
 - [ ] Complete the manuscript text revision pass.
 - [ ] Fill and verify all highlighted values and placeholders in the manuscript.
+  Note: numerical claims in `use_case_evaluation.qmd` (F1, recall, precision,
+  false-negative counts) are hardcoded prose strings, not live inline R
+  expressions — verify manually against current pipeline outputs.
 - [ ] Address JZ's 14 Word comments.
 - [ ] Update and add references.
 - [ ] Complete all figure legends; table legends are drafted in
@@ -34,9 +37,10 @@ comments, open GitHub issues, figure review decisions, and
 
 - [ ] Revise workflow Figure 1 based on feedback: focus it on v5 benchmark
   generation, enlarge the text, and decide whether it belongs in the supplement.
-- [ ] Simplify the exclusion categories and finalize the main-text figure.
+- [ ] Simplify the exclusion categories and finalize the main-text figure
+  (`figures/exclusion_diagram.png`).
 - [ ] Finalize the BED-operations figure number and legend for Supplemental
-  Methods.
+  Methods (`figures/exclusion_bed_operations.png`).
 - [ ] Revise the Chr 8 inversion figure substantially. Improve text, annotations
   (MAT, PAT, and GRCh38), legend, and layout before deciding whether to retain the
   full-chromosome panel. None of the reviewed versions is publication quality.
@@ -48,8 +52,9 @@ comments, open GitHub issues, figure review decisions, and
   both unfaceted).
 - [ ] Present the RIDE-CI result more clearly.
 - [ ] Revise the combined use-case figure based on small- and structural-variant
-  feedback; retain `use_case.png` as the alternate portrait layout and identify
-  its source.
+  feedback. `figures/use_case.png` is an alternate portrait layout with no
+  generative code in the repo (manually created, confirmed orphan); decide whether
+  to keep, regenerate, or retire it.
 - [ ] Create the MIQA platform-evaluation figure.
 - [ ] Improve Pangene graphs and legends (stretch goal). The implemented vector
   export is documented in `docs/pangene-vector-export.md`; the proposed
@@ -58,8 +63,8 @@ comments, open GitHub issues, figure review decisions, and
 ### Selected or superseded
 
 - [x] Select the detailed vertical `ideogram_main` layout.
-- [ ] Verify `ideogram_main` labels at final manuscript width and settle the
-  final tracks (variant density, benchmark coverage, assembly/reference
+- [ ] Verify `figures/ideogram_main` labels at final manuscript width and settle
+  the final tracks (variant density, benchmark coverage, assembly/reference
   alignment, and comparisons with v0.6/v4.2.1 as scientifically appropriate).
 - [x] Select `combined_eval_strata` and `combined_eval_callset` as the canonical
   external-evaluation figures.
@@ -72,10 +77,14 @@ comments, open GitHub issues, figure review decisions, and
 ## Analyses
 
 - [ ] Add variant counts to the exclusion tables in
-  `analysis/benchmarkset_characterization.qmd`.
-- [ ] Add a small-variant count breakdown for <15 bp and 15–49 bp.
+  `analysis/benchmarkset_characterization.qmd`. No exclusion section currently
+  exists in that notebook; this requires new code.
+- [ ] Add a small-variant count breakdown for <15 bp and 15–49 bp. Size-bin
+  levels exist in `benchmark_difficult.qmd` for fold-change visualization but no
+  standalone count summary table exists anywhere.
 - [ ] Investigate 50–100 bp v5.0q benchmark intervals as a possible exclusion
   bug; document whether the intervals are expected and fix the pipeline if not.
+  No analysis or code comment addresses this yet.
 - [ ] Add a compact figure summarizing v5-only versus previous-only base and
   variant deltas.
 - [ ] Annotate v5 benchmark VCFs with exclusion-based FILTER values.
@@ -110,14 +119,14 @@ comments, open GitHub issues, figure review decisions, and
 
 ## Pipeline and repository maintenance
 
-- [ ] Repair or remove `tests/unit/test_common_helpers.py`. It imports the
-  non-importable Snakemake `common` module and tests two helpers that no longer
-  exist; two tests fail, and CI currently ignores the file.
-- [ ] Migrate the remaining `gt()` tables in
-  `analysis/external_evaluation.qmd` to flextable. These are the last blocker to
-  removing `gt` from the project.
-- [ ] Address documentation debt in `docs/`; start by reconciling historical
-  plans/specifications with current implementation status.
+- [ ] Remove `tests/unit/test_common_helpers.py`. It imports
+  `workflow/rules/common.smk` as a Python module (not importable) and tests
+  `get_exclusion_file_path` and `_format_exclusion_name`, neither of which exists
+  in `common.smk` anymore. The two active tests fail at import; CI already ignores
+  the file. Repair is not viable — remove it.
+- [ ] Migrate the 2 remaining `gt()` tables in `analysis/external_evaluation.qmd`
+  to flextable (lines 691 and 930 — the confidence-interval tables). These are the
+  last blocker to removing `gt` from the project.
 - [ ] Evaluate Snakevision for a Snakemake pipeline diagram:
   <https://github.com/OpenOmics/snakevision>.
 - [ ] Decide whether to extend the light SV use-case Snakemake integration with
@@ -125,14 +134,22 @@ comments, open GitHub issues, figure review decisions, and
 
 ## GitHub issue reconciliation
 
-- [ ] Close [#49, “Create highlevel ideogram figure”](https://github.com/nate-d-olson/q100-variant-benchmark-paper/issues/49),
-  after noting that `scripts/make_ideogram.R` now produces the selected
-  `figures/ideogram_main` figure. This is the repository's only open
-  issue as of 2026-07-16.
+- [ ] Close [#49, "Create highlevel ideogram figure"](https://github.com/nate-d-olson/q100-variant-benchmark-paper/issues/49).
+  `scripts/make_ideogram.R` now produces `figures/ideogram_main` via `make ideogram`.
+  The code is complete; only the GitHub issue closure remains.
 
 ## Recently verified or completed
 
+- [x] Repo cleanup completed 2026-08-10: removed worktrees (reclaimed ~32 GB),
+  deleted build artifacts, consolidated all figures into `figures/` + `figures/vector/`,
+  moved tables to `tables/`, added `FIG_DIR` constant to `analysis/_notebook_setup.R`,
+  updated all generators and docs, deleted stale branches, pruned remote refs.
+- [x] Documentation updated 2026-08-10: CLAUDE.md, docs/architecture.md,
+  workflow/README.md, docs/figure-manifest.csv, analysis/README.md all reflect
+  the new `figures/` layout.
 - [x] `analysis/external_evaluation.qmd` renders successfully (verified
   2026-07-16); the former missing-input/error note was stale.
 - [x] Integrate SV use-case metric extraction into Snakemake (light scope).
 - [x] Fix R tests and add the locked-renv CI job.
+- [x] No embedded TODO/FIXME markers exist in any tracked source file (confirmed
+  2026-08-10 audit); all open tasks are tracked here.
