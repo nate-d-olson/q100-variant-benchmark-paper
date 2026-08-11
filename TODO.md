@@ -1,6 +1,6 @@
 # Manuscript TODO
 
-Last consolidated: 2026-08-10. Sources reviewed: full codebase audit (no embedded
+Last consolidated: 2026-08-11. Sources reviewed: full codebase audit (no embedded
 TODO/FIXME markers found in tracked files), TODO.md history, git log, and repo
 cleanup completed 2026-08-10.
 
@@ -46,6 +46,9 @@ cleanup completed 2026-08-10.
   full-chromosome panel. None of the reviewed versions is publication quality.
 - [ ] Update the v5 size figure legend and distinguish the gray series more
   clearly.
+- [ ] Review the R 4.6 regenerated manuscript figures, especially
+  `figures/var_len_dist.png`, and decide whether to retain the current PNGs and
+  version their PDF counterparts.
 - [ ] Enlarge text in the v5 variant-context figure.
 - [ ] Show supplemental variant-size fold change in log2 space.
 - [ ] Make the evaluation-curation panels B and D consistent (both faceted or
@@ -83,7 +86,8 @@ cleanup completed 2026-08-10.
   section with smvar and stvar flextables (GRCh38 primary). 2026-08-10.
 - [x] Add a small-variant count breakdown for <15 bp and 15–49 bp. Added
   `### Supplemental: Small Variant Count by Size Bin` to `benchmark_difficult.qmd`
-  (GRCh38, v4.2.1 vs v5.0q, SNP/INS/DEL). 2026-08-10.
+  (GRCh38, v4.2.1 vs v5.0q, SNV/INDEL). Corrected the type filter after
+  rendering on 2026-08-11.
 - [x] Investigate 50–100 bp v5.0q benchmark intervals as a possible exclusion
   bug. Investigated 2026-08-10: **expected, not a bug.** The benchmark BED is
   downloaded directly from GIAB; this pipeline does not apply exclusions to
@@ -125,6 +129,9 @@ cleanup completed 2026-08-10.
 
 ## Pipeline and repository maintenance
 
+- [ ] Confirm the R 4.6.1 / Bioconductor 3.23 lockfile as the project baseline
+  after reviewing rendered results; the former R 4.5.3 lockfile is retained as
+  `renv.lock.r-4.5.3.bak`.
 - [x] Remove `tests/unit/test_common_helpers.py`. Removed 2026-08-10.
 - [x] Migrate the 2 remaining `gt()` tables in `analysis/external_evaluation.qmd`
   to flextable. Removed `theme_gt_manuscript`, `library(gt)` from `plot_themes.R`,

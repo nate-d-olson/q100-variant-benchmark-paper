@@ -290,7 +290,7 @@ ggsave(
 ### Supplemental: Small Variant Count by Size Bin
 
 Raw variant counts for GRCh38 small variants (v4.2.1 and v5.0q), broken
-down by variant type (SNP, INS, DEL) and size bin. Only the two small-variant
+down by variant class (SNV, INDEL) and size bin. Only the two small-variant
 size bins (<15bp and 15-49bp) are shown; v0.6 is excluded because it uses
 GRCh37 for smvar.
 
@@ -300,7 +300,7 @@ smvar_size_bin_counts <- variants_df %>%
     bench_type == "smvar",
     ref == "GRCh38",
     bench_version %in% c("v4.2.1", "v5.0q"),
-    var_type %in% c("SNP", "INS", "DEL")
+    var_type %in% c("SNV", "INDEL")
   ) %>%
   add_size_bin() %>%
   filter(var_size_bin %in% c("<15bp", "15-49bp")) %>%
