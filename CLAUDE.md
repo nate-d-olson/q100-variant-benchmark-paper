@@ -269,7 +269,7 @@ Cache tests use `withr::local_options(q100.cache_dir = tempdir)` for isolation.
 
 ## Plot Themes & Styling
 
-The `R/plot_themes.R` module provides consistent ggplot2 and gt table styling for all manuscript figures and tables (Cell Genomics submission requirements). Key functions support flexible parameter overrides via `...`:
+The `R/plot_themes.R` module provides consistent ggplot2 and flextable styling for all manuscript figures and tables (Cell Genomics submission requirements). Key functions support flexible parameter overrides via `...`:
 
 ### Theme Functions
 
@@ -278,12 +278,6 @@ The `R/plot_themes.R` module provides consistent ggplot2 and gt table styling fo
 - Accepts `...` to override any theme element
 - Example: `theme_manuscript(axis.title = element_text(size = 12, face = "italic"))`
 - Returns composition: `theme_minimal() + base_theme + theme(...)`
-
-**`theme_gt_manuscript(gt_object, striped = TRUE, ...)`**
-- gt table styling with consistent fonts, borders, and spacing
-- Accepts `...` to override any gt table option via `utils::modifyList()`
-- Example: `theme_gt_manuscript(gt_table, table.font.size = "10pt")`
-- User options take precedence over defaults
 
 ### Scale Functions
 

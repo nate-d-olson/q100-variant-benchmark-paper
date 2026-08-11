@@ -140,17 +140,6 @@ metrics %>%
   flextable::set_caption("Variant counts by genomic context (GRCh38, small variants).")
 ```
 
-## Tables — gt (legacy support)
-
-`theme_gt_manuscript(gt_object, striped = TRUE, ...)` is still exported for
-backward compatibility, but new tables should use flextable. Two notebooks
-(`analysis/external_evaluation.qmd`) still contain `gt()` calls that have not
-been migrated.
-
-```r
-data %>% gt() %>% theme_gt_manuscript()
-```
-
 ## Label Helpers
 
 ```r

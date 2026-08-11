@@ -223,6 +223,61 @@ make test                                # lint + format-check + dry-run
 | Wildcard constraint mismatch | Missing entry in `common.smk` | Add to `wildcard_constraints` |
 | Snakemake doesn't re-run after script edit | Snakemake doesn't track scripts | `rm -rf` the affected output dir |
 
+## 50-100 bp Benchmark Intervals
+
+**Investigation date:** 2026-08-10  
+**Conclusion:** Expected — no pipeline bug.
+
+### Background
+
+The v5.0q benchmark BED files contain a small number of intervals in the 50–100 bp
+range. The question was whether these are legitimate short confident regions or
+artifacts from the exclusion process (leftover slivers too short to call variants
+confidently).
+
+### What the data shows
+
+Interval size distributions across benchmarks (GRCh38 smvar):
+
+| Size range | v4.2.1 | v5.0q |
+|---|---|---|
+| 0–49 bp | 45 | 19 |
+| 50–99 bp | 18,474 | **15** |
+| 100–499 bp | 65,205 | 91 |
+| ≥500 bp | 397,898 | 28,672 |
+| **Total** | **481,622** | **28,797** |
+
+The v5.0q benchmark has **15** intervals in the 50–99 bp range, compared to
+**18,474** in v4.2.1. The 50-99bp class represents 0.05% of v5.0q intervals, versus
+3.8% in v4.2.1. The pattern is consistent across references: GRCh37 and CHM13v2.0
+also have ~15–16 such intervals out of ~28,000 total.
+
+The 15 GRCh38 smvar intervals span distinct chromosomes (chr1, chr2, chr4, chr5,
+chr6, chr8, chr11, chr12, chr14, chr19, chr20, chr21, chrX) with no clustering,
+indicating they are independently occurring narrow gaps rather than a systematic
+artifact.
+
+### Why this is not a pipeline bug
+
+The benchmark BED files are **downloaded directly from GIAB** via the
+`download_benchmark_bed` rule in `workflow/rules/downloads.smk`. This pipeline does
+not construct the benchmark BED by applying exclusions locally — the upstream GIAB
+DeFrABB pipeline produces the final benchmark BED, and it is consumed here as-is
+(checksum-validated).
+
+The exclusions pipeline in `workflow/rules/exclusions.smk` is for **analysis of
+upstream exclusion decisions**, not for producing the benchmark BED.
+
+The 50–99 bp intervals in v5.0q are legitimate short confident regions that remain
+after the upstream exclusion process removes flanking problematic sequence. Their
+rarity (15 out of 28,797) and chromosomal distribution confirm this is expected
+behavior from the DeFrABB assembly-based benchmarking pipeline, not a local
+pipeline artifact.
+
+If there is concern about whether these short intervals should exist in the final
+benchmark, that question belongs upstream with the GIAB DeFrABB team — this
+analysis pipeline cannot and should not filter the pre-validated GIAB benchmark BED.
+
 ## Related Docs
 
 - [Architecture Overview](architecture.md)

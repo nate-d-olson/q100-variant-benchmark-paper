@@ -362,17 +362,25 @@ ggsave(
       levels = c("no", "unsure", "yes")
     )
   ) %>%
-  count(strata_label, curation_callset) %>%
+  count(strata_label, unique_to, curation_callset) %>%
   ggplot(aes(y = strata_label, x = n, fill = curation_callset)) +
   geom_col(position = "stack", color = "grey30", linewidth = 0.2) +
+  facet_grid(
+    rows = vars(unique_to),
+    scales = "free_y",
+    space = "free_y"
+  ) +
   scale_fill_brewer(palette = "Set2") +
   labs(
     x = "# of Variants",
-    y = "Strat",
+    y = NULL,
     fill = "Correct in\nCallset",
   ) +
   theme_manuscript() +
-  theme(legend.position = "bottom"))
+  theme(
+    legend.position = "bottom",
+    strip.text.y = element_text(angle = 0)
+  ))
 ```
 
 ```{r stvar_by_callset, fig.width = 7, fig.height = 3.5}
@@ -572,7 +580,21 @@ ci_results <- bind_rows(primary_results, sens_results)
 ```
 
 ```{r ci_forest_plot, fig.width = 7, fig.height = 5.5}
-## Prepare display labels
+#| fig-cap: >
+#|   Estimated probability that a discrepancy between the Q100 v5.0q HG002
+#|   benchmark and a comparison callset represents an error in the comparison
+#|   callset, stratified by variant class and genomic context. Each row shows
+#|   one stratum within a feature category (facet strip); points are marginal
+#|   probability estimates from bias-reduced logistic regression models via
+#|   emmeans with proportional weighting. Red circles indicate the conservative
+#|   assumption (unsure-classification variants treated as callset errors);
+#|   blue triangles indicate the sensitive assumption (unsure variants treated
+#|   as callset correct). The grey segment spanning each row shows the range of
+#|   estimates across the two assumptions, reflecting uncertainty introduced by
+#|   the classification of unsure variants. Columns separate small variants
+#|   (left) and structural variants (right), which are modeled independently.
+#|   The Overall estimate is not conditioned on any stratum.
+## Prepare display labels; Overall placed first so its facet appears at top
 ci_plot_df <- ci_results |>
   mutate(
     label = if_else(feature == "Overall", "Overall", level),
@@ -583,19 +605,24 @@ ci_plot_df <- ci_results |>
       .default = label
     ),
     feature = factor(feature,
-      levels = rev(c("Overall", "Variant Type", "Genomic Context",
-                      "Unique To", "TR Annotation", "SV Category"))
+      levels = c("Overall", "Unique To", "Variant Type", "Genomic Context",
+                 "TR Annotation", "SV Category")
     ),
     benchmarkset = factor(benchmarkset,
-      levels = c("Small Variant", "Structural Variant"))
+      levels = c("Small Variant", "Structural Variant")
+    )
   )
 
 (ci_forest_plt <- ggplot(ci_plot_df,
-       aes(x = prob, y = reorder(label, prob),
-           xmin = asymp.LCL, xmax = prob,
-           color = analysis, shape = analysis)) +
-  geom_pointrange(size = 0.4,
-                  position = position_dodge(width = 0.5)) +
+       aes(x = prob, y = reorder(label, prob))) +
+  ## Grey segment connecting conservative and sensitive endpoints
+  geom_line(
+    aes(group = interaction(label, feature, benchmarkset)),
+    color = "grey60",
+    linewidth = 0.8
+  ) +
+  ## Endpoints colored and shaped by analysis assumption
+  geom_point(aes(color = analysis, shape = analysis), size = 2.5) +
   facet_grid(
     rows = vars(feature),
     cols = vars(benchmarkset),
@@ -603,7 +630,18 @@ ci_plot_df <- ci_results |>
     space = "free_y"
   ) +
   scale_x_continuous(labels = scales::percent, limits = c(0.6, 1)) +
-  scale_color_brewer(palette = "Set1") +
+  scale_color_manual(
+    values = c(
+      "Conservative (unsure = incorrect)" = "#E41A1C",
+      "Sensitive (unsure = correct)" = "#377EB8"
+    )
+  ) +
+  scale_shape_manual(
+    values = c(
+      "Conservative (unsure = incorrect)" = 16,
+      "Sensitive (unsure = correct)" = 17
+    )
+  ) +
   labs(
     x = "Probability Discrepancy is Error in Comparison Callset",
     y = NULL,
@@ -682,62 +720,63 @@ ci_table_wide <- ci_results |>
 
 ci_table_wide |>
   select(
-    benchmarkset, feature, level, n,
+    benchmarkset, level, feature, n,
     `Conservative (unsure = incorrect)|prob`,
     `Conservative (unsure = incorrect)|asymp.LCL`,
     `Sensitive (unsure = correct)|prob`,
     `Sensitive (unsure = correct)|asymp.LCL`
   ) |>
-  gt(groupname_col = "benchmarkset", rowname_col = "level") |>
-  cols_label(
-    feature = "Feature", n = "N",
-    `Conservative (unsure = incorrect)|prob` = "Est. (%)",
-    `Conservative (unsure = incorrect)|asymp.LCL` = "LCB (%)",
-    `Sensitive (unsure = correct)|prob` = "Est. (%)",
-    `Sensitive (unsure = correct)|asymp.LCL` = "LCB (%)"
-  ) |>
-  cols_align(align = "center",
-             columns = -c(feature, level)) |>
-  cols_align(align = "left", columns = feature) |>
-  fmt_percent(
-    columns = c(
+  mutate(across(
+    c(
       `Conservative (unsure = incorrect)|prob`,
       `Conservative (unsure = incorrect)|asymp.LCL`,
       `Sensitive (unsure = correct)|prob`,
       `Sensitive (unsure = correct)|asymp.LCL`
     ),
-    decimals = 1
+    ~ sprintf("%.1f%%", .x * 100)
+  )) |>
+  as_grouped_flextable(groupname_col = "benchmarkset") |>
+  flextable::add_header_row(
+    top = TRUE,
+    values = c(
+      "", "", "",
+      "Conservative (unsure = incorrect)",
+      "Sensitive (unsure = correct)"
+    ),
+    colwidths = c(1, 1, 1, 2, 2)
   ) |>
-  tab_spanner(
-    label = "Conservative (unsure = incorrect)",
-    columns = c(`Conservative (unsure = incorrect)|prob`,
-                `Conservative (unsure = incorrect)|asymp.LCL`)
+  cols_label_flextable(
+    level = "Level", feature = "Feature", n = "N",
+    `Conservative (unsure = incorrect)|prob` = "Est. (%)",
+    `Conservative (unsure = incorrect)|asymp.LCL` = "LCB (%)",
+    `Sensitive (unsure = correct)|prob` = "Est. (%)",
+    `Sensitive (unsure = correct)|asymp.LCL` = "LCB (%)"
   ) |>
-  tab_spanner(
-    label = "Sensitive (unsure = correct)",
-    columns = c(`Sensitive (unsure = correct)|prob`,
-                `Sensitive (unsure = correct)|asymp.LCL`)
+  flextable::align(j = c("level", "feature"), align = "left", part = "body") |>
+  flextable::align(j = c(3, 4, 5, 6, 7), align = "center", part = "body") |>
+  flextable::bold(i = ~ feature == "Overall") |>
+  flextable::footnote(
+    i = 1, j = c(4, 6), part = "header",
+    value = flextable::as_paragraph(
+      "Marginal probabilities via emmeans with proportional weighting, averaging over other model terms."
+    ),
+    ref_symbols = "a"
   ) |>
-  tab_header(
-    title = "Estimated Probability That a Discrepancy is an Error in the Comparison Callset",
-    subtitle = "Marginal estimates from binomial GLMs with one-sided 95% lower confidence bounds (LCB)"
+  flextable::footnote(
+    i = ~ level == "HP >6bp", j = "feature", part = "body",
+    value = flextable::as_paragraph("HP >6bp stratum applies only to INDELs."),
+    ref_symbols = "b"
   ) |>
-  tab_footnote(
-    footnote = "Marginal probabilities via emmeans with proportional weighting, averaging over other model terms.",
-    locations = cells_column_spanners()
+  flextable::footnote(
+    i = 1, j = 6, part = "header",
+    value = flextable::as_paragraph(
+      "Small variant sensitivity model fit with bias-reduced logistic regression (brglm2) due to quasi-complete separation."
+    ),
+    ref_symbols = "c"
   ) |>
-  tab_footnote(
-    footnote = "HP >6bp stratum applies only to INDELs.",
-    locations = cells_body(columns = feature, rows = level == "HP >6bp")
-  ) |>
-  tab_footnote(
-    footnote = "Small variant sensitivity model fit with bias-reduced logistic regression (brglm2) due to quasi-complete separation.",
-    locations = cells_column_spanners(
-      spanners = "Sensitive (unsure = correct)")
-  ) |>
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(columns = everything(), rows = feature == "Overall")
+  theme_flextable_manuscript() |>
+  flextable::set_caption(
+    "Estimated Probability That a Discrepancy is an Error in the Comparison Callset. Marginal estimates from binomial GLMs with one-sided 95% lower confidence bounds (LCB)."
   )
 ```
 
@@ -814,6 +853,20 @@ ci_results_cs <- bind_rows(primary_results_cs, sens_results_cs)
 ```
 
 ```{r cs_forest_plot, fig.width = 7, fig.height = 5.5}
+#| fig-cap: >
+#|   Estimated probability that the Q100 v5.0q HG002 benchmark correctly
+#|   identifies an error in the comparison callset, stratified by variant class
+#|   and genomic context. Each row shows one stratum within a feature category
+#|   (facet strip); points are marginal probability estimates from bias-reduced
+#|   logistic regression models via emmeans with proportional weighting. Red
+#|   circles indicate the conservative assumption (unsure-classification variants
+#|   treated as callset correct, reducing apparent error rate); blue triangles
+#|   indicate the sensitive assumption (unsure variants treated as callset
+#|   errors, increasing apparent error rate). The grey segment spanning each row
+#|   shows the range of estimates across the two assumptions. Columns separate
+#|   small variants (left) and structural variants (right), which are modeled
+#|   independently. The Overall estimate is not conditioned on any stratum.
+## Prepare display labels; Overall placed first so its facet appears at top
 ci_plot_df_cs <- ci_results_cs |>
   mutate(
     label = if_else(feature == "Overall", "Overall", level),
@@ -824,19 +877,24 @@ ci_plot_df_cs <- ci_results_cs |>
       .default = label
     ),
     feature = factor(feature,
-      levels = rev(c("Overall", "Variant Type", "Genomic Context",
-                      "Unique To", "TR Annotation", "SV Category"))
+      levels = c("Overall", "Unique To", "Variant Type", "Genomic Context",
+                 "TR Annotation", "SV Category")
     ),
     benchmarkset = factor(benchmarkset,
-      levels = c("Small Variant", "Structural Variant"))
+      levels = c("Small Variant", "Structural Variant")
+    )
   )
 
 (ci_forest_cs_plt <- ggplot(ci_plot_df_cs,
-       aes(x = prob, y = reorder(label, prob),
-           xmin = asymp.LCL, xmax = prob,
-           color = analysis, shape = analysis)) +
-  geom_pointrange(size = 0.4,
-                  position = position_dodge(width = 0.5)) +
+       aes(x = prob, y = reorder(label, prob))) +
+  ## Grey segment connecting conservative and sensitive endpoints
+  geom_line(
+    aes(group = interaction(label, feature, benchmarkset)),
+    color = "grey60",
+    linewidth = 0.8
+  ) +
+  ## Endpoints colored and shaped by analysis assumption
+  geom_point(aes(color = analysis, shape = analysis), size = 2.5) +
   facet_grid(
     rows = vars(feature),
     cols = vars(benchmarkset),
@@ -844,7 +902,18 @@ ci_plot_df_cs <- ci_results_cs |>
     space = "free_y"
   ) +
   scale_x_continuous(labels = scales::percent, limits = c(0.6, 1)) +
-  scale_color_brewer(palette = "Set1") +
+  scale_color_manual(
+    values = c(
+      "Conservative (unsure = callset correct)" = "#E41A1C",
+      "Sensitive (unsure = callset incorrect)" = "#377EB8"
+    )
+  ) +
+  scale_shape_manual(
+    values = c(
+      "Conservative (unsure = callset correct)" = 16,
+      "Sensitive (unsure = callset incorrect)" = 17
+    )
+  ) +
   labs(
     x = "Probability Benchmark Identifies Error in Comparison Callset",
     y = NULL,
@@ -921,62 +990,63 @@ ci_table_wide_cs <- ci_results_cs |>
 
 ci_table_wide_cs |>
   select(
-    benchmarkset, feature, level, n,
+    benchmarkset, level, feature, n,
     `Conservative (unsure = callset correct)|prob`,
     `Conservative (unsure = callset correct)|asymp.LCL`,
     `Sensitive (unsure = callset incorrect)|prob`,
     `Sensitive (unsure = callset incorrect)|asymp.LCL`
   ) |>
-  gt(groupname_col = "benchmarkset", rowname_col = "level") |>
-  cols_label(
-    feature = "Feature", n = "N",
-    `Conservative (unsure = callset correct)|prob` = "Est. (%)",
-    `Conservative (unsure = callset correct)|asymp.LCL` = "LCB (%)",
-    `Sensitive (unsure = callset incorrect)|prob` = "Est. (%)",
-    `Sensitive (unsure = callset incorrect)|asymp.LCL` = "LCB (%)"
-  ) |>
-  cols_align(align = "center",
-             columns = -c(feature, level)) |>
-  cols_align(align = "left", columns = feature) |>
-  fmt_percent(
-    columns = c(
+  mutate(across(
+    c(
       `Conservative (unsure = callset correct)|prob`,
       `Conservative (unsure = callset correct)|asymp.LCL`,
       `Sensitive (unsure = callset incorrect)|prob`,
       `Sensitive (unsure = callset incorrect)|asymp.LCL`
     ),
-    decimals = 1
+    ~ sprintf("%.1f%%", .x * 100)
+  )) |>
+  as_grouped_flextable(groupname_col = "benchmarkset") |>
+  flextable::add_header_row(
+    top = TRUE,
+    values = c(
+      "", "", "",
+      "Conservative (unsure = callset correct)",
+      "Sensitive (unsure = callset incorrect)"
+    ),
+    colwidths = c(1, 1, 1, 2, 2)
   ) |>
-  tab_spanner(
-    label = "Conservative (unsure = callset correct)",
-    columns = c(`Conservative (unsure = callset correct)|prob`,
-                `Conservative (unsure = callset correct)|asymp.LCL`)
+  cols_label_flextable(
+    level = "Level", feature = "Feature", n = "N",
+    `Conservative (unsure = callset correct)|prob` = "Est. (%)",
+    `Conservative (unsure = callset correct)|asymp.LCL` = "LCB (%)",
+    `Sensitive (unsure = callset incorrect)|prob` = "Est. (%)",
+    `Sensitive (unsure = callset incorrect)|asymp.LCL` = "LCB (%)"
   ) |>
-  tab_spanner(
-    label = "Sensitive (unsure = callset incorrect)",
-    columns = c(`Sensitive (unsure = callset incorrect)|prob`,
-                `Sensitive (unsure = callset incorrect)|asymp.LCL`)
+  flextable::align(j = c("level", "feature"), align = "left", part = "body") |>
+  flextable::align(j = c(3, 4, 5, 6, 7), align = "center", part = "body") |>
+  flextable::bold(i = ~ feature == "Overall") |>
+  flextable::footnote(
+    i = 1, j = c(4, 6), part = "header",
+    value = flextable::as_paragraph(
+      "Marginal probabilities via emmeans with proportional weighting, averaging over other model terms."
+    ),
+    ref_symbols = "a"
   ) |>
-  tab_header(
-    title = "Estimated Probability That Benchmark Identifies an Error in the Comparison Callset",
-    subtitle = "Based on correct-in-callset curations; marginal estimates from binomial GLMs with one-sided 95% LCB"
+  flextable::footnote(
+    i = ~ level == "HP >6bp", j = "feature", part = "body",
+    value = flextable::as_paragraph("HP >6bp stratum applies only to INDELs."),
+    ref_symbols = "b"
   ) |>
-  tab_footnote(
-    footnote = "Marginal probabilities via emmeans with proportional weighting, averaging over other model terms.",
-    locations = cells_column_spanners()
+  flextable::footnote(
+    i = 1, j = 6, part = "header",
+    value = flextable::as_paragraph(
+      "Bias-reduced logistic regression (brglm2) used where quasi-complete separation was detected."
+    ),
+    ref_symbols = "c"
   ) |>
-  tab_footnote(
-    footnote = "HP >6bp stratum applies only to INDELs.",
-    locations = cells_body(columns = feature, rows = level == "HP >6bp")
-  ) |>
-  tab_footnote(
-    footnote = "Bias-reduced logistic regression (brglm2) used where quasi-complete separation was detected.",
-    locations = cells_column_spanners(
-      spanners = "Sensitive (unsure = callset incorrect)")
-  ) |>
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(columns = everything(), rows = feature == "Overall")
+  theme_flextable_manuscript() |>
+  flextable::set_caption(
+    "Estimated Probability That Benchmark Identifies an Error in the Comparison Callset. Based on correct-in-callset curations; marginal estimates from binomial GLMs with one-sided 95% LCB."
   )
 ```
 

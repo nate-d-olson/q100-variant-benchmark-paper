@@ -134,7 +134,7 @@ R/
 ├── schemas.R       # Arrow schema, factor levels, validation rules
 ├── cache.R         # Parquet caching infrastructure
 ├── data_loading.R  # 11 load_* functions (sources schemas + cache)
-├── plot_themes.R   # ggplot2 themes + flextable helpers (gt legacy)
+├── plot_themes.R   # ggplot2 themes + flextable helpers
 └── bed_helpers.R   # Interval arithmetic for benchmark_unique_regions notebook
 ```
 

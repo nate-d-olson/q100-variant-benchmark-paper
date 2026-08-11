@@ -287,12 +287,16 @@ smvar_len_df <- variants_df %>%
     position = "dodge",
     color = "grey20"
   ) +
-  scale_benchmark_version(aesthetic = "fill", name = "Version") +
+  scale_fill_manual(
+    name   = "Version",
+    values = c("v4.2.1" = "grey60", "v5.0q" = "#7570B3"),
+    labels = c("v4.2.1" = "v4.2.1 (GRCh38)", "v5.0q" = "v5.0q (GRCh38)")
+  ) +
   scale_x_continuous(
     breaks = c(1, 5, 10, 15, 20, 30, 40, 50)) +
   labs(x = "Absolute INDEL Length (bp)", y = "Count", fill = "Version") +
-  facet_wrap(~var_type, ncol = 2) + 
-  theme_manuscript(legend.position = c(0.85, 0.85)))
+  facet_wrap(~var_type, ncol = 2) +
+  theme_manuscript(legend.position = "bottom"))
 ```
 
 ```{r sv_length_distribution}
@@ -315,17 +319,21 @@ stvar_len_df <- variants_df %>%
     position = "dodge",
     color = "grey20"
   ) +
-  scale_benchmark_version(aesthetic = "fill", name = "Version") +
+  scale_fill_manual(
+    name   = "Version",
+    values = c("v0.6" = "grey60", "v5.0q" = "#7570B3"),
+    labels = c("v0.6" = "v0.6 (GRCh37)", "v5.0q" = "v5.0q (GRCh37)")
+  ) +
   scale_x_log10() +
   labs(x = "Absolute SV Length (bp)", y = "Count", fill = "Version") +
-  facet_wrap(~var_type, ncol = 2) + 
-  theme_manuscript(legend.position = c(0.85, 0.85)))
+  facet_wrap(~var_type, ncol = 2) +
+  theme_manuscript(legend.position = "bottom"))
 ```
 
 ```{r combined_var_len_dist, width = 4, height = 4}
 (combined_var_len_dist_plt <- smvar_len_dist_plt +
   stvar_len_dist_plt +
-   plot_layout(ncol = 1, nrow = 2) + 
+   plot_layout(ncol = 1, nrow = 2, guides = "collect") +
   plot_annotation(tag_levels = "A") &
   # theme_manuscript(
   #   strip.background = element_rect(fill = "grey92", color = NA),
@@ -335,7 +343,7 @@ stvar_len_df <- variants_df %>%
   # ) +
     theme(
       # axis.text.x = element_text(angle = -45, hjust = 0),
-      # legend.position = "bottom",
+      legend.position = "bottom",
       plot.margin = unit(c(1, 1, 1, 1), "pt")
     ))
 ```
@@ -510,7 +518,14 @@ make_fc_panel <- function(df, y_label) {
     scale_shape_discrete(name = "Variant Type") +
     labs(x = "Size Bin", y = y_label) +
     theme_manuscript() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(
+      axis.text.x  = element_text(angle = 45, hjust = 1, size = 10),
+      axis.text.y  = element_text(size = 10),
+      axis.title   = element_text(size = 11, face = "bold"),
+      strip.text   = element_text(size = 10, face = "bold"),
+      legend.text  = element_text(size = 10),
+      legend.title = element_text(size = 11, face = "bold")
+    )
 }
 
 smvar_fc_plt <- context_totals_bytype %>%
@@ -548,4 +563,55 @@ ggsave(
   width = 10,
   height = 10
 )
+```
+
+## Exclusion Variant Counts
+
+Variants located within exclusion regions for v5.0q benchmarks. Exclusion regions are areas removed from the raw dipcall assembly regions (`dip.bed`) to produce the final benchmark. Only v5.0q benchmarks have exclusions configured.
+
+```{r load_exclusion_data}
+excl_df <- load_exclusion_metrics()
+```
+
+### Main Text: GRCh38 Small Variants
+
+```{r exclusion_table_grch38_smvar}
+excl_df %>%
+  filter(ref == "GRCh38", bench_type == "smvar") %>%
+  select(exclusions, total_variants, snv_count, ins_count, del_count, exclusion_bp) %>%
+  arrange(desc(total_variants)) %>%
+  flextable::flextable() %>%
+  fmt_integer_flextable(
+    columns = c("total_variants", "snv_count", "ins_count", "del_count", "exclusion_bp")
+  ) %>%
+  cols_label_flextable(
+    exclusions = "Exclusion Region",
+    total_variants = "Total Variants",
+    snv_count = "SNVs",
+    ins_count = "Insertions",
+    del_count = "Deletions",
+    exclusion_bp = "Size (bp)"
+  ) %>%
+  theme_flextable_manuscript()
+```
+
+### Supplemental: GRCh38 Structural Variants
+
+```{r exclusion_table_grch38_stvar}
+excl_df %>%
+  filter(ref == "GRCh38", bench_type == "stvar") %>%
+  select(exclusions, total_variants, ins_count, del_count, exclusion_bp) %>%
+  arrange(desc(total_variants)) %>%
+  flextable::flextable() %>%
+  fmt_integer_flextable(
+    columns = c("total_variants", "ins_count", "del_count", "exclusion_bp")
+  ) %>%
+  cols_label_flextable(
+    exclusions = "Exclusion Region",
+    total_variants = "Total Variants",
+    ins_count = "SV Insertions",
+    del_count = "SV Deletions",
+    exclusion_bp = "Size (bp)"
+  ) %>%
+  theme_flextable_manuscript()
 ```

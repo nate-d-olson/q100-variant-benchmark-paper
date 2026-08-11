@@ -255,10 +255,14 @@ genomic_context_var_fld_chg <- bind_rows(gc_size_counts, complex_size_counts) %>
   scale_fill_viridis_d(
     guide = guide_legend(override.aes = list(shape = 21))
   ) +
-  scale_y_continuous(labels = scales::comma) +
+  scale_y_continuous(
+    trans = "log2",
+    breaks = c(0.25, 0.5, 1, 2, 4, 8, 16),
+    labels = scales::label_number(accuracy = 0.01, drop0trailing = TRUE)
+  ) +
   labs(
     x = "Variant Size",
-    y = "Fold Change (v5.0q / legacy)",
+    y = "log₂ Fold Change",
     # fill = "Variant Size",
     shape = "Variant Type"
   ) +
@@ -281,4 +285,40 @@ ggsave(
   width = 8,
   height = 6
 )
+```
+
+### Supplemental: Small Variant Count by Size Bin
+
+Raw variant counts for GRCh38 small variants (v4.2.1 and v5.0q), broken
+down by variant type (SNP, INS, DEL) and size bin. Only the two small-variant
+size bins (<15bp and 15-49bp) are shown; v0.6 is excluded because it uses
+GRCh37 for smvar.
+
+```{r smvar_size_bin_table}
+smvar_size_bin_counts <- variants_df %>%
+  filter(
+    bench_type == "smvar",
+    ref == "GRCh38",
+    bench_version %in% c("v4.2.1", "v5.0q"),
+    var_type %in% c("SNP", "INS", "DEL")
+  ) %>%
+  add_size_bin() %>%
+  filter(var_size_bin %in% c("<15bp", "15-49bp")) %>%
+  count(var_type, var_size_bin, bench_version, name = "count") %>%
+  pivot_wider(
+    names_from = bench_version,
+    values_from = count,
+    values_fill = 0L
+  ) %>%
+  arrange(var_type, var_size_bin) %>%
+  select(var_type, var_size_bin, `v4.2.1`, `v5.0q`)
+
+smvar_size_bin_counts %>%
+  flextable() %>%
+  fmt_integer_flextable(columns = c("v4.2.1", "v5.0q")) %>%
+  cols_label_flextable(
+    var_type = "Variant Type",
+    var_size_bin = "Size Bin"
+  ) %>%
+  theme_flextable_manuscript()
 ```

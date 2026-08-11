@@ -6,8 +6,8 @@ cleanup completed 2026-08-10.
 
 ## Next steps (ordered)
 
-1. [ ] Resolve the scientific-content blockers: curate unsure SVs, investigate
-   50–100 bp benchmark intervals, and verify every highlighted manuscript value.
+1. [ ] Resolve the scientific-content blockers: curate unsure SVs and verify
+   every highlighted manuscript value.
 2. [ ] Revise the main exclusion-categories figure and the Chr 8 figure; neither
    is ready for final manuscript placement.
 3. [ ] Finalize the selected external-evaluation, ideogram, and combined use-case
@@ -50,7 +50,9 @@ cleanup completed 2026-08-10.
 - [ ] Show supplemental variant-size fold change in log2 space.
 - [ ] Make the evaluation-curation panels B and D consistent (both faceted or
   both unfaceted).
-- [ ] Present the RIDE-CI result more clearly.
+- [x] Present the RIDE-CI result more clearly. Replaced geom_pointrange with
+  dumbbell plot (grey segment + colored endpoints) and moved Overall facet to
+  top in both `ci_forest_plot` and `cs_forest_plot` chunks. 2026-08-11.
 - [ ] Revise the combined use-case figure based on small- and structural-variant
   feedback. `figures/use_case.png` is an alternate portrait layout with no
   generative code in the repo (manually created, confirmed orphan); decide whether
@@ -76,15 +78,19 @@ cleanup completed 2026-08-10.
 
 ## Analyses
 
-- [ ] Add variant counts to the exclusion tables in
-  `analysis/benchmarkset_characterization.qmd`. No exclusion section currently
-  exists in that notebook; this requires new code.
-- [ ] Add a small-variant count breakdown for <15 bp and 15–49 bp. Size-bin
-  levels exist in `benchmark_difficult.qmd` for fold-change visualization but no
-  standalone count summary table exists anywhere.
-- [ ] Investigate 50–100 bp v5.0q benchmark intervals as a possible exclusion
-  bug; document whether the intervals are expected and fix the pipeline if not.
-  No analysis or code comment addresses this yet.
+- [x] Add variant counts to the exclusion tables in
+  `analysis/benchmarkset_characterization.qmd`. Added `## Exclusion Variant Counts`
+  section with smvar and stvar flextables (GRCh38 primary). 2026-08-10.
+- [x] Add a small-variant count breakdown for <15 bp and 15–49 bp. Added
+  `### Supplemental: Small Variant Count by Size Bin` to `benchmark_difficult.qmd`
+  (GRCh38, v4.2.1 vs v5.0q, SNP/INS/DEL). 2026-08-10.
+- [x] Investigate 50–100 bp v5.0q benchmark intervals as a possible exclusion
+  bug. Investigated 2026-08-10: **expected, not a bug.** The benchmark BED is
+  downloaded directly from GIAB; this pipeline does not apply exclusions to
+  produce it. v5.0q has only 15 intervals in the 50–99 bp range (0.05% of
+  28,797 total), far fewer than v4.2.1 (18,474 of 481,622). They are legitimate
+  narrow confident regions from the upstream DeFrABB pipeline. Documented in
+  `docs/troubleshooting.md` under "50-100 bp Benchmark Intervals".
 - [ ] Add a compact figure summarizing v5-only versus previous-only base and
   variant deltas.
 - [ ] Annotate v5 benchmark VCFs with exclusion-based FILTER values.
@@ -119,14 +125,10 @@ cleanup completed 2026-08-10.
 
 ## Pipeline and repository maintenance
 
-- [ ] Remove `tests/unit/test_common_helpers.py`. It imports
-  `workflow/rules/common.smk` as a Python module (not importable) and tests
-  `get_exclusion_file_path` and `_format_exclusion_name`, neither of which exists
-  in `common.smk` anymore. The two active tests fail at import; CI already ignores
-  the file. Repair is not viable — remove it.
-- [ ] Migrate the 2 remaining `gt()` tables in `analysis/external_evaluation.qmd`
-  to flextable (lines 691 and 930 — the confidence-interval tables). These are the
-  last blocker to removing `gt` from the project.
+- [x] Remove `tests/unit/test_common_helpers.py`. Removed 2026-08-10.
+- [x] Migrate the 2 remaining `gt()` tables in `analysis/external_evaluation.qmd`
+  to flextable. Removed `theme_gt_manuscript`, `library(gt)` from `plot_themes.R`,
+  and `load_gt` param from `_notebook_setup.R`. gt fully removed 2026-08-10.
 - [ ] Evaluate Snakevision for a Snakemake pipeline diagram:
   <https://github.com/OpenOmics/snakevision>.
 - [ ] Decide whether to extend the light SV use-case Snakemake integration with
@@ -134,9 +136,8 @@ cleanup completed 2026-08-10.
 
 ## GitHub issue reconciliation
 
-- [ ] Close [#49, "Create highlevel ideogram figure"](https://github.com/nate-d-olson/q100-variant-benchmark-paper/issues/49).
-  `scripts/make_ideogram.R` now produces `figures/ideogram_main` via `make ideogram`.
-  The code is complete; only the GitHub issue closure remains.
+- [x] Close [#49, "Create highlevel ideogram figure"](https://github.com/nate-d-olson/q100-variant-benchmark-paper/issues/49).
+  Closed 2026-08-10.
 
 ## Recently verified or completed
 

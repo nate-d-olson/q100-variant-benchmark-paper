@@ -1,6 +1,6 @@
 #' Plot Themes and Styling for Manuscript
 #'
-#' Provides consistent ggplot2 and gt table styling for all figures and tables.
+#' Provides consistent ggplot2 and flextable styling for all figures and tables.
 #' Designed for Cell Genomics journal submission requirements.
 #'
 #' @keywords internal
@@ -24,7 +24,6 @@
 library(tidyverse)
 library(flextable)
 library(officer)
-library(gt)
 
 #' Color Palettes for Variables
 #'
@@ -335,103 +334,6 @@ scale_genomic_context <- function(
     ),
     stop("Unknown aesthetic: ", aesthetic)
   )
-}
-
-#' GT Table Theme for Manuscript
-#'
-#' @param gt_object A gt table object
-#' @param striped Logical: add striped rows for readability (default: TRUE)
-#' @param ... Additional gt table options to override or extend defaults.
-#'   Any named arguments matching `gt::tab_options()` parameters will be applied
-#'   (e.g., `table.font.size = "10pt"`)
-#'
-#' @return A gt table object with styling applied
-#'
-#' @details
-#' Table styling specifications:
-#' - Clean, professional appearance
-#' - Appropriate font sizing for readability
-#' - Proper spacing and borders for publication
-#' - Alternating row colors for readability (optional)
-#' - Color palette consistent with figures
-#'
-#' @examples
-#' \dontrun{
-#' # Use default theme
-#' data %>%
-#'   gt() %>%
-#'   theme_gt_manuscript()
-#'
-#' # Override font size
-#' data %>%
-#'   gt() %>%
-#'   theme_gt_manuscript(table.font.size = "10pt")
-#' }
-#'
-#' @export
-theme_gt_manuscript <- function(gt_object, striped = TRUE, ...) {
-  # Base styling options
-  base_options <- list(
-    # Font sizing
-    table.font.size = "9pt",
-    heading.title.font.size = "10pt",
-    stub.font.size = "9pt",
-    summary_row.text_transform = "uppercase",
-
-    # Table structure
-    table.border.top.style = "solid",
-    table.border.top.width = px(2),
-    table.border.top.color = "black",
-    table.border.bottom.style = "solid",
-    table.border.bottom.width = px(2),
-    table.border.bottom.color = "black",
-    heading.border.bottom.style = "solid",
-    heading.border.bottom.width = px(1),
-    heading.border.bottom.color = "black",
-
-    # Column labels
-    column_labels.background.color = "#F5F5F5",
-    column_labels.text_transform = "capitalize",
-    column_labels.padding = px(10),
-    column_labels.border.top.style = "solid",
-    column_labels.border.top.width = px(1),
-    column_labels.border.top.color = "black",
-    column_labels.border.bottom.style = "solid",
-    column_labels.border.bottom.width = px(1),
-    column_labels.border.bottom.color = "black",
-
-    # Data cells
-    data_row.padding = px(8),
-    table.width = pct(100),
-
-    # Borders and spacing
-    table.margin.left = "auto",
-    table.margin.right = "auto"
-  )
-
-  # Merge user-provided options with base options (user options take precedence)
-  merged_options <- utils::modifyList(base_options, list(...))
-
-  # Base styling
-  gt_object <- gt_object %>%
-    gt::opt_table_font(
-      font = list(
-        gt::google_font("Roboto"),
-        "Arial",
-        "sans-serif"
-      )
-    ) %>%
-    {
-      do.call(gt::tab_options, c(list(.), merged_options))
-    }
-
-  # Add striped rows if requested
-  if (striped) {
-    gt_object <- gt_object %>%
-      gt::opt_row_striping(row_striping = TRUE)
-  }
-
-  return(gt_object)
 }
 
 #' Theme flextable Tables for Manuscript

@@ -39,6 +39,7 @@ import json
 import sys
 from pathlib import Path
 
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
@@ -74,8 +75,8 @@ PANEL_B_HEIGHT = 2  # zoomed inversion panel
 # Each value is the fraction of that panel's pixel height to remove from the top.
 # Increase if a fragment of the legend is still visible; decrease if the
 # chromosome y-axis label ("chr8") gets clipped.
-PANEL_A_CROP = 0.0
-PANEL_B_CROP = 0.0
+PANEL_A_CROP = 0.12
+PANEL_B_CROP = 0.12
 
 # --- Gridlines ---
 # Fraction of the axis height that each shortened vertical dashed gridline spans
@@ -161,9 +162,9 @@ def _ft_tag(filepath: str) -> str:
 def write_genomes(path: str, ref: str, mat: str, pat: str) -> None:
     with open(path, "w") as fh:
         fh.write("#file\tname\ttags\n")
-        fh.write(f"{ref}\tREF\tft:{_ft_tag(ref)};lw:1.5;lc:#1f77b4\n")
-        fh.write(f"{mat}\tMAT\tft:{_ft_tag(mat)};lw:1.5;lc:#2ca02c\n")
-        fh.write(f"{pat}\tPAT\tft:{_ft_tag(pat)};lw:1.5;lc:#d62728\n")
+        fh.write(f"{ref}\tGRCh38\tft:{_ft_tag(ref)};lw:1.5;lc:#1f77b4\n")
+        fh.write(f"{mat}\tHG002 mat.\tft:{_ft_tag(mat)};lw:1.5;lc:#2ca02c\n")
+        fh.write(f"{pat}\tHG002 pat.\tft:{_ft_tag(pat)};lw:1.5;lc:#d62728\n")
 
 
 def write_markers(
@@ -171,14 +172,14 @@ def write_markers(
     chrom: str,
     inv_start: int,
     inv_end: int,
-    genome_id: str = "PAT",
+    genome_id: str = "HG002 pat.",
     excl_start: int | None = None,
     excl_end: int | None = None,
 ) -> None:
     """Mark inversion breakpoints and optional excluded region boundaries."""
     with open(path, "w") as fh:
         fh.write("#chr\tstart\tend\tgenome_id\ttags\n")
-        # Inversion breakpoints on PAT (triangles, hidden text)
+        # Inversion breakpoints on HG002 pat. (triangles, hidden text)
         _hidden = "tt: ;tp:0.01;ts:1;tf:Arial;tc:white"
         fh.write(
             f"{chrom}\t{inv_start}\t{inv_start + 1}\t{genome_id}\t"
@@ -188,14 +189,14 @@ def write_markers(
             f"{chrom}\t{inv_end}\t{inv_end + 1}\t{genome_id}\t"
             f"mt:v;mc:#d62728;ms:4;{_hidden}\n"
         )
-        # Excluded region boundaries on REF (diamonds)
+        # Excluded region boundaries on GRCh38 (diamonds)
         if excl_start is not None and excl_end is not None:
             fh.write(
-                f"{chrom}\t{excl_start}\t{excl_start + 1}\tREF\t"
+                f"{chrom}\t{excl_start}\t{excl_start + 1}\tGRCh38\t"
                 f"mt:D;mc:#555555;ms:3;{_hidden}\n"
             )
             fh.write(
-                f"{chrom}\t{excl_end}\t{excl_end + 1}\tREF\t"
+                f"{chrom}\t{excl_end}\t{excl_end + 1}\tGRCh38\t"
                 f"mt:D;mc:#555555;ms:3;{_hidden}\n"
             )
 
@@ -405,12 +406,27 @@ def assemble_figure(
     ax_b.axis("on")
     _panel_label(ax_b, "B")
 
-    #    ax_b.set_title(
-    #        f"Zoomed: REF {ref_start / 1e6:.1f} – {ref_end / 1e6:.1f} Mb"
-    #        f"{excl_label}",
-    #        fontsize=ZOOM_TITLE_FONTSIZE,
-    #        pad=4,
-    #    )
+    ax_b.set_title(
+        "Largest inversion (GRCh38 coordinates)",
+        fontsize=ZOOM_TITLE_FONTSIZE,
+        pad=4,
+    )
+
+    # -- Custom legend (replaces the plotsr-generated legend that was cropped) --
+    legend_patches = [
+        mpatches.Patch(color="#1f77b4", label="GRCh38"),
+        mpatches.Patch(color="#2ca02c", label="HG002 mat."),
+        mpatches.Patch(color="#d62728", label="HG002 pat."),
+    ]
+    fig.legend(
+        handles=legend_patches,
+        loc="lower center",
+        ncol=3,
+        fontsize=10,
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.0),
+    )
+    fig.subplots_adjust(bottom=0.08)
 
     # -- Save -----------------------------------------------------------------
     Path(out_base).parent.mkdir(parents=True, exist_ok=True)
