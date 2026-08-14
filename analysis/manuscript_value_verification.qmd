@@ -1,0 +1,1187 @@
+---
+title: "Manuscript Result Value Verification (HG002 v5.0q Benchmark Paper)"
+date: '`r Sys.Date()`'
+author: "Claude (agent-assisted verification)"
+format:
+  html:
+    theme: flatly
+    page-layout: full
+    toc: true
+    self-contained: true
+editor: source
+code-fold: show
+execute:
+  warning: false
+---
+
+## Purpose
+
+This notebook verifies every quantitative claim inventoried in
+`manuscript-value-verification-prompt.md` for the manuscript
+`HG002v5-variant-benchmark-manuscript_20260814_revised.docx`:
+
+- **Section A** — unresolved `##` placeholders (newly calculated here)
+- **Section B** — known candidate inconsistencies (investigated, not just recomputed)
+- **Section C** — headline results re-verified against current pipeline outputs
+
+Each item shows the claim, the code used (reusing the logic of the existing
+`analysis/*.qmd` notebooks), and the calculated result. The notebook ends with a
+summary table (mismatches and placeholders first) and writes the machine-readable
+substitution manifest to `docs/agent_work/manuscript_value_updates.json`.
+
+```{r setup}
+#| include: false
+source(here::here("analysis/_notebook_setup.R"))
+analysis_setup(load_plot_themes = TRUE)
+library(jsonlite)
+
+# NIST-style digit grouping (narrow no-break space) for human-readable display
+nist_fmt <- function(x, digits = NULL) {
+  if (!is.null(digits)) x <- round(x, digits)
+  format(x, big.mark = " ", scientific = FALSE, trim = TRUE)
+}
+
+# Accumulator for the summary table + JSON manifest
+verification_results <- list()
+record_value <- function(id, section, current_text_snippet, current_value,
+                         calculated_value, unit, status, confidence,
+                         needs_human_review, source, notes = "") {
+  verification_results[[id]] <<- list(
+    id = id,
+    section = section,
+    current_text_snippet = current_text_snippet,
+    current_value = current_value,
+    calculated_value = calculated_value,
+    unit = unit,
+    status = status,
+    confidence = confidence,
+    needs_human_review = needs_human_review,
+    source = source,
+    notes = notes
+  )
+  invisible(NULL)
+}
+```
+
+## Shared data loading and Table-1 computations
+
+Replicates `benchmarkset_characterization.qmd` chunks `load_primary`,
+`benchmark_summary_data`, and `table1_combined` (same loaders, same filters:
+`region_ids == "BMKREGIONS" & is_pass`, chromosomes `chr1–22, X, Y`).
+
+```{r load-data}
+#| message: false
+analysis_data <- load_primary_analysis_data(
+  include_variants = TRUE,
+  include_reference_sizes = TRUE,
+  include_hg002q100_size = FALSE,
+  include_benchmark_regions = TRUE
+)
+list2env(analysis_data, envir = globalenv())
+
+## Final-benchmark variant population (as in benchmarkset_characterization.qmd)
+variants_bench_df <- variants_df %>%
+  filter(region_ids == "BMKREGIONS", is_pass)
+
+## Benchmark region stats (qmd chunk benchmark_summary_data)
+bench_region_stats_df <- bench_regions_df %>%
+  filter(
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
+    chrom %in% CHROM_LEVELS
+  ) %>%
+  group_by(bench_type, ref, bench_version) %>%
+  summarise(total_bp = sum(interval_size), .groups = "drop") %>%
+  left_join(total_ref_asm_bp, by = "ref") %>%
+  mutate(pct_ref_cvg = 100 * (total_bp / total_asm_bp)) %>%
+  select(-total_asm_bp)
+
+bench_var_cnt_df <- variants_bench_df %>%
+  count(bench_type, ref, bench_version, var_type)
+
+bench_summary_df <- bench_var_cnt_df %>%
+  pivot_wider(names_from = var_type, values_from = n, values_fill = 0L) %>%
+  mutate(Total = rowSums(across(any_of(c("SNV", "INDEL", "INS", "DEL"))))) %>%
+  full_join(bench_region_stats_df, by = c("bench_type", "ref", "bench_version"))
+
+## "Altered bases" under BOTH formulas found in the qmd's git history:
+##  - legacy (pre-regression): sum(abs(var_size)) -- SNVs contribute 0 bp
+##  - current committed code:  sum(if_else(var_size == 0, 1, abs(var_size)))
+##    (note: current code also lost the /1e6 scaling; applied here manually)
+altered_df <- variants_bench_df %>%
+  group_by(bench_type, ref, bench_version) %>%
+  summarise(
+    mb_legacy_formula = sum(abs(var_size)) / 1e6,
+    mb_current_formula = sum(if_else(var_size == 0, 1, abs(var_size))) / 1e6,
+    .groups = "drop"
+  )
+
+get_row <- function(df, bt, rf, bv) {
+  df %>% filter(bench_type == bt, ref == rf, bench_version == bv)
+}
+smv_g37 <- get_row(bench_summary_df, "smvar", "GRCh37", "v5.0q")
+smv_g38 <- get_row(bench_summary_df, "smvar", "GRCh38", "v5.0q")
+smv_chm <- get_row(bench_summary_df, "smvar", "CHM13v2.0", "v5.0q")
+smv_leg <- get_row(bench_summary_df, "smvar", "GRCh38", "v4.2.1")
+stv_g37 <- get_row(bench_summary_df, "stvar", "GRCh37", "v5.0q")
+stv_g38 <- get_row(bench_summary_df, "stvar", "GRCh38", "v5.0q")
+stv_chm <- get_row(bench_summary_df, "stvar", "CHM13v2.0", "v5.0q")
+stv_leg <- get_row(bench_summary_df, "stvar", "GRCh37", "v0.6")
+alt_smv <- list(
+  g37 = get_row(altered_df, "smvar", "GRCh37", "v5.0q"),
+  g38 = get_row(altered_df, "smvar", "GRCh38", "v5.0q"),
+  chm = get_row(altered_df, "smvar", "CHM13v2.0", "v5.0q"),
+  leg = get_row(altered_df, "smvar", "GRCh38", "v4.2.1")
+)
+alt_stv <- list(
+  g37 = get_row(altered_df, "stvar", "GRCh37", "v5.0q"),
+  g38 = get_row(altered_df, "stvar", "GRCh38", "v5.0q"),
+  chm = get_row(altered_df, "stvar", "CHM13v2.0", "v5.0q"),
+  leg = get_row(altered_df, "stvar", "GRCh37", "v0.6")
+)
+pctchg <- function(new, old) 100 * (new - old) / old
+```
+
+# Section A — Unresolved `##` placeholders
+
+## A1. `autosome_pct_increase`
+
+> "The v5.0q benchmark set includes ## % more of the autosomes than v4.2.1"
+
+The sentence separates autosomes from the sex chromosomes ("...as well as both
+sex chromosomes that were excluded"), and v4.2.1 GRCh38 smvar has zero chrX/chrY
+intervals — so the literal autosome-only figure differs sharply from the
+whole-benchmark figure (which matches Table 1's +7.7 %).
+
+```{r a1-autosome}
+autosome_totals <- bench_regions_df %>%
+  filter(
+    bench_version %in% c("v5.0q", "v4.2.1"), bench_type == "smvar",
+    ref == "GRCh38", chrom %in% AUTOSOME_CHROM_LEVELS
+  ) %>%
+  group_by(bench_version) %>%
+  summarise(total_bp = sum(interval_size), .groups = "drop")
+v5_auto_bp <- autosome_totals %>% filter(bench_version == "v5.0q") %>% pull(total_bp)
+v4_auto_bp <- autosome_totals %>% filter(bench_version == "v4.2.1") %>% pull(total_bp)
+auto_pct_increase <- pctchg(v5_auto_bp, v4_auto_bp)
+all_pct_increase <- pctchg(smv_g38$total_bp, smv_leg$total_bp)
+cat("Autosome-only bp increase:", round(auto_pct_increase, 3), "%\n")
+cat("All-chromosome (incl. newly added X/Y) increase:", round(all_pct_increase, 3), "%\n")
+
+record_value(
+  id = "autosome_pct_increase",
+  section = "Results — Benchmark content and genome coverage",
+  current_text_snippet = "The v5.0q benchmark set includes ## % more of the autosomes than v4.2.1",
+  current_value = NULL,
+  calculated_value = round(auto_pct_increase, 1),
+  unit = "%",
+  status = "placeholder_resolved",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd region logic; resources/benchmarksets v5.0q vs v4.2.1 GRCh38 smvar BEDs",
+  notes = sprintf(
+    paste0(
+      "Author confirmed (2026-08-14): autosome-only value %.1f%% is correct (the sentence ",
+      "treats sex chromosomes separately, and v4.2.1 has zero chrX/Y coverage). For context, ",
+      "the whole-benchmark increase incl. newly added X/Y is %.1f%%."
+    ),
+    auto_pct_increase, all_pct_increase
+  )
+)
+```
+
+## A2. `sv_difficult_context_pct_increase`
+
+> "The v5.0 SV benchmark set includes ## % more variants in difficult genomic context"
+
+Comparison: `v5.0q_GRCh37_stvar` vs `v0.6_GRCh37_stvar`, following
+`benchmark_difficult.qmd` ("difficult genomic context" = HP/MAP/SD/TR per the
+qmd's Overview; same `BMKREGIONS`+PASS filter as the rest of that notebook).
+Three defensible operational definitions exist, so all are reported.
+
+```{r a2-sv-difficult}
+sv_stvar_df <- variants_bench_df %>%
+  filter(
+    bench_type == "stvar", ref == "GRCh37",
+    bench_version %in% c("v0.6", "v5.0q")
+  )
+difficult_contexts <- c("HP", "MAP", "SD", "TR")
+
+## Candidate A: distinct-variant union (each variant counted once)
+sv_diff_union <- sv_stvar_df %>%
+  filter(!is.na(context_ids), context_ids != "") %>%
+  mutate(ctx_list = str_split(context_ids, ",")) %>%
+  mutate(in_difficult = map_lgl(ctx_list, ~ any(str_trim(.x) %in% difficult_contexts))) %>%
+  filter(in_difficult) %>%
+  count(bench_version, name = "n_variants") %>%
+  pivot_wider(names_from = bench_version, values_from = n_variants) %>%
+  mutate(fold_chg = v5.0q / v0.6, pct_increase = pctchg(v5.0q, v0.6))
+print(sv_diff_union)
+
+## Candidate B: sum of exploded per-context counts (double-counts multi-context variants)
+sv_diff_exploded <- sv_stvar_df %>%
+  filter(!is.na(context_ids), context_ids != "") %>%
+  separate_rows(context_ids, sep = ",") %>%
+  mutate(context_ids = str_trim(context_ids)) %>%
+  filter(context_ids %in% difficult_contexts) %>%
+  count(bench_version, name = "n") %>%
+  pivot_wider(names_from = bench_version, values_from = n) %>%
+  mutate(fold_chg = v5.0q / v0.6, pct_increase = pctchg(v5.0q, v0.6))
+print(sv_diff_exploded)
+
+## Candidate C: unfiltered per-context totals (variants_by_genomic_context.parquet,
+## via load_genomic_context_metrics -- no BMKREGIONS/PASS restriction)
+sv_diff_unfiltered <- genomic_context_metrics_df %>%
+  filter(
+    bench_type == "stvar", ref == "GRCh37",
+    bench_version %in% c("v0.6", "v5.0q"),
+    context_name %in% difficult_contexts
+  ) %>%
+  group_by(bench_version) %>%
+  summarise(n = sum(total_variants), .groups = "drop") %>%
+  pivot_wider(names_from = bench_version, values_from = n) %>%
+  mutate(fold_chg = v5.0q / v0.6, pct_increase = pctchg(v5.0q, v0.6))
+print(sv_diff_unfiltered)
+
+record_value(
+  id = "sv_difficult_context_pct_increase",
+  section = "Results — Benchmark content and genome coverage",
+  current_text_snippet = "The v5.0 SV benchmark set includes ## % more variants in difficult genomic context",
+  current_value = NULL,
+  calculated_value = round(sv_diff_union$pct_increase, 1),
+  unit = "%",
+  status = "placeholder_resolved",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmark_difficult.qmd — Variant Fold Change by Genomic Context, stvar, v5.0q(GRCh37) vs v0.6(GRCh37)",
+  notes = sprintf(
+    paste0(
+      "Author confirmed (2026-08-14): the distinct-variant union of HP/MAP/SD/TR = %.1f%% ",
+      "is the intended value. Alternatives considered: summed per-context counts = %.1f%%; ",
+      "unfiltered candidate-variant basis = %.1f%%."
+    ),
+    sv_diff_union$pct_increase, sv_diff_exploded$pct_increase, sv_diff_unfiltered$pct_increase
+  )
+)
+```
+
+## A3. `sv_reference_coverage_pct_increase`
+
+> "and covers ## % more of the reference genome"
+
+Comparison: v5.0q_GRCh37_stvar vs v0.6_GRCh37_stvar benchmark regions
+(Table 1 `bench_region_stats_df` logic). Both the relative increase and the
+percentage-point change are reported; "covers ## % more of the reference
+genome" fits the relative figure.
+
+```{r a3-sv-ref-coverage}
+sv_rel_increase <- pctchg(stv_g37$total_bp, stv_leg$total_bp)
+sv_pp_increase <- stv_g37$pct_ref_cvg - stv_leg$pct_ref_cvg
+cat("Relative increase in SV benchmark region bp:", round(sv_rel_increase, 3), "%\n")
+cat("Percentage-point increase in % reference covered:", round(sv_pp_increase, 3), "pp\n")
+
+record_value(
+  id = "sv_reference_coverage_pct_increase",
+  section = "Results — Benchmark content and genome coverage",
+  current_text_snippet = "and covers ## % more of the reference genome",
+  current_value = NULL,
+  calculated_value = round(sv_rel_increase, 1),
+  unit = "%",
+  status = "placeholder_resolved",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd table1_combined region stats; v5.0q vs v0.6 GRCh37 stvar",
+  notes = sprintf(
+    "Relative increase = %.1f%% (recommended for 'covers %% more' phrasing). Alternative: +%.1f percentage points of reference covered (95.9%% vs 87.9%%), which Table 1 already reports as +8.0 pp.",
+    sv_rel_increase, sv_pp_increase
+  )
+)
+```
+
+## A4–A5. `small_var_glm_lcb_pct`, `sv_glm_lcb_pct`
+
+> "greater than ## % for the small variant benchmark set and ## % for the structural variant benchmark set"
+
+The script below (`docs/agent_work/scratch/glm_check.R`) replicates
+`external_evaluation.qmd`'s Data Loading and Binomial Model chunks verbatim
+(bias-reduced logistic regression sensitivity model via `brglm2`, marginal
+one-sided 95 % lower confidence bounds via `emmeans` with `side = ">"`), then
+prints per-stratum LCBs and the minimum LCB per bench type.
+
+```{r a4-glm}
+#| message: false
+source(here::here("docs/agent_work/scratch/glm_check.R"))
+```
+
+```{r a4-record}
+min_lcb <- primary_results %>%
+  group_by(benchmarkset) %>%
+  summarise(min_lcb_pct = min(asymp.LCL) * 100, .groups = "drop")
+smvar_min_lcb <- min_lcb %>% filter(benchmarkset == "Small Variant") %>% pull(min_lcb_pct)
+stvar_min_lcb <- min_lcb %>% filter(benchmarkset == "Structural Variant") %>% pull(min_lcb_pct)
+
+record_value(
+  id = "small_var_glm_lcb_pct",
+  section = "External Evaluation and Validation",
+  current_text_snippet = "greater than ## % for the small variant benchmark set",
+  current_value = NULL,
+  calculated_value = round(smvar_min_lcb, 1),
+  unit = "%",
+  status = "placeholder_resolved",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R); minimum one-sided 95% LCB across strata (Low Map stratum)",
+  notes = sprintf(
+    "Min LCB across strata = %.2f%% (Low Map). Overall-estimate LCB = 92.71%% if the sentence intends the overall marginal estimate instead of the per-stratum minimum.",
+    smvar_min_lcb
+  )
+)
+record_value(
+  id = "sv_glm_lcb_pct",
+  section = "External Evaluation and Validation",
+  current_text_snippet = "and ## % for the structural variant benchmark set",
+  current_value = NULL,
+  calculated_value = round(stvar_min_lcb, 1),
+  unit = "%",
+  status = "placeholder_resolved",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R); minimum one-sided 95% LCB across strata (TR stratum)",
+  notes = sprintf(
+    "Min LCB across strata = %.2f%% (TR annotation). Overall-estimate LCB = 74.88%% if the sentence intends the overall marginal estimate instead of the per-stratum minimum.",
+    stvar_min_lcb
+  )
+)
+```
+
+## A6–A7. `ext_eval_smvar_callset_count`, `ext_eval_stvar_callset_count`
+
+> "compared to ## and ## small and structural variant callsets"
+
+The qmd loads the per-callset Miqa curation CSVs, splitting smvar/stvar by
+line count (> 50 lines → smvar), then drops the UCLA Delly/Manta submissions
+before modeling. Counts of callsets with curation data in this repo:
+
+```{r a6-callsets}
+#| message: false
+miqa_files <- fs::dir_ls(here::here("data/external-evaluations"), regexp = "Miqa\\.csv$")
+curation_counts_df <- purrr::map_dfr(miqa_files, function(f) {
+  tibble::tibble(
+    file = fs::path_file(f),
+    callset = stringr::str_extract(fs::path_file(f), "^[^ ]+"),
+    n_rows = nrow(readr::read_csv(f, name_repair = "universal", show_col_types = FALSE))
+  )
+}) %>%
+  mutate(bench_type = if_else(n_rows > 50, "smvar", "stvar"))
+print(curation_counts_df)
+
+smvar_curated <- curation_counts_df %>% filter(bench_type == "smvar") %>% distinct(callset)
+stvar_curated_raw <- curation_counts_df %>% filter(bench_type == "stvar") %>% distinct(callset)
+stvar_curated_glm <- stvar_curated_raw %>%
+  filter(!callset %in% c("Ucla-Delly-Newvcf", "Ucla-Manta-Newvcf"))
+
+cat("smvar callsets with curation data:", nrow(smvar_curated), "\n")
+cat("stvar callsets, raw curation files:", nrow(stvar_curated_raw), "\n")
+cat("stvar callsets entering GLM (Delly/Manta dropped):", nrow(stvar_curated_glm), "\n")
+
+record_value(
+  id = "ext_eval_smvar_callset_count",
+  section = "Methods — External Evaluation Manual Curation",
+  current_text_snippet = "compared to ## and ## small and structural variant callsets",
+  current_value = NULL,
+  calculated_value = nrow(smvar_curated),
+  unit = "callsets",
+  status = "placeholder_resolved",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "external_evaluation.qmd Data Loading; data/external-evaluations/*Miqa.csv",
+  notes = paste0(
+    "Author confirmed (2026-08-14): 5 is correct (callsets curated + modeled; matches GLM ",
+    "N=350/5). Table EvalCallsets' 8 includes 3 callsets (ont-clair3, sentieon-hybrid, ",
+    "google-deepvariant) that were compared but never curated."
+  )
+)
+record_value(
+  id = "ext_eval_stvar_callset_count",
+  section = "Methods — External Evaluation Manual Curation",
+  current_text_snippet = "compared to ## and ## small and structural variant callsets",
+  current_value = NULL,
+  calculated_value = nrow(stvar_curated_glm),
+  unit = "callsets",
+  status = "placeholder_resolved",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "external_evaluation.qmd Data Loading; data/external-evaluations/*Miqa.csv",
+  notes = paste0(
+    "Author confirmed (2026-08-14): 7 is correct. The old '11' counted all submissions: ",
+    "7 analyzed + 2 UCLA callsets superseded by UCLA Ensemble (only Ensemble included in ",
+    "results) + 2 callsets from a collaborator who did not curate any variants (excluded ",
+    "from results)."
+  )
+)
+```
+
+## A8–A9. Out-of-scope placeholders
+
+`guppy_version` (ONT basecaller version for an externally-submitted dataset) and
+`snakemake_archive_doi` (pending data.nist.gov deposit handle) are provenance
+facts not derivable from this repository — flagged as manual actions.
+
+```{r a8-out-of-scope}
+record_value(
+  id = "guppy_version",
+  section = "Methods — Input data: 60x Guppy (??version) SUPv5 model",
+  current_text_snippet = "Input data: 60x Guppy (??version) SUPv5 model",
+  current_value = NULL,
+  calculated_value = NA,
+  unit = "",
+  status = "out_of_scope",
+  confidence = "high",
+  needs_human_review = TRUE,
+  source = "N/A — external provenance; not in repo (no basecaller version in data/ provenance files)",
+  notes = "Manuscript author must obtain the Guppy/basecaller version from the submitting group."
+)
+record_value(
+  id = "snakemake_archive_doi",
+  section = "Data and Code availability",
+  current_text_snippet = "Snakemake provenance archive: TODO data.nist.gov",
+  current_value = NULL,
+  calculated_value = NA,
+  unit = "",
+  status = "out_of_scope",
+  confidence = "high",
+  needs_human_review = TRUE,
+  source = "N/A — pending data.nist.gov deposit",
+  notes = "Fill in after the data.nist.gov deposit is issued a handle/DOI."
+)
+```
+
+# Section B — Known candidate inconsistencies
+
+## B1. Small-variant increase: "≈ 600 000" vs table's "+699 449"
+
+```{r b1-smvar-delta}
+smvar_delta <- smv_g38$Total - smv_leg$Total
+cat(
+  "v5.0q GRCh38 smvar Total:", smv_g38$Total,
+  "\nv4.2.1 GRCh38 smvar Total:", smv_leg$Total,
+  "\nDelta:", smvar_delta, "\n"
+)
+
+record_value(
+  id = "smvar_total_delta_prose",
+  section = "Results — Benchmark content and genome coverage",
+  current_text_snippet = "The small variant benchmark set includes ≈ 600 000 more variants in GRCh38 compared to v4.2.1",
+  current_value = 600000,
+  calculated_value = smvar_delta,
+  unit = "variants",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd Table 1 counts; results/variant_tables/{v5.0q,v4.2.1}_GRCh38_smvar/variants.parquet",
+  notes = "Exact delta = 699 449 (matches the table's +699 449). Prose '≈ 600 000' is stale; should read ≈ 700 000."
+)
+```
+
+## B2. Abstract "2-fold" SV increase vs table's "+192.5 %"
+
+```{r b2-sv-fold}
+sv_ratio <- stv_g37$Total / stv_leg$Total
+cat(
+  "v5.0q GRCh37 stvar Total:", stv_g37$Total,
+  "\nv0.6 GRCh37 stvar Total:", stv_leg$Total,
+  "\nRatio:", round(sv_ratio, 3),
+  "\nPct increase:", round(pctchg(stv_g37$Total, stv_leg$Total), 1), "%\n"
+)
+
+record_value(
+  id = "sv_fold_increase_abstract",
+  section = "Abstract; Results — 'more than twice the number of SVs'",
+  current_text_snippet = "and 2-fold for structural variants",
+  current_value = 2,
+  calculated_value = round(sv_ratio, 1),
+  unit = "fold",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd Table 1 counts; v5.0q_GRCh37_stvar vs v0.6_GRCh37_stvar",
+  notes = "28 132 / 9 617 = 2.93x (+192.5%, confirming the table). Abstract's '2-fold' understates; '~3-fold' (or 'nearly triple') is consistent with the table."
+)
+```
+
+## B3. External SV callset count: "7" vs "11"
+
+Investigated with A6–A7 above (same computation). The repo supports 7 (GLM,
+Table EvalCallsets) or 9 (raw curation files incl. UCLA Delly/Manta); nothing
+supports 11. Delly/Manta appear to be superseded UCLA submissions consolidated
+into "UCLA Ensemble" (same curation batch, no Methods subsection for either).
+
+```{r b3-record}
+record_value(
+  id = "sv_callset_count_discrepancy",
+  section = "Results/External Evaluation ('7') vs Methods/External Callset Generation ('11')",
+  current_text_snippet = "compared to 8 small variant and 11 structural variant callsets",
+  current_value = 11,
+  calculated_value = nrow(stvar_curated_glm),
+  unit = "callsets",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "external_evaluation.qmd Data Loading; data/external-evaluations/",
+  notes = paste0(
+    "Resolved by author (2026-08-14): Methods' '11' counted all submitted SV callsets ",
+    "(7 analyzed + 2 UCLA callsets superseded by UCLA Ensemble + 2 never curated by the ",
+    "submitting collaborator); the correct count for the results is 7 — revise the Methods ",
+    "sentence accordingly."
+  )
+)
+```
+
+## B4. Curation sample size: "40"/"70" vs code comment "41"/"71"
+
+```{r b4-curation-counts}
+curation_summary <- curation_counts_df %>%
+  group_by(bench_type) %>%
+  summarise(
+    n_files = n(), min_rows = min(n_rows), max_rows = max(n_rows),
+    mean_rows = mean(n_rows), .groups = "drop"
+  )
+print(curation_summary)
+
+## stvar counts for the 7 callsets actually used in the GLM
+curation_counts_df %>%
+  filter(bench_type == "stvar", !callset %in% c("Ucla-Delly-Newvcf", "Ucla-Manta-Newvcf")) %>%
+  summarise(min_rows = min(n_rows), max_rows = max(n_rows), mean_rows = mean(n_rows))
+
+record_value(
+  id = "curation_sample_size",
+  section = "Methods — External Evaluation Manual Curation",
+  current_text_snippet = "manually curated 40 variants for each submitted SV callset and 70 variants for small variant callsets",
+  current_value = "70/40",
+  calculated_value = "70/40",
+  unit = "variants per callset",
+  status = "confirmed_match",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "data/external-evaluations/*Miqa.csv data-row counts",
+  notes = paste0(
+    "All 5 smvar files have exactly 70 data rows (14 populated strata x 5; the 4 XY-nonPAR ",
+    "strata are empty, consistent with the Limitations text). All 7 GLM stvar files have ",
+    "exactly 40 (8 strata x 5); only the dropped Ucla-Delly-Newvcf has 39. The qmd comment's ",
+    "'71/41' counts the header line — not a real discrepancy."
+  )
+)
+```
+
+## B5. Platinum Pedigree comparison: "≈ 4.5 million" small variants
+
+```{r b5-pp}
+#| message: false
+pp_dir <- here::here("resources/platinum-pedigree-data/truthset_v1.2")
+pp_smallvar_vcf <- fs::path(pp_dir, "NA12878_hq_v1.2.smallvar.vcf.gz")
+pp_smallvar_n <- as.integer(system(
+  sprintf("gzip -dc %s | grep -vc '^#'", shQuote(pp_smallvar_vcf)),
+  intern = TRUE
+))
+stopifnot(pp_smallvar_n > 1e6) # guard against silent shell failure
+cat("PP small variant sites (NA12878 truthset v1.2):", pp_smallvar_n, "\n")
+
+pp_regions_df <- load_platinum_pedigree_regions()
+pp_smvar_span_bp <- pp_regions_df %>%
+  filter(bench_type == "smvar") %>%
+  summarise(span_bp = sum(interval_size)) %>%
+  pull(span_bp)
+v5_smvar_span_bp <- bench_regions_df %>%
+  filter(bench_version == "v5.0q", ref == "GRCh38", bench_type == "smvar") %>%
+  summarise(span_bp = sum(interval_size)) %>%
+  pull(span_bp)
+
+tibble::tibble(
+  callset = c("v5.0q (GRCh38, HG002)", "Platinum Pedigree (GRCh38, NA12878)"),
+  small_variants = c(smv_g38$Total, pp_smallvar_n),
+  region_span_Gbp = round(c(v5_smvar_span_bp, pp_smvar_span_bp) / 1e9, 3)
+)
+
+record_value(
+  id = "pp_smallvar_comparison",
+  section = "Results — Comparison to Platinum Pedigree",
+  current_text_snippet = "each including ≈ 4.5 million small variants spanning ≈ 2.7 Gbp of GRCh38",
+  current_value = 4500000,
+  calculated_value = pp_smallvar_n,
+  unit = "variants",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "resources/platinum-pedigree-data/truthset_v1.2 (VCF count matches its README); load_platinum_pedigree_regions(); load_benchmark_regions()",
+  notes = paste0(
+    "Author decision (2026-08-14): reword to report both counts — ~4.6M (v5.0q, 4 625 918) ",
+    "and ~4.3M (Platinum Pedigree, 4 340 543). Neither rounds to the current '~4.5 million ",
+    "each'. Span claim holds for both (2.739 vs 2.709 Gbp ~ 2.7 Gbp). PP truthset is ",
+    "NA12878, not HG002 (cross-individual comparison)."
+  )
+)
+```
+
+# Section C — Headline results re-verified
+
+## C1. Table v5.0 stats — cell-by-cell
+
+```{r c1-table-v5-stats}
+fi <- function(x) formatC(round(x), format = "d")
+f1 <- function(x) sprintf("%.1f", x)
+
+computed_tbl <- tibble::tribble(
+  ~Metric, ~GRCh37, ~GRCh38, ~CHM13v2.0, ~Delta_n, ~Delta_pct,
+  "SNV", fi(smv_g37$SNV), fi(smv_g38$SNV), fi(smv_chm$SNV),
+  fi(smv_g38$SNV - smv_leg$SNV), f1(pctchg(smv_g38$SNV, smv_leg$SNV)),
+  "INDEL <50bp", fi(smv_g37$INDEL), fi(smv_g38$INDEL), fi(smv_chm$INDEL),
+  fi(smv_g38$INDEL - smv_leg$INDEL), f1(pctchg(smv_g38$INDEL, smv_leg$INDEL)),
+  "Total (small var)", fi(smv_g37$Total), fi(smv_g38$Total), fi(smv_chm$Total),
+  fi(smv_g38$Total - smv_leg$Total), f1(pctchg(smv_g38$Total, smv_leg$Total)),
+  "Altered bases (Mb) [legacy formula: SNVs=0bp]",
+  f1(alt_smv$g37$mb_legacy_formula), f1(alt_smv$g38$mb_legacy_formula), f1(alt_smv$chm$mb_legacy_formula),
+  f1(alt_smv$g38$mb_legacy_formula - alt_smv$leg$mb_legacy_formula),
+  f1(pctchg(alt_smv$g38$mb_legacy_formula, alt_smv$leg$mb_legacy_formula)),
+  "Altered bases (Mb) [current formula: SNVs=1bp]",
+  f1(alt_smv$g37$mb_current_formula), f1(alt_smv$g38$mb_current_formula), f1(alt_smv$chm$mb_current_formula),
+  f1(alt_smv$g38$mb_current_formula - alt_smv$leg$mb_current_formula),
+  f1(pctchg(alt_smv$g38$mb_current_formula, alt_smv$leg$mb_current_formula)),
+  "Regions incl. (Mb)", fi(smv_g37$total_bp / 1e6), fi(smv_g38$total_bp / 1e6), fi(smv_chm$total_bp / 1e6),
+  fi((smv_g38$total_bp - smv_leg$total_bp) / 1e6), f1(pctchg(smv_g38$total_bp, smv_leg$total_bp)),
+  "% Reference (small var)", f1(smv_g37$pct_ref_cvg), f1(smv_g38$pct_ref_cvg), f1(smv_chm$pct_ref_cvg),
+  "-", f1(smv_g38$pct_ref_cvg - smv_leg$pct_ref_cvg),
+  "DEL >=50bp", fi(stv_g37$DEL), fi(stv_g38$DEL), fi(stv_chm$DEL),
+  fi(stv_g37$DEL - stv_leg$DEL), f1(pctchg(stv_g37$DEL, stv_leg$DEL)),
+  "INS >=50bp", fi(stv_g37$INS), fi(stv_g38$INS), fi(stv_chm$INS),
+  fi(stv_g37$INS - stv_leg$INS), f1(pctchg(stv_g37$INS, stv_leg$INS)),
+  "Total SVs", fi(stv_g37$Total), fi(stv_g38$Total), fi(stv_chm$Total),
+  fi(stv_g37$Total - stv_leg$Total), f1(pctchg(stv_g37$Total, stv_leg$Total)),
+  "Total Variation (Mb)", f1(alt_stv$g37$mb_current_formula), f1(alt_stv$g38$mb_current_formula),
+  f1(alt_stv$chm$mb_current_formula),
+  f1(alt_stv$g37$mb_current_formula - alt_stv$leg$mb_current_formula),
+  f1(pctchg(alt_stv$g37$mb_current_formula, alt_stv$leg$mb_current_formula)),
+  "Region (Mb, SV)", fi(stv_g37$total_bp / 1e6), fi(stv_g38$total_bp / 1e6), fi(stv_chm$total_bp / 1e6),
+  fi((stv_g37$total_bp - stv_leg$total_bp) / 1e6), f1(pctchg(stv_g37$total_bp, stv_leg$total_bp)),
+  "% Reference (SV)", f1(stv_g37$pct_ref_cvg), f1(stv_g38$pct_ref_cvg), f1(stv_chm$pct_ref_cvg),
+  "-", f1(stv_g37$pct_ref_cvg - stv_leg$pct_ref_cvg)
+)
+
+manuscript_tbl <- tibble::tribble(
+  ~Metric, ~GRCh37_ms, ~GRCh38_ms, ~CHM13v2.0_ms, ~Delta_n_ms, ~Delta_pct_ms,
+  "SNV", "3651855", "3671436", "3395941", "303973", "9.0",
+  "INDEL <50bp", "951308", "954482", "885454", "395476", "70.7",
+  "Total (small var)", "4603163", "4625918", "4281395", "699449", "17.8",
+  "Altered bases (Mb) [legacy formula: SNVs=0bp]", "3.6", "3.6", "3.4", "2.0", "118.9",
+  "Altered bases (Mb) [current formula: SNVs=1bp]", "3.6", "3.6", "3.4", "2.0", "118.9",
+  "Regions incl. (Mb)", "2726", "2739", "2768", "197", "7.7",
+  "% Reference (small var)", "95.4", "93.7", "88.8", "-", "6.7",
+  "DEL >=50bp", "10561", "10852", "12841", "6491", "159.5",
+  "INS >=50bp", "17571", "17763", "12204", "12024", "216.8",
+  "Total SVs", "28132", "28615", "25045", "18515", "192.5",
+  "Total Variation (Mb)", "19.1", "18.6", "16.1", "11.8", "161.3",
+  "Region (Mb, SV)", "2742", "2756", "2820", "229", "9.1",
+  "% Reference (SV)", "95.9", "94.3", "90.5", "-", "8.0"
+)
+
+table1_diff <- computed_tbl %>%
+  left_join(manuscript_tbl, by = "Metric") %>%
+  mutate(Match = (GRCh37 == GRCh37_ms) & (GRCh38 == GRCh38_ms) &
+    (CHM13v2.0 == CHM13v2.0_ms) & (Delta_n == Delta_n_ms) & (Delta_pct == Delta_pct_ms)) %>%
+  mutate(Match = ifelse(is.na(Match), FALSE, Match))
+
+table1_diff %>%
+  mutate(Match = ifelse(Match, "Yes", "NO")) %>%
+  flextable::flextable() %>%
+  flextable::fontsize(size = 7, part = "all") %>%
+  flextable::autofit()
+
+record_value(
+  id = "table_v5_stats",
+  section = "Table v5.0 stats (main-text summary table)",
+  current_text_snippet = "Table v5.0 stats — SNV/INDEL/Total/Altered bases/Regions/%Reference across GRCh37/GRCh38/CHM13v2.0",
+  current_value = "see table",
+  calculated_value = "10/12 manuscript rows match exactly; smvar Altered-bases row mismatched; Regions-incl. Δ% = 7.8 (vs 7.7, rounding only)",
+  unit = "",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd table1_combined, recomputed from results/variant_tables + resources/benchmarksets + results/ref_genome_sizes",
+  notes = paste0(
+    "Manuscript smvar Altered-bases values (3.6/3.6/3.4, +2.0 Mb, +118.9%) reproduce only ",
+    "under the pre-regression formula sum(abs(var_size))/1e6 (SNVs contribute 0 bp; ",
+    "verified via git history). Current committed code floors SNVs at 1 bp -> 7.3/7.3/6.8 Mb ",
+    "(+2.3 Mb, +45.3%) AND lost its /1e6 scaling (labels say Mb but code emits raw bp). ",
+    "Author decision (2026-08-14): keep SNV-inclusive semantics (SNVs = 1 altered bp) — ",
+    "update the manuscript row to 7.3/7.3/6.8 Mb (+2.3 Mb, +45.3%). The missing /1e6 ",
+    "scaling in benchmarkset_characterization.qmd was fixed (total_var_mb; label now ",
+    "'Variation (Mb)'). stvar 'Total Variation' row is unaffected (no SNVs; formulas ",
+    "agree). Minor: Regions-incl. Δ% computes to +7.8% at full precision; the manuscript's ",
+    "+7.7% comes from dividing already-rounded Mb values (197/2542)."
+  )
+)
+```
+
+## C2. Table XYZ — Bases removed by exclusion (GRCh38)
+
+```{r c2-exclusions}
+#| message: false
+exclusion_metrics_tbl <- load_exclusion_metrics()
+
+## qmd (benchmark_exclusions.qmd) builds the GRCh38 table by filtering ref,
+## deduplicating exclusions across bench types, sorting by bases removed
+grch38_excl_tbl <- exclusion_metrics_tbl %>%
+  filter(ref == "GRCh38") %>%
+  select(exclusions, bench_type, intersect_bp, pct_of_dip) %>%
+  distinct(exclusions, .keep_all = TRUE) %>%
+  arrange(desc(intersect_bp))
+
+excl_name_map <- c(
+  "segdups" = "Segmental Duplications",
+  "svs-and-simple-repeats" = "SV regions",
+  "pav-inversions" = "PAV-inversions",
+  "satellites" = "Satellites",
+  "flanks" = "Flanks",
+  "tandem-repeats" = "Tandem Repeats",
+  "gaps" = "Gaps",
+  "HG002Q100-errors" = "HG002Q100v1.1 errors",
+  "VDJ" = "VDJ",
+  "HG002-mosaic" = "HG002-mosaic",
+  "TSPY2-segdups" = "TSPY2-segdups",
+  "dipcall-pav_discrep-smvar" = "dipcall-pav_discrep-smvar",
+  "consecutive-svs" = "Consecutive SVs",
+  "dipcall-pav_discrep-stvar" = "dipcall-pav_discrep-stvar",
+  "dipcall-bugs-T2TACE" = "Dipcall-bugs T2TACE",
+  "self-discrep" = "Self-Discrepancies"
+)
+
+manuscript_excl_tbl <- tibble::tribble(
+  ~Exclusion, ~bases_ms, ~pct_ms,
+  "Segmental Duplications", 52311253, 1.841,
+  "SV regions", 29069865, 1.023,
+  "PAV-inversions", 23518680, 0.828,
+  "Satellites", 16627547, 0.585,
+  "Flanks", 10220302, 0.360,
+  "Tandem Repeats", 6553662, 0.231,
+  "Gaps", 6172312, 0.217,
+  "HG002Q100v1.1 errors", 5039842, 0.177,
+  "VDJ", 3105977, 0.109,
+  "HG002-mosaic", 1178158, 0.041,
+  "TSPY2-segdups", 589097, 0.021,
+  "dipcall-pav_discrep-smvar", 333608, 0.012,
+  "Consecutive SVs", 251531, 0.009,
+  "dipcall-pav_discrep-stvar", 127132, 0.004,
+  "Dipcall-bugs T2TACE", 45604, 0.002,
+  "Self-Discrepancies", 15177, 0.001
+)
+
+excl_diff <- grch38_excl_tbl %>%
+  mutate(Exclusion = unname(excl_name_map[as.character(exclusions)])) %>%
+  full_join(manuscript_excl_tbl, by = "Exclusion") %>%
+  mutate(
+    pct_calc = round(pct_of_dip, 3),
+    Match = (intersect_bp == bases_ms) & (pct_calc == pct_ms)
+  ) %>%
+  select(Exclusion, intersect_bp, bases_ms, pct_calc, pct_ms, Match)
+print(excl_diff, n = Inf)
+
+record_value(
+  id = "exclusions_table_grch38",
+  section = "Table XYZ — Bases removed by exclusion (GRCh38)",
+  current_text_snippet = "Bases removed by exclusion — Segmental Duplications 52311253 ... Self-Discrepancies 15177",
+  current_value = "see table",
+  calculated_value = sprintf("%d/16 rows match exactly", sum(excl_diff$Match, na.rm = TRUE)),
+  unit = "",
+  status = ifelse(all(excl_diff$Match), "confirmed_match", "inconsistency_found"),
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "results/exclusions/v5.0q_GRCh38_{smvar,stvar}/exclusion_impact.csv via load_exclusion_metrics(); benchmark_exclusions.qmd table logic",
+  notes = "All 16 exclusion categories verified (bases excluded and % of dip.bed at 3 decimals)."
+)
+```
+
+## C3. Abstract "≈ 300 Mbp" added sequence vs v4.2.1
+
+The Table-1 benchmark-to-benchmark region delta is only ≈ 197 Mb (smvar) /
+≈ 229 Mb (stvar vs v0.6). The only quantity in the repo matching "≈ 300 Mbp" is
+dip.bed (pre-exclusion dipcall regions) minus the v4.2.1 benchmark regions:
+
+```{r c3-dip-delta}
+#| message: false
+read_dip_bed <- function(path) {
+  readr::read_tsv(path, col_names = c("chrom", "start", "end"), col_types = "cii") %>%
+    mutate(chrom = if_else(str_detect(chrom, "^chr"), chrom, str_c("chr", chrom))) %>%
+    filter(chrom %in% CHROM_LEVELS) %>%
+    mutate(interval_size = end - start)
+}
+dip38_bp <- sum(read_dip_bed(here::here("resources/benchmarksets/v5.0q_GRCh38_smvar_dip.bed"))$interval_size)
+dip37_bp <- sum(read_dip_bed(here::here("resources/benchmarksets/v5.0q_GRCh37_smvar_dip.bed"))$interval_size)
+
+v4_38_bp <- smv_leg$total_bp
+v4_37_bp <- bench_regions_df %>%
+  filter(bench_version == "v4.2.1", ref == "GRCh37", chrom %in% CHROM_LEVELS) %>%
+  summarise(bp = sum(interval_size)) %>%
+  pull(bp)
+
+cat("Benchmark-to-benchmark delta (v5.0q - v4.2.1, GRCh38 smvar):", f1((smv_g38$total_bp - v4_38_bp) / 1e6), "Mb\n")
+cat("dip.bed - v4.2.1 benchmark, GRCh38:", f1((dip38_bp - v4_38_bp) / 1e6), "Mb\n")
+cat("dip.bed - v4.2.1 benchmark, GRCh37:", f1((dip37_bp - v4_37_bp) / 1e6), "Mb\n")
+
+record_value(
+  id = "added_sequence_300mbp",
+  section = "Abstract",
+  current_text_snippet = "≈ 300 Mbp added sequence vs v4.2.1",
+  current_value = 300,
+  calculated_value = round((smv_g38$total_bp - v4_38_bp) / 1e6),
+  unit = "Mbp",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "load_benchmark_regions(); v5.0q vs v4.2.1 GRCh38 smvar benchmark regions",
+  notes = paste0(
+    "Author confirmed (2026-08-14): the intended quantity is the final benchmark-region ",
+    "delta — abstract should say ~200 Mbp (197 Mb smvar GRCh38; stvar GRCh37-vs-v0.6 delta ",
+    "is 229 Mb). The stale ~300 Mbp likely originated from dip.bed (pre-exclusion) minus ",
+    "v4.2.1 benchmark regions (298 Mb GRCh38 / 296 Mb GRCh37)."
+  )
+)
+```
+
+## C4. Abstract "18 %" small variant increase
+
+```{r c4-pct18}
+smvar_pct <- pctchg(smv_g38$Total, smv_leg$Total)
+cat("Small variant increase:", f1(smvar_pct), "% -> rounds to", round(smvar_pct), "%\n")
+
+record_value(
+  id = "smvar_pct_increase_abstract",
+  section = "Abstract",
+  current_text_snippet = "18 % small variant increase",
+  current_value = 18,
+  calculated_value = round(smvar_pct),
+  unit = "%",
+  status = "confirmed_match",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd Table 1 counts",
+  notes = "17.8% rounds to 18% — rounding is consistent with the table's +17.8%."
+)
+```
+
+## C5. Abstract fold-changes: 5.6× (SD), 4.6× (TR), 2× (HP)
+
+Two methodologies exist in the repo; they disagree for SD and TR:
+
+```{r c5-fold-changes}
+## (A) benchmark_difficult.qmd's current logic: BMKREGIONS+PASS filtered,
+## contexts exploded from context_ids (smvar, GRCh38, v5.0q vs v4.2.1)
+smvar_fold_filtered <- variants_bench_df %>%
+  filter(
+    bench_type == "smvar", ref == "GRCh38",
+    bench_version %in% c("v4.2.1", "v5.0q"),
+    !is.na(context_ids), context_ids != ""
+  ) %>%
+  separate_rows(context_ids, sep = ",") %>%
+  mutate(context_ids = str_trim(context_ids)) %>%
+  count(bench_version, context_ids) %>%
+  pivot_wider(names_from = bench_version, values_from = n) %>%
+  mutate(fold_chg = v5.0q / v4.2.1) %>%
+  arrange(context_ids)
+print(smvar_fold_filtered, n = Inf)
+
+## (B) Unfiltered per-context totals (variants_by_genomic_context.parquet via
+## load_genomic_context_metrics) — reproduces the abstract's 5.6/4.6/2
+smvar_fold_unfiltered <- genomic_context_metrics_df %>%
+  filter(
+    bench_type == "smvar", ref == "GRCh38",
+    bench_version %in% c("v4.2.1", "v5.0q"),
+    context_name %in% c("HP", "MAP", "SD", "TR", "SD10kb", "TR10kb")
+  ) %>%
+  select(context_name, bench_version, total_variants) %>%
+  pivot_wider(names_from = bench_version, values_from = total_variants) %>%
+  mutate(fold_chg = round(v5.0q / v4.2.1, 2)) %>%
+  arrange(context_name)
+print(smvar_fold_unfiltered, n = Inf)
+
+fold_a <- function(ctx) {
+  smvar_fold_filtered %>% filter(context_ids == ctx) %>% pull(fold_chg)
+}
+record_value(
+  id = "context_fold_changes_abstract",
+  section = "Abstract",
+  current_text_snippet = "5.6x segmental duplications, 4.6x tandem repeats, 2x homopolymer fold-change",
+  current_value = "5.6/4.6/2",
+  calculated_value = sprintf("SD %.1f / TR %.1f / HP %.1f (BMKREGIONS+PASS filtered)", fold_a("SD"), fold_a("TR"), fold_a("HP")),
+  unit = "fold",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmark_difficult.qmd fold-change methodology (BMKREGIONS+PASS filtered; smvar GRCh38 v5.0q vs v4.2.1)",
+  notes = paste0(
+    "Author confirmed (2026-08-14): the abstract should use the BMKREGIONS+PASS-filtered ",
+    "methodology — SD 1.2x, TR 1.8x, HP 2.0x. The current 5.6x/4.6x/2x values trace to ",
+    "unfiltered per-context totals predating the filter tightening (git: is_pass added ",
+    "2026-03-18) and must be revised."
+  )
+)
+```
+
+## C6. "1.2 %" of genome in pangenome-derived low-confidence regions
+
+This value does **not** come from the genomic-context tables (no context there
+is near 1.2 % of the genome). It reproduces from the `pav-inversions` exclusion
+category's raw BED footprint over the full GRCh38 length (incl. N-gaps):
+
+```{r c6-pangenome-lc}
+pav_bp <- exclusion_metrics_tbl %>%
+  filter(ref == "GRCh38", bench_type == "smvar", exclusions == "pav-inversions") %>%
+  pull(exclusion_bp)
+total_genome_bp <- ref_sizes_df %>%
+  filter(ref == "GRCh38") %>%
+  summarise(total = sum(length)) %>%
+  pull(total)
+pct_genome_pav <- 100 * pav_bp / total_genome_bp
+cat(
+  "pav-inversions footprint:", pav_bp, "bp /", total_genome_bp,
+  "bp GRCh38 =", round(pct_genome_pav, 4), "%\n"
+)
+
+record_value(
+  id = "pangenome_lc_pct_of_genome",
+  section = "Results — 'only 1.2 % of the genome is in pangenome-derived low complexity regions excluding satellites'",
+  current_text_snippet = "only 1.2 % of the genome is in pangenome-derived low complexity regions excluding satellites",
+  current_value = 1.2,
+  calculated_value = round(pct_genome_pav, 2),
+  unit = "%",
+  status = "confirmed_match",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "results/exclusions/v5.0q_GRCh38_smvar/exclusion_impact.csv (pav-inversions exclusion_bp) / results/ref_genome_sizes/GRCh38_size.tsv total length",
+  notes = paste0(
+    "1.186% rounds to 1.2%. Note the source is the exclusions pipeline (PAV inversions BED ",
+    "footprint), not genomic_context_analysis.qmd as the inventory assumed. Adding satellites ",
+    "raises it to 1.72%, consistent with the 'excluding satellites' qualifier."
+  )
+)
+```
+
+## C7. "69.1 %" of v5.0q SVs in repetitive regions
+
+No current computation reproduces 69.1 %. Candidates below use the final
+benchmark SV population (`BMKREGIONS` + PASS, v5.0q GRCh38 stvar):
+
+```{r c7-sv-repetitive}
+stvar_v5_38 <- variants_bench_df %>%
+  filter(bench_type == "stvar", ref == "GRCh38", bench_version == "v5.0q")
+total_sv38 <- nrow(stvar_v5_38)
+has_ctx <- function(ids, ctx) {
+  vapply(strsplit(as.character(ids), ","), function(s) any(str_trim(s) %in% ctx), logical(1))
+}
+pct_tr <- 100 * sum(has_ctx(stvar_v5_38$context_ids, "TR"), na.rm = TRUE) / total_sv38
+pct_sd_tr <- 100 * sum(has_ctx(stvar_v5_38$context_ids, c("SD", "TR")), na.rm = TRUE) / total_sv38
+pct_core4 <- 100 * sum(has_ctx(stvar_v5_38$context_ids, c("HP", "MAP", "SD", "TR")), na.rm = TRUE) / total_sv38
+cat("Total v5.0q GRCh38 SVs (BMKREGIONS+PASS):", total_sv38, "\n")
+cat("% in TR:", round(pct_tr, 1), "| % in SD-or-TR:", round(pct_sd_tr, 1), "| % in HP/MAP/SD/TR union:", round(pct_core4, 1), "\n")
+
+record_value(
+  id = "sv_pct_in_repetitive_regions",
+  section = "Results — 'these repetitive regions contain 69.1 % of v5.0q SVs'",
+  current_text_snippet = "these repetitive regions contain 69.1 % of v5.0q SVs",
+  current_value = 69.1,
+  calculated_value = round(pct_tr, 1),
+  unit = "%",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "results/variant_tables/v5.0q_GRCh38_stvar/variants.parquet context_ids; exhaustive context-combination search",
+  notes = paste0(
+    "Author confirmed (2026-08-14): update to TR-alone 73.6% (GRCh38, BMKREGIONS+PASS). ",
+    "The current 69.1% is not reproducible from current outputs under any coherent context ",
+    "combination/reference/filter tested — likely from a pre-Feb-2026 run affected by the ",
+    "normalize_annotation() context-ID bug. Other candidates: HP/MAP/SD/TR union 92.3%; ",
+    "SD-or-TR 75.0%."
+  )
+)
+```
+
+## C8. Chromosomes with lower v5.0q coverage: chr8, chr1, chr16
+
+Replicates `benchmarkset_characterization.qmd` "Benchmark Region Coverage
+Change by Chromosome" (`coverage_change_df`): smvar compares v5.0q vs v4.2.1
+(GRCh38); stvar compares v5.0q vs v0.6 (GRCh37); autosomes only.
+
+```{r c8-chrom-coverage}
+coverage_change_df <- bench_regions_df %>%
+  filter(
+    bench_version %in% c("v5.0q", "v4.2.1", "v0.6"),
+    (bench_type == "smvar" & ref == "GRCh38") | (bench_type == "stvar" & ref == "GRCh37"),
+    chrom %in% AUTOSOME_CHROM_LEVELS
+  ) %>%
+  group_by(bench_type, chrom, bench_version) %>%
+  summarise(total_size = sum(interval_size), .groups = "drop") %>%
+  mutate(vers = if_else(bench_version == "v5.0q", "new", "old")) %>%
+  select(-bench_version) %>%
+  pivot_wider(names_from = vers, values_from = total_size) %>%
+  mutate(pct_change = 100 * (new - old) / old)
+
+decreasing_chroms <- coverage_change_df %>%
+  filter(pct_change < 0) %>%
+  arrange(bench_type, chrom)
+print(decreasing_chroms)
+
+record_value(
+  id = "chrom_coverage_decrease_list",
+  section = "Results — chromosome coverage change (chr8, chr1, chr16 exceptions)",
+  current_text_snippet = "Coverage was higher for v5.0q compared to v0.6 for all chromosomes, excluding chromosome 8, as well as chromosomes 1 and 16",
+  current_value = "chr8, chr1, chr16",
+  calculated_value = paste(unique(as.character(decreasing_chroms$chrom)), collapse = ", "),
+  unit = "",
+  status = "inconsistency_found",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd Benchmark Region Coverage Change by Chromosome",
+  notes = paste0(
+    "Author decision (2026-08-14): revise the text to clearly differentiate the smvar and ",
+    "stvar comparisons — smvar (v5.0q vs v4.2.1, GRCh38): chr1 (-0.38%), chr8 (-1.41%), ",
+    "chr16 (-0.75%) decrease; stvar (v5.0q vs v0.6, GRCh37): only chr8 (-1.98%) decreases. ",
+    "No other chromosome decreases in either comparison."
+  )
+)
+```
+
+## C9. Comparison to PP: 9 658 SV / 28 797 small variant benchmark regions
+
+```{r c9-interval-counts}
+interval_counts_raw <- bench_regions_df %>%
+  filter(bench_version == "v5.0q", ref == "GRCh38", bench_type %in% c("smvar", "stvar")) %>%
+  count(bench_type, name = "n_intervals_all_chroms")
+print(interval_counts_raw)
+
+## For reference: the interval-size notebook's own summary table restricts to autosomes
+interval_counts_autosomes <- bench_regions_df %>%
+  filter(
+    bench_version == "v5.0q", ref == "GRCh38", bench_type %in% c("smvar", "stvar"),
+    chrom %in% AUTOSOME_CHROM_LEVELS
+  ) %>%
+  count(bench_type, name = "n_intervals_autosomes")
+print(interval_counts_autosomes)
+
+n_smvar_iv <- interval_counts_raw %>% filter(bench_type == "smvar") %>% pull(n_intervals_all_chroms)
+n_stvar_iv <- interval_counts_raw %>% filter(bench_type == "stvar") %>% pull(n_intervals_all_chroms)
+
+record_value(
+  id = "pp_interval_counts",
+  section = "Results — Comparison to Platinum Pedigree",
+  current_text_snippet = "9 658 SV benchmark regions, 28 797 small variant benchmark regions",
+  current_value = "28797/9658",
+  calculated_value = sprintf("%d/%d", n_smvar_iv, n_stvar_iv),
+  unit = "regions",
+  status = "confirmed_match",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "load_benchmark_regions() raw interval counts, v5.0q GRCh38 (all chromosomes)",
+  notes = paste0(
+    "Exact match as raw unmerged BED interval counts incl. chrX/chrY. Note the interval-size ",
+    "notebook's own summary table is autosome-only (27 794 smvar / 9 325 stvar) — the ",
+    "manuscript numbers are correct but include sex chromosomes."
+  )
+)
+```
+
+## C10–C11. GLM observation counts and Firth sensitivity failures
+
+Computed by the sourced GLM script in A4–A5 (objects reused here).
+
+```{r c10-glm-n}
+glm_n_smvar <- nrow(smvar_model_df)
+glm_n_stvar <- nrow(stvar_model_df)
+glm_k_smvar <- length(unique(smvar_model_df$callset))
+glm_k_stvar <- length(unique(stvar_model_df$callset))
+firth_failures <- sum(smvar_sens_df$correct_binary == 0)
+cat(
+  "smvar GLM: N =", glm_n_smvar, "obs,", glm_k_smvar, "callsets\n",
+  "stvar GLM: N =", glm_n_stvar, "obs,", glm_k_stvar, "callsets\n",
+  "Firth sensitivity: ", firth_failures, "failures across", nrow(smvar_sens_df), "observations\n"
+)
+
+record_value(
+  id = "glm_observation_counts",
+  section = "Methods — GLM (N = 350, 5 callsets small variant; N = 280, 7 callsets SV)",
+  current_text_snippet = "N = 350 (5 callsets, small variant), N = 280 (7 callsets, SV)",
+  current_value = "350/5; 280/7",
+  calculated_value = sprintf("%d/%d; %d/%d", glm_n_smvar, glm_k_smvar, glm_n_stvar, glm_k_stvar),
+  unit = "observations/callsets",
+  status = ifelse(glm_n_smvar == 350 && glm_k_smvar == 5 && glm_n_stvar == 280 && glm_k_stvar == 7,
+    "confirmed_match", "inconsistency_found"
+  ),
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R)",
+  notes = "Matches fitted model input data exactly."
+)
+record_value(
+  id = "firth_sensitivity_failures",
+  section = "Methods — Firth sensitivity analysis",
+  current_text_snippet = "5 failures across 350 observations",
+  current_value = "5/350",
+  calculated_value = sprintf("%d/%d", firth_failures, nrow(smvar_sens_df)),
+  unit = "failures/observations",
+  status = ifelse(firth_failures == 5 && nrow(smvar_sens_df) == 350, "confirmed_match", "inconsistency_found"),
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "external_evaluation.qmd sensitivity analysis (unsure = correct); JZ curation overrides applied",
+  notes = "After JZ overrides: 326 yes / 19 unsure / 5 no — the 5 'no' curations are the failures."
+)
+```
+
+
+## Summary Table
+
+```{r summary-table}
+status_order <- c(
+  "inconsistency_found", "needs_human_review", "placeholder_resolved",
+  "confirmed_match", "out_of_scope"
+)
+summary_df <- purrr::map_dfr(verification_results, function(v) {
+  tibble::tibble(
+    `Value ID` = v$id,
+    `Manuscript location` = v$section,
+    `Current text value` = ifelse(is.null(v$current_value) || is.na(v$current_value),
+      "## / none",
+      as.character(v$current_value)
+    ),
+    `Calculated value` = as.character(v$calculated_value),
+    `Match?` = dplyr::case_when(
+      v$status == "confirmed_match" ~ "Yes",
+      v$status %in% c("needs_human_review", "out_of_scope") ~ "Needs review",
+      v$status == "placeholder_resolved" ~ "New (placeholder)",
+      TRUE ~ "No"
+    ),
+    Status = v$status,
+    Notes = v$notes
+  )
+}) %>%
+  dplyr::arrange(match(Status, status_order))
+
+summary_df %>%
+  flextable::flextable() %>%
+  flextable::fontsize(size = 8, part = "all") %>%
+  flextable::autofit()
+```
+
+## Write JSON manifest
+
+```{r write-json}
+json_out <- purrr::map(unname(verification_results), function(v) {
+  v$current_value <- if (is.null(v$current_value)) NA else v$current_value
+  v
+})
+json_path <- here::here("docs/agent_work/manuscript_value_updates.json")
+dir.create(dirname(json_path), recursive = TRUE, showWarnings = FALSE)
+jsonlite::write_json(json_out, json_path, auto_unbox = TRUE, pretty = TRUE, na = "null")
+cat("Wrote", length(json_out), "entries to", json_path, "\n")
+```
+
+## Session Info
+
+```{r session-info}
+sessioninfo::session_info()
+```

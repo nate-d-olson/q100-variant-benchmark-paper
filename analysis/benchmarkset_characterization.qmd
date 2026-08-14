@@ -28,7 +28,6 @@ analysis_setup(
 This analysis uses **primary aggregated metrics** rather than loading full variant tables directly. This approach is faster, more memory-efficient, and sufficient for most analyses. See the [Pipeline Outputs Reference](../docs/pipeline-outputs.md) for details on when to load detailed variant tables.
 
 ### Primary Metrics
-
 ```{r load_primary}
 analysis_data <- load_primary_analysis_data(
   include_variants = TRUE,
@@ -114,7 +113,7 @@ Small variants use GRCh38 (v5.0q vs v4.2.1); structural variants use GRCh37
 total_var_df <- variants_df %>%
   group_by(bench_type, ref, bench_version) %>%
   mutate(var_len = if_else(var_size == 0, 1, abs(var_size))) %>% 
-  summarise(total_var_bp = sum(var_len), .groups = "drop") %>%
+  summarise(total_var_mb = sum(var_len) / 1e6, .groups = "drop") %>%
   mutate(
     ref = std_references(ref),
     bench_version = std_bench_versions(bench_version)
@@ -160,8 +159,8 @@ build_metric_rows <- function(bt, type_label, var1_col, var1_label,
              d = p1(v5_d, var2_col), l = p1(leg, var2_col))
   vt <- list(r37 = p1(v5_37, "Total"), r38 = p1(v5_38, "Total"), rc = p1(v5_c, "Total"),
              d = p1(v5_d, "Total"), l = p1(leg, "Total"))
-  vbp <- list(r37 = p1(v5_37, "total_var_bp"), r38 = p1(v5_38, "total_var_bp"),
-             rc = p1(v5_c, "total_var_bp"), d = p1(v5_d, "total_var_bp"), l = p1(leg, "total_var_bp"))
+  vbp <- list(r37 = p1(v5_37, "total_var_mb"), r38 = p1(v5_38, "total_var_mb"),
+             rc = p1(v5_c, "total_var_mb"), d = p1(v5_d, "total_var_mb"), l = p1(leg, "total_var_mb"))
   rg <- list(r37 = p1(v5_37, "bench_mb"), r38 = p1(v5_38, "bench_mb"), rc = p1(v5_c, "bench_mb"),
              d = p1(v5_d, "bench_mb"), l = p1(leg, "bench_mb"))
   pr <- list(r37 = p1(v5_37, "pct_ref_cvg"), r38 = p1(v5_38, "pct_ref_cvg"),
@@ -170,7 +169,7 @@ build_metric_rows <- function(bt, type_label, var1_col, var1_label,
   tibble(
     bench_type_label = type_label,
     col_a = c(var1_label, var2_label, "Total", "Total", "Region (Mb)", "% Reference"),
-    col_b = c("", "", "Variants", "Variation (bp)", "", ""),
+    col_b = c("", "", "Variants", "Variation (Mb)", "", ""),
     grch37 = c(fk(v1$r37), fk(v2$r37), fk(vt$r37), fmb(vbp$r37), fr(rg$r37), fp(pr$r37)),
     grch38 = c(fk(v1$r38), fk(v2$r38), fk(vt$r38), fmb(vbp$r38), fr(rg$r38), fp(pr$r38)),
     chm13  = c(fk(v1$rc),  fk(v2$rc),  fk(vt$rc),  fmb(vbp$rc),  fr(rg$rc),  fp(pr$rc)),
@@ -267,6 +266,19 @@ bench_summary_df %>%
 Size distributions for v5.0q compared to legacy benchmarks (GRCh38 only).
 Overlaid histograms show the expansion in variant content.
 
+```{r var_len_dist_style}
+bench_cols <- get_color_palettes()$bench_version
+
+## Tufte-style gapped line: white halo point erases the line near each marker
+geom_gapped_points <- function(halo_size = 2, point_size = 1.3) {
+  list(
+    geom_line(linewidth = 0.3),
+    geom_point(color = "white", size = halo_size),
+    geom_point(shape = 21, color = "grey30", stroke = 0.3, size = point_size)
+  )
+}
+```
+
 ```{r indel_length_distribution}
 #| message: false
 #| warning: false
@@ -279,22 +291,24 @@ smvar_len_df <- variants_df %>%
   ) %>%
   select(bench_version, var_size) %>% 
   mutate(abs_var_size = abs(var_size),
-         var_type = if_else(var_size > 0, "Insertion", "Deletion"))
+         var_type = if_else(var_size > 0, "Insertion", "Deletion")) %>%
+  count(bench_version, var_type, abs_var_size)
 
-(smvar_len_dist_plt <- ggplot(smvar_len_df, aes(x = abs_var_size, fill = bench_version)) +
-  geom_histogram(
-    bins = 15,
-    position = "dodge",
-    color = "grey20"
-  ) +
-  scale_fill_manual(
+(smvar_len_dist_plt <- ggplot(
+  smvar_len_df,
+  aes(x = abs_var_size, y = n, color = bench_version, fill = bench_version)
+) +
+  geom_gapped_points() +
+  scale_color_manual(
     name   = "Version",
-    values = c("v4.2.1" = "grey60", "v5.0q" = "#7570B3"),
-    labels = c("v4.2.1" = "v4.2.1 (GRCh38)", "v5.0q" = "v5.0q (GRCh38)")
+    values = bench_cols,
+    labels = c("v4.2.1" = "v4.2.1 (GRCh38)", "v5.0q" = "v5.0q (GRCh38)"),
+    aesthetics = c("color", "fill")
   ) +
-  scale_x_continuous(
-    breaks = c(1, 5, 10, 15, 20, 30, 40, 50)) +
-  labs(x = "Absolute INDEL Length (bp)", y = "Count", fill = "Version") +
+  scale_x_continuous(breaks = scales::breaks_width(10)) +
+  scale_y_log10(labels = scales::label_log()) +
+  annotation_logticks(sides = "l", linewidth = 0.25) +
+  labs(x = NULL, y = "Count") +
   facet_wrap(~var_type, ncol = 2) +
   theme_manuscript(legend.position = "bottom"))
 ```
@@ -311,21 +325,28 @@ stvar_len_df <- variants_df %>%
   select(bench_version, var_size) %>%
   filter(abs(var_size) < 10000) %>%  
   mutate(abs_var_size = abs(var_size),
-         var_type = if_else(var_size > 0, "Insertion", "Deletion"))
+         var_type = if_else(var_size > 0, "Insertion", "Deletion"),
+         ## Per-bp counts are too sparse at SV scale (~50% of sizes are
+         ## singletons), so bin at 15 log-spaced bins per decade
+         log_bin = floor(log10(abs_var_size) * 15) / 15) %>%
+  count(bench_version, var_type, log_bin) %>%
+  mutate(bin_center = 10^(log_bin + 1 / 30))
 
-(stvar_len_dist_plt <- ggplot(stvar_len_df, aes(x = abs_var_size, fill = bench_version)) +
-  geom_histogram(
-    bins = 15,
-    position = "dodge",
-    color = "grey20"
-  ) +
-  scale_fill_manual(
+(stvar_len_dist_plt <- ggplot(
+  stvar_len_df,
+  aes(x = bin_center, y = n, color = bench_version, fill = bench_version)
+) +
+  geom_gapped_points() +
+  scale_color_manual(
     name   = "Version",
-    values = c("v0.6" = "grey60", "v5.0q" = "#7570B3"),
-    labels = c("v0.6" = "v0.6 (GRCh37)", "v5.0q" = "v5.0q (GRCh37)")
+    values = bench_cols,
+    labels = c("v0.6" = "v0.6 (GRCh37)", "v5.0q" = "v5.0q (GRCh37)"),
+    aesthetics = c("color", "fill")
   ) +
-  scale_x_log10() +
-  labs(x = "Absolute SV Length (bp)", y = "Count", fill = "Version") +
+  scale_x_log10(labels = scales::label_log()) +
+  scale_y_log10(labels = scales::label_log()) +
+  annotation_logticks(sides = "bl", linewidth = 0.25) +
+  labs(x = "Absolute SV Length (bp)", y = "Count") +
   facet_wrap(~var_type, ncol = 2) +
   theme_manuscript(legend.position = "bottom"))
 ```
@@ -344,9 +365,29 @@ stvar_len_df <- variants_df %>%
     theme(
       # axis.text.x = element_text(angle = -45, hjust = 0),
       legend.position = "bottom",
+      ## Panels compare against different legacy versions, so the two
+      ## version legends cannot merge; stack them instead of overflowing
+      legend.box = "vertical",
+      legend.spacing.y = unit(0, "pt"),
       plot.margin = unit(c(1, 1, 1, 1), "pt")
     ))
 ```
+
+**Figure X. Variant size distributions for the v5.0q benchmark compared with
+legacy GIAB benchmarks.**
+Counts are shown on a log scale for HG002 deletions (left) and insertions
+(right).
+(**A**) Small-variant INDELs 1–49 bp, v5.0q (purple) versus v4.2.1 (orange), both
+on GRCh38, with one point per base pair of INDEL length.
+(**B**) Structural variants 50 bp–10 kb, v5.0q (purple) versus v0.6 (teal), both
+on GRCh37 because v0.6 is only available for that reference; points are counts in
+bins of equal width on the log scale (15 bins per decade) plotted at the
+geometric bin center, since per-base-pair counts are too sparse at this scale.
+Lines connect consecutive points within a benchmark and are drawn only as a
+visual guide. v5.0q exceeds the legacy benchmark at every size, and the relative
+gain grows with variant size for small-variant INDELs. Note the alternating
+even/odd pattern in panel A, consistent with dinucleotide-repeat-mediated
+INDELs, and the ~300 bp Alu and ~6 kb LINE-1 peaks in panel B.
 
 ```{r var_length_dist_save}
 ggsave(
