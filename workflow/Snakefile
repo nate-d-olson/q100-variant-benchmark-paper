@@ -87,4 +87,4 @@ rule all:
             comp_id=config.get("comparisons", {}).keys(),
         ),
         ## Chr8 synteny figure (optional, enabled when chr8_synteny is in config)
-        get_chr8_synteny_targets,
+#        get_chr8_synteny_targets,
