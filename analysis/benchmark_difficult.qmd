@@ -175,17 +175,17 @@ ggsave(
 ### Supplemental: Fold Change by Variant Size Bin
 
 ```{r fold_change_by_size_data}
-size_bin_levels <- c("<15bp", "15-49bp", "50-1,000bp", "1,001-10,000bp", ">10kb")
+size_bin_levels <- c("< 15bp", "15 to 49bp", "50 to 1,000bp", "1,001 to 10,000bp", "> 10kbp")
 
 add_size_bin <- function(df) {
   df %>%
     mutate(
       var_size_bin = factor(case_when(
-        abs(var_size) < 15 ~ "<15bp",
-        abs(var_size) < 50 ~ "15-49bp",
-        abs(var_size) < 1001 ~ "50-1,000bp",
-        abs(var_size) < 10001 ~ "1,001-10,000bp",
-        .default = ">10kb"
+        abs(var_size) < 15 ~ "< 15bp",
+        abs(var_size) < 50 ~ "15 to 49bp",
+        abs(var_size) < 1001 ~ "50 to 1,000bp",
+        abs(var_size) < 10001 ~ "1,001 to 10,000bp",
+        .default = "> 10kb"
       ), levels = size_bin_levels)
     )
 }
@@ -269,7 +269,8 @@ genomic_context_var_fld_chg <- bind_rows(gc_size_counts, complex_size_counts) %>
   theme_manuscript() +
   theme(
     legend.position = "bottom",
-    legend.box = "vertical"
+    legend.box = "vertical",
+    axis.text = element_blank()
   ))
 
 ggsave(
@@ -303,7 +304,7 @@ smvar_size_bin_counts <- variants_df %>%
     var_type %in% c("SNV", "INDEL")
   ) %>%
   add_size_bin() %>%
-  filter(var_size_bin %in% c("<15bp", "15-49bp")) %>%
+  filter(var_size_bin %in% c("< 15bp", "15 to 49bp")) %>%
   count(var_type, var_size_bin, bench_version, name = "count") %>%
   pivot_wider(
     names_from = bench_version,
