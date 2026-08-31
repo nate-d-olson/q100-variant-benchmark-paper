@@ -1,8 +1,14 @@
 #!/usr/bin/env Rscript
-# Generate genome-wide karyotype ideogram figure for the Q100 variant benchmark manuscript.
+# Generate chr8 detail-view karyotype ideogram figures for the Q100 variant
+# benchmark manuscript (full chromosome + inversion zoom).
 # AI Disclosure: Developed with assistance from Claude (Anthropic).
 #
-# Produces a multi-track ideogram showing benchmark region coverage across chromosomes for:
+# The genome-wide, all-chromosome figure previously produced here (plot_main /
+# ideogram_main) has been superseded by the region-coverage heatmap redesign
+# in scripts/make_ideogram_heatmap.R -- see that script's header for why.
+#
+# Produces a multi-track ideogram showing benchmark region coverage and
+# variant density on chr8 for:
 #   - Difficult regions (HP+TR+SD+MAP union)
 #   - v0.6 stvar (lifted from GRCh37 to GRCh38)
 #   - v4.2.1 smvar
@@ -11,7 +17,7 @@
 #   - v5.0q regions covered by both smvar and stvar
 #
 # Usage: Rscript scripts/make_ideogram.R
-# Output: figures/ideogram.pdf, figures/ideogram.png
+# Output: figures/ideogram_chr8.{pdf,png}, figures/ideogram_chr8_zoom.{pdf,png}
 
 suppressPackageStartupMessages({
   library(karyoploteR)
@@ -204,12 +210,20 @@ message("Loading variant positions from VCF files...")
 
 # Efficiently extract CHROM/POS for target chromosomes at the shell level,
 # avoiding loading the full VCF into R memory.
+#
+# PASS gate matches generate_variant_parquet.py's is_pass rule exactly:
+# `len(record.filter) == 0 or "PASS" in record.filter` -- an empty FILTER
+# field ('.') counts as PASS; any named filter tag (e.g. LongReadHomRef,
+# NoConsensusGT) does not. Without this gate, non-PASS records (up to ~84%
+# of a benchmark's VCF rows -- see the 2026-06-15 v0.6 stvar filtering bug
+# write-up) get counted as variants in the density tracks below.
 load_vcf_positions <- function(path, chroms) {
   chrom_filter <- paste(sprintf("$1==\"%s\"", chroms), collapse = " || ")
+  pass_filter <- "($7==\".\" || $7 ~ /(^|;)PASS(;|$)/)"
   df <- read.table(
     pipe(sprintf(
-      "gunzip -c %s | grep -v '^#' | awk '(%s)' | cut -f1,2",
-      path, chrom_filter
+      "gunzip -c %s | grep -v '^#' | awk '(%s) && %s' | cut -f1,2",
+      path, chrom_filter, pass_filter
     )),
     col.names    = c("chrom", "pos"),
     colClasses   = c("character", "integer"),
@@ -228,12 +242,16 @@ message(sprintf("Variant counts on %s — v4.2.1: %d  v5.0q smvar: %d  v5.0q stv
   length(gr_vars_v421), length(gr_vars_v5_smvar), length(gr_vars_v5_stvar)))
 
 # v0.6 VCF is GRCh37 (no chr prefix) — liftOver to GRCh38
+# Same PASS gate as load_vcf_positions() above (v0.6 stvar has only 12,745
+# PASS records out of 74,012 total -- the rest are lt50bp/LongReadHomRef/
+# NoConsensusGT/ClusteredCalls and must not be counted).
 v06_chr37_names <- sub("^chr", "", keep_chroms)
 chrom_filter_37 <- paste(sprintf("$1==\"%s\"", v06_chr37_names), collapse = " || ")
+pass_filter_37 <- "($7==\".\" || $7 ~ /(^|;)PASS(;|$)/)"
 v06_vcf_raw <- read.table(
   pipe(sprintf(
-    "gunzip -c %s | grep -v '^#' | awk '(%s)' | cut -f1,2",
-    path_v06_vcf, chrom_filter_37
+    "gunzip -c %s | grep -v '^#' | awk '(%s) && %s' | cut -f1,2",
+    path_v06_vcf, chrom_filter_37, pass_filter_37
   )),
   col.names    = c("chrom", "pos"),
   colClasses   = c("character", "integer"),
@@ -325,19 +343,14 @@ add_labels <- function(kp, cex_main = 0.38, cex_sub = 0.30) {
 }
 
 # --- Plot functions -----------------------------------------------------------
+# The prior all-chromosome density figure (plot_main -> ideogram_main) has been
+# superseded by the region-coverage heatmap redesign in
+# scripts/make_ideogram_heatmap.R, which now generates ideogram_main.{pdf,png}.
+# This script retains only the chr8 detail views (full chromosome + zoom),
+# which are a separate, still-open TODO item (see TODO.md "Revise the Chr 8
+# inversion figure").
 
-# Figure 1: all chromosomes, no track labels (labels belong on the inset only)
-plot_main <- function() {
-  kp <- plotKaryotype(
-    genome = "hg38", chromosomes = keep_chroms, plot.type = 1,
-    plot.params = make_plot_params(leftmargin = 0.10),
-    cex = 0.5, cex.main = 0.8,
-    main = "HG002 Q100 Variant Benchmark"
-  )
-  add_tracks(kp)
-}
-
-# Figure 2: chr8 full chromosome with track labels
+# Figure 1: chr8 full chromosome with track labels
 plot_chr8_full <- function() {
   kp <- plotKaryotype(
     genome = "hg38", chromosomes = "chr8", plot.type = 1,
@@ -348,7 +361,7 @@ plot_chr8_full <- function() {
   add_labels(kp, cex_main = 0.7, cex_sub = 0.55)
 }
 
-# Figure 3: chr8 zoomed to 6–14 Mb with track labels
+# Figure 2: chr8 zoomed to 6–14 Mb with track labels
 plot_chr8_zoom <- function() {
   zoom_region <- GRanges("chr8", IRanges(6e6, 14e6))
   kp <- plotKaryotype(
@@ -380,9 +393,6 @@ save_plot <- function(plot_fn, base_path, width, height, png_res = 300) {
 }
 
 figs_dir <- here::here("figures")
-
-# All chromosomes: tall portrait (25 rows)
-save_plot(plot_main,      file.path(figs_dir, "ideogram_main"),      width = 7, height = 12)
 
 # chr8 full: single-chromosome strip, landscape-ish
 save_plot(plot_chr8_full, file.path(figs_dir, "ideogram_chr8"),      width = 7, height = 3)

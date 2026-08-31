@@ -67,10 +67,39 @@ cleanup completed 2026-08-10.
 
 ### Selected or superseded
 
-- [x] Select the detailed vertical `ideogram_main` layout.
-- [ ] Verify `figures/ideogram_main` labels at final manuscript width and settle
-  the final tracks (variant density, benchmark coverage, assembly/reference
-  alignment, and comparisons with v0.6/v4.2.1 as scientifically appropriate).
+- [x] Select the detailed vertical `ideogram_main` layout. Superseded
+  2026-08-31: a scratch worktree (`bright-oak-sj5e`) had already resolved this
+  in June with a region-coverage-heatmap redesign (drop per-variant density
+  and the HP+TR+SD+MAP "Difficult" union track; per-version 100kb
+  coverage-fraction heatmaps instead), but the worktree was deleted
+  2026-08-10/11 before that work was committed. Reconstructed from session
+  notes preserved outside the repo (exact original code not recoverable) in
+  `scripts/make_ideogram_heatmap.R`: `ideogram_main` is now the recommended
+  chr1/chr8/chr9/chr13/chr19 main-text subset; `ideogram_genomewide_{grch37,grch38}`
+  are the new all-autosome supplemental figures. Also fixed a real bug ported
+  over from the same recovery: `scripts/make_ideogram.R`'s chr8 density
+  tracks (`ideogram_chr8`, `ideogram_chr8_zoom`) were not applying the PASS
+  filter to benchmark VCFs, matching `generate_variant_parquet.py`'s
+  `is_pass` rule now.
+- [ ] Verify `figures/ideogram_main` labels at final manuscript width in
+  Preview at Actual Size (still open -- the redesign above answers "which
+  tracks", not "does it read correctly at print size").
+- [ ] Decide on the reconstructed SVbyEye same-scale supplement
+  (`scripts/make_svbyeye_samescale.R` + `scripts/prep_svbyeye_{beds,pafs}.sh`,
+  new 2026-08-31): a PAT/ref/MAT alignment "sandwich" per chromosome,
+  annotated with benchmark regions + large excluded regions
+  (segdups/satellites/tandem-repeats/flanks/gaps only -- 7 other exclusion
+  categories describe benchmarking-tool limitations, not assembly structure,
+  and are deliberately excluded), same bp-per-inch scale across panels.
+  Proof-of-concept rendered for the main-text subset (chr6/chr8/chr15/chr20/chrX,
+  GRCh38) in `figures/svbyeye_main_grch38.png`; GRCh37/CHM13v2.0 supplements
+  and the full 24-chromosome PAF set were never generated even in the
+  original (lost) work and still need the ~30-60 min/reference minimap2 run
+  (`bash scripts/prep_svbyeye_pafs.sh <REF>`). Needs SVbyEye added to
+  `renv.lock` (`remotes::install_github("daewoooo/SVbyEye")`,
+  `renv::snapshot(packages="SVbyEye")`) before it can run outside this
+  worktree. Publication-quality polish (font sizes, axis label spacing on
+  half-width panels, title/legend overlap) still open.
 - [x] Select `combined_eval_strata` and `combined_eval_callset` as the canonical
   external-evaluation figures.
 - [ ] Check manuscript references before retiring legacy `combined_eval` and
