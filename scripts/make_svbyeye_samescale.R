@@ -51,6 +51,10 @@ suppressPackageStartupMessages({
 args <- commandArgs(trailingOnly = TRUE)
 REF <- if (length(args) >= 1) args[[1]] else "GRCh38"
 CHROMS <- if (length(args) >= 2) strsplit(args[[2]], ",")[[1]] else c("chr6", "chr8", "chr15", "chr20", "chrX")
+# "main" (default) = the 2026-06-17 main-text subset -> svbyeye_main_<ref>;
+# "supplement" (pass explicitly for the full 24-chromosome set) ->
+# svbyeye_supplement_<ref>, so the two don't overwrite each other.
+OUT_LABEL <- if (length(args) >= 3) args[[3]] else "main"
 
 data_root <- Sys.getenv("Q100_DATA_ROOT", unset = here::here())
 svb_dir <- here::here("results", "svbyeye", REF)
@@ -86,21 +90,25 @@ read_bench_excl <- function(chrom) {
 }
 
 # Build one chromosome's sandwich panel (3 rows: PAT/ref/MAT, or 2 rows for
-# chrX which has no paternal homolog), windowed to a shared xlim so bp-per-
-# inch matches every other panel at the same width class.
+# chrX/chrY which each have only one homolog in a male sample), windowed to a
+# shared xlim so bp-per-inch matches every other panel at the same width class.
 build_panel <- function(chrom, xlim_max, show_legend = FALSE) {
   mat_path <- file.path(svb_dir, chrom, "ref_mat.named.paf")
   pat_path <- file.path(svb_dir, chrom, "ref_pat.named.paf")
+  has_mat <- file.exists(mat_path)
   has_pat <- file.exists(pat_path)
 
-  mat <- readPaf(mat_path, include.paf.tags = FALSE)
-  if (has_pat) {
-    pat <- readPaf(pat_path, include.paf.tags = FALSE)
-    paf <- rbind(mat, pat)
+  if (has_mat && has_pat) {
+    paf <- rbind(readPaf(mat_path, include.paf.tags = FALSE), readPaf(pat_path, include.paf.tags = FALSE))
     order <- c("HG002_PAT", chrom, "HG002_MAT")
-  } else {
-    paf <- mat
+  } else if (has_mat) {
+    paf <- readPaf(mat_path, include.paf.tags = FALSE)
     order <- c(chrom, "HG002_MAT")
+  } else if (has_pat) {
+    paf <- readPaf(pat_path, include.paf.tags = FALSE)
+    order <- c("HG002_PAT", chrom)
+  } else {
+    stop("No PAF found for ", chrom, " (neither mat nor pat)")
   }
 
   p <- plotAVA(paf, seqnames.order = order, color.by = "direction") +
@@ -156,7 +164,7 @@ combined <- wrap_plots(rows, ncol = 1) +
   plot_annotation(title = sprintf("HG002 vs %s: assembly alignment, same scale", REF))
 
 n_rows <- length(rows)
-out_base <- file.path(figs_dir, paste0("svbyeye_main_", tolower(REF)))
+out_base <- file.path(figs_dir, paste0("svbyeye_", OUT_LABEL, "_", tolower(REF)))
 message("Writing ", out_base, ".pdf / .png")
 ggsave(paste0(out_base, ".pdf"), combined, width = 7, height = 1.6 * n_rows + 0.6, limitsize = FALSE)
 ggsave(paste0(out_base, ".png"), combined, width = 7, height = 1.6 * n_rows + 0.6, dpi = 300, limitsize = FALSE)

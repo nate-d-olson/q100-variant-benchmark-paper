@@ -91,15 +91,24 @@ cleanup completed 2026-08-10.
   (segdups/satellites/tandem-repeats/flanks/gaps only -- 7 other exclusion
   categories describe benchmarking-tool limitations, not assembly structure,
   and are deliberately excluded), same bp-per-inch scale across panels.
-  Proof-of-concept rendered for the main-text subset (chr6/chr8/chr15/chr20/chrX,
-  GRCh38) in `figures/svbyeye_main_grch38.png`; GRCh37/CHM13v2.0 supplements
-  and the full 24-chromosome PAF set were never generated even in the
-  original (lost) work and still need the ~30-60 min/reference minimap2 run
-  (`bash scripts/prep_svbyeye_pafs.sh <REF>`). Needs SVbyEye added to
-  `renv.lock` (`remotes::install_github("daewoooo/SVbyEye")`,
-  `renv::snapshot(packages="SVbyEye")`) before it can run outside this
-  worktree. Publication-quality polish (font sizes, axis label spacing on
-  half-width panels, title/legend overlap) still open.
+  Main-text subset (chr6/chr8/chr15/chr20/chrX, GRCh38) in
+  `figures/svbyeye_main_grch38.png`. Full 24-chromosome supplements now
+  generated and reviewed for all three references (2026-09-01):
+  `figures/svbyeye_supplement_{grch38,grch37,chm13v2.0}.{pdf,png}` -- 19-row
+  same-scale layout (13 full-width chr1-12+X, 5 paired half-width rows
+  chr13-22, lone chrY 2-row panel with no fabricated maternal ribbon). Fixed
+  two bugs found while generating the full set: (1) chr22 GRCh38's paternal
+  PAF was a zero-byte artifact from an earlier interrupted `timeout`-killed
+  test run -- regenerated; (2) `build_panel()` assumed a maternal PAF always
+  exists, which crashed on chrY (paternal-only in a male sample) -- now
+  handles either haplotype being absent. SVbyEye is installed only in this
+  worktree's ad hoc `.worktree_rlib`, not in the shared renv -- still needs
+  adding to `renv.lock` (`remotes::install_github("daewoooo/SVbyEye")` fails
+  with HTTP 401 in this environment even for the public repo -- install via
+  local `git clone` + `install.packages(path, repos=NULL, type="source")`
+  instead; then `renv::snapshot(packages="SVbyEye")`) before these scripts
+  can run outside a fresh worktree. Publication-quality polish (font sizes,
+  axis label spacing on half-width panels, title/legend overlap) still open.
 - [x] Select `combined_eval_strata` and `combined_eval_callset` as the canonical
   external-evaluation figures.
 - [ ] Check manuscript references before retiring legacy `combined_eval` and
