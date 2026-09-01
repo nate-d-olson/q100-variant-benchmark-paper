@@ -185,7 +185,7 @@ add_size_bin <- function(df) {
         abs(var_size) < 50 ~ "15 to 49bp",
         abs(var_size) < 1001 ~ "50 to 1,000bp",
         abs(var_size) < 10001 ~ "1,001 to 10,000bp",
-        .default = "> 10kb"
+        .default = "> 10kbp"
       ), levels = size_bin_levels)
     )
 }
@@ -270,7 +270,7 @@ genomic_context_var_fld_chg <- bind_rows(gc_size_counts, complex_size_counts) %>
   theme(
     legend.position = "bottom",
     legend.box = "vertical",
-    axis.text = element_blank()
+    axis.text.x = element_blank()
   ))
 
 ggsave(
