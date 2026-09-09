@@ -174,7 +174,7 @@ rule prepare_reference:
     params:
         url=lambda w: config["references"][w.ref_name]["url"],
         checksum=lambda w: get_reference_checksum(w.ref_name),
-        checksum_type="sha256",  ## hardcoded using sha256 in config
+        checksum_type=lambda w: get_reference_checksum_type(w.ref_name),
     log:
         "logs/prepare_reference/{ref_name}.log",
     retries: 3
@@ -201,11 +201,18 @@ rule prepare_reference:
         # Validate checksum if configured (skipped when no checksum is provided)
         if [ -n "{params.checksum}" ]; then
             echo "[$(date)] Validating {params.checksum_type} checksum..." | tee -a {log}
-            if [ "{params.checksum_type}" = "md5" ]; then
-                echo "{params.checksum}  $TMPFILE" | md5sum -c - 2>&1 | tee -a {log}
-            else
-                echo "{params.checksum}  $TMPFILE" | sha256sum -c - 2>&1 | tee -a {log}
-            fi
+            case "{params.checksum_type}" in
+                md5)
+                    echo "{params.checksum}  $TMPFILE" | md5sum -c - 2>&1 | tee -a {log}
+                    ;;
+                sha256)
+                    echo "{params.checksum}  $TMPFILE" | sha256sum -c - 2>&1 | tee -a {log}
+                    ;;
+                *)
+                    echo "ERROR: unsupported checksum type '{params.checksum_type}'" | tee -a {log}
+                    exit 1
+                    ;;
+            esac
         else
             echo "[$(date)] No checksum configured; skipping validation" | tee -a {log}
         fi
