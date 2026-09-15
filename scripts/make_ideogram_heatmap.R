@@ -62,6 +62,7 @@ grch37_lengths <- read_fai_lengths(file.path(res_dir, "references", "GRCh37.fa.g
 autosomes <- paste0("chr", 1:22)
 main_text_chroms <- c("chr1", "chr8", "chr9", "chr13", "chr19")
 
+
 # --- Track definitions --------------------------------------------------------
 # Each track = one benchmark BED rendered as a 100kb coverage-fraction heatmap.
 grch38_tracks <- list(
@@ -145,7 +146,7 @@ plot_heatmap_ideogram <- function(chroms, chrom_lengths, tracks, genome, cex.lab
     frac <- bin_coverage_fraction(bench_gr, bins)
     kpDataBackground(kp, r0 = r0, r1 = r1, color = "white")
     kpPlotRegions(kp, bins, col = frac_to_color(frac), border = NA, r0 = r0, r1 = r1)
-    kpAddLabels(kp, labels = trk$label, r0 = r0, r1 = r1, cex = cex.label, label.margin = 0.02)
+    kpAddLabels(kp, labels = trk$label, side = "right", r0 = r0, r1 = r1, cex = cex.label, label.margin = 0.02)
   }
   invisible(kp)
 }
@@ -168,7 +169,7 @@ draw_legend <- function() {
   rect(0, 0.3, 0.02, 0.9, col = ZERO_COL, border = NA)
   text(0, 0.05, "0%", cex = 0.8, adj = c(0, 0))
   text(1, 0.05, "100%", cex = 0.8, adj = c(1, 0))
-  text(0.5, 0.05, "Fraction of 100kb bin covered by benchmark region", cex = 0.8, adj = c(0.5, 0))
+  text(0.5, 0.05, "Fraction of 100kb bin covered by benchmark region", cex = 0.8, adj = c(0.25, 0))
 }
 
 composite_with_legend <- function(main_png, legend_png, out_png, out_pdf) {
