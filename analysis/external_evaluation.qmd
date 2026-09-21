@@ -407,6 +407,11 @@ ggsave(
 
 ## Combined Evaluation Figure
 
+Simple curation-count summary retained for reference. The canonical
+`figures/combined_eval_strata.{png,pdf}` export is now produced in the
+"Combined Strata Definition, Curation, and RIDE Figure" section below, which
+needs the RIDE model estimates.
+
 ```{r combined_eval, fig.width = 6, fig.height = 3}
 (combined_eval_plt <- (
   smvar_eval_strata_plt +
@@ -414,19 +419,6 @@ ggsave(
   plot_annotation(tag_levels = "A") +
   plot_layout(guides = "collect", ncol = 2, nrow = 1) &
   theme(legend.position = "bottom", plot.margin = margin(0, 2, 0, 0)))
-
-ggsave(
-  filename = here("figures", "combined_eval_strata.png"),
-  plot = combined_eval_plt,
-  width = 6,
-  height = 3,
-  dpi = 450
-)
-ggsave(
-  filename = here("figures", "combined_eval_strata.pdf"),
-  plot = combined_eval_plt,
-  width = 6, height = 3
-)
 ```
 
 ```{r}
@@ -666,6 +658,333 @@ ggsave(
   filename = here("figures", "ride_estimates.pdf"),
   plot = ci_forest_plt,
   width = 8, height = 8
+)
+```
+
+## Combined Strata Definition, Curation, and RIDE Figure
+
+One figure per benchmark set block combining (i) an UpSet-style matrix that
+defines each curation stratum by its factor levels, (ii) the curation counts
+per stratum, and (iii) the marginal RIDE probability estimates placed directly
+above the factor-level column each estimate averages over.
+
+Small-variant genomic contexts were assigned sequentially (INDEL: HP >6bp,
+then TR, then Low Map, then remaining autosomal; SNV: TR, then Low Map, then
+remaining autosomal), so a stratum's context implies the variant is *not* in
+any higher-precedence context (open circles). XY non-PAR strata (S03, S08,
+S12, S17) were defined but not curated and therefore do not appear.
+
+```{r strata_definition_tables}
+smvar_context_order <- list(
+  SNV = c("TR", "Low Map", "Autosome"),
+  INDEL = c("HP >6bp", "TR", "Low Map", "Autosome")
+)
+
+## Status of one context column for a stratum: the assigned context is
+## "in", higher-precedence contexts are "not in", others are not evaluated.
+context_status <- function(var_type, assigned, column) {
+  ord <- smvar_context_order[[var_type]]
+  if (!column %in% ord) {
+    return(NA_character_)
+  }
+  d <- match(column, ord) - match(assigned, ord)
+  if (d == 0) "in" else if (d < 0) "not in" else NA_character_
+}
+
+smvar_def_cols <- tribble(
+  ~column,     ~group,
+  "Overall",   "Overall",
+  "Query",     "Unique to",
+  "Benchmark", "Unique to",
+  "SNV",       "Variant type",
+  "INDEL",     "Variant type",
+  "HP >6bp",   "Genomic context",
+  "TR",        "Genomic context",
+  "Low Map",   "Genomic context",
+  "Autosome",  "Genomic context"
+)
+
+smvar_strata_def <- smvar_curations %>%
+  distinct(strata, unique_to, var_type, strata_label) %>%
+  mutate(
+    var_type = if_else(var_type == "SNP", "SNV", var_type),
+    context = str_extract(strata_label, "(?<=: ).*"),
+    row_id = strata
+  ) %>%
+  arrange(strata)
+
+smvar_def_long <- smvar_strata_def %>%
+  crossing(smvar_def_cols) %>%
+  mutate(status = case_when(
+    group == "Overall" ~ "in",
+    group == "Unique to" ~ if_else(column == unique_to, "in", NA_character_),
+    group == "Variant type" ~ if_else(column == var_type, "in", NA_character_),
+    group == "Genomic context" ~
+      pmap_chr(list(var_type, context, column), context_status)
+  ))
+
+stvar_def_cols <- tribble(
+  ~column,     ~group,
+  "Overall",   "Overall",
+  "Query",     "Unique to",
+  "Benchmark", "Unique to",
+  "DEL",       "SV type",
+  "INS",       "SV type",
+  "TR",        "TR annotation",
+  "Non-TR",    "TR annotation"
+)
+
+stvar_strata_def <- stvar_curations %>%
+  distinct(strata, unique_to, sv_cat, TR_anno) %>%
+  mutate(
+    unique_to = if_else(unique_to == "bench", "Benchmark", "Query"),
+    TR_anno = if_else(TR_anno == "nonTR", "Non-TR", TR_anno),
+    row_id = paste(unique_to, sv_cat, TR_anno)
+  ) %>%
+  # Query block first, then DEL/INS, then TR/Non-TR (matches column order)
+  arrange(desc(unique_to == "Query"), sv_cat, desc(TR_anno == "TR"))
+
+stvar_def_long <- stvar_strata_def %>%
+  crossing(stvar_def_cols) %>%
+  mutate(status = case_when(
+    group == "Overall" ~ "in",
+    group == "Unique to" ~ if_else(column == unique_to, "in", NA_character_),
+    group == "SV type" ~ if_else(column == sv_cat, "in", NA_character_),
+    group == "TR annotation" ~ if_else(column == TR_anno, "in", NA_character_)
+  ))
+
+## Curation counts per stratum
+smvar_bars_df <- smvar_curations %>%
+  count(row_id = strata, curation_benchmark)
+
+stvar_bars_df <- stvar_curations %>%
+  mutate(row_id = paste(
+    if_else(unique_to == "bench", "Benchmark", "Query"),
+    sv_cat,
+    if_else(TR_anno == "nonTR", "Non-TR", TR_anno)
+  )) %>%
+  count(row_id, curation_benchmark)
+
+## Marginal RIDE estimates keyed to the matrix columns
+ride_by_column <- function(df, benchmarkset, def_cols) {
+  df %>%
+    filter(benchmarkset == !!benchmarkset) %>%
+    mutate(column = case_when(
+      feature == "Overall" ~ "Overall",
+      label == "SNP" ~ "SNV",
+      .default = label
+    )) %>%
+    inner_join(def_cols, by = "column")
+}
+
+smvar_ride_df <- ride_by_column(ci_plot_df, "Small Variant", smvar_def_cols)
+stvar_ride_df <- ride_by_column(ci_plot_df, "Structural Variant", stvar_def_cols)
+```
+
+```{r strata_block_builder}
+unsure_cols <- c(
+  "Conservative (unsure = incorrect)" = "#E41A1C",
+  "Sensitive (unsure = correct)" = "#377EB8"
+)
+unsure_shapes <- c(
+  "Conservative (unsure = incorrect)" = 16,
+  "Sensitive (unsure = correct)" = 17
+)
+unsure_labels <- c(
+  "Conservative (unsure = incorrect)" = "Conservative (unsure = no)",
+  "Sensitive (unsure = correct)" = "Sensitive (unsure = yes)"
+)
+
+## Column labels wrapped so they fit horizontally above the matrix columns
+strata_col_labels <- c(
+  "Benchmark" = "Bench", "HP >6bp" = "HP\n>6bp",
+  "Low Map" = "Low\nMap", "Autosome" = "Auto-\nsome"
+)
+
+## Build the three row/column-aligned panels for one benchmark set:
+## RIDE header (above matrix columns), definition matrix, curation bars.
+build_strata_block <- function(def_long, ride_df, bars_df, def_cols,
+                               group_labels, row_levels, title,
+                               show_row_labels = TRUE) {
+  col_levels <- def_cols$column
+  group_levels <- unique(def_cols$group)
+  fct_cols <- function(df) {
+    df %>%
+      mutate(
+        column = factor(column, col_levels),
+        group = factor(group, group_levels)
+      )
+  }
+  def_long <- fct_cols(def_long) %>%
+    mutate(
+      row = factor(row_id, rev(row_levels)),
+      status = factor(status, levels = c("in", "not in"))
+    )
+  ride_df <- fct_cols(ride_df)
+  bars_df <- bars_df %>% mutate(row = factor(row_id, rev(row_levels)))
+  n_max <- max(tapply(bars_df$n, bars_df$row_id, sum))
+  stripe_rows <- tibble(
+    row = factor(row_levels[seq_along(row_levels) %% 2 == 0], rev(row_levels))
+  )
+
+  p_ride <- ggplot(ride_df, aes(x = column, y = prob)) +
+    geom_line(aes(group = column), color = "grey60", linewidth = 0.8) +
+    geom_point(aes(color = analysis, shape = analysis), size = 2) +
+    facet_grid(
+      cols = vars(group), scales = "free_x", space = "free_x",
+      labeller = as_labeller(group_labels)
+    ) +
+    scale_y_continuous(
+      labels = scales::percent, limits = c(0.7, 1), breaks = seq(0.7, 1, 0.1)
+    ) +
+    scale_color_manual(values = unsure_cols, labels = unsure_labels) +
+    scale_shape_manual(values = unsure_shapes, labels = unsure_labels) +
+    guides(
+      color = guide_legend(order = 3, direction = "vertical", title.position = "top"),
+      shape = guide_legend(order = 3, direction = "vertical", title.position = "top")
+    ) +
+    labs(
+      # title = title, 
+      x = NULL, 
+      y = "P(query error)",
+      color = "Unsure classification", shape = "Unsure classification"
+    ) +
+    theme_manuscript() +
+    theme(
+      plot.title = element_text(size = 9.5, margin = margin(l = 14, b = 2)),
+      plot.title.position = "plot",
+      plot.margin = margin(2, 2, 0, 2),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      panel.grid.major.y = element_line(color = "grey90", linewidth = 0.3),
+      strip.text = element_text(size = 8, face = "bold", lineheight = 0.9),
+      strip.background = element_blank(),
+      panel.spacing.x = unit(4, "pt")
+    )
+
+  p_matrix <- ggplot(def_long, aes(x = column, y = row)) +
+    geom_tile(data = ~ semi_join(.x, stripe_rows, by = "row"), fill = "grey92") +
+    geom_point(data = ~ filter(.x, !is.na(status)), aes(shape = status), size = 1.9) +
+    facet_grid(cols = vars(group), scales = "free_x", space = "free_x") +
+    scale_x_discrete(position = "top", labels = strata_col_labels) +
+    scale_y_discrete(limits = rev(row_levels)) +
+    scale_shape_manual(
+      values = c("in" = 19, "not in" = 1),
+      labels = c("in" = "Defining", "not in" = "Excluded"),
+      name = "Stratum definition", drop = FALSE
+    ) +
+    guides(shape = guide_legend(order = 1, direction = "horizontal", title.position = "top")) +
+    labs(x = NULL, y = NULL) +
+    theme_manuscript() +
+    theme(
+      plot.margin = margin(0, 2, 2, 2),
+      strip.text = element_blank(),
+      strip.background = element_blank(),
+      axis.text.x.top = element_text(
+        size = 7.5, lineheight = 0.85, vjust = 0, margin = margin(b = 2)
+      ),
+      axis.text.y = if (show_row_labels) element_text(size = 7.5) else element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_blank(),
+      panel.spacing.x = unit(4, "pt")
+    )
+
+  p_bars <- ggplot(bars_df, aes(x = n, y = row, fill = curation_benchmark)) +
+    geom_tile(
+      data = stripe_rows, aes(x = n_max / 2, y = row),
+      width = n_max, height = 1, fill = "grey92", inherit.aes = FALSE
+    ) +
+    geom_col(position = "stack", color = "grey30", linewidth = 0.2, width = 0.7) +
+    scale_fill_brewer(palette = "Set2", drop = FALSE) +
+    scale_x_continuous(expand = expansion(mult = c(0, 0.02))) +
+    scale_y_discrete(limits = rev(row_levels)) +
+    guides(fill = guide_legend(order = 2, direction = "horizontal", title.position = "top")) +
+    labs(x = "# of curated variants", y = NULL, fill = "Correct in benchmark") +
+    theme_manuscript() +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+  list(ride = p_ride, matrix = p_matrix, bars = p_bars)
+}
+```
+
+```{r combined_eval_strata, fig.width = 7.09, fig.height = 7.7}
+#| fig-cap: >
+#|   External evaluation of the v5.0q (A) small variant and (B) structural
+#|   variant benchmark sets by manual curation of discrepancies with external
+#|   callsets. Matrices define the strata used to sample discrepancies for
+#|   curation: each row is a stratum (small variant S-codes correspond to the
+#|   Methods strata table) and filled circles mark its defining features.
+#|   Small variant genomic contexts were assigned sequentially (INDELs:
+#|   homopolymer >6 bp, then tandem repeat, then difficult-to-map, then
+#|   remaining autosomal; SNVs: tandem repeat, then difficult-to-map, then
+#|   remaining autosomal), so open circles mark higher-precedence contexts the
+#|   variant does not overlap; XY non-PAR strata were defined but not curated.
+#|   Bars give the number of curated variants per stratum classified as
+#|   correct (yes), incorrect (no), or unsure in the benchmark. Points above
+#|   each factor-level column are the estimated probabilities that a
+#|   discrepancy is an error in the comparison callset, from binomial GLMs
+#|   (marginal estimates via emmeans with proportional weighting): red circles
+#|   treat unsure curations as incorrect (conservative), blue triangles as
+#|   correct (sensitive), and the grey segment spans the two. Low Map denotes
+#|   the composite difficult-to-map annotation (low mappability 100/250 bp,
+#|   segmental duplications, RepeatMasker LINE/LTR/satellite).
+smvar_block <- build_strata_block(
+  smvar_def_long, smvar_ride_df, smvar_bars_df, smvar_def_cols,
+  group_labels = c(
+    "Overall" = "", "Unique to" = "Unique\nto",
+    "Variant type" = "Variant\ntype", "Genomic context" = "Genomic\ncontext"
+  ),
+  row_levels = smvar_strata_def$row_id,
+  title = "Small variants",
+  show_row_labels = FALSE
+)
+
+stvar_block <- build_strata_block(
+  stvar_def_long, stvar_ride_df, stvar_bars_df, stvar_def_cols,
+  group_labels = c(
+    "Overall" = "", "Unique to" = "Unique\nto",
+    "SV type" = "SV\ntype", "TR annotation" = "TR\nannotation"
+  ),
+  row_levels = stvar_strata_def$row_id,
+  title = "Structural variants",
+  show_row_labels = FALSE
+)
+## SV strata have no excluded contexts; the small variant matrix carries the legend
+stvar_block$matrix <- stvar_block$matrix + guides(shape = "none")
+
+## Each matrix column is one design column so dot spacing matches across
+## blocks; bars share the final column. Legends fill the empty SV header area.
+strata_design <- "
+AAAAAAAAA#
+BBBBBBBBBC
+DDDDDDDDD#
+EEEEEEEEEF
+GGGGGGGGGG
+"
+
+(combined_eval_strata_plt <- smvar_block$ride + smvar_block$matrix + smvar_block$bars +
+  stvar_block$ride + stvar_block$matrix + stvar_block$bars + guide_area() + 
+  plot_layout(
+    design = strata_design, widths = c(rep(1, 9), 5),
+    heights = c(0.95, 3.0, 0.95, 1.75), guides = "collect"
+  ) +
+  plot_annotation(tag_levels = list(c("A", "", "", "B", "", ""))) &
+  theme(
+    legend.position = "right", legend.box = "horizontal",
+    legend.justification = c(0, 0.5), legend.box.just = "left",
+    legend.key.height = unit(0.3, "cm"), legend.key.width = unit(0.35, "cm"),
+    legend.margin = margin(0, 0, 4, 0), legend.spacing.y = unit(1, "pt"),
+  ))
+
+ggsave(
+  filename = here("figures", "combined_eval_strata.png"),
+  plot = combined_eval_strata_plt,
+  width = 7.09, height = 7.7, dpi = 450, bg = "white"
+)
+ggsave(
+  filename = here("figures", "combined_eval_strata.pdf"),
+  plot = combined_eval_strata_plt,
+  width = 7.09, height = 7.7, bg = "white"
 )
 ```
 
