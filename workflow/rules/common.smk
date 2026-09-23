@@ -224,11 +224,31 @@ def get_old_benchmark_analysis_inputs(wildcards):
 
 
 def get_reference_checksum(ref_name: str) -> str:
-    """Get checksum value for a reference (sha256 preferred, then md5)."""
+    """Get checksum value for a reference (sha256 preferred, then md5).
+
+    Returns an empty string when no checksum is configured.
+    """
     ref_config = config["references"].get(ref_name)
     if ref_config is None:
         raise KeyError(f"Reference '{ref_name}' not found in config")
-    return ref_config.get("sha256", ref_config.get("md5", ""))
+    return ref_config.get("sha256") or ref_config.get("md5") or ""
+
+
+def get_reference_checksum_type(ref_name: str) -> str:
+    """Get the algorithm matching the checksum returned by get_reference_checksum().
+
+    References may configure either `sha256` or `md5`; the validating rule must
+    use the algorithm that the configured value was computed with. Returns an
+    empty string when no checksum is configured.
+    """
+    ref_config = config["references"].get(ref_name)
+    if ref_config is None:
+        raise KeyError(f"Reference '{ref_name}' not found in config")
+    if ref_config.get("sha256"):
+        return "sha256"
+    if ref_config.get("md5"):
+        return "md5"
+    return ""
 
 
 def get_stratification_url(wildcards) -> str:
