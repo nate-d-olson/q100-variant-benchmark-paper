@@ -1,0 +1,13 @@
+item,description,output_files,generated_by,chunk_or_function,inputs,notes
+Fig 1,GIAB benchmark development cycle and DeFrABB overview,figures/manual/fig1_development_cycle.{svg;pdf;af},hand-made,,,Affinity Designer; draft legend in figures/manual/fig1_legend.md
+Table 1,v5.0q benchmark set summary,rendered inline,analysis/benchmarkset_characterization.qmd,benchmark_summary_data; format_bench_table_fn; table1_combined,results/variant_tables; results/genomic_context; resources/benchmarksets; results/ref_genome_sizes,
+Fig 2,Variant size and genomic context characterization,figures/variant_size_genomic_context.{pdf;png},analysis/benchmarkset_characterization.qmd,combined_variant_characterization_data; combined_variant_characterization_plot; combined_variant_characterization_save,results/variant_tables; results/genomic_context,
+Fig 3,Benchmark coverage ideogram heatmaps with chr8 SVbyEye panel,figures/ideogram_main.{pdf;png},scripts/make_ideogram_heatmap.R,build_main_figure(); make_chr8_svbyeye_grob(),resources/benchmarksets; results/svbyeye/GRCh38 (from scripts/prep_svbyeye_pafs.sh GRCh38 chr8 and scripts/prep_svbyeye_beds.sh GRCh38),
+Fig S1,Genome-wide GRCh38 ideogram heatmap,figures/ideogram_genomewide_grch38.{pdf;png},scripts/make_ideogram_heatmap.R,,resources/benchmarksets; results/svbyeye/GRCh38,
+Fig 4A,SULT1A1 HG002 haplotype events (Pangene graph),figures/vector/SULT1A1.events.white.{svg;pdf},scripts/pangene_gfa_to_svg.js,--layout event-tracks,data/pangene/SULT1A1.gfa,hand-finished in figures/manual/fig4a_SULT1A1.events.af; see docs/pangene-vector-export.md
+Fig 4B,PMS2 segmental duplication inversion (Pangene graph),figures/vector/PMS2.events.white.{svg;pdf},scripts/pangene_gfa_to_svg.js,--layout pms2-events,data/pangene/PMS2.gfa,hand-finished in figures/manual/fig4b_PMS2.events.af; GFA extracted with scripts/extract_pangene_gfa.py
+Table 2,External evaluation participants and platforms,manuscript only,hand-typed,,,
+Fig 5,External evaluation curation results by stratum,figures/combined_eval_strata.{pdf;png},analysis/external_evaluation.qmd,combined_eval_strata; ci_summary_table,data/external-evaluations/*Miqa.csv,inputs not in git; see docs/dataset-release-plan.md
+Fig 6,Benchmark interval size distributions,figures/benchmark_intervals.{pdf;png},analysis/benchmark_interval_size_distributions.qmd,combined-interval-figure; save-figure,resources/benchmarksets; resources/platinum-pedigree-data,
+Table 3,Exclusion categories,manuscript only,hand-typed from config/config.yaml,,config/config.yaml (exclusions),
+Table 4,Bases removed by each GRCh38 exclusion,rendered inline,analysis/benchmark_exclusions.qmd,table4-grch38-exclusions,results/exclusions/*/exclusion_impact.csv,

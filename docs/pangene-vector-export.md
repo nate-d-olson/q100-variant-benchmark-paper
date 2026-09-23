@@ -12,7 +12,7 @@ Each panel is made in three steps:
 3. Finish the layout by hand in Affinity Designer.
 
 | Panel | Input GFA | Scripted output | Hand-finished source |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Fig 4A | `data/pangene/SULT1A1.gfa` | `figures/vector/SULT1A1.events.white.{svg,pdf}` | `figures/manual/fig4a_SULT1A1.events.af` |
 | Fig 4B | `data/pangene/PMS2.gfa` | `figures/vector/PMS2.events.white.{svg,pdf}` | `figures/manual/fig4b_PMS2.events.af` |
 
@@ -38,12 +38,15 @@ element. The two scripts below reuse that GFA:
 
 ### Step 1 (optional): re-extract the GFAs
 
-Both GFAs come from graph `human472-1.1a2`, fetched with `step=3`.
+Both GFAs come from graph `human472-1.1a2`, using the URLs cited in the Fig 4
+legend: SULT1A1 with `step=3` and PMS2 with `step=10`.
 
 ```bash
-for GENE in SULT1A1 PMS2; do
+for spec in SULT1A1:3 PMS2:10; do
+  GENE=${spec%%:*}
+  STEP=${spec##*:}
   curl -L \
-    "https://pangene.bioinweb.org/view?graph=human472-1.1a2&gene=${GENE}&step=3&ori=" \
+    "https://pangene.bioinweb.org/view?graph=human472-1.1a2&gene=${GENE}&step=${STEP}&ori=" \
     -o "/tmp/${GENE}.pangene.html"
   scripts/extract_pangene_gfa.py \
     --input "/tmp/${GENE}.pangene.html" \

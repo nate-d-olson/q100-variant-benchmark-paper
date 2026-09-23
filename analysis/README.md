@@ -4,12 +4,18 @@ This directory contains Quarto notebooks for downstream analysis and figure gene
 
 ## Current Notebooks
 
-- `benchmarkset_characterization.qmd`
-- `benchmark_unique_regions.qmd`
-- `benchmark_interval_size_distributions.qmd`
-- `benchmark_exclusions.qmd`
+Manuscript figures and tables (full map in the top-level `README.md`):
+
+- `benchmarkset_characterization.qmd`: Table 1, Fig 2
+- `external_evaluation.qmd`: Fig 5
+- `benchmark_interval_size_distributions.qmd`: Fig 6
+- `benchmark_exclusions.qmd`: Table 4
+- `manuscript_value_verification.qmd`: checks values quoted in the manuscript text
+
+Supporting analyses (no manuscript figure or table):
+
 - `benchmark_difficult.qmd`
-- `external_evaluation.qmd`
+- `benchmark_unique_regions.qmd`
 - `genomic_context_analysis.qmd`
 - `use_case_evaluation.qmd`
 
@@ -36,17 +42,13 @@ Most rendered figures/tables are written to:
 
 - `figures/`
 
-Examples currently produced by notebooks include:
+Manuscript figures produced by notebooks:
 
-- `figures/benchmark_intervals.png`
-- `figures/benchmark_region_size_change.png`
-- `figures/combined_coverage_variant_change.png`
-- `figures/genomic_context_variant_counts.png`
-- `figures/variant_size_genomic_context.png`
-- `figures/genomic_context_fold_change_by_size.png`
-- `figures/combined_eval.png`
-- `figures/use_case_smvar.png`
-- `figures/use_case_stvar.png`
+- `figures/variant_size_genomic_context.{pdf,png}` (Fig 2)
+- `figures/combined_eval_strata.{pdf,png}` (Fig 5)
+- `figures/benchmark_intervals.{pdf,png}` (Fig 6)
+
+Tables 1 and 4 are rendered inline in the notebook HTML.
 
 ## Running
 

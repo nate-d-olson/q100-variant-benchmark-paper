@@ -10,9 +10,10 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 - `analysis/` - Quarto notebooks and cached data
 - `config/` - Pipeline configuration (config.yaml)
 - `docs/` - Architecture docs, data dictionary, troubleshooting
-- `figures/` - Versioned manuscript figures (PDF + PNG); `figures/vector/` for pangene SVG/PDF exports
-- `tables/` - Versioned manuscript tables (`tables/tables.docx`)
-- `scripts/` - Utility scripts (create_grch38_debug_subset.py, happy_giab.R)
+- `figures/` - Versioned manuscript figures (PDF + PNG); `figures/vector/` for pangene SVG/PDF exports; `figures/manual/` for hand-edited sources (Fig 1, Fig 4 Affinity files)
+- `tables/` - Manuscript value verification records (`manuscript_value_updates.json`)
+- `scripts/` - Figure scripts (ideogram heatmap, SVbyEye prep, pangene export) and utilities
+- `data/pangene/` - Fig 4 input GFAs (the only tracked part of `data/`)
 - `tests/` - R tests (testthat) and Python tests (pytest)
 - `workflow/` - Snakemake rules and Python scripts
 - `results/` - Pipeline outputs (gitignored, must be generated)
@@ -69,7 +70,7 @@ Quarto manuscript analyzing the GIAB Q100 HG002 variant benchmark. The Snakemake
 
 - Activate with: `mamba activate q100-smk`
 - Dry-run: `snakemake -n <target>`
-- Snakemake version: 8.x (`min_version("8.0")` in Snakefile)
+- Snakemake version: 9.17.2 pinned in `environment.yaml` (`min_version("8.0")` in Snakefile)
 
 **Makefile Shortcuts** (preferred over raw snakemake commands):
 
@@ -278,7 +279,37 @@ All palettes are colorblind-friendly and print-friendly.
 - `analysis/benchmark_interval_size_distributions.qmd` — Interval size distributions
 - `analysis/benchmark_unique_regions.qmd` — Unique region analysis across benchmark versions
 - `analysis/external_evaluation.qmd` — External benchmark comparisons
+- `analysis/use_case_evaluation.qmd` — Callset use-case evaluation (supporting, not in manuscript)
+- `analysis/manuscript_value_verification.qmd` — Checks numbers quoted in the manuscript text against pipeline outputs
 - `analysis/_notebook_setup.R` — defines `FIG_DIR <- here::here("figures")` (the figure output root) and `analysis_setup()` helper: loads tidyverse/patchwork, sources `R/data_loading.R` and `R/plot_themes.R`; call at top of each notebook
+
+## Manuscript Figures Outside the Notebooks
+
+The full figure/table-to-code map is in `README.md` and `docs/figure-map.csv`.
+
+**Fig 3 and Fig S1 (ideogram heatmaps + SVbyEye panel)** — `scripts/make_ideogram_heatmap.R`
+
+- Main figure: `build_main_figure()` → `figures/ideogram_main.{pdf,png}`; panel B from `make_chr8_svbyeye_grob()`
+- Supplement: `figures/ideogram_genomewide_grch38.{pdf,png}`
+- Inputs for the SVbyEye panel are prepared outside Snakemake:
+
+  ```bash
+  mamba env create --file scripts/envs/svbyeye-prep.yaml  # minimap2, samtools, bedtools
+  mamba activate svbyeye-prep
+  bash scripts/prep_svbyeye_pafs.sh GRCh38 chr8   # -> results/svbyeye/GRCh38/chr8/*.paf
+  bash scripts/prep_svbyeye_beds.sh GRCh38        # -> results/svbyeye/GRCh38/*.bed
+  Rscript scripts/make_ideogram_heatmap.R
+  ```
+
+- SVbyEye is recorded in `renv.lock` as `daewoooo/SVbyEye@5866e7f`. `renv::install()` from GitHub has failed in this environment (curl error 56); fallback is `git clone` at that SHA and `R CMD INSTALL`.
+
+**Fig 4 (Pangene gene graphs)** — `scripts/pangene_gfa_to_svg.js` (Node.js, no dependencies)
+
+- Inputs: `data/pangene/{SULT1A1,PMS2}.gfa`; outputs: `figures/vector/*.events.white.{svg,pdf}`
+- Final panels were hand-finished in Affinity Designer (`figures/manual/fig4*.af`)
+- Commands and layout options: `docs/pangene-vector-export.md`
+
+**Fig 1** is hand-made (`figures/manual/fig1_development_cycle.*`). **Tables 2 and 3** were typed directly in the manuscript.
 
 ## Column Naming Conventions
 

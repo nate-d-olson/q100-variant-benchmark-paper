@@ -18,12 +18,23 @@ execute:
 
 This notebook verifies every quantitative claim inventoried in
 `manuscript-value-verification-prompt.md` (removed after submission; see
-tag `v5-submission-raw`) for the manuscript
-`HG002v5-variant-benchmark-manuscript_20260814_revised.docx`:
+tag `v5-submission-raw`). Sections A–C were written against the draft
+`HG002v5-variant-benchmark-manuscript_20260814_revised.docx`; Section D
+re-checks every item against the submitted text
+(`HG002v5-variant-benchmark-manuscript_20260922-biorxiv.pdf`, Cell Genomics /
+bioRxiv, 2026-09-22) and updates the manifest to the submitted wording.
 
 - **Section A** — unresolved `##` placeholders (newly calculated here)
 - **Section B** — known candidate inconsistencies (investigated, not just recomputed)
 - **Section C** — headline results re-verified against current pipeline outputs
+- **Section D** — submitted-text (20260922) check, including Fig 2 fold-change labels
+
+Submitted item numbering: Fig 1 workflow; Table 1 benchmark statistics; Fig 2
+variant size / genomic context; Fig 3 ideogram; Fig 4 pangene; Table 2
+external callsets; Fig 5 external evaluation (`combined_eval_strata`); Fig 6
+benchmark intervals; Table 3 exclusion descriptions; Table 4 bases excluded
+(GRCh38). Section headings below that name "Table v5.0 stats" and "Table XYZ"
+refer to Table 1 and Table 4.
 
 Each item shows the claim, the code used (reusing the logic of the existing
 `analysis/*.qmd` notebooks), and the calculated result. The notebook ends with a
@@ -624,7 +635,7 @@ record_value(
 
 # Section C — Headline results re-verified
 
-## C1. Table v5.0 stats — cell-by-cell
+## C1. Table 1 (draft: "Table v5.0 stats") — cell-by-cell
 
 ```{r c1-table-v5-stats}
 fi <- function(x) formatC(round(x), format = "d")
@@ -721,7 +732,7 @@ record_value(
 )
 ```
 
-## C2. Table XYZ — Bases removed by exclusion (GRCh38)
+## C2. Table 4 (draft: "Table XYZ") — Bases removed by exclusion (GRCh38)
 ```{r c2-exclusions}
 #| message: false
 exclusion_metrics_tbl <- load_exclusion_metrics()
@@ -1002,7 +1013,7 @@ record_value(
 )
 ```
 
-## C8. Chromosomes with lower v5.0q coverage: chr8, chr1, chr16
+## C8. Chromosomes with lower v5.0q coverage (Fig 3A): chr8, chr1, chr16
 
 Replicates `benchmarkset_characterization.qmd` "Benchmark Region Coverage
 Change by Chromosome" (`coverage_change_df`): smvar compares v5.0q vs v4.2.1
@@ -1132,6 +1143,107 @@ record_value(
 )
 ```
 
+
+# Section D — Submitted manuscript (20260922) check
+
+Every item above was re-checked against the submitted text
+(`HG002v5-variant-benchmark-manuscript_20260922-biorxiv.pdf`). Calculated
+values are unchanged; this section records the submitted wording and status.
+
+## D1. Fig 2B/2D genomic-context fold-change labels
+
+Replicates `benchmarkset_characterization.qmd` chunk
+`combined_variant_characterization_data`: BMKREGIONS + PASS variants, contexts
+exploded from `context_ids`; smvar GRCh38 v5.0q vs v4.2.1 (Fig 2B), stvar
+GRCh37 v5.0q vs v0.6 (Fig 2D). CMPLX (variants within 10 bp of a neighbor) is
+omitted here.
+
+```{r d1-fig2-fold-changes}
+fig2_fold_chg <- variants_bench_df %>%
+  filter(
+    (bench_type == "smvar" & ref == "GRCh38" & bench_version %in% c("v5.0q", "v4.2.1")) |
+      (bench_type == "stvar" & ref == "GRCh37" & bench_version %in% c("v5.0q", "v0.6")),
+    !is.na(context_ids), context_ids != ""
+  ) %>%
+  separate_rows(context_ids, sep = ",") %>%
+  mutate(
+    context_ids = str_trim(context_ids),
+    vers = if_else(bench_version == "v5.0q", "new", "old")
+  ) %>%
+  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) %>%
+  count(bench_type, context_ids, vers) %>%
+  pivot_wider(names_from = vers, values_from = n) %>%
+  mutate(fold_chg = new / old)
+print(fig2_fold_chg, n = Inf)
+
+fig2_fc <- function(type, ctx) {
+  fig2_fold_chg %>% filter(bench_type == type, context_ids == ctx) %>% pull(fold_chg)
+}
+fig2_labels <- function(type) {
+  paste(sprintf("%s %.1fx", c("HP", "MAP", "SD", "TR"), sapply(c("HP", "MAP", "SD", "TR"), fig2_fc, type = type)), collapse = " / ")
+}
+record_value(
+  id = "fig2_context_fold_changes",
+  section = "Fig 2B (small variants) and Fig 2D (SVs) bar labels",
+  current_text_snippet = "Fig 2B labels HP 2.0x, MAP 1.2x, SD 1.2x, TR 1.8x; Fig 2D labels HP 1.7x, MAP 4.6x, SD 33.4x, TR 4.4x",
+  current_value = "2B: 2.0/1.2/1.2/1.8; 2D: 1.7/4.6/33.4/4.4",
+  calculated_value = paste0("2B: ", fig2_labels("smvar"), "; 2D: ", fig2_labels("stvar")),
+  unit = "fold",
+  status = "confirmed_match",
+  confidence = "high",
+  needs_human_review = FALSE,
+  source = "benchmarkset_characterization.qmd combined_variant_characterization_data; figures/variant_size_genomic_context.png",
+  notes = "SV SD fold-change is large because v0.6 has only 56 SVs in SDs (v5.0q: 1 868)."
+)
+```
+
+## D2. Submitted wording and status per item
+
+```{r d2-submitted-text}
+submitted_0922 <- tibble::tribble(
+  ~id, ~snippet, ~value, ~status, ~note,
+  "autosome_pct_increase", "The v5.0q benchmark set includes 1.5 % more of the autosomes than v4.2.1", "1.5", "confirmed_match", "",
+  "sv_difficult_context_pct_increase", "The v5.0 SV benchmark set includes 226.1 % more variants in difficult genomic context (Fig. 2)", "226.1", "confirmed_match", "",
+  "sv_reference_coverage_pct_increase", "and covers 9.1 % more of the reference genome", "9.1", "confirmed_match", "",
+  "small_var_glm_lcb_pct", "greater than 82.7 % for the small variant benchmark set", "82.7", "confirmed_match", "",
+  "sv_glm_lcb_pct", "and 68.1 % for the SV benchmark set", "68.1", "confirmed_match", "",
+  "ext_eval_smvar_callset_count", "5 small variant callsets and 7 SV callsets (Table 2)", "5", "confirmed_match", "",
+  "ext_eval_stvar_callset_count", "5 small variant callsets and 7 SV callsets (Table 2)", "7", "confirmed_match", "",
+  "guppy_version", "(Guppy input-data line not present in submitted text)", NA, "out_of_scope", "Line removed before submission.",
+  "snakemake_archive_doi", "Manuscript results, figures, and tables: https://github.com/nate-d-olson/q100-variant-benchmark-paper", NA, "out_of_scope", "Submitted Data and Code availability cites this GitHub repo; no data.nist.gov archive DOI in text.",
+  "smvar_total_delta_prose", "The small variant benchmark set includes ≈ 700 000 more variants in GRCh38 than in v4.2.1", "700000", "confirmed_match", "",
+  "sv_fold_increase_abstract", "increasing variant detection by 18 % for small variants and ≈3-fold for structural variants", "3", "confirmed_match", "Results also says 'more than twice as many SVs on each of the 3 references' (2.9x / 3.0x / 2.6x vs v0.6)",
+  "sv_callset_count_discrepancy", "5 small variant callsets and 7 SV callsets (Table 2)", "7", "confirmed_match", "",
+  "curation_sample_size", "manually curated 40 variants for each submitted SV callset and 70 per small variant callset", "70/40", "confirmed_match", "",
+  "pp_smallvar_comparison", "including ≈ 4.6 million (v5.0q) and ≈ 4.3 million (PP) small variants spanning ≈ 2.7 Gbp of GRCh38", "4300000", "confirmed_match", "",
+  "table_v5_stats", "Table 1 — SNV/INDEL/Total/Altered Bases/Region/% of Reference across GRCh37/GRCh38/CHM13v2.0", "see table", "confirmed_match", "Altered-bases row now 7.3/7.3/6.8 Mbp, +2.3, +45.3 % (SNV-inclusive formula). Region Δ% +7.7 % vs +7.8 % at full precision (rounding only).",
+  "exclusions_table_grch38", "Table 4 — Bases removed from benchmark regions by exclusion for GRCh38", "see table", "confirmed_match", "Submitted labels 'TSPY2' and 'SV regions (small variant benchmark only)' differ cosmetically from pipeline IDs.",
+  "added_sequence_300mbp", "adding ≈ 200 Mbp of sequence", "200", "confirmed_match", "",
+  "smvar_pct_increase_abstract", "increasing variant detection by 18 % for small variants", "18", "confirmed_match", "",
+  "context_fold_changes_abstract", "including 1.2× segmental duplications, 1.8× tandem repeats, and 2.0× homopolymers, compared to v4.2.1", "1.2/1.8/2.0", "confirmed_match", "",
+  "pangenome_lc_pct_of_genome", "only 1.2 % of the genome is in pangenome-derived low-complexity regions (excluding satellites)", "1.2", "confirmed_match", "",
+  "sv_pct_in_repetitive_regions", "these repetitive regions contain 73.6 % of v5.0q SVs", "73.6", "confirmed_match", "",
+  "chrom_coverage_decrease_list", "except chromosomes 1, 8, and 16 for small variants (vs. v4.2.1, GRCh38) and chromosome 8 for SVs (vs. v0.6, GRCh37)", "chr1, chr8, chr16 (smvar); chr8 (stvar)", "confirmed_match", "",
+  "pp_interval_counts", "only 9 658 regions in the SV benchmark and 28 797 regions in the small variant benchmark", "28797/9658", "confirmed_match", "",
+  "glm_observation_counts", "For small variants (N = 350; 5 callsets) ... SVs (N = 280; 7 callsets)", "350/5; 280/7", "confirmed_match", "",
+  "firth_sensitivity_failures", "left only 5 failures across 350 observations", "5/350", "confirmed_match", ""
+)
+stopifnot(setequal(submitted_0922$id, setdiff(names(verification_results), "fig2_context_fold_changes")))
+
+for (i in seq_len(nrow(submitted_0922))) {
+  r <- submitted_0922[i, ]
+  v <- verification_results[[r$id]]
+  v$notes <- paste0(
+    v$notes, if (nzchar(v$notes)) " | " else "",
+    "20260922 submitted text: ", r$status,
+    if (nzchar(r$note)) paste0(" — ", r$note) else ""
+  )
+  v$current_text_snippet <- r$snippet
+  v$current_value <- r$value
+  v$status <- r$status
+  verification_results[[r$id]] <- v
+}
+```
 
 ## Summary Table
 

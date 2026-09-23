@@ -88,7 +88,7 @@ if (nrow(exclusion_interaction_tbl) == 0) {
 
 Exclusion names in *italics* apply only to the small variant benchmark.
 
-```{r}
+```{r table4-grch38-exclusions}
 grch38_exclusion_tbl <- exclusion_metrics_tbl %>%
   dplyr::filter(ref == "GRCh38") %>%
   dplyr::select(exclusions, bench_type, intersect_bp, pct_of_dip) %>%

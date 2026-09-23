@@ -2,98 +2,98 @@
   {
     "id": "autosome_pct_increase",
     "section": "Results — Benchmark content and genome coverage",
-    "current_text_snippet": "The v5.0q benchmark set includes ## % more of the autosomes than v4.2.1",
-    "current_value": null,
+    "current_text_snippet": "The v5.0q benchmark set includes 1.5 % more of the autosomes than v4.2.1",
+    "current_value": "1.5",
     "calculated_value": 1.5,
     "unit": "%",
-    "status": "placeholder_resolved",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmarkset_characterization.qmd region logic; resources/benchmarksets v5.0q vs v4.2.1 GRCh38 smvar BEDs",
-    "notes": "Author confirmed (2026-08-14): autosome-only value 1.5% is correct (the sentence treats sex chromosomes separately, and v4.2.1 has zero chrX/Y coverage). For context, the whole-benchmark increase incl. newly added X/Y is 7.8%."
+    "notes": "Author confirmed (2026-08-14): autosome-only value 1.5% is correct (the sentence treats sex chromosomes separately, and v4.2.1 has zero chrX/Y coverage). For context, the whole-benchmark increase incl. newly added X/Y is 7.8%. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "sv_difficult_context_pct_increase",
     "section": "Results — Benchmark content and genome coverage",
-    "current_text_snippet": "The v5.0 SV benchmark set includes ## % more variants in difficult genomic context",
-    "current_value": null,
+    "current_text_snippet": "The v5.0 SV benchmark set includes 226.1 % more variants in difficult genomic context (Fig. 2)",
+    "current_value": "226.1",
     "calculated_value": 226.1,
     "unit": "%",
-    "status": "placeholder_resolved",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmark_difficult.qmd — Variant Fold Change by Genomic Context, stvar, v5.0q(GRCh37) vs v0.6(GRCh37)",
-    "notes": "Author confirmed (2026-08-14): the distinct-variant union of HP/MAP/SD/TR = 226.1% is the intended value. Alternatives considered: summed per-context counts = 295.1%; unfiltered candidate-variant basis = 51.9%."
+    "notes": "Author confirmed (2026-08-14): the distinct-variant union of HP/MAP/SD/TR = 226.1% is the intended value. Alternatives considered: summed per-context counts = 295.1%; unfiltered candidate-variant basis = 51.9%. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "sv_reference_coverage_pct_increase",
     "section": "Results — Benchmark content and genome coverage",
-    "current_text_snippet": "and covers ## % more of the reference genome",
-    "current_value": null,
+    "current_text_snippet": "and covers 9.1 % more of the reference genome",
+    "current_value": "9.1",
     "calculated_value": 9.1,
     "unit": "%",
-    "status": "placeholder_resolved",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmarkset_characterization.qmd table1_combined region stats; v5.0q vs v0.6 GRCh37 stvar",
-    "notes": "Relative increase = 9.1% (recommended for 'covers % more' phrasing). Alternative: +8.0 percentage points of reference covered (95.9% vs 87.9%), which Table 1 already reports as +8.0 pp."
+    "notes": "Relative increase = 9.1% (recommended for 'covers % more' phrasing). Alternative: +8.0 percentage points of reference covered (95.9% vs 87.9%), which Table 1 already reports as +8.0 pp. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "small_var_glm_lcb_pct",
     "section": "External Evaluation and Validation",
-    "current_text_snippet": "greater than ## % for the small variant benchmark set",
-    "current_value": null,
+    "current_text_snippet": "greater than 82.7 % for the small variant benchmark set",
+    "current_value": "82.7",
     "calculated_value": 82.7,
     "unit": "%",
-    "status": "placeholder_resolved",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R); minimum one-sided 95% LCB across strata (Low Map stratum)",
-    "notes": "Min LCB across strata = 82.72% (Low Map). Overall-estimate LCB = 92.71% if the sentence intends the overall marginal estimate instead of the per-stratum minimum."
+    "notes": "Min LCB across strata = 82.72% (Low Map). Overall-estimate LCB = 92.71% if the sentence intends the overall marginal estimate instead of the per-stratum minimum. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "sv_glm_lcb_pct",
     "section": "External Evaluation and Validation",
-    "current_text_snippet": "and ## % for the structural variant benchmark set",
-    "current_value": null,
+    "current_text_snippet": "and 68.1 % for the SV benchmark set",
+    "current_value": "68.1",
     "calculated_value": 68.1,
     "unit": "%",
-    "status": "placeholder_resolved",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R); minimum one-sided 95% LCB across strata (TR stratum)",
-    "notes": "Min LCB across strata = 68.08% (TR annotation). Overall-estimate LCB = 74.88% if the sentence intends the overall marginal estimate instead of the per-stratum minimum."
+    "notes": "Min LCB across strata = 68.08% (TR annotation). Overall-estimate LCB = 74.88% if the sentence intends the overall marginal estimate instead of the per-stratum minimum. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "ext_eval_smvar_callset_count",
     "section": "Methods — External Evaluation Manual Curation",
-    "current_text_snippet": "compared to ## and ## small and structural variant callsets",
-    "current_value": null,
+    "current_text_snippet": "5 small variant callsets and 7 SV callsets (Table 2)",
+    "current_value": "5",
     "calculated_value": 5,
     "unit": "callsets",
-    "status": "placeholder_resolved",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "external_evaluation.qmd Data Loading; data/external-evaluations/*Miqa.csv",
-    "notes": "Author confirmed (2026-08-14): 5 is correct (callsets curated + modeled; matches GLM N=350/5). Table EvalCallsets' 8 includes 3 callsets (ont-clair3, sentieon-hybrid, google-deepvariant) that were compared but never curated."
+    "notes": "Author confirmed (2026-08-14): 5 is correct (callsets curated + modeled; matches GLM N=350/5). Table EvalCallsets' 8 includes 3 callsets (ont-clair3, sentieon-hybrid, google-deepvariant) that were compared but never curated. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "ext_eval_stvar_callset_count",
     "section": "Methods — External Evaluation Manual Curation",
-    "current_text_snippet": "compared to ## and ## small and structural variant callsets",
-    "current_value": null,
+    "current_text_snippet": "5 small variant callsets and 7 SV callsets (Table 2)",
+    "current_value": "7",
     "calculated_value": 7,
     "unit": "callsets",
-    "status": "placeholder_resolved",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "external_evaluation.qmd Data Loading; data/external-evaluations/*Miqa.csv",
-    "notes": "Author confirmed (2026-08-14): 7 is correct. The old '11' counted all submissions: 7 analyzed + 2 UCLA callsets superseded by UCLA Ensemble (only Ensemble included in results) + 2 callsets from a collaborator who did not curate any variants (excluded from results)."
+    "notes": "Author confirmed (2026-08-14): 7 is correct. The old '11' counted all submissions: 7 analyzed + 2 UCLA callsets superseded by UCLA Ensemble (only Ensemble included in results) + 2 callsets from a collaborator who did not curate any variants (excluded from results). | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "guppy_version",
     "section": "Methods — Input data: 60x Guppy (??version) SUPv5 model",
-    "current_text_snippet": "Input data: 60x Guppy (??version) SUPv5 model",
+    "current_text_snippet": "(Guppy input-data line not present in submitted text)",
     "current_value": null,
     "calculated_value": null,
     "unit": "",
@@ -101,12 +101,12 @@
     "confidence": "high",
     "needs_human_review": true,
     "source": "N/A — external provenance; not in repo (no basecaller version in data/ provenance files)",
-    "notes": "Manuscript author must obtain the Guppy/basecaller version from the submitting group."
+    "notes": "Manuscript author must obtain the Guppy/basecaller version from the submitting group. | 20260922 submitted text: out_of_scope — Line removed before submission."
   },
   {
     "id": "snakemake_archive_doi",
     "section": "Data and Code availability",
-    "current_text_snippet": "Snakemake provenance archive: TODO data.nist.gov",
+    "current_text_snippet": "Manuscript results, figures, and tables: https://github.com/nate-d-olson/q100-variant-benchmark-paper",
     "current_value": null,
     "calculated_value": null,
     "unit": "",
@@ -114,51 +114,51 @@
     "confidence": "high",
     "needs_human_review": true,
     "source": "N/A — pending data.nist.gov deposit",
-    "notes": "Fill in after the data.nist.gov deposit is issued a handle/DOI."
+    "notes": "Fill in after the data.nist.gov deposit is issued a handle/DOI. | 20260922 submitted text: out_of_scope — Submitted Data and Code availability cites this GitHub repo; no data.nist.gov archive DOI in text."
   },
   {
     "id": "smvar_total_delta_prose",
     "section": "Results — Benchmark content and genome coverage",
-    "current_text_snippet": "The small variant benchmark set includes ≈ 600 000 more variants in GRCh38 compared to v4.2.1",
-    "current_value": 600000,
+    "current_text_snippet": "The small variant benchmark set includes ≈ 700 000 more variants in GRCh38 than in v4.2.1",
+    "current_value": "700000",
     "calculated_value": 699449,
     "unit": "variants",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmarkset_characterization.qmd Table 1 counts; results/variant_tables/{v5.0q,v4.2.1}_GRCh38_smvar/variants.parquet",
-    "notes": "Exact delta = 699 449 (matches the table's +699 449). Prose '≈ 600 000' is stale; should read ≈ 700 000."
+    "notes": "Exact delta = 699 449 (matches the table's +699 449). Prose '≈ 600 000' is stale; should read ≈ 700 000. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "sv_fold_increase_abstract",
     "section": "Abstract; Results — 'more than twice the number of SVs'",
-    "current_text_snippet": "and 2-fold for structural variants",
-    "current_value": 2,
+    "current_text_snippet": "increasing variant detection by 18 % for small variants and ≈3-fold for structural variants",
+    "current_value": "3",
     "calculated_value": 2.9,
     "unit": "fold",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmarkset_characterization.qmd Table 1 counts; v5.0q_GRCh37_stvar vs v0.6_GRCh37_stvar",
-    "notes": "28 132 / 9 617 = 2.93x (+192.5%, confirming the table). Abstract's '2-fold' understates; '~3-fold' (or 'nearly triple') is consistent with the table."
+    "notes": "28 132 / 9 617 = 2.93x (+192.5%, confirming the table). Abstract's '2-fold' understates; '~3-fold' (or 'nearly triple') is consistent with the table. | 20260922 submitted text: confirmed_match — Results also says 'more than twice as many SVs on each of the 3 references' (2.9x / 3.0x / 2.6x vs v0.6)"
   },
   {
     "id": "sv_callset_count_discrepancy",
     "section": "Results/External Evaluation ('7') vs Methods/External Callset Generation ('11')",
-    "current_text_snippet": "compared to 8 small variant and 11 structural variant callsets",
-    "current_value": 11,
+    "current_text_snippet": "5 small variant callsets and 7 SV callsets (Table 2)",
+    "current_value": "7",
     "calculated_value": 7,
     "unit": "callsets",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "external_evaluation.qmd Data Loading; data/external-evaluations/",
-    "notes": "Resolved by author (2026-08-14): Methods' '11' counted all submitted SV callsets (7 analyzed + 2 UCLA callsets superseded by UCLA Ensemble + 2 never curated by the submitting collaborator); the correct count for the results is 7 — revise the Methods sentence accordingly."
+    "notes": "Resolved by author (2026-08-14): Methods' '11' counted all submitted SV callsets (7 analyzed + 2 UCLA callsets superseded by UCLA Ensemble + 2 never curated by the submitting collaborator); the correct count for the results is 7 — revise the Methods sentence accordingly. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "curation_sample_size",
     "section": "Methods — External Evaluation Manual Curation",
-    "current_text_snippet": "manually curated 40 variants for each submitted SV callset and 70 variants for small variant callsets",
+    "current_text_snippet": "manually curated 40 variants for each submitted SV callset and 70 per small variant callset",
     "current_value": "70/40",
     "calculated_value": "70/40",
     "unit": "variants per callset",
@@ -166,38 +166,38 @@
     "confidence": "high",
     "needs_human_review": false,
     "source": "data/external-evaluations/*Miqa.csv data-row counts",
-    "notes": "All 5 smvar files have exactly 70 data rows (14 populated strata x 5; the 4 XY-nonPAR strata are empty, consistent with the Limitations text). All 7 GLM stvar files have exactly 40 (8 strata x 5); only the dropped Ucla-Delly-Newvcf has 39. The qmd comment's '71/41' counts the header line — not a real discrepancy."
+    "notes": "All 5 smvar files have exactly 70 data rows (14 populated strata x 5; the 4 XY-nonPAR strata are empty, consistent with the Limitations text). All 7 GLM stvar files have exactly 40 (8 strata x 5); only the dropped Ucla-Delly-Newvcf has 39. The qmd comment's '71/41' counts the header line — not a real discrepancy. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "pp_smallvar_comparison",
     "section": "Results — Comparison to Platinum Pedigree",
-    "current_text_snippet": "each including ≈ 4.5 million small variants spanning ≈ 2.7 Gbp of GRCh38",
-    "current_value": 4500000,
+    "current_text_snippet": "including ≈ 4.6 million (v5.0q) and ≈ 4.3 million (PP) small variants spanning ≈ 2.7 Gbp of GRCh38",
+    "current_value": "4300000",
     "calculated_value": 4340543,
     "unit": "variants",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "resources/platinum-pedigree-data/truthset_v1.2 (VCF count matches its README); load_platinum_pedigree_regions(); load_benchmark_regions()",
-    "notes": "Author decision (2026-08-14): reword to report both counts — ~4.6M (v5.0q, 4 625 918) and ~4.3M (Platinum Pedigree, 4 340 543). Neither rounds to the current '~4.5 million each'. Span claim holds for both (2.739 vs 2.709 Gbp ~ 2.7 Gbp). PP truthset is NA12878, not HG002 (cross-individual comparison)."
+    "notes": "Author decision (2026-08-14): reword to report both counts — ~4.6M (v5.0q, 4 625 918) and ~4.3M (Platinum Pedigree, 4 340 543). Neither rounds to the current '~4.5 million each'. Span claim holds for both (2.739 vs 2.709 Gbp ~ 2.7 Gbp). PP truthset is NA12878, not HG002 (cross-individual comparison). | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "table_v5_stats",
     "section": "Table v5.0 stats (main-text summary table)",
-    "current_text_snippet": "Table v5.0 stats — SNV/INDEL/Total/Altered bases/Regions/%Reference across GRCh37/GRCh38/CHM13v2.0",
+    "current_text_snippet": "Table 1 — SNV/INDEL/Total/Altered Bases/Region/% of Reference across GRCh37/GRCh38/CHM13v2.0",
     "current_value": "see table",
     "calculated_value": "10/12 manuscript rows match exactly; smvar Altered-bases row mismatched; Regions-incl. Δ% = 7.8 (vs 7.7, rounding only)",
     "unit": "",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmarkset_characterization.qmd table1_combined, recomputed from results/variant_tables + resources/benchmarksets + results/ref_genome_sizes",
-    "notes": "Manuscript smvar Altered-bases values (3.6/3.6/3.4, +2.0 Mb, +118.9%) reproduce only under the pre-regression formula sum(abs(var_size))/1e6 (SNVs contribute 0 bp; verified via git history). Current committed code floors SNVs at 1 bp -> 7.3/7.3/6.8 Mb (+2.3 Mb, +45.3%) AND lost its /1e6 scaling (labels say Mb but code emits raw bp). Author decision (2026-08-14): keep SNV-inclusive semantics (SNVs = 1 altered bp) — update the manuscript row to 7.3/7.3/6.8 Mb (+2.3 Mb, +45.3%). The missing /1e6 scaling in benchmarkset_characterization.qmd was fixed (total_var_mb; label now 'Variation (Mb)'). stvar 'Total Variation' row is unaffected (no SNVs; formulas agree). Minor: Regions-incl. Δ% computes to +7.8% at full precision; the manuscript's +7.7% comes from dividing already-rounded Mb values (197/2542)."
+    "notes": "Manuscript smvar Altered-bases values (3.6/3.6/3.4, +2.0 Mb, +118.9%) reproduce only under the pre-regression formula sum(abs(var_size))/1e6 (SNVs contribute 0 bp; verified via git history). Current committed code floors SNVs at 1 bp -> 7.3/7.3/6.8 Mb (+2.3 Mb, +45.3%) AND lost its /1e6 scaling (labels say Mb but code emits raw bp). Author decision (2026-08-14): keep SNV-inclusive semantics (SNVs = 1 altered bp) — update the manuscript row to 7.3/7.3/6.8 Mb (+2.3 Mb, +45.3%). The missing /1e6 scaling in benchmarkset_characterization.qmd was fixed (total_var_mb; label now 'Variation (Mb)'). stvar 'Total Variation' row is unaffected (no SNVs; formulas agree). Minor: Regions-incl. Δ% computes to +7.8% at full precision; the manuscript's +7.7% comes from dividing already-rounded Mb values (197/2542). | 20260922 submitted text: confirmed_match — Altered-bases row now 7.3/7.3/6.8 Mbp, +2.3, +45.3 % (SNV-inclusive formula). Region Δ% +7.7 % vs +7.8 % at full precision (rounding only)."
   },
   {
     "id": "exclusions_table_grch38",
     "section": "Table XYZ — Bases removed by exclusion (GRCh38)",
-    "current_text_snippet": "Bases removed by exclusion — Segmental Duplications 52311253 ... Self-Discrepancies 15177",
+    "current_text_snippet": "Table 4 — Bases removed from benchmark regions by exclusion for GRCh38",
     "current_value": "see table",
     "calculated_value": "16/16 rows match exactly",
     "unit": "",
@@ -205,90 +205,90 @@
     "confidence": "high",
     "needs_human_review": false,
     "source": "results/exclusions/v5.0q_GRCh38_{smvar,stvar}/exclusion_impact.csv via load_exclusion_metrics(); benchmark_exclusions.qmd table logic",
-    "notes": "All 16 exclusion categories verified (bases excluded and % of dip.bed at 3 decimals)."
+    "notes": "All 16 exclusion categories verified (bases excluded and % of dip.bed at 3 decimals). | 20260922 submitted text: confirmed_match — Submitted labels 'TSPY2' and 'SV regions (small variant benchmark only)' differ cosmetically from pipeline IDs."
   },
   {
     "id": "added_sequence_300mbp",
     "section": "Abstract",
-    "current_text_snippet": "≈ 300 Mbp added sequence vs v4.2.1",
-    "current_value": 300,
+    "current_text_snippet": "adding ≈ 200 Mbp of sequence",
+    "current_value": "200",
     "calculated_value": 197,
     "unit": "Mbp",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "load_benchmark_regions(); v5.0q vs v4.2.1 GRCh38 smvar benchmark regions",
-    "notes": "Author confirmed (2026-08-14): the intended quantity is the final benchmark-region delta — abstract should say ~200 Mbp (197 Mb smvar GRCh38; stvar GRCh37-vs-v0.6 delta is 229 Mb). The stale ~300 Mbp likely originated from dip.bed (pre-exclusion) minus v4.2.1 benchmark regions (298 Mb GRCh38 / 296 Mb GRCh37)."
+    "notes": "Author confirmed (2026-08-14): the intended quantity is the final benchmark-region delta — abstract should say ~200 Mbp (197 Mb smvar GRCh38; stvar GRCh37-vs-v0.6 delta is 229 Mb). The stale ~300 Mbp likely originated from dip.bed (pre-exclusion) minus v4.2.1 benchmark regions (298 Mb GRCh38 / 296 Mb GRCh37). | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "smvar_pct_increase_abstract",
     "section": "Abstract",
-    "current_text_snippet": "18 % small variant increase",
-    "current_value": 18,
+    "current_text_snippet": "increasing variant detection by 18 % for small variants",
+    "current_value": "18",
     "calculated_value": 18,
     "unit": "%",
     "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmarkset_characterization.qmd Table 1 counts",
-    "notes": "17.8% rounds to 18% — rounding is consistent with the table's +17.8%."
+    "notes": "17.8% rounds to 18% — rounding is consistent with the table's +17.8%. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "context_fold_changes_abstract",
     "section": "Abstract",
-    "current_text_snippet": "5.6x segmental duplications, 4.6x tandem repeats, 2x homopolymer fold-change",
-    "current_value": "5.6/4.6/2",
+    "current_text_snippet": "including 1.2× segmental duplications, 1.8× tandem repeats, and 2.0× homopolymers, compared to v4.2.1",
+    "current_value": "1.2/1.8/2.0",
     "calculated_value": "SD 1.2 / TR 1.8 / HP 2.0 (BMKREGIONS+PASS filtered)",
     "unit": "fold",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmark_difficult.qmd fold-change methodology (BMKREGIONS+PASS filtered; smvar GRCh38 v5.0q vs v4.2.1)",
-    "notes": "Author confirmed (2026-08-14): the abstract should use the BMKREGIONS+PASS-filtered methodology — SD 1.2x, TR 1.8x, HP 2.0x. The current 5.6x/4.6x/2x values trace to unfiltered per-context totals predating the filter tightening (git: is_pass added 2026-03-18) and must be revised."
+    "notes": "Author confirmed (2026-08-14): the abstract should use the BMKREGIONS+PASS-filtered methodology — SD 1.2x, TR 1.8x, HP 2.0x. The current 5.6x/4.6x/2x values trace to unfiltered per-context totals predating the filter tightening (git: is_pass added 2026-03-18) and must be revised. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "pangenome_lc_pct_of_genome",
     "section": "Results — 'only 1.2 % of the genome is in pangenome-derived low complexity regions excluding satellites'",
-    "current_text_snippet": "only 1.2 % of the genome is in pangenome-derived low complexity regions excluding satellites",
-    "current_value": 1.2,
+    "current_text_snippet": "only 1.2 % of the genome is in pangenome-derived low-complexity regions (excluding satellites)",
+    "current_value": "1.2",
     "calculated_value": 1.19,
     "unit": "%",
     "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "results/exclusions/v5.0q_GRCh38_smvar/exclusion_impact.csv (pav-inversions exclusion_bp) / results/ref_genome_sizes/GRCh38_size.tsv total length",
-    "notes": "1.186% rounds to 1.2%. Note the source is the exclusions pipeline (PAV inversions BED footprint), not genomic_context_analysis.qmd as the inventory assumed. Adding satellites raises it to 1.72%, consistent with the 'excluding satellites' qualifier."
+    "notes": "1.186% rounds to 1.2%. Note the source is the exclusions pipeline (PAV inversions BED footprint), not genomic_context_analysis.qmd as the inventory assumed. Adding satellites raises it to 1.72%, consistent with the 'excluding satellites' qualifier. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "sv_pct_in_repetitive_regions",
     "section": "Results — 'these repetitive regions contain 69.1 % of v5.0q SVs'",
-    "current_text_snippet": "these repetitive regions contain 69.1 % of v5.0q SVs",
-    "current_value": 69.1,
+    "current_text_snippet": "these repetitive regions contain 73.6 % of v5.0q SVs",
+    "current_value": "73.6",
     "calculated_value": 73.6,
     "unit": "%",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "results/variant_tables/v5.0q_GRCh38_stvar/variants.parquet context_ids; exhaustive context-combination search",
-    "notes": "Author confirmed (2026-08-14): update to TR-alone 73.6% (GRCh38, BMKREGIONS+PASS). The current 69.1% is not reproducible from current outputs under any coherent context combination/reference/filter tested — likely from a pre-Feb-2026 run affected by the normalize_annotation() context-ID bug. Other candidates: HP/MAP/SD/TR union 92.3%; SD-or-TR 75.0%."
+    "notes": "Author confirmed (2026-08-14): update to TR-alone 73.6% (GRCh38, BMKREGIONS+PASS). The current 69.1% is not reproducible from current outputs under any coherent context combination/reference/filter tested — likely from a pre-Feb-2026 run affected by the normalize_annotation() context-ID bug. Other candidates: HP/MAP/SD/TR union 92.3%; SD-or-TR 75.0%. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "chrom_coverage_decrease_list",
     "section": "Results — chromosome coverage change (chr8, chr1, chr16 exceptions)",
-    "current_text_snippet": "Coverage was higher for v5.0q compared to v0.6 for all chromosomes, excluding chromosome 8, as well as chromosomes 1 and 16",
-    "current_value": "chr8, chr1, chr16",
+    "current_text_snippet": "except chromosomes 1, 8, and 16 for small variants (vs. v4.2.1, GRCh38) and chromosome 8 for SVs (vs. v0.6, GRCh37)",
+    "current_value": "chr1, chr8, chr16 (smvar); chr8 (stvar)",
     "calculated_value": "chr1, chr8, chr16",
     "unit": "",
-    "status": "inconsistency_found",
+    "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
     "source": "benchmarkset_characterization.qmd Benchmark Region Coverage Change by Chromosome",
-    "notes": "Author decision (2026-08-14): revise the text to clearly differentiate the smvar and stvar comparisons — smvar (v5.0q vs v4.2.1, GRCh38): chr1 (-0.38%), chr8 (-1.41%), chr16 (-0.75%) decrease; stvar (v5.0q vs v0.6, GRCh37): only chr8 (-1.98%) decreases. No other chromosome decreases in either comparison."
+    "notes": "Author decision (2026-08-14): revise the text to clearly differentiate the smvar and stvar comparisons — smvar (v5.0q vs v4.2.1, GRCh38): chr1 (-0.38%), chr8 (-1.41%), chr16 (-0.75%) decrease; stvar (v5.0q vs v0.6, GRCh37): only chr8 (-1.98%) decreases. No other chromosome decreases in either comparison. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "pp_interval_counts",
     "section": "Results — Comparison to Platinum Pedigree",
-    "current_text_snippet": "9 658 SV benchmark regions, 28 797 small variant benchmark regions",
+    "current_text_snippet": "only 9 658 regions in the SV benchmark and 28 797 regions in the small variant benchmark",
     "current_value": "28797/9658",
     "calculated_value": "28797/9658",
     "unit": "regions",
@@ -296,12 +296,12 @@
     "confidence": "high",
     "needs_human_review": false,
     "source": "load_benchmark_regions() raw interval counts, v5.0q GRCh38 (all chromosomes)",
-    "notes": "Exact match as raw unmerged BED interval counts incl. chrX/chrY. Note the interval-size notebook's own summary table is autosome-only (27 794 smvar / 9 325 stvar) — the manuscript numbers are correct but include sex chromosomes."
+    "notes": "Exact match as raw unmerged BED interval counts incl. chrX/chrY. Note the interval-size notebook's own summary table is autosome-only (27 794 smvar / 9 325 stvar) — the manuscript numbers are correct but include sex chromosomes. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "glm_observation_counts",
     "section": "Methods — GLM (N = 350, 5 callsets small variant; N = 280, 7 callsets SV)",
-    "current_text_snippet": "N = 350 (5 callsets, small variant), N = 280 (7 callsets, SV)",
+    "current_text_snippet": "For small variants (N = 350; 5 callsets) ... SVs (N = 280; 7 callsets)",
     "current_value": "350/5; 280/7",
     "calculated_value": "350/5; 280/7",
     "unit": "observations/callsets",
@@ -309,12 +309,12 @@
     "confidence": "high",
     "needs_human_review": false,
     "source": "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R)",
-    "notes": "Matches fitted model input data exactly."
+    "notes": "Matches fitted model input data exactly. | 20260922 submitted text: confirmed_match"
   },
   {
     "id": "firth_sensitivity_failures",
     "section": "Methods — Firth sensitivity analysis",
-    "current_text_snippet": "5 failures across 350 observations",
+    "current_text_snippet": "left only 5 failures across 350 observations",
     "current_value": "5/350",
     "calculated_value": "5/350",
     "unit": "failures/observations",
@@ -322,6 +322,19 @@
     "confidence": "high",
     "needs_human_review": false,
     "source": "external_evaluation.qmd sensitivity analysis (unsure = correct); JZ curation overrides applied",
-    "notes": "After JZ overrides: 326 yes / 19 unsure / 5 no — the 5 'no' curations are the failures."
+    "notes": "After JZ overrides: 326 yes / 19 unsure / 5 no — the 5 'no' curations are the failures. | 20260922 submitted text: confirmed_match"
+  },
+  {
+    "id": "fig2_context_fold_changes",
+    "section": "Fig 2B (small variants) and Fig 2D (SVs) bar labels",
+    "current_text_snippet": "Fig 2B labels HP 2.0x, MAP 1.2x, SD 1.2x, TR 1.8x; Fig 2D labels HP 1.7x, MAP 4.6x, SD 33.4x, TR 4.4x",
+    "current_value": "2B: 2.0/1.2/1.2/1.8; 2D: 1.7/4.6/33.4/4.4",
+    "calculated_value": "2B: HP 2.0x / MAP 1.2x / SD 1.2x / TR 1.8x; 2D: HP 1.7x / MAP 4.6x / SD 33.4x / TR 4.4x",
+    "unit": "fold",
+    "status": "confirmed_match",
+    "confidence": "high",
+    "needs_human_review": false,
+    "source": "benchmarkset_characterization.qmd combined_variant_characterization_data; figures/variant_size_genomic_context.png",
+    "notes": "SV SD fold-change is large because v0.6 has only 56 SVs in SDs (v5.0q: 1 868)."
   }
 ]

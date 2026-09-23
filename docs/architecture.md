@@ -12,13 +12,14 @@ config/                   # config.yaml + JSON schema
 workflow/
 ├── Snakefile             # min_version("8.0"); entrypoint
 ├── rules/                # 9 rule files (see below)
-├── scripts/              # 10 Python scripts (see below)
-└── envs/                 # 6 conda environments
+├── scripts/              # 8 Python scripts (see below)
+└── envs/                 # 5 conda environments
 R/                        # data loading + plot themes (Quarto consumers)
-analysis/                 # 8 Quarto notebooks
+analysis/                 # 9 Quarto notebooks
 figures/                  # versioned manuscript figures (PDF + PNG)
 ├── vector/               # pangene SVG/PDF vector exports
-tables/                   # versioned manuscript tables (tables.docx)
+├── manual/               # hand-edited figure sources (Fig 1, Fig 4 .af)
+tables/                   # manuscript value verification records
 results/                  # gitignored pipeline outputs
 resources/                # gitignored downloaded benchmarks/refs/strats
 ```

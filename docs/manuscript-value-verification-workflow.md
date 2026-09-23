@@ -5,8 +5,17 @@ manuscript (`HG002v5-variant-benchmark-manuscript_20260814_revised.docx`),
 kept as a reusable playbook for future manuscript checks. Task spec:
 `manuscript-value-verification-prompt.md` (removed after submission; see tag `v5-submission-raw`). Deliverables:
 `analysis/manuscript_value_verification.qmd` (renders end-to-end) and
-`tables/manuscript_value_updates.json` (25-entry substitution
-manifest written by the notebook itself at render time).
+`tables/manuscript_value_updates.json` (substitution manifest written by
+the notebook itself at render time).
+
+**2026-09-23 re-check against the submitted text**
+(`HG002v5-variant-benchmark-manuscript_20260922-biorxiv.pdf`): Section D of
+the notebook adds a Fig 2B/2D fold-change check and records the submitted
+wording and status for every item. The manifest now has 26 entries: 24
+`confirmed_match` and 2 `out_of_scope`. The two out-of-scope items are the
+Guppy version and the archive DOI, both removed from the submitted text.
+The draft names "Table v5.0 stats" and "Table XYZ" are submitted Table 1 and
+Table 4.
 
 ## Process that worked
 
