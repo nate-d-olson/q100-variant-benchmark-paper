@@ -33,6 +33,8 @@ including the Fig 2 fold changes: SD 33.4× (1,868 vs 56 SVs) and TR 4.4×
   name for the SV regions. Align the wording.
 - `guppy_version` and `snakemake_archive_doi` are no longer in the text; they
   are marked `out_of_scope`.
+- [ ] Cite the Fig 3 plotting tools. Neither SVbyEye (Fig 3B) nor
+  karyoploteR (Fig 3A) is cited in the 20260922 text.
 
 ## Data release
 

@@ -1,8 +1,40 @@
 # Public Dataset Release Plan: GIAB Q100 HG002 Variant Benchmark Analysis
 
 **Date:** 2026-05-12  
-**Branch:** `claude/plan-dataset-release-docs-mzafA`  
+**Updated:** 2026-09-23 (post-submission cross-check; see Section 0)  
 **Purpose:** Plan for organizing and documenting a public data release to accompany the q100 variant benchmark manuscript. The released dataset will be cited in the Data Availability section.
+
+---
+
+## 0. Status After Submission (2026-09-23)
+
+Cross-check of this plan against the code state tagged `v5-submission`.
+
+**Manuscript Data and Code availability (as submitted 2026-09-22)** cites:
+benchmark files on the GIAB FTP (`.../AshkenazimTrio/HG002_NA24385_son/v5.0q/`),
+the HG002 Q100 v1.1 assemblies (GCA_018852605.3, GCA_018852615.3), the DeFrABB
+repository, and this GitHub repository for "results, figures, and tables". It
+does **not** cite a separate data deposit DOI. If a deposit is made, add its DOI
+to the Data availability statement at revision, and to `README.md` and
+`CITATION.cff`.
+
+**Naming:** the pipeline writes `results/ref_genome_sizes/{ref}_size.tsv`
+(`R/data_loading.R::load_reference_sizes()` reads that path). The release now
+uses the same name, `ref_genome_sizes/`, instead of `reference_sizes/`.
+
+**Inputs not in git and not downloaded by the workflow:**
+
+| Input | Used by | Release action |
+| --- | --- | --- |
+| `data/external-evaluations/*Miqa.csv` (16) | Fig 5 (`external_evaluation.qmd`), value verification, `scripts/glm_check.R` | Include (pending D-external decision, Section 12 item 4) |
+| `data/external-evaluations/Q100-ext-evals-2025-04-11-{smvars,stvars}.tsv` | `external_evaluation.qmd` | Include (same decision) |
+| `data/IA789_HG002.extended.csv` | `use_case_evaluation.qmd` (supporting only) | Optional |
+| `data/*_stvar-excluded/`, `data/*_smvar-excluded/` (9 Truvari/hap.py result dirs) | `use_case_evaluation` rule + notebook (supporting only) | Optional |
+| `resources/platinum-pedigree-data/truthset_v1.2` | Fig 6 (`load_platinum_pedigree_regions()`) | Manifest only; public at `s3://platinum-pedigree-data/truthset_v1.2/` |
+| `results/svbyeye/GRCh38/` (PAFs + BEDs) | Fig 3B | Not needed; regenerate with `scripts/prep_svbyeye_*.sh` from public references |
+| `resources/hg19ToHg38.over.chain.gz` | nothing (consumers removed after submission) | Not needed |
+
+`data/pangene/*.gfa` (Fig 4 inputs) are committed to git and need no release entry.
 
 ---
 
@@ -66,7 +98,7 @@ Some categories use "pair" type (two BEDs for start/end coordinates), resulting 
 Downloaded from GIAB stratification bundles and reference-specific sources. Categories used:
 
 | Context | Description | Source |
-|---|---|---|
+| --- | --- | --- |
 | `HP` | Homopolymers | GIAB genome stratifications v3.6 |
 | `TR` | Tandem repeats | GIAB genome stratifications v3.6 |
 | `TR10kb` | Tandem repeats >10 kb | GIAB genome stratifications v3.6 |
@@ -91,7 +123,7 @@ All files produced by the Snakemake pipeline from the inputs above.
 #### Tier 1: Aggregated Metrics (small, primary release targets)
 
 | File Pattern | Generator Rule | Description |
-|---|---|---|
+| --- | --- | --- |
 | `genomic_context/{benchmark}/genomic_context_coverage_table.csv` | `compute_genomic_context_coverage_table` | Per-context overlap of benchmark with difficult regions |
 | `genomic_context/{benchmark}/variants_by_genomic_context.parquet` | `count_variants_by_genomic_context` | Variant counts by context, type, and size bin |
 | `exclusions/{benchmark}/exclusion_impact.csv` | `compute_exclusion_impact` | Per-exclusion BED size and variant count impact |
@@ -102,24 +134,25 @@ All files produced by the Snakemake pipeline from the inputs above.
 #### Tier 2: Detailed Variant Data (large, include if storage permits)
 
 | File Pattern | Generator Rule | Description |
-|---|---|---|
+| --- | --- | --- |
 | `variant_tables/{benchmark}/variants.parquet` | `generate_variant_parquet` | Per-variant rows with context and region annotations |
 
 Estimated sizes: ~500 MB – 2 GB per benchmark × 8 benchmarks ≈ 4–16 GB total. Parquet format is compressed and column-oriented, suitable for deposition.
 
 #### Tier 3: Figure Outputs (not released — in figures/)
 
-Chr8 synteny figure and all manuscript figures are versioned in the repo under `figures/` and are not part of the data release.
+All manuscript figures are versioned in the repo under `figures/` and are not part of the data release.
 
 ### 3.3 External Evaluation Data
 
 Manually curated files in `data/` and `data/external-evaluations/`:
 
 | File | Content | Source |
-|---|---|---|
+| --- | --- | --- |
 | `data/external-evaluations/Q100-ext-evals-*.tsv` | External callset evaluation summary (curator-assembled) | Authors |
 | `data/IA789_HG002.extended.csv` | hap.py extended output for v4.2.1 on GRCh38 | Generated with hap.py |
 | SV callset CSVs | Post-refine Truvari metrics for HiFi/ONT × Sniffles1/Sniffles2 | Generated with Truvari |
+| `data/external-evaluations/*Miqa.csv` (16 files) | Per-callset Miqa curation exports; **primary input for Fig 5** | External evaluators + author curation |
 
 ---
 
@@ -160,7 +193,7 @@ q100-benchmark-analysis-data/
 │   ├── v5.0q_GRCh38_smvar/
 │   │   └── variants.parquet
 │   └── [other benchmarks]
-├── reference_sizes/
+├── ref_genome_sizes/
 │   ├── GRCh37_size.tsv
 │   ├── GRCh38_size.tsv
 │   └── CHM13v2.0_size.tsv
@@ -220,7 +253,7 @@ flowchart TD
         EXCLO["exclusions/\n(impact CSVs, interaction CSVs)"]
         CROSSV["exclusions/cross_version/\n(old_only CSVs)"]
         VART["variant_tables/\n(variants.parquet ×8 benchmarks)"]
-        REFSZ["reference_sizes/\n(*_size.tsv)"]
+        REFSZ["ref_genome_sizes/\n(*_size.tsv)"]
     end
 
     GCA --> GCO
@@ -258,7 +291,7 @@ This section defines the data dictionary for each released tabular file. These w
 One row per genomic context per benchmark. Generated by `compute_coverage_table.py` from `bedtools coverage` outputs.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `context_name` | string | Genomic context identifier: HP, TR, TR10kb, SD, SD10kb, MAP |
 | `context_bp` | integer | Total size of genomic context region (bp) |
 | `intersect_bp` | integer | Overlap of context with benchmark confidence regions (bp) |
@@ -272,7 +305,7 @@ One row per genomic context per benchmark. Generated by `compute_coverage_table.
 Long-format variant counts by context, variant type, and size bin. Generated by `count_variants_by_genomic_context` rule.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `context_name` | string | Genomic context (HP, TR, TR10kb, SD, SD10kb, MAP) or "all" for genome-wide total |
 | `var_type` | string | Truvari variant type: SNP, DEL, INS, DUP, INV, BND, UNK |
 | `szbin` | string | Truvari size bin: "SNP", "[1,5)", "[5,10)", "[10,50)", "[50,100)", "[100,300)", "[300,1k)", "[1k,5k)", ">=5k" |
@@ -285,7 +318,7 @@ Long-format variant counts by context, variant type, and size bin. Generated by 
 One row per variant, with genomic context and region annotations. Generated by `generate_variant_parquet` rule using the Truvari VariantRecord API.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `bench_version` | string | Benchmark version: v0.6, v4.2.1, v5.0q |
 | `ref` | string | Reference genome: GRCh37, GRCh38, CHM13v2.0 |
 | `bench_type` | string | Variant size class: smvar (<50 bp), stvar (≥50 bp) |
@@ -311,7 +344,7 @@ One row per variant, with genomic context and region annotations. Generated by `
 Per-exclusion quantification of impact on benchmark regions. Generated by `compute_exclusion_impact` rule.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `exclusion` | string | Exclusion category name (matches config.yaml names) |
 | `dip_intersect_bp` | integer | Bases of dipcall region (dip.bed) overlapping this exclusion |
 | `pct_of_dip` | float | Percentage of total dip.bed covered by exclusion |
@@ -326,7 +359,7 @@ Per-exclusion quantification of impact on benchmark regions. Generated by `compu
 Upset-style decomposition of exclusion overlaps. Generated by `compute_exclusion_interactions` rule.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `combination` | string | Pipe-delimited set of exclusion names in this combination (e.g., `"segdups\|flanks"`) |
 | `n_exclusions` | integer | Number of exclusions in the combination |
 | `unique_bp` | integer | Bases covered by exactly this combination of exclusions |
@@ -340,7 +373,7 @@ Upset-style decomposition of exclusion overlaps. Generated by `compute_exclusion
 Regions and variants present in legacy benchmark but absent from v5.0q. Generated by `annotate_old_benchmark_status` rule.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `chrom` | string | Chromosome |
 | `start` | integer | Region start (0-based) |
 | `end` | integer | Region end |
@@ -349,12 +382,12 @@ Regions and variants present in legacy benchmark but absent from v5.0q. Generate
 | `exclusion_overlap` | string | Exclusion(s) that removed this region from v5.0q |
 | `variant_count` | integer | Variants in this region (from old benchmark VCF) |
 
-### 6.7 `reference_sizes/{ref}_size.tsv`
+### 6.7 `ref_genome_sizes/{ref}_size.tsv`
 
 Per-chromosome reference genome metrics. Generated by `samtools faidx` and seqkit.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `chrom` | string | Chromosome name |
 | `length` | integer | Total chromosome length (bp) |
 | `ns` | integer | Number of N bases |
@@ -367,7 +400,7 @@ Per-chromosome reference genome metrics. Generated by `samtools faidx` and seqki
 Machine-readable manifest of all external inputs used by the pipeline.
 
 | Column | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `benchmark_id` | string | Benchmark identifier (e.g., `v5.0q_GRCh38_smvar`) or category |
 | `file_type` | string | Role: vcf, bed, dip_bed, exclusion, stratification, reference |
 | `exclusion_name` | string | Exclusion category name (if file_type == exclusion) |
@@ -459,13 +492,13 @@ The top-level `README.md` will be drafted once the final file set is confirmed. 
   | Truvari | 5.4.0 | [English et al. 2022] |
   | samtools | 1.22 | [Danecek et al. 2021] |
   | seqkit | — | [Shen et al. 2016] |
-  | minimap2 | 2.28 | [Li 2018] — chr8 synteny only |
-  | SyRI | 1.7.1 | [Goel et al. 2019] — chr8 synteny only |
+  | minimap2 | 2.30 | [Li 2018] — Fig 3B SVbyEye PAFs only |
+  | SVbyEye | 0.99.0 (5866e7f) | [Porubsky et al., SVbyEye] — Fig 3B only |
   | R | 4.x | [R Core Team] |
   | Apache Arrow | 14.0+ | [Apache Software Foundation] |
 
 ## License
-  - CC0 1.0 Universal (same as codebase)
+  - NIST fair-use license (same as codebase; see `LICENSE.txt`)
 
 ## Contact
   - Authors / GIAB consortium contact
@@ -478,7 +511,7 @@ The top-level `README.md` will be drafted once the final file set is confirmed. 
 ### External Data to Cite
 
 | Dataset | Citation | How Cited in README |
-|---|---|---|
+| --- | --- | --- |
 | GIAB HG002 v5.0q benchmark | Manuscript under preparation; interim: defrabb v0.020 run 20250117 | "Input data section" + DOI |
 | GIAB HG002 v4.2.1 benchmark | Zook et al. 2019 (Nature Biotechnology); GIAB FTP release | Table of inputs |
 | GIAB HG002 v0.6 SV benchmark | Zook et al. 2020 (Nature Biotechnology); NIST SV v0.6 | Table of inputs |
@@ -497,7 +530,6 @@ The top-level `README.md` will be drafted once the final file set is confirmed. 
 | Truvari | English et al. 2022, Truvari: refined structural variant comparison, *Genome Biology* |
 | seqkit | Shen et al. 2016, SeqKit: A Cross-Platform and Ultrafast Toolkit, *PLOS ONE* |
 | minimap2 | Li 2018, Minimap2, *Bioinformatics* |
-| SyRI | Goel et al. 2019, SyRI: finding genomic rearrangements, *Genome Biology* |
 | plotsr | Goel & Schneeberger 2022, plotsr: visualizing structural similarities, *Bioinformatics* |
 
 ---
@@ -616,7 +648,7 @@ gantt
 - [ ] All README files complete and reviewed
 - [ ] All tool citations verified against current published papers
 - [ ] External evaluation data files attributed with appropriate sources
-- [ ] License (CC0) applied to all files
+- [ ] License (NIST fair use) applied to all files
 
 ---
 

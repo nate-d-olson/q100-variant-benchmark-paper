@@ -27,7 +27,7 @@ preferred-citation:
   title: "The Genome In A Bottle HG002 assembly-based variant benchmark set enables comprehensive benchmarking of small and structural variants"
   status: preprint
   year: 2026
-  # TODO: add bioRxiv DOI once assigned
+  # TODO: add bioRxiv DOI once assigned (and data release DOI, if a deposit is made)
   authors:
     - family-names: "Olson"
       given-names: "Nathan D."
