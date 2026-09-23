@@ -530,7 +530,8 @@ The top-level `README.md` will be drafted once the final file set is confirmed. 
 | Truvari | English et al. 2022, Truvari: refined structural variant comparison, *Genome Biology* |
 | seqkit | Shen et al. 2016, SeqKit: A Cross-Platform and Ultrafast Toolkit, *PLOS ONE* |
 | minimap2 | Li 2018, Minimap2, *Bioinformatics* |
-| plotsr | Goel & Schneeberger 2022, plotsr: visualizing structural similarities, *Bioinformatics* |
+| SVbyEye | Porubsky et al., SVbyEye (Fig 3B) |
+| karyoploteR | Gel & Serra 2017, karyoploteR, *Bioinformatics* (Fig 3A) |
 
 ---
 
