@@ -268,13 +268,37 @@ Overlaid histograms show the expansion in variant content.
 
 ```{r var_len_dist_style}
 bench_cols <- get_color_palettes()$bench_version
+var_len_benchmarks <- c("v5.0q", "v4.2.1", "v0.6")
+var_len_legend_df <- tibble(
+  bench_version = factor(var_len_benchmarks, levels = var_len_benchmarks),
+  x = NA_real_,
+  y = NA_real_
+)
 
 ## Tufte-style gapped line: white halo point erases the line near each marker
 geom_gapped_points <- function(halo_size = 2, point_size = 1.3) {
   list(
-    geom_line(linewidth = 0.3),
-    geom_point(color = "white", size = halo_size),
-    geom_point(shape = 21, color = "grey30", stroke = 0.3, size = point_size)
+    geom_line(linewidth = 0.3, show.legend = FALSE),
+    geom_point(color = "white", size = halo_size, show.legend = FALSE),
+    geom_point(
+      shape = 21, color = "grey30", stroke = 0.3, size = point_size,
+      show.legend = FALSE
+    )
+  )
+}
+
+## Supply the same three keys to both panels so patchwork can collect the guides
+geom_var_len_legend <- function(point_size = 1.3) {
+  geom_point(
+    data = var_len_legend_df,
+    mapping = aes(x = x, y = y, fill = bench_version),
+    inherit.aes = FALSE,
+    shape = 21,
+    color = "grey30",
+    stroke = 0.3,
+    size = point_size,
+    na.rm = TRUE,
+    show.legend = TRUE
   )
 }
 ```
@@ -299,10 +323,13 @@ smvar_len_df <- variants_df %>%
   aes(x = abs_var_size, y = n, color = bench_version, fill = bench_version)
 ) +
   geom_gapped_points() +
+  geom_var_len_legend() +
   scale_color_manual(
-    name   = "Version",
+    name = "Benchmark",
     values = bench_cols,
-    labels = c("v4.2.1" = "v4.2.1 (GRCh38)", "v5.0q" = "v5.0q (GRCh38)"),
+    breaks = var_len_benchmarks,
+    limits = var_len_benchmarks,
+    drop = FALSE,
     aesthetics = c("color", "fill")
   ) +
   scale_x_continuous(breaks = scales::breaks_width(10)) +
@@ -337,10 +364,13 @@ stvar_len_df <- variants_df %>%
   aes(x = bin_center, y = n, color = bench_version, fill = bench_version)
 ) +
   geom_gapped_points() +
+  geom_var_len_legend() +
   scale_color_manual(
-    name   = "Version",
+    name = "Benchmark",
     values = bench_cols,
-    labels = c("v0.6" = "v0.6 (GRCh37)", "v5.0q" = "v5.0q (GRCh37)"),
+    breaks = var_len_benchmarks,
+    limits = var_len_benchmarks,
+    drop = FALSE,
     aesthetics = c("color", "fill")
   ) +
   scale_x_log10(labels = scales::label_log()) +
@@ -365,10 +395,7 @@ stvar_len_df <- variants_df %>%
     theme(
       # axis.text.x = element_text(angle = -45, hjust = 0),
       legend.position = "bottom",
-      ## Panels compare against different legacy versions, so the two
-      ## version legends cannot merge; stack them instead of overflowing
-      legend.box = "vertical",
-      legend.spacing.y = unit(0, "pt"),
+      legend.box = "horizontal",
       plot.margin = unit(c(1, 1, 1, 1), "pt")
     ))
 ```
@@ -403,6 +430,184 @@ ggsave(
   plot = combined_var_len_dist_plt,
   width = 4,
   height = 4,
+  units = "in"
+)
+```
+
+## Combined Variant Size and Genomic Context Figure
+
+The layout uses a three-column by two-row grid. The size-distribution panels span
+two columns, while the genomic-context panels occupy the third column.
+
+```{r combined_variant_characterization_data}
+## Match the genomic-context counting used in benchmark_difficult.qmd.
+combined_complex_counts <- variants_df |>
+  arrange(bench_version, ref, bench_type, chrom, pos) |>
+  group_by(bench_version, ref, bench_type, chrom) |>
+  mutate(
+    dist_to_next = lead(pos) - pos,
+    dist_to_prev = pos - lag(pos)
+  ) |>
+  ungroup() |>
+  filter(
+    (!is.na(dist_to_next) & dist_to_next <= 10) |
+      (!is.na(dist_to_prev) & dist_to_prev <= 10)
+  ) |>
+  count(bench_version, ref, bench_type, name = "count") |>
+  mutate(context_ids = "COMPLEX")
+
+combined_genomic_context_counts <- variants_df |>
+  filter(!is.na(context_ids), context_ids != "") |>
+  separate_rows(context_ids, sep = ",") |>
+  mutate(context_ids = str_trim(context_ids)) |>
+  filter(context_ids %in% c("HP", "MAP", "SD", "TR")) |>
+  count(bench_version, ref, bench_type, context_ids, name = "count")
+
+combined_context_counts <- bind_rows(
+  combined_genomic_context_counts,
+  combined_complex_counts
+) |>
+  filter(
+    (bench_type == "smvar" & ref == "GRCh38" &
+      bench_version %in% c("v5.0q", "v4.2.1")) |
+      (bench_type == "stvar" & ref == "GRCh37" &
+        bench_version %in% c("v5.0q", "v0.6"))
+  ) |>
+  group_by(bench_type, context_ids) |>
+  filter(n_distinct(bench_version) >= 2) |>
+  ungroup() |>
+  mutate(
+    context_id = recode(context_ids, COMPLEX = "CMPLX"),
+    context_id = factor(context_id, levels = c("HP", "MAP", "SD", "TR", "CMPLX")),
+    bench_version = factor(
+      as.character(bench_version),
+      levels = var_len_benchmarks
+    )
+  )
+
+## Ensure the context-plot legend includes all three benchmark versions even
+## though each row compares v5.0q with a different legacy benchmark.
+combined_context_legend_df <- tibble(
+  context_id = factor(
+    rep("HP", length(var_len_benchmarks)),
+    levels = levels(combined_context_counts$context_id)
+  ),
+  count = NA_real_,
+  bench_version = factor(
+    var_len_benchmarks,
+    levels = var_len_benchmarks
+  )
+)
+
+combined_context_fold_chg <- combined_context_counts |>
+  pivot_wider(
+    names_from = bench_version,
+    values_from = count,
+    id_cols = c(ref, bench_type, context_ids, context_id)
+  ) |>
+  mutate(
+    legacy_count = coalesce(`v4.2.1`, `v0.6`),
+    fold_chg = `v5.0q` / legacy_count,
+    label_y = `v5.0q`
+  ) |>
+  filter(!is.na(fold_chg))
+```
+
+```{r combined_variant_characterization_plot, fig.width = 8, fig.height = 6}
+make_context_count_panel <- function(bench_type_value, x_label = NULL) {
+  ggplot(
+    combined_context_counts |>
+      filter(bench_type == bench_type_value),
+    aes(x = context_id, y = count, fill = bench_version)
+  ) +
+    geom_col(
+      data = combined_context_legend_df,
+      aes(x = context_id, y = count, fill = bench_version),
+      inherit.aes = FALSE,
+      color = "grey30",
+      linewidth = 0.3,
+      na.rm = TRUE,
+      show.legend = TRUE
+    ) +
+    geom_col(
+      position = position_dodge(width = 0.8),
+      color = "grey30",
+      linewidth = 0.3,
+      width = 0.7
+    ) +
+    geom_text(
+      data = combined_context_fold_chg |>
+        filter(bench_type == bench_type_value),
+      aes(x = context_id, y = label_y, label = sprintf("%.1fx", fold_chg)),
+      inherit.aes = FALSE,
+      vjust = -1,
+      size = 3,
+      fontface = "bold"
+    ) +
+    scale_y_continuous(
+      expand = expansion(mult = c(0, 0.2)),
+      labels = scales::comma,
+      breaks = scales::pretty_breaks(n = 5)
+    ) +
+    scale_benchmark_version(
+      aesthetic = "fill",
+      name = "Benchmark Version",
+      breaks = var_len_benchmarks,
+      limits = var_len_benchmarks,
+      drop = FALSE
+    ) +
+    labs(x = x_label, y = "Variant Count") +
+    theme_manuscript() +
+    theme(plot.margin = margin(1, 5, 1, 1))
+}
+
+size_context_A <- smvar_len_dist_plt +
+  labs(x = NULL) +
+  guides(color = "none", fill = "none")
+size_context_B <- make_context_count_panel("smvar")
+size_context_C <- stvar_len_dist_plt +
+  guides(color = "none", fill = "none")
+size_context_D <- make_context_count_panel("stvar", "Genomic Context") +
+  guides(fill = "none")
+
+variant_characterization_design <- "
+AAB
+CCD
+"
+
+(combined_variant_characterization_plt <-
+  size_context_A +
+    size_context_B +
+    size_context_C +
+    size_context_D +
+    plot_layout(
+      design = variant_characterization_design,
+      guides = "collect"
+    ) +
+    plot_annotation(tag_levels = "A") &
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      panel.spacing = unit(4, "pt"),
+      plot.margin = unit(c(2, 2, 2, 2), "pt"),
+      plot.tag = element_text(size = 14, face = "bold")
+    ))
+```
+
+```{r combined_variant_characterization_save}
+ggsave(
+  filename = here("figures", "variant_size_genomic_context.png"),
+  plot = combined_variant_characterization_plt,
+  width = 8,
+  height = 6,
+  units = "in",
+  dpi = 300
+)
+ggsave(
+  filename = here("figures", "variant_size_genomic_context.pdf"),
+  plot = combined_variant_characterization_plt,
+  width = 8,
+  height = 6,
   units = "in"
 )
 ```

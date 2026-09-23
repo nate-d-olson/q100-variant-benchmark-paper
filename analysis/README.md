@@ -42,6 +42,7 @@ Examples currently produced by notebooks include:
 - `figures/benchmark_region_size_change.png`
 - `figures/combined_coverage_variant_change.png`
 - `figures/genomic_context_variant_counts.png`
+- `figures/variant_size_genomic_context.png`
 - `figures/genomic_context_fold_change_by_size.png`
 - `figures/combined_eval.png`
 - `figures/use_case_smvar.png`

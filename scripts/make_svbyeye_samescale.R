@@ -17,14 +17,14 @@
 #     benchmarking-tool limitations or HG002-assembly-specific error calls,
 #     not reference/assembly structure, and were deliberately dropped from
 #     this track (2026-06-17 decision).
-#   - Same-scale layout: every panel shares the same bp-per-inch. Full-width
-#     rows are windowed to [0, chr1 length] regardless of the chromosome's
-#     actual length (shorter chromosomes simply end before the row's right
-#     edge); chromosomes shorter than half of chr1 are paired two-per-row,
-#     each windowed to [0, chr1 length / 2].
+#   - Same-scale layout: every panel shares the same bp-per-inch, but each
+#     coordinate axis ends at that chromosome's length. Panel widths are
+#     proportional to chromosome length and each row is padded to chr1 length;
+#     chromosomes shorter than half of chr1 are paired two-per-row.
 #   - Each row is a 3-track "sandwich": HG002 paternal ribbon / reference
-#     ideogram row (with benchmark + exclusion annotation) / HG002 maternal
-#     ribbon, colored by alignment direction (forward/inverted).
+#     ideogram row / HG002 maternal ribbon, colored by alignment direction
+#     (forward/inverted). Benchmark and exclusion annotations are centered on
+#     the reference row rather than offset toward either HG002 assembly track.
 #   - chrX is an exception: HG002 is male (XY), so chrX has no paternal-origin
 #     homolog. Its panel is a 2-track ref+maternal sandwich; no paternal
 #     ribbon is fabricated.
@@ -75,24 +75,40 @@ HALF <- chr1_len / 2
 DIRECTION_COLORS <- c("+" = "#E69F00", "-" = "#0072B2")
 BENCH_COLOR <- c("Benchmark regions" = "#54278F")
 EXCL_COLOR <- c("Large excluded regions" = "#B2182B")
+ANNOTATION_COLORS <- c(BENCH_COLOR, EXCL_COLOR)
+LEGEND_COLORS <- c(
+  "Forward alignment (+)" = unname(DIRECTION_COLORS[["+"]]),
+  "Inverted alignment (-)" = unname(DIRECTION_COLORS[["-"]]),
+  ANNOTATION_COLORS
+)
 EXCL_MIN_SIZE <- 1e4 # >=10kb filter applied here, at plot time (not in prep)
 
 read_bench_excl <- function(chrom) {
   bench <- read.table(file.path(svb_dir, "v5_benchmark_all.bed"), col.names = c("chrom", "start", "end"))
   bench <- bench[bench$chrom == chrom, ]
-  bench_gr <- GRanges(bench$chrom, IRanges(bench$start + 1L, bench$end), type = "Benchmark regions")
+  bench_gr <- GRanges(
+    bench$chrom,
+    IRanges(bench$start + 1L, bench$end),
+    type = "Benchmark regions",
+    reference_track = chrom
+  )
 
   excl <- read.table(file.path(svb_dir, "excl_large_all.bed"), col.names = c("chrom", "start", "end"))
   excl <- excl[excl$chrom == chrom & (excl$end - excl$start) >= EXCL_MIN_SIZE, ]
-  excl_gr <- GRanges(excl$chrom, IRanges(excl$start + 1L, excl$end), type = "Large excluded regions")
+  excl_gr <- GRanges(
+    excl$chrom,
+    IRanges(excl$start + 1L, excl$end),
+    type = "Large excluded regions",
+    reference_track = chrom
+  )
 
   list(bench = bench_gr, excl = excl_gr)
 }
 
 # Build one chromosome's sandwich panel (3 rows: PAT/ref/MAT, or 2 rows for
-# chrX/chrY which each have only one homolog in a male sample), windowed to a
-# shared xlim so bp-per-inch matches every other panel at the same width class.
-build_panel <- function(chrom, xlim_max, show_legend = FALSE) {
+# chrX/chrY which each have only one homolog in a male sample). The axis ends at
+# the chromosome length; row-level width allocation supplies the common scale.
+build_panel <- function(chrom) {
   mat_path <- file.path(svb_dir, chrom, "ref_mat.named.paf")
   pat_path <- file.path(svb_dir, chrom, "ref_pat.named.paf")
   has_mat <- file.exists(mat_path)
@@ -112,24 +128,42 @@ build_panel <- function(chrom, xlim_max, show_legend = FALSE) {
   }
 
   p <- plotAVA(paf, seqnames.order = order, color.by = "direction") +
-    scale_fill_manual(values = DIRECTION_COLORS, name = "Alignment\ndirection") +
+    scale_fill_manual(values = DIRECTION_COLORS, name = "Alignment direction") +
     scale_color_manual(values = DIRECTION_COLORS, guide = "none")
 
   be <- read_bench_excl(chrom)
-  p <- addAnnotation(p, annot.gr = be$bench, coordinate.space = "target", shape = "rectangle",
-    fill.by = "type", color.palette = BENCH_COLOR, annotation.level = 0.05
-  )
-  p <- addAnnotation(p, annot.gr = be$excl, coordinate.space = "target", shape = "rectangle",
-    fill.by = "type", color.palette = EXCL_COLOR, annotation.level = 0.12
+  annotations <- c(be$bench, be$excl)
+  p <- addAnnotation(
+    p,
+    annot.gr = annotations,
+    coordinate.space = "target",
+    shape = "rectangle",
+    fill.by = "type",
+    color.palette = ANNOTATION_COLORS,
+    annotation.level = 0,
+    y.label.id = "reference_track"
   )
 
-  p <- p + coord_cartesian(xlim = c(0, xlim_max), expand = FALSE) +
-    scale_x_continuous(labels = scales::label_number(scale = 1e-6, suffix = " Mb")) +
+  # Suppress guides at the scale level because ggnewscale guides can survive
+  # theme(legend.position = "none") inside nested patchwork layouts.
+  for (i in seq_along(p$scales$scales)) {
+    if (any(grepl("^(fill|colour|color)", p$scales$scales[[i]]$aesthetics))) {
+      p$scales$scales[[i]]$guide <- "none"
+    }
+  }
+
+  p + coord_cartesian(xlim = c(0, chrom_lengths[[chrom]]), expand = FALSE) +
+    scale_x_continuous(
+      breaks = seq(0, chrom_lengths[[chrom]], by = 50e6),
+      labels = scales::label_number(scale = 1e-6, suffix = " Mb"),
+      minor_breaks = NULL
+    ) +
     ggtitle(chrom) +
-    theme(plot.title = element_text(size = 9, face = "bold"), axis.title.x = element_blank())
-
-  if (!show_legend) p <- p + theme(legend.position = "none")
-  p
+    theme(
+      plot.title = element_text(size = 9, face = "bold"),
+      axis.title.x = element_blank(),
+      legend.position = "none"
+    )
 }
 
 # --- Panel layout: full-width rows for chroms >= half of chr1; paired
@@ -138,29 +172,68 @@ is_full <- sapply(CHROMS, function(ch) chrom_lengths[[ch]] >= HALF)
 full_chroms <- CHROMS[is_full]
 half_chroms <- CHROMS[!is_full]
 
-message("Full-width panels (xlim = 0..", format(chr1_len, big.mark = ","), "): ", paste(full_chroms, collapse = ", "))
-message("Half-width panels (xlim = 0..", format(HALF, big.mark = ","), "): ", paste(half_chroms, collapse = ", "))
+message("Full-width panels: ", paste(full_chroms, collapse = ", "))
+message("Paired half-width panels: ", paste(half_chroms, collapse = ", "))
 
-rows <- list()
-legend_used <- FALSE
-for (ch in full_chroms) {
-  rows[[length(rows) + 1]] <- build_panel(ch, chr1_len, show_legend = !legend_used)
-  legend_used <- TRUE
-}
-if (length(half_chroms) > 0) {
-  half_panels <- lapply(half_chroms, function(ch) {
-    p <- build_panel(ch, HALF, show_legend = !legend_used)
-    legend_used <<- TRUE
-    p
-  })
-  # Odd number of half-width chroms: pad the last row with a blank panel.
-  if (length(half_panels) %% 2 == 1) half_panels[[length(half_panels) + 1]] <- patchwork::plot_spacer()
-  for (i in seq(1, length(half_panels), by = 2)) {
-    rows[[length(rows) + 1]] <- wrap_plots(half_panels[i:min(i + 1, length(half_panels))], nrow = 1)
+# Pad every row to chr1 length so a fixed genomic distance has the same physical
+# width in every panel while each axis displays only its chromosome coordinates.
+build_row <- function(chroms) {
+  widths <- unname(chrom_lengths[chroms]) / chr1_len
+  panels <- lapply(chroms, build_panel)
+  remaining_width <- 1 - sum(widths)
+
+  if (remaining_width > 0) {
+    panels[[length(panels) + 1]] <- plot_spacer()
+    widths <- c(widths, remaining_width)
   }
+
+  wrap_plots(panels, nrow = 1, widths = widths)
 }
 
-combined <- wrap_plots(rows, ncol = 1) +
+rows <- lapply(full_chroms, build_row)
+if (length(half_chroms) > 0) {
+  half_row_starts <- seq(1, length(half_chroms), by = 2)
+  rows <- c(rows, lapply(half_row_starts, function(i) {
+    build_row(half_chroms[i:min(i + 1, length(half_chroms))])
+  }))
+}
+
+# Extract one compact legend rather than collecting the ggnewscale-generated
+# guides from every nested chromosome panel.
+legend_source <- ggplot(
+  data.frame(
+    x = seq_along(LEGEND_COLORS),
+    y = 1,
+    category = factor(names(LEGEND_COLORS), levels = names(LEGEND_COLORS))
+  ),
+  aes(x, y, fill = category)
+) +
+  geom_tile() +
+  scale_fill_manual(
+    values = LEGEND_COLORS,
+    breaks = names(LEGEND_COLORS),
+    name = NULL,
+    guide = guide_legend(nrow = 1, byrow = TRUE)
+  ) +
+  theme_void() +
+  theme(
+    legend.position = "top",
+    legend.direction = "horizontal",
+    legend.box = "horizontal",
+    legend.justification = "center",
+    legend.text = element_text(size = 8),
+    legend.key.width = grid::unit(0.8, "lines")
+  )
+
+legend_table <- ggplotGrob(legend_source)
+legend_grob <- legend_table$grobs[[which(legend_table$layout$name == "guide-box-top")]]
+legend_row <- wrap_elements(full = legend_grob)
+
+combined <- wrap_plots(
+  c(list(legend_row), rows),
+  ncol = 1,
+  heights = c(0.18, rep(1, length(rows)))
+) +
   plot_annotation(title = sprintf("HG002 vs %s: assembly alignment, same scale", REF))
 
 n_rows <- length(rows)
