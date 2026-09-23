@@ -106,32 +106,6 @@ from the conda channel alias convention (`/channels/conda-forge`). Use `custom_m
 
 The `gh` CLI intermittently fails with `tls: failed to verify certificate: x509: OSStatus -26276` due to the organization network proxy. When this occurs, use the MCP GitHub tools (e.g., `mcp__plugin_github_github__merge_pull_request`) as a fallback for PR operations. Git push/pull over SSH is unaffected.
 
-## Chr8 Synteny Figure Pipeline
-
-The chr8 synteny pipeline (`workflow/rules/chr8_synteny.smk`) produces a multi-panel PDF/PNG figure
-showing GRCh38 chr8 vs HG002 maternal and paternal haplotypes, with a zoom panel on the largest
-inversion. It is configured under `chr8_synteny:` in `config/config.yaml`.
-
-**Pipeline steps:**
-1. `chr8_extract_contig` — extract chr8 from each full-assembly FASTA (samtools faidx)
-2. `chr8_index_fasta` — index extracted FASTA and write `.cl` (chromosome-length) file for plotsr
-3. `chr8_align` — minimap2 asm5 alignment; wildcards `{ref_samp}_{qry_samp}` (e.g. `ref_mat`, `mat_pat`)
-4. `chr8_syri` — SyRI structural rearrangement; same wildcard pattern as align
-5. `chr8_find_inversion` — parse `ref_patsyri.out` for largest PAT inversion, write `inversion_coords.json`
-6. `chr8_make_figure` — plotsr + matplotlib multi-panel figure
-
-**Required SyRI runs** (plotsr needs consecutive-genome pairs for a 3-genome [REF, MAT, PAT] layout):
-- `ref_matsyri.out` — REF↔MAT (first pair)
-- `mat_patsyri.out` — MAT↔PAT (second pair; **not** `ref_patsyri.out`)
-- `ref_patsyri.out` — REF↔PAT (used only by `chr8_find_inversion` to detect PAT inversions in REF coords)
-
-**Key outputs:**
-- `results/chr8_synteny/syri/{ref_samp}_{qry_samp}syri.out`
-- `results/chr8_synteny/inversion_coords.json`
-- `results/chr8_synteny/chr8_figure.{pdf,png}`
-
-**Convenience target:** `snakemake chr8_synteny`
-
 ## CI / GitHub Actions
 
 - **Workflow file:** `.github/workflows/main.yml` — runs on push to `main` and on PRs; also supports `workflow_dispatch` for manual triggering from the Actions UI
@@ -183,24 +157,6 @@ inversion. It is configured under `chr8_synteny:` in `config/config.yaml`.
 - **Fixed**: February 2026
 - **Verification**: Check logs show clean context names: `Contexts: ['HP', 'MAP', 'SD', ...]`
 - **Impact**: Affected all variant count tables (genomic contexts and exclusions) across all benchmarks
-
-**SyRI crash**: `ValueError: buffer source array is read-only` in `synsearchFunctions.pyx`
-
-- **Cause**: pandas 2.0 Copy-on-Write makes DataFrame slice arrays non-writeable; SyRI's Cython code
-  tries to create a writable memoryview from them
-- **Fix**: Pin `pandas<2.0` in `workflow/envs/plotsr.yaml`; delete `.snakemake/conda/<hash>/` to force
-  env rebuild, or delete `results/chr8_synteny/syri/` so the rule re-runs in the rebuilt env
-
-**SyRI `--prefix` deprecation warning** (may cause crashes with some SyRI versions):
-
-- **Symptom**: "For specifying output folder use --dir, use --prefix for modifying the output file names"
-- **Fix**: Use `--dir <directory> --prefix <basename>` instead of `--prefix <full/path>`
-- Already fixed in `chr8_syri` rule (uses `params.outdir` + `params.prefix`)
-
-**SyRI `.out` column indices** (`find_chr8_inversion.py`):
-
-- 0-indexed columns: `[0]`=refChr, `[1]`=refStart, `[2]`=refEnd, `[5]`=**qryChr (string)**, `[6]`=qryStart, `[7]`=qryEnd, `[10]`=type
-- Query coordinates are **cols 6–7**, not 5–6. Reading col 5 as int raises `ValueError: int("chr8")`
 
 ## Data Loading (R/Quarto)
 

@@ -14,22 +14,26 @@ website:
     left:
       - text: Home
         href: index.qmd
-      - text: Analysis Notebooks
+      - text: Manuscript Figures & Tables
         menu:
-          - text: Benchmarkset Characterization
+          - text: "Benchmarkset Characterization (Table 1, Fig 2)"
             href: analysis/benchmarkset_characterization.qmd
+          - text: "External Evaluation (Fig 5)"
+            href: analysis/external_evaluation.qmd
+          - text: "Interval Size Distributions (Fig 6)"
+            href: analysis/benchmark_interval_size_distributions.qmd
+          - text: "Benchmark Exclusions (Table 4)"
+            href: analysis/benchmark_exclusions.qmd
+          - text: Manuscript Value Verification
+            href: analysis/manuscript_value_verification.qmd
+      - text: Supporting Analyses
+        menu:
           - text: Benchmark Difficult Regions
             href: analysis/benchmark_difficult.qmd
           - text: Genomic Context Analysis
             href: analysis/genomic_context_analysis.qmd
-          - text: Benchmark Exclusions
-            href: analysis/benchmark_exclusions.qmd
-          - text: Interval Size Distributions
-            href: analysis/benchmark_interval_size_distributions.qmd
           - text: Unique Regions
             href: analysis/benchmark_unique_regions.qmd
-          - text: External Evaluation
-            href: analysis/external_evaluation.qmd
           - text: Use-Case Evaluation
             href: analysis/use_case_evaluation.qmd
       - text: Documentation

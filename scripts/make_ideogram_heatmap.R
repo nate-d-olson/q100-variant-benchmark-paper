@@ -8,7 +8,7 @@
 # never committed and is not recoverable). The design decisions below are taken
 # from session notes preserved outside the repo, not from the original code:
 #   - Drop per-variant density tracks and the HP+TR+SD+MAP "Difficult" union band
-#     (uninformative solid band at genome scale; see prior make_ideogram.R).
+#     (uninformative solid band at genome scale).
 #   - Drop log2 fold-change tracks (flat for smvar, noisy for stvar).
 #   - Replace with per-benchmark-version 100kb region-coverage heatmaps: each
 #     bin colored by the fraction of the bin covered by that benchmark's BED.
@@ -31,7 +31,6 @@
 # Outputs:
 #   figures/ideogram_main.{pdf,png}               - main-text subset (GRCh38)
 #   figures/ideogram_genomewide_grch38.{pdf,png}  - supplemental, all autosomes
-#   figures/ideogram_genomewide_grch37.{pdf,png}  - supplemental, all autosomes
 
 suppressPackageStartupMessages({
   library(karyoploteR)
@@ -64,7 +63,6 @@ read_fai_lengths <- function(fai_path, chr_prefix) {
 }
 
 grch38_lengths <- read_fai_lengths(file.path(res_dir, "references", "GRCh38.fa.gz.fai"), chr_prefix = FALSE)
-grch37_lengths <- read_fai_lengths(file.path(res_dir, "references", "GRCh37.fa.gz.fai"), chr_prefix = TRUE)
 
 autosomes <- paste0("chr", 1:22)
 main_text_chroms <- c("chr1", "chr8")
@@ -76,13 +74,6 @@ grch38_tracks <- list(
   list(label = "v4.2.1 smvar", bed = file.path(bmk_dir, "v4.2.1_GRCh38_smvar_benchmark.bed"), chr_prefix = FALSE),
   list(label = "v5.0q smvar", bed = file.path(bmk_dir, "v5.0q_GRCh38_smvar_benchmark.bed"), chr_prefix = FALSE),
   list(label = "v5.0q stvar", bed = file.path(bmk_dir, "v5.0q_GRCh38_stvar_benchmark.bed"), chr_prefix = FALSE)
-)
-
-grch37_tracks <- list(
-  list(label = "v4.2.1 smvar", bed = file.path(bmk_dir, "v4.2.1_GRCh37_smvar_benchmark.bed"), chr_prefix = TRUE),
-  list(label = "v5.0q smvar", bed = file.path(bmk_dir, "v5.0q_GRCh37_smvar_benchmark.bed"), chr_prefix = TRUE),
-  list(label = "v5.0q stvar", bed = file.path(bmk_dir, "v5.0q_GRCh37_stvar_benchmark.bed"), chr_prefix = TRUE),
-  list(label = "v0.6 stvar", bed = file.path(bmk_dir, "v0.6_GRCh37_stvar_benchmark.bed"), chr_prefix = TRUE)
 )
 
 load_bed_gr <- function(path, chr_prefix) {
@@ -590,21 +581,6 @@ save_plot(
     cex.chrom = 0.75
   ),
   file.path(figs_dir, "ideogram_genomewide_grch38"),
-  width = 7,
-  height = 8.5
-)
-
-save_plot(
-  build_ideogram_figure(
-    autosomes,
-    grch37_lengths,
-    grch37_tracks,
-    genome = "hg19",
-    title = "HG002 Q100 Variant Benchmark - GRCh37 Region Coverage",
-    cex.label = 0.35,
-    cex.chrom = 0.75
-  ),
-  file.path(figs_dir, "ideogram_genomewide_grch37"),
   width = 7,
   height = 8.5
 )

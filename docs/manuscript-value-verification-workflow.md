@@ -3,9 +3,9 @@
 Record of the 2026-08-14 verification of all quantitative claims in the v5.0q
 manuscript (`HG002v5-variant-benchmark-manuscript_20260814_revised.docx`),
 kept as a reusable playbook for future manuscript checks. Task spec:
-`manuscript-value-verification-prompt.md` (repo root). Deliverables:
+`manuscript-value-verification-prompt.md` (removed after submission; see tag `v5-submission-raw`). Deliverables:
 `analysis/manuscript_value_verification.qmd` (renders end-to-end) and
-`docs/agent_work/manuscript_value_updates.json` (25-entry substitution
+`tables/manuscript_value_updates.json` (25-entry substitution
 manifest written by the notebook itself at render time).
 
 ## Process that worked

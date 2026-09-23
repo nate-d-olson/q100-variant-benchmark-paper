@@ -282,13 +282,3 @@ def get_exclusion_interaction_targets(wildcards) -> List[str]:
         "results/exclusions/{benchmark}/exclusion_interactions.csv",
         benchmark=BENCHMARKS_WITH_EXCLUSIONS,
     )
-
-
-def get_chr8_synteny_targets(wildcards) -> List[str]:
-    """Return chr8 synteny figure targets if chr8_synteny is configured."""
-    if not config.get("chr8_synteny"):
-        return []
-    return [
-        "results/chr8_synteny/chr8_figure.pdf",
-        "results/chr8_synteny/chr8_figure.png",
-    ]

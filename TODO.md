@@ -142,7 +142,7 @@ cleanup completed 2026-08-10.
 ## Data release
 
 - [ ] Detailed packaging requirements and validation checklists live in
-`docs/agent_work/dataset-release-plan.md`.
+`docs/dataset-release-plan.md`.
 
 ### Author decisions needed
 

@@ -17,7 +17,8 @@ execute:
 ## Purpose
 
 This notebook verifies every quantitative claim inventoried in
-`manuscript-value-verification-prompt.md` for the manuscript
+`manuscript-value-verification-prompt.md` (removed after submission; see
+tag `v5-submission-raw`) for the manuscript
 `HG002v5-variant-benchmark-manuscript_20260814_revised.docx`:
 
 - **Section A** — unresolved `##` placeholders (newly calculated here)
@@ -27,7 +28,7 @@ This notebook verifies every quantitative claim inventoried in
 Each item shows the claim, the code used (reusing the logic of the existing
 `analysis/*.qmd` notebooks), and the calculated result. The notebook ends with a
 summary table (mismatches and placeholders first) and writes the machine-readable
-substitution manifest to `docs/agent_work/manuscript_value_updates.json`.
+substitution manifest to `tables/manuscript_value_updates.json`.
 
 ```{r setup}
 #| include: false
@@ -301,7 +302,7 @@ record_value(
 
 > "greater than ## % for the small variant benchmark set and ## % for the structural variant benchmark set"
 
-The script below (`docs/agent_work/scratch/glm_check.R`) replicates
+The script below (`scripts/glm_check.R`) replicates
 `external_evaluation.qmd`'s Data Loading and Binomial Model chunks verbatim
 (bias-reduced logistic regression sensitivity model via `brglm2`, marginal
 one-sided 95 % lower confidence bounds via `emmeans` with `side = ">"`), then
@@ -309,7 +310,7 @@ prints per-stratum LCBs and the minimum LCB per bench type.
 
 ```{r a4-glm}
 #| message: false
-source(here::here("docs/agent_work/scratch/glm_check.R"))
+source(here::here("scripts/glm_check.R"))
 ```
 
 ```{r a4-record}
@@ -329,7 +330,7 @@ record_value(
   status = "placeholder_resolved",
   confidence = "high",
   needs_human_review = FALSE,
-  source = "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R); minimum one-sided 95% LCB across strata (Low Map stratum)",
+  source = "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R); minimum one-sided 95% LCB across strata (Low Map stratum)",
   notes = sprintf(
     "Min LCB across strata = %.2f%% (Low Map). Overall-estimate LCB = 92.71%% if the sentence intends the overall marginal estimate instead of the per-stratum minimum.",
     smvar_min_lcb
@@ -345,7 +346,7 @@ record_value(
   status = "placeholder_resolved",
   confidence = "high",
   needs_human_review = FALSE,
-  source = "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R); minimum one-sided 95% LCB across strata (TR stratum)",
+  source = "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R); minimum one-sided 95% LCB across strata (TR stratum)",
   notes = sprintf(
     "Min LCB across strata = %.2f%% (TR annotation). Overall-estimate LCB = 74.88%% if the sentence intends the overall marginal estimate instead of the per-stratum minimum.",
     stvar_min_lcb
@@ -721,7 +722,6 @@ record_value(
 ```
 
 ## C2. Table XYZ — Bases removed by exclusion (GRCh38)
-
 ```{r c2-exclusions}
 #| message: false
 exclusion_metrics_tbl <- load_exclusion_metrics()
@@ -1114,7 +1114,7 @@ record_value(
   ),
   confidence = "high",
   needs_human_review = FALSE,
-  source = "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R)",
+  source = "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R)",
   notes = "Matches fitted model input data exactly."
 )
 record_value(
@@ -1174,7 +1174,7 @@ json_out <- purrr::map(unname(verification_results), function(v) {
   v$current_value <- if (is.null(v$current_value)) NA else v$current_value
   v
 })
-json_path <- here::here("docs/agent_work/manuscript_value_updates.json")
+json_path <- here::here("tables/manuscript_value_updates.json")
 dir.create(dirname(json_path), recursive = TRUE, showWarnings = FALSE)
 jsonlite::write_json(json_out, json_path, auto_unbox = TRUE, pretty = TRUE, na = "null")
 cat("Wrote", length(json_out), "entries to", json_path, "\n")

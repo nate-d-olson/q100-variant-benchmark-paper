@@ -18,9 +18,8 @@ extend-exclude = [
 select = ["F"]
 
 # Snakemake injects the `snakemake` object into scripts run via the `script:`
-# directive — these need F821 ignored. CLI scripts (combine_beds_with_id.py,
-# find_chr8_inversion.py, make_chr8_figure.py) and the logging_config.py utility
-# are not in this list; they should catch undefined names normally.
+# directive — these need F821 ignored. CLI scripts (combine_beds_with_id.py) and the
+# logging_config.py utility are not in this list; they should catch undefined names normally.
 [tool.ruff.lint.per-file-ignores]
 "workflow/scripts/annotate_old_benchmark_status.py" = ["F821"]  # snakemake object
 "workflow/scripts/compute_coverage_table.py" = ["F821"]  # snakemake object
@@ -28,13 +27,3 @@ select = ["F"]
 "workflow/scripts/count_exclusion_variants.py" = ["F821"]  # snakemake object
 "workflow/scripts/count_variants_by_genomic_context.py" = ["F821"]  # snakemake object
 "workflow/scripts/generate_variant_parquet.py" = ["F821"]  # snakemake object
-
-[tool.pixi.workspace]
-name = "q100-variant-benchmark"
-channels = ["conda-forge"]
-platforms = ["osx-arm64"]
-
-[tool.pixi.pypi-dependencies]
-q100-variant-benchmark = { path = ".", editable = true }
-
-[tool.pixi.tasks]

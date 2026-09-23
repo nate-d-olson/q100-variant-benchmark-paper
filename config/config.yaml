@@ -685,21 +685,3 @@ references:
     url: "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.mat_Y_EBV_MT.fasta.gz"
   HG002_pat:
     url: "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.pat_X_EBV_MT.fasta.gz"
-
-# ---------------------------------------------------------------------------
-# Chr8 multi-panel synteny figure (plotsr / syri)
-# ---------------------------------------------------------------------------
-# ref/mat/pat are keys from the references section above; the prepare_reference
-# rule downloads, bgzip-converts, and indexes each automatically.
-# Contig overrides default to chr8 (ref), chr8_MATERNAL (mat), chr8_PATERNAL (pat).
-# Leave this section commented out if the chr8 synteny figure is not needed.
-
-chr8_synteny:
-  ref: "GRCh38"
-  mat: "HG002_mat"
-  pat: "HG002_pat"
-  mat_contig: "chr8_MATERNAL"
-  pat_contig: "chr8_PATERNAL"
-  zoom_padding: 2000000
-  min_inversion_size: 1000000
-  threads: 16

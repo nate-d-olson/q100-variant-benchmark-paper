@@ -14,9 +14,8 @@ tests/
 ├── test_exclusion_loading.R
 ├── test_schema_update.R
 ├── unit/
-│   ├── test_common_helpers.py
-│   ├── test_find_chr8_inversion.py
-│   └── test_variant_binning.R
+│   ├── test_variant_binning.R
+│   └── test_variant_reclassification.py
 └── README.md
 ```
 
@@ -45,7 +44,7 @@ make test-py
 Run a single file:
 
 ```bash
-pytest tests/unit/test_find_chr8_inversion.py -v
+pytest tests/unit/test_variant_reclassification.py -v
 ```
 
 ## Workflow-level validation

@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 # Build per-reference annotation BEDs (benchmark regions + "large excluded
-# regions") for the SVbyEye same-scale figure.
+# regions") for the SVbyEye panel (Fig 3B) drawn by
+# scripts/make_ideogram_heatmap.R.
 #
 # Reconstruction note: reimplements a script lost from a deleted scratch
 # worktree (scratch/ideogram-explore/scripts/prep_svbyeye_beds.sh, 2026-06-17
-# session); see scripts/make_svbyeye_samescale.R header for full context,
-# including why these 5 categories (and not the other 7 exclusion
-# categories) make up the red track.
+# session).
+#
+# The red "large excluded regions" track is the union of segdups +
+# satellites + tandem-repeats + flanks + gaps only. The other seven exclusion
+# categories (self-discrep, consecutive-svs, dipcall-pav_discrep-{smvar,stvar},
+# dipcall-bugs-T2TACE, HG002Q100-errors, HG002-mosaic, pav-inversions)
+# describe benchmarking-tool limitations or HG002-assembly-specific errors,
+# not reference/assembly structure, and are deliberately omitted.
 #
 # AI Disclosure: Developed with assistance from Claude (Anthropic).
 #
@@ -32,7 +38,7 @@ mkdir -p "$OUT_DIR"
 # GRCh37 benchmark/exclusion BEDs use bare contig names (1, 2, ..., X); add
 # the chr prefix so downstream R code can assume canonical chr-prefixed names
 # regardless of reference (the PAF target column keeps the bare name --
-# handled separately in make_svbyeye_samescale.R's ref_paf_name()).
+# handled separately at plot time).
 add_chr_prefix() {
   if [[ "$REF" == "GRCh37" ]]; then
     sed -E 's/^([0-9XYM]+)\t/chr\1\t/'

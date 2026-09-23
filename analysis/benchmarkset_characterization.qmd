@@ -416,24 +416,6 @@ gain grows with variant size for small-variant INDELs. Note the alternating
 even/odd pattern in panel A, consistent with dinucleotide-repeat-mediated
 INDELs, and the ~300 bp Alu and ~6 kb LINE-1 peaks in panel B.
 
-```{r var_length_dist_save}
-ggsave(
-  filename = here("figures", "var_len_dist.png"),
-  plot = combined_var_len_dist_plt,
-  width = 4,
-  height = 4,
-  units = "in",
-  dpi = 300
-)
-ggsave(
-  filename = here("figures", "var_len_dist.pdf"),
-  plot = combined_var_len_dist_plt,
-  width = 4,
-  height = 4,
-  units = "in"
-)
-```
-
 ## Combined Variant Size and Genomic Context Figure
 
 The layout uses a three-column by two-row grid. The size-distribution panels span
@@ -677,20 +659,6 @@ coverage_change_df <- bench_regions_df %>%
     axis.text.x = element_text(angle = -45, hjust = 0),
     legend.position = "bottom"
   ))
-
-ggsave(
-  filename = here("figures", "benchmark_region_size_change.png"),
-  plot = coverage_change_plt,
-  width = 8,
-  height = 4,
-  dpi = 300
-)
-ggsave(
-  filename = here("figures", "benchmark_region_size_change.pdf"),
-  plot = coverage_change_plt,
-  width = 8,
-  height = 4
-)
 ```
 
 ## Variant Fold Change by Genomic Context
@@ -795,20 +763,6 @@ stvar_fc_plt <- context_totals_bytype %>%
   fold_change_plt +
   plot_layout(heights = c(1, 2)) &
   theme(plot.margin = unit(c(5, 5, 5, 5), "pt")))
-
-ggsave(
-  filename = here("figures", "combined_coverage_variant_change.png"),
-  plot = combined_coverage_variant_plt,
-  width = 10,
-  height = 10,
-  dpi = 300
-)
-ggsave(
-  filename = here("figures", "combined_coverage_variant_change.pdf"),
-  plot = combined_coverage_variant_plt,
-  width = 10,
-  height = 10
-)
 ```
 
 ## Exclusion Variant Counts

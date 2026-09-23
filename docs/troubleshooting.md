@@ -108,46 +108,6 @@ update to current `main` and re-run; no manual workaround is needed on current c
 new analysis code, `tidyr::separate_rows(context_ids, sep = ",")` (or the parquet
 loader's filter API) before grouping by context.
 
-## Chr8 Synteny
-
-### SyRI crash — `ValueError: buffer source array is read-only`
-
-**Cause:** pandas 2.0 Copy-on-Write makes DataFrame slice arrays non-writeable;
-SyRI's Cython code (`synsearchFunctions.pyx:534`) needs a writable memoryview.
-
-**Fix:** `workflow/envs/plotsr.yaml` pins `pandas<2.0`. If you see this error,
-rebuild the env and clear failed outputs:
-
-```bash
-rm -rf results/chr8_synteny/syri/
-snakemake chr8_synteny --sdm conda
-```
-
-### SyRI `--prefix` deprecation
-
-**Symptom:** "For specifying output folder use --dir, use --prefix for modifying
-the output file names" — may crash on some SyRI versions.
-
-**Status:** `chr8_syri` rule already uses `--dir {params.outdir} --prefix {params.prefix}`.
-
-### plotsr produces wrong figure with 3 genomes
-
-**Cause:** plotsr requires *consecutive-genome* SyRI files. For layout
-[REF, MAT, PAT] it needs `ref_matsyri.out` and **`mat_patsyri.out`** — not
-`ref_patsyri.out`.
-
-**Status:** Pipeline produces all three (`ref_mat`, `mat_pat`, `ref_pat`).
-`chr8_make_figure` consumes `mat_patsyri.out`; `chr8_find_inversion` separately
-consumes `ref_patsyri.out` to detect PAT inversions in REF coordinate space.
-
-### `find_chr8_inversion.py` — "ValueError: int('chr8')"
-
-**Cause:** SyRI `.out` query columns are 6 and 7 (0-indexed), not 5 and 6.
-Column 5 is `qryChr` (a string).
-
-**Status:** Fixed in `find_chr8_inversion.py`. If you write new SyRI parsers:
-0=refChr, 1=refStart, 2=refEnd, 5=qryChr, 6=qryStart, 7=qryEnd, 10=type.
-
 ## Tooling
 
 ### `gh` CLI fails with x509 certificate error
@@ -217,7 +177,6 @@ make test                                # lint + format-check + dry-run
 |---|---|---|
 | "INFO tag CONTEXT_IDS not defined" | Stale annotation header cache | `rm -rf results/generate_annotation_headers/` and downstream |
 | Mojibake context names in logs | Pre-`78747aa` Truvari output | Update to current main |
-| SyRI `read-only buffer` crash | pandas ≥ 2.0 in plotsr env | Rebuild env (already pinned) |
 | Empty `load_exclusion_metrics()` | Not a v5.0q benchmark | Expected; warning is informational |
 | `gh` x509 error | Org proxy | Use MCP GitHub tools |
 | Wildcard constraint mismatch | Missing entry in `common.smk` | Add to `wildcard_constraints` |

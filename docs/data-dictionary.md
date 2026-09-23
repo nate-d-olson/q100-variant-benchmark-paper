@@ -1165,5 +1165,4 @@ Exclusions represent regions explicitly removed from v5.0q benchmarks.
 ## Related Documentation
 
 - **[Pipeline Outputs Reference](pipeline-outputs.md)** - File formats and loading instructions
-- **[Output Relationships Diagram](diagrams/output-relationships.mmd)** - Visual guide to data relationships
 - **[Architecture Overview](architecture.md)** - How metrics are calculated in the pipeline

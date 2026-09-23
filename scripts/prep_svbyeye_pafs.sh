@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Generate per-chromosome minimap2 asm5 PAFs (REF vs HG002 maternal/paternal)
-# for the SVbyEye same-scale figure.
+# for the SVbyEye panel (Fig 3B) drawn by scripts/make_ideogram_heatmap.R.
+# The manuscript figure only needs: bash scripts/prep_svbyeye_pafs.sh GRCh38 chr8
 #
 # Reconstruction note: reimplements a script lost from a deleted scratch
 # worktree (scratch/ideogram-explore/scripts/prep_svbyeye_pafs.sh, 2026-06-17
-# session); see scripts/make_svbyeye_samescale.R header for full context.
+# session).
 #
 # AI Disclosure: Developed with assistance from Claude (Anthropic).
 #

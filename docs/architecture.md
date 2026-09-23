@@ -35,7 +35,6 @@ resources/                # gitignored downloaded benchmarks/refs/strats
 | `genomic_context_analysis.smk` | 129 | bedtools coverage, coverage tables, variant Parquet, per-context counts |
 | `exclusions.smk` | 258 | v5.0q exclusion impact, interactions, cross-version analysis |
 | `benchmark_comparisons.smk` | 123 | Truvari comparison between benchmark versions |
-| `chr8_synteny.smk` | 247 | Chr8 multi-panel SyRI/plotsr figure pipeline |
 | `use_case_evaluation.smk` | 53 | SV use-case metric extraction (wraps `scripts/extract_sv_metrics.py`); opt-in target `snakemake use_case_evaluation` |
 
 `common.smk` reads `config.yaml`, builds `BENCHMARKS_WITH_EXCLUSIONS` from
@@ -54,12 +53,10 @@ all rule files.
 | `count_exclusion_variants.py` | exclusions.smk | Variant counts per exclusion |
 | `compute_exclusion_interactions.py` | exclusions.smk | Upset-style decomposition of exclusion overlaps |
 | `annotate_old_benchmark_status.py` | exclusions.smk | Cross-version v4.2.1/v0.6 vs v5.0q annotation |
-| `find_chr8_inversion.py` | chr8_synteny.smk | Parse SyRI `.out` for largest PAT inversion |
-| `make_chr8_figure.py` | chr8_synteny.smk | Multi-panel matplotlib + plotsr figure |
 
 ## Conda environments (`workflow/envs/`)
 
-Consolidated from 8 → 6 envs on 2026-02-23. See `workflow/envs/README.md` for
+Consolidated from 8 → 6 envs on 2026-02-23; the chr8 `plotsr` env was removed after submission (5 envs). See `workflow/envs/README.md` for
 rationale.
 
 | Env | Purpose | Notable pins |
@@ -68,7 +65,6 @@ rationale.
 | `python-biotools.yaml` | Python data processing + bcftools/bedtools/tabix | python=3.11 |
 | `samtools.yaml` | Sequence handling (samtools, seqkit) | — |
 | `downloads.yaml` | wget for downloads | — |
-| `plotsr.yaml` | Chr8 synteny (minimap2, syri, plotsr) | **pandas<2.0** (SyRI Cython bug) |
 | `truvari.yaml` | Variant analysis | Truvari==5.4.0 (pip), bcftools=1.20 |
 
 ## Data Flow

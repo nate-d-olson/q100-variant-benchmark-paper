@@ -55,7 +55,6 @@ include: "rules/annotation.smk"
 include: "rules/genomic_context_analysis.smk"
 include: "rules/exclusions.smk"
 include: "rules/benchmark_comparisons.smk"
-include: "rules/chr8_synteny.smk"
 include: "rules/use_case_evaluation.smk"
 
 
@@ -86,5 +85,3 @@ rule all:
             "results/exclusions/{comp_id}/old_only_summary.csv",
             comp_id=config.get("comparisons", {}).keys(),
         ),
-        ## Chr8 synteny figure (optional, enabled when chr8_synteny is in config)
-#        get_chr8_synteny_targets,

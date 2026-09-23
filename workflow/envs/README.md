@@ -2,7 +2,7 @@
 
 This directory defines the active Conda environments used by the workflow.
 
-## Active Environments (6)
+## Active Environments (5)
 
 - `biotools.yaml`
   Purpose: core CLI bioinformatics tools.
@@ -20,24 +20,10 @@ This directory defines the active Conda environments used by the workflow.
   Purpose: remote file retrieval.
   Key package: `wget`.
 
-- `plotsr.yaml`
-  Purpose: chr8 synteny plotting workflow.
-  Key packages: `minimap2`, `samtools`, `syri`, `plotsr`, `matplotlib`, `pandas<2.0`.
-  Constraint: must remain isolated due to SyRI + pandas incompatibility.
-
 - `truvari.yaml`
   Purpose: Truvari benchmark comparison and downstream table generation.
   Key packages: `Truvari==5.4.0` (pip), `bcftools=1.20`, `bedtools`, `pandas`, `pyarrow=14.0`.
   Constraint: kept separate due to `bcftools` version divergence from `biotools.yaml`.
-
-## Deprecated Environments
-
-Historical definitions are retained in `deprecated/`:
-
-- `deprecated/bcftools.yaml`
-- `deprecated/python.yaml`
-- `deprecated/bedtools.yaml`
-- `deprecated/rtg-tools.yaml`
 
 ## Validation Commands
 

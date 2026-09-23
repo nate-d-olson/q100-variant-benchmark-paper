@@ -14,7 +14,7 @@
 ##      model).
 ##
 ## Run from repo root with renv active:
-##   Rscript docs/agent_work/scratch/glm_check.R
+##   Rscript scripts/glm_check.R
 ##
 ## This script intentionally mirrors analysis/external_evaluation.qmd
 ## chunk-for-chunk (Data Loading, Strata Label Mapping, ci_data_prep,

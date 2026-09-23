@@ -58,10 +58,8 @@ jobs:
           cache: pip
       - name: Install pytest
         run: pip install pytest
-      # test_common_helpers.py imports `common` (Snakemake DSL, not importable as Python);
-      # excluded until rewritten or removed. R tests deferred — see TODO.md.
       - name: Run unit tests
-        run: pytest tests/unit/ --ignore=tests/unit/test_common_helpers.py -v
+        run: pytest tests/unit/ -v
 
   r-tests:
     name: r-tests

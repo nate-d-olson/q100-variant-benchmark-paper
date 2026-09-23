@@ -178,11 +178,6 @@ results/exclusions/{benchmark}/exclusion_interactions.csv
 
 for each benchmark in `BENCHMARKS_WITH_EXCLUSIONS`.
 
-### `get_chr8_synteny_targets(wildcards) -> List[str]`
-
-Returns `chr8_figure.pdf` + `chr8_figure.png` if `chr8_synteny:` is present in
-config, else an empty list. Allows the chr8 pipeline to be opt-in.
-
 ## Adding a Helper
 
 1. Add the function to the appropriate section header in `common.smk`

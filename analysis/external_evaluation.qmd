@@ -310,17 +310,6 @@ nodes <- tribble(
     caption = "Left: Yes | Right/Down: No. S01-S09 unique to query; S10-S18 unique to benchmark."
   ) +
   theme(legend.title = element_blank()))
-
-ggsave(
-  filename = here("figures", "smvar_strat_flow.png"),
-  plot = smvar_flow,
-  width = 8, height = 8, dpi = 300
-)
-ggsave(
-  filename = here("figures", "smvar_strat_flow.pdf"),
-  plot = smvar_flow,
-  width = 8, height = 8
-)
 ```
 
 
@@ -427,19 +416,6 @@ needs the RIDE model estimates.
   plot_annotation(tag_levels = "A") +
   plot_layout(guides = "collect", ncol = 2, nrow = 1) &
   theme(legend.position = "bottom", plot.margin = margin(0, 2, 0, 0)))
-
-ggsave(
-  filename = here("figures", "combined_eval_callset.png"),
-  plot = combined_eval_callset_plt,
-  width = 6,
-  height = 3,
-  dpi = 300
-)
-ggsave(
-  filename = here("figures", "combined_eval_callset.pdf"),
-  plot = combined_eval_callset_plt,
-  width = 6, height = 3
-)
 ```
 
 ## Binomial Model: Probability Discrepancy is Error in Comparison Callset
@@ -647,19 +623,6 @@ ci_plot_df <- ci_results |>
   ))
 ```
 
-
-```{r}
-ggsave(
-  filename = here("figures", "ride_estimates.png"),
-  plot = ci_forest_plt,
-  width = 8, height = 8, dpi = 300
-)
-ggsave(
-  filename = here("figures", "ride_estimates.pdf"),
-  plot = ci_forest_plt,
-  width = 8, height = 8
-)
-```
 
 ## Combined Strata Definition, Curation, and RIDE Figure
 
@@ -1244,19 +1207,6 @@ ci_plot_df_cs <- ci_results_cs |>
     strip.text.y = element_text(angle = 0),
     legend.position = "bottom"
   ))
-```
-
-```{r}
-ggsave(
-  filename = here("figures", "ride_estimates_callset.png"),
-  plot = ci_forest_cs_plt,
-  width = 8, height = 8, dpi = 300
-)
-ggsave(
-  filename = here("figures", "ride_estimates_callset.pdf"),
-  plot = ci_forest_cs_plt,
-  width = 8, height = 8
-)
 ```
 
 ```{r cs_summary_table}
