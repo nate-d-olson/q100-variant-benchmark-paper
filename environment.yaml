@@ -1,67 +1,23 @@
 name: q100-smk
+# Pipeline driver environment. Rule-level tools come from workflow/envs/*.yaml
+# (run with --use-conda). R packages are managed by renv (renv.lock), and R
+# (4.6.1) and Quarto (>=1.10) are system installs, not conda packages.
+# Versions pinned to those used for the 2026-09-22 manuscript submission.
 channels:
   - conda-forge
   - bioconda
 channel_priority: strict
 dependencies:
   # Workflow management
-  - snakemake>=8.0
-  - snakefmt
-  - mamba
-  - conda
+  - python=3.13
+  - snakemake=9.17.2
+  - snakefmt=0.11.5
   - graphviz
 
-  # Documentation
-  - quarto
-
-  # Python linting/formatting
+  # Python linting and tests (make lint / make test-py)
   - ruff
+  - pytest
+  - pandas
 
   # Markdown linting
   - markdownlint-cli
-
-  # R base and development tools
-  - r-base>=4.3
-  - r-lintr
-  - r-styler
-
-  # R tidyverse ecosystem
-  - r-tidyverse
-  - r-dplyr
-  - r-ggplot2
-  - r-stringr
-  - r-tidyr
-  - r-purrr
-  - r-readr
-
-  # R data loading and caching
-  - r-arrow
-  - r-here
-  - r-fs
-  - r-glue
-  - r-rlang
-  - r-yaml
-  - r-data.table
-  - r-vroom
-  - r-magrittr
-
-  # R visualization
-  - r-patchwork
-  - r-gt
-  - r-ggupset
-  - r-ggalluvial
-  - r-ggflowchart
-
-  # R Google integration (optional - for external data)
-  - r-googlesheets4
-
-  # R testing
-  - r-testthat
-  - r-withr
-
-  # R session info
-  - r-sessioninfo
-
-  # R documentation
-  - r-knitr
-  - r-rmarkdown

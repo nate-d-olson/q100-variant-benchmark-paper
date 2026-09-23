@@ -67,16 +67,19 @@ The active rule modules included by `workflow/Snakefile` are:
 
 ## Prerequisites
 
-- Conda or Mamba
-- Snakemake >= 8
-- Quarto (for notebook rendering)
-- R with project packages (renv recommended)
+- Conda or Mamba (Snakemake 9.17 and dev tools via `environment.yaml`)
+- R 4.6.1 with Bioconductor 3.23; packages restored with renv
+- Quarto >= 1.10 (for notebook rendering)
+- Node.js (Fig 4 pangene SVG export only)
 
 ## Environment setup
 
 ```bash
 mamba env create -f environment.yaml
 mamba activate q100-smk
+
+# R packages (from the repo root)
+Rscript -e 'renv::restore()'
 ```
 
 ## Run workflow
