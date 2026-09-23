@@ -1,0 +1,13 @@
+# Tools for scripts/prep_svbyeye_{pafs,beds}.sh (Fig 3B / Fig S1 inputs).
+# Not a Snakemake rule environment. Versions match those used for submission.
+#   mamba env create --file scripts/envs/svbyeye-prep.yaml
+#   mamba activate svbyeye-prep
+name: svbyeye-prep
+channels:
+  - conda-forge
+  - bioconda
+channel_priority: strict
+dependencies:
+  - minimap2=2.30
+  - samtools=1.23
+  - bedtools=2.31.1

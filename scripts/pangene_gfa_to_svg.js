@@ -15,8 +15,8 @@ const path = require("path");
 function usage() {
   console.error(`Usage:
   node scripts/pangene_gfa_to_svg.js \\
-    --input work/pangene/SULT1A1.gfa \\
-    --output manuscript/figs/vector/SULT1A1.pangene.svg
+    --input data/pangene/SULT1A1.gfa \\
+    --output figures/vector/SULT1A1.pangene.svg
 
 Options:
   --input PATH       Input local GFA subgraph

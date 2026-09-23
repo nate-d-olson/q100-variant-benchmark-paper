@@ -17,6 +17,7 @@
 # AI Disclosure: Developed with assistance from Claude (Anthropic).
 #
 # Usage: bash scripts/prep_svbyeye_beds.sh <REF>
+#   Requires bedtools on PATH (see scripts/envs/svbyeye-prep.yaml).
 #   REF: GRCh38 | GRCh37 | CHM13v2.0
 #
 # Outputs (plain bedtools merge; the >=10kb size filter on the exclusion

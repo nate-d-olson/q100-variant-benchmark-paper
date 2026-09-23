@@ -48,7 +48,7 @@
     "status": "placeholder_resolved",
     "confidence": "high",
     "needs_human_review": false,
-    "source": "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R); minimum one-sided 95% LCB across strata (Low Map stratum)",
+    "source": "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R); minimum one-sided 95% LCB across strata (Low Map stratum)",
     "notes": "Min LCB across strata = 82.72% (Low Map). Overall-estimate LCB = 92.71% if the sentence intends the overall marginal estimate instead of the per-stratum minimum."
   },
   {
@@ -61,7 +61,7 @@
     "status": "placeholder_resolved",
     "confidence": "high",
     "needs_human_review": false,
-    "source": "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R); minimum one-sided 95% LCB across strata (TR stratum)",
+    "source": "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R); minimum one-sided 95% LCB across strata (TR stratum)",
     "notes": "Min LCB across strata = 68.08% (TR annotation). Overall-estimate LCB = 74.88% if the sentence intends the overall marginal estimate instead of the per-stratum minimum."
   },
   {
@@ -308,7 +308,7 @@
     "status": "confirmed_match",
     "confidence": "high",
     "needs_human_review": false,
-    "source": "external_evaluation.qmd Binomial Model (replicated in docs/agent_work/scratch/glm_check.R)",
+    "source": "external_evaluation.qmd Binomial Model (replicated in scripts/glm_check.R)",
     "notes": "Matches fitted model input data exactly."
   },
   {

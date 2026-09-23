@@ -34,7 +34,8 @@ Thumbs.db
 /_temp/
 /drafts/
 /.env
-/data/
+/data/*
+!/data/pangene/
 /scratch
 /.test/
 /.pytest_cache/

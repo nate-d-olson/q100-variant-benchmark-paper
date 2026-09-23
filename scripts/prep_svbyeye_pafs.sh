@@ -14,7 +14,7 @@
 #   chroms: comma-separated, e.g. chr6,chr8,chr15,chr20,chrX (default: all
 #           autosomes + chrX + chrY)
 #
-# Requires minimap2 + samtools on PATH (e.g. `mamba activate hlienv`).
+# Requires minimap2 + samtools on PATH (see scripts/envs/svbyeye-prep.yaml).
 # chrX has no paternal-origin homolog in a male sample (HG002 is XY); the
 # PAT alignment for chrX is skipped rather than fabricated.
 
