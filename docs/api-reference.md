@@ -57,87 +57,34 @@ List of stratification (genomic context) names configured for a reference, e.g.
 Same as above, looked up via the benchmark's reference. Used by rules that take
 `{benchmark}` as a wildcard.
 
-### `get_genomic_context_cov_beds(wildcards) -> List[str]`
+- `get_genomic_context_cov_beds(wildcards) -> List[str]` - Coverage BED paths for all of a benchmark's genomic contexts, e.g. `results/genomic_context/{benchmark}/coverage/HP_cov.bed` and `results/genomic_context/{benchmark}/coverage/MAP_cov.bed`
 
-Coverage BED paths for all of a benchmark's genomic contexts:
-
-```
-results/genomic_context/{benchmark}/coverage/HP_cov.bed
-results/genomic_context/{benchmark}/coverage/MAP_cov.bed
-…
-```
-
-### `get_genomic_context_bed_specs(wildcards) -> List[str]`
-
-`path:name` specs (one per context) consumed by `combine_beds_with_id.py`. The
-suffix after `:` becomes the value written to `INFO/CONTEXT_IDS`.
-
-```
-resources/stratifications/GRCh38_HP.bed.gz:HP
-resources/stratifications/GRCh38_MAP.bed.gz:MAP
-…
-```
+- `get_genomic_context_bed_specs(wildcards) -> List[str]` - `path:name` specs (one per context) consumed by `combine_beds_with_id.py`. The suffix after `:` becomes the value written to `INFO/CONTEXT_IDS` e.g. `resources/stratifications/GRCh38_HP.bed.gz:HP` and `resources/stratifications/GRCh38_MAP.bed.gz:MAP`
 
 ## Region Helpers
 
-### `get_region_beds(wildcards) -> List[str]`
-
-`path:ID` specs for the benchmark BED plus all configured exclusions. The
-`BMKREGIONS` ID marks the benchmark itself; exclusion IDs are derived from the
-config name (e.g. `consecutive-svs` → `EXCL_CONSECUTIVE_SVS`).
-
-```
-resources/benchmarksets/{benchmark}_benchmark.bed:BMKREGIONS
-resources/exclusions/{benchmark}/consecutive-svs_0.bed:EXCL_CONSECUTIVE_SVS
-…
-```
+- `get_region_beds(wildcards) -> List[str]` - `path:ID` specs for the benchmark BED plus all configured exclusions. The `BMKREGIONS` ID marks the benchmark itself; exclusion IDs are derived from the config name (e.g. `consecutive-svs` → `EXCL_CONSECUTIVE_SVS`) `resources/benchmarksets/{benchmark}_benchmark.bed:BMKREGIONS` and `resources/exclusions/{benchmark}/consecutive-svs_0.bed:EXCL_CONSECUTIVE_SVS`
 
 ## Comparison Helpers
 
-### `get_comparison_files(wildcards) -> Dict[str, str]`
-
-Dict of inputs for a `{comp_id}` benchmark comparison: paired VCFs+indexes,
-BEDs, and the reference FASTA. Driven by `config["comparisons"][comp_id]` with
-keys `new_benchmark`, `old_benchmark`, `ref`.
+- `get_comparison_files(wildcards) -> Dict[str, str]` - Dict of inputs for a `{comp_id}` benchmark comparison: paired VCFs+indexes, BEDs, and the reference FASTA. Driven by `config["comparisons"][comp_id]` with keys `new_benchmark`, `old_benchmark`, `ref`.
 
 ## Exclusion Helpers
 
-### `get_exclusion_inputs(wildcards) -> List[str]`
-
-Per-file BED paths for `{wildcards.exclusion}`, matching the `download_exclusion`
+- `get_exclusion_inputs(wildcards) -> List[str]` - Per-file BED paths for `{wildcards.exclusion}`, matching the `download_exclusion`
 rule outputs. For multi-file exclusions (`type: pair`) returns one path per file.
 
-### `get_exclusion_type(wildcards) -> str`
+- `get_exclusion_type(wildcards) -> str` - Returns `"single"` or `"pair"` from the config entry — controls how `materialize_exclusion` combines source BEDs.
 
-Returns `"single"` or `"pair"` from the config entry — controls how
-`materialize_exclusion` combines source BEDs.
+- `get_exclusion_file_url(benchmark, exclusion_name, file_idx) -> str` - URL and SHA256 lookups for a specific exclusion file. Called from `download_exclusion`.
 
-### `get_exclusion_file_url(benchmark, exclusion_name, file_idx) -> str`
-### `get_exclusion_file_checksum(benchmark, exclusion_name, file_idx) -> str`
+- `get_exclusion_name_mapping(benchmark: str) -> Dict[str, str]` - Maps `EXCL_*` IDs back to canonical exclusion names (e.g. `EXCL_CONSECUTIVE_SVS` → `consecutive-svs`). Used by Python scripts that read the annotated VCF and need to reconstruct config-level names.
 
-URL and SHA256 lookups for a specific exclusion file. Called from `download_exclusion`.
+- `get_exclusion_impact_inputs(wildcards) -> Dict[str, Any]` - Inputs for `compute_exclusion_impact`: variant Parquet + per-exclusion coverage TSVs. Returned as a dict to be unpacked with `unpack(...)`.
 
-### `get_exclusion_name_mapping(benchmark: str) -> Dict[str, str]`
+`get_exclusion_interaction_inputs(wildcards) -> Dict[str, Any]` - Inputs for `compute_exclusion_interactions`: dip.bed, benchmark.bed, all materialized exclusion BEDs, and the variant Parquet. Returned as a dict.
 
-Maps `EXCL_*` IDs back to canonical exclusion names (e.g.
-`EXCL_CONSECUTIVE_SVS` → `consecutive-svs`). Used by Python scripts that read
-the annotated VCF and need to reconstruct config-level names.
-
-### `get_exclusion_impact_inputs(wildcards) -> Dict[str, Any]`
-
-Inputs for `compute_exclusion_impact`: variant Parquet + per-exclusion coverage
-TSVs. Returned as a dict to be unpacked with `unpack(...)`.
-
-### `get_exclusion_interaction_inputs(wildcards) -> Dict[str, Any]`
-
-Inputs for `compute_exclusion_interactions`: dip.bed, benchmark.bed, all
-materialized exclusion BEDs, and the variant Parquet. Returned as a dict.
-
-### `get_old_benchmark_analysis_inputs(wildcards) -> Dict[str, Any]`
-
-Inputs for `annotate_old_benchmark_status`: old benchmark VCF/BED plus the new
-benchmark's dip.bed, benchmark.bed, and exclusion BEDs. Looks up
-`config["comparisons"][comp_id]` for `new_benchmark` / `old_benchmark`.
+- `get_old_benchmark_analysis_inputs(wildcards) -> Dict[str, Any]` - Inputs for `annotate_old_benchmark_status`: old benchmark VCF/BED plus the new benchmark's dip.bed, benchmark.bed, and exclusion BEDs. Looks up `config["comparisons"][comp_id]` for `new_benchmark` / `old_benchmark`.
 
 ### Private helpers
 
@@ -150,33 +97,15 @@ use the public wrappers above.
 
 ## Reference & Stratification Download Helpers
 
-### `get_reference_checksum(ref_name: str) -> str`
-
-Returns SHA256 (preferred) or MD5 from the reference config. Used by
+- `get_reference_checksum(ref_name: str) -> str` - Returns SHA256 (preferred) or MD5 from the reference config. Used by
 `download_reference`.
-
-### `get_stratification_url(wildcards) -> str`
-### `get_stratification_sha256(wildcards) -> str`
-
-URL / SHA256 for a stratification BED. Used by `download_stratification`.
+- `get_stratification_url(wildcards) -> str`, `get_stratification_sha256(wildcards) -> str` - URL / SHA256 for a stratification BED. Used by `download_stratification`.
 
 ## Rule-All Target Generators
 
-### `get_exclusion_impact_targets(wildcards) -> List[str]`
+`get_exclusion_impact_targets(wildcards) -> List[str]` - `results/exclusions/{benchmark}/exclusion_impact.csv` for each benchmark in `BENCHMARKS_WITH_EXCLUSIONS`.
 
-```
-results/exclusions/{benchmark}/exclusion_impact.csv
-```
-
-for each benchmark in `BENCHMARKS_WITH_EXCLUSIONS`.
-
-### `get_exclusion_interaction_targets(wildcards) -> List[str]`
-
-```
-results/exclusions/{benchmark}/exclusion_interactions.csv
-```
-
-for each benchmark in `BENCHMARKS_WITH_EXCLUSIONS`.
+`get_exclusion_interaction_targets(wildcards) -> List[str]` - `results/exclusions/{benchmark}/exclusion_interactions.csv` for each benchmark in `BENCHMARKS_WITH_EXCLUSIONS`.
 
 ## Adding a Helper
 

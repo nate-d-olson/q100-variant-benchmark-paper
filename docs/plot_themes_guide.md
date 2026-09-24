@@ -31,6 +31,7 @@ ggplot(data, aes(x = context_name, y = variant_count, fill = bench_version)) +
 - 8–11 pt fonts; 85–180 mm figure widths (Cell Genomics)
 - Bottom horizontal legend, gray facet panels, clean minimal grid
 - Accepts `...` to override any theme element:
+
   ```r
   theme_manuscript(axis.title = element_text(size = 12, face = "italic"))
   ```
@@ -40,7 +41,7 @@ ggplot(data, aes(x = context_name, y = variant_count, fill = bench_version)) +
 All scales accept `aesthetic`, `name`, `guide`, and `...` (passed to underlying ggplot2 scale).
 
 | Function | Maps |
-|---|---|
+| --- | --- |
 | `scale_benchmark_version()` | `v0.6`, `v4.2.1`, `v5.0q`, `PP` |
 | `scale_bench_type()` | `smvar` → "Small Variants", `stvar` → "Structural Variants" |
 | `scale_genomic_context()` | `HP`, `MAP`, `SD`, `SD10kb`, `TR`, `TR10kb` (auto-applies readable labels) |
@@ -56,7 +57,7 @@ scale_benchmark_version(fill = "color", limits = c("v5.0q"))
 Direct access via `get_color_palettes()`:
 
 | Palette | Keys |
-|---|---|
+| --- | --- |
 | `bench_version` | v0.6, v4.2.1, v5.0q, PP |
 | `ref` | GRCh37, GRCh38, CHM13v2.0 |
 | `bench_type` | smvar, stvar |
@@ -91,7 +92,7 @@ ggsave(params$filename, width = params$width, height = params$height,
 `flextable` is the table library used across all analysis notebooks; it produces
 Word/Google Docs–compatible output suitable for the manuscript.
 
-### Basic Usage
+### Flextable Basic Usage
 
 ```r
 library(flextable)
@@ -102,7 +103,7 @@ data %>%
   fmt_integer_flextable(columns = c("total_variants", "snv_count"))
 ```
 
-### Theme Function
+### Flextable Theme Function
 
 `theme_flextable_manuscript(ft, striped = TRUE, font_family = "Roboto", base_font_size = 9, header_bg = "#F5F5F5", stripe_color = "#FAFAFA", ...)`
 
@@ -114,7 +115,7 @@ data %>%
 ### Helper Functions
 
 | Helper | Wraps | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `fmt_integer_flextable(ft, columns, big_mark = ",")` | `colformat_int()` | Thousands-separated integers |
 | `fmt_number_flextable(ft, columns, decimals = 2)` | `colformat_double()` | Fixed-decimal numbers |
 | `fmt_percent_flextable(ft, columns, decimals = 1, scale_values = FALSE)` | `set_formatter()` | Percent strings (set `scale_values = TRUE` for fractions like 0.85) |

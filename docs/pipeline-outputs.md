@@ -11,7 +11,7 @@ Outputs are organized by **benchmark identifier** using the pattern
 `{bench_version}_{ref}_{bench_type}` — e.g., `v5.0q_GRCh38_smvar`.
 
 | Component | Values |
-|---|---|
+| --- | --- |
 | `bench_version` | `v0.6`, `v4.2.1`, `v5.0q` |
 | `ref` | `GRCh37`, `GRCh38`, `CHM13v2.0` |
 | `bench_type` | `smvar` (small variants <50 bp), `stvar` (structural variants ≥50 bp) |
@@ -26,7 +26,7 @@ Cache files live in `analysis/cache/` (Parquet + zstd, invalidated by source mti
 
 ## Output Directory Layout
 
-```
+```txt
 results/
 ├── genomic_context/{benchmark}/
 │   ├── coverage/{context}_cov.bed              # bedtools coverage output (large)
@@ -165,7 +165,7 @@ metadata). Both honor caching.
 ## Loading Functions Summary
 
 | Function | Reads | Returns |
-|---|---|---|
+| --- | --- | --- |
 | `load_genomic_context_metrics()` | `genomic_context_coverage_table.csv` + `variants_by_genomic_context.parquet` | tibble: per-context coverage + variant counts |
 | `load_exclusion_metrics()` | `exclusion_impact.csv` (v5.0q only) | tibble: per-exclusion BED + variant counts |
 | `load_exclusion_interactions()` | `exclusion_interactions.csv` (v5.0q only) | tibble: upset-style combinations |

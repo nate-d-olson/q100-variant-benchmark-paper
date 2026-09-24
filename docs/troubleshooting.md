@@ -92,7 +92,7 @@ objects to comma-separated strings in variant tables"). The fix lives in
 
 **Verification:** Logs should show clean names:
 
-```
+```txt
 Contexts: ['HP', 'MAP', 'SD', ...]
 ```
 
@@ -174,7 +174,7 @@ make test                                # lint + format-check + dry-run
 ## Quick Reference
 
 | Symptom | Likely cause | Fix |
-|---|---|---|
+| --- | --- | --- |
 | "INFO tag CONTEXT_IDS not defined" | Stale annotation header cache | `rm -rf results/generate_annotation_headers/` and downstream |
 | Mojibake context names in logs | Pre-`78747aa` Truvari output | Update to current main |
 | Empty `load_exclusion_metrics()` | Not a v5.0q benchmark | Expected; warning is informational |
@@ -199,7 +199,7 @@ confidently).
 Interval size distributions across benchmarks (GRCh38 smvar):
 
 | Size range | v4.2.1 | v5.0q |
-|---|---|---|
+| --- | --- | --- |
 | 0–49 bp | 45 | 19 |
 | 50–99 bp | 18,474 | **15** |
 | 100–499 bp | 65,205 | 91 |

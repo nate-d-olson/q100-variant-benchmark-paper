@@ -7,7 +7,7 @@ figures to `figures/` and tables to `tables/`.
 
 ## Top-level layout
 
-```
+```txt
 config/                   # config.yaml + JSON schema
 workflow/
 ├── Snakefile             # min_version("8.0"); entrypoint
@@ -27,7 +27,7 @@ resources/                # gitignored downloaded benchmarks/refs/strats
 ## Rule files (`workflow/rules/`)
 
 | File | Lines | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `common.smk` | 274 | Helper functions, wildcard constraints, BENCHMARKS_WITH_EXCLUSIONS |
 | `downloads.smk` | 333 | SHA256-verified downloads (benchmarks, refs, stratifications, exclusions) |
 | `ref_processing.smk` | 31 | Reference indexing (`samtools faidx`, `seqkit stats`) |
@@ -45,7 +45,7 @@ all rule files.
 ## Python scripts (`workflow/scripts/`)
 
 | Script | Used by | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `logging_config.py` | all | Centralized logger setup |
 | `combine_beds_with_id.py` | annotation.smk | Merge BEDs and inject the ID column for `INFO/*_IDS` annotations |
 | `compute_coverage_table.py` | genomic_context_analysis.smk | Per-context BED overlap → CSV |
@@ -61,7 +61,7 @@ Consolidated from 8 → 6 envs on 2026-02-23; the chr8 `plotsr` env was removed 
 rationale.
 
 | Env | Purpose | Notable pins |
-|---|---|---|
+| --- | --- | --- |
 | `biotools.yaml` | Core CLI (bcftools, rtg-tools) | — |
 | `python-biotools.yaml` | Python data processing + bcftools/bedtools/tabix | python=3.11 |
 | `samtools.yaml` | Sequence handling (samtools, seqkit) | — |
@@ -70,7 +70,7 @@ rationale.
 
 ## Data Flow
 
-```
+```txt
 config.yaml
     │
     ▼
@@ -116,7 +116,7 @@ VCF normalization + indexing            Reference indexing
 Variants are annotated by `bcftools annotate` with two multi-value INFO fields:
 
 | Field | Source BED | Loader column |
-|---|---|---|
+| --- | --- | --- |
 | `CONTEXT_IDS` | `combine_genomic_context_beds` (HP, MAP, SD, …) | `context_ids` |
 | `REGION_IDS` | `combine_region_beds` (benchmark + per-exclusion BEDs) | `region_ids` |
 
@@ -126,7 +126,7 @@ before Parquet write (fix shipped in commit `78747aa`).
 
 ## R Data Layer
 
-```
+```txt
 R/
 ├── schemas.R       # Arrow schema, factor levels, validation rules
 ├── cache.R         # Parquet caching infrastructure
@@ -156,7 +156,7 @@ loaders (metrics, exclusions, reference sizes) read directly each call.
 ## Notebooks (`analysis/`)
 
 | Notebook | Loads |
-|---|---|
+| --- | --- |
 | `benchmarkset_characterization.qmd` | `variants_df`, `genomic_context_metrics_df` |
 | `benchmark_difficult.qmd` | `diff_cov_df` |
 | `benchmark_exclusions.qmd` | `exclusion_metrics_df`, `exclusion_interactions_df` |

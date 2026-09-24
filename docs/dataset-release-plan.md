@@ -55,7 +55,7 @@ The dataset will be deposited on **Zenodo** (preferred for genomics companion da
 Before defining file lists, resolve the following decisions (flagged for author review):
 
 | # | Decision | Options | Recommended |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | D1 | Hosting platform | Zenodo / Figshare / NCBI BioProject | Zenodo |
 | D2 | Scope of input data | Manifest-only vs. mirror files | Manifest + checksums (data already public) |
 | D3 | Variant parquet files | Include all 8 benchmarks (~8 GB) or smvar GRCh38 only | Include all (Zenodo supports large deposits) |
@@ -73,7 +73,7 @@ These files are downloaded by `workflow/rules/downloads.smk` and validated with 
 #### Benchmark VCFs and BEDs
 
 | Benchmark ID | Version | Reference | Type | Source Host |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `v5.0q_GRCh38_smvar` | v5.0q | GRCh38 | Small variants | NCBI FTP (GIAB defrabb) |
 | `v5.0q_GRCh37_smvar` | v5.0q | GRCh37 | Small variants | NCBI FTP (GIAB defrabb) |
 | `v5.0q_CHM13v2.0_smvar` | v5.0q | CHM13v2.0 | Small variants | NCBI FTP (GIAB defrabb) |
@@ -111,7 +111,7 @@ Applied across GRCh37, GRCh38, and CHM13v2.0.
 #### Reference Genomes (not released — standard public references)
 
 | Reference | Source URL |
-|---|---|
+| --- | --- |
 | GRCh37 (hs37d5) | NCBI FTP (GIAB references) |
 | GRCh38 (GIABv3 analysis set) | NCBI FTP (GIAB references) |
 | CHM13v2.0 | Human Pangenome Reference Consortium S3 |
@@ -160,7 +160,7 @@ Manually curated files in `data/` and `data/external-evaluations/`:
 
 The released dataset will use this layout, designed to be self-explanatory to external users independent of the pipeline codebase.
 
-```
+```txt
 q100-benchmark-analysis-data/
 ├── README.md                          # Primary documentation (see §7 outline)
 ├── MANIFEST.tsv                       # All files with SHA-256 checksums
@@ -418,7 +418,7 @@ The top-level `README.md` will be drafted once the final file set is confirmed. 
 
 ### README Section Outline
 
-```
+```txt
 # GIAB HG002 Q100 Variant Benchmark Analysis Dataset
 
 ## Overview
@@ -523,7 +523,7 @@ The top-level `README.md` will be drafted once the final file set is confirmed. 
 ### Tools to Cite
 
 | Tool | Reference |
-|---|---|
+| --- | --- |
 | Snakemake | Mölder et al. 2021, Sustainable data analysis with Snakemake, *F1000Research* |
 | bcftools / samtools | Danecek et al. 2021, Twelve years of SAMtools and BCFtools, *GigaScience* |
 | bedtools | Quinlan & Hall 2010, BEDTools: a flexible suite, *Bioinformatics* |

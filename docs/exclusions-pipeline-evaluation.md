@@ -14,7 +14,7 @@ split is intentional and is not slated to converge.
 
 ### Genomic Context
 
-```
+```txt
 resources/stratifications/{ref}_{context}.bed.gz
   ↓ genomic_context_coverage          (bedtools coverage)
 results/genomic_context/{benchmark}/coverage/{context}_cov.bed
@@ -27,7 +27,7 @@ processes ALL contexts in one pass.
 
 ### Exclusions (v5.0q only)
 
-```
+```txt
 resources/exclusions/{benchmark}/{exclusion}_{idx}.bed
   ↓ materialize_exclusion             (bedtools sort/merge — handles single + pair types)
 results/exclusions/{benchmark}/{exclusion}.bed
@@ -42,7 +42,7 @@ Three-step: materialize → BED metrics → join with variant counts.
 ## Why They're Different
 
 | Aspect | Genomic Context | Exclusions | Why |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Pre-computed coverage | Yes (`*_cov.bed`) | No (direct from BED) | Coverage BEDs are reused by other notebook analyses |
 | Variant integration | No (separate pipeline) | Yes (in `compute_exclusion_impact`) | Exclusion analysis specifically asks "which variants are removed?" |
 | Aggregation | Single rule, all contexts at once | Per-exclusion TSV → join | Variant-level join is per-exclusion by construction |
