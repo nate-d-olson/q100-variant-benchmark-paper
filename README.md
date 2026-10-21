@@ -27,7 +27,7 @@ A machine-readable copy of this table is in `docs/figure-map.csv`.
 | Fig 1 | `figures/manual/fig1_development_cycle.{svg,pdf,af}` | Hand-made (Affinity Designer) | — |
 | Table 1 | rendered inline | `analysis/benchmarkset_characterization.qmd`, chunks `benchmark_summary_data`, `format_bench_table_fn`, `table1_combined` | `results/variant_tables/`, `results/genomic_context/`, `resources/benchmarksets/` |
 | Fig 2 | `figures/variant_size_genomic_context.{pdf,png}` | `analysis/benchmarkset_characterization.qmd`, chunks `combined_variant_characterization_{data,plot,save}` | `results/variant_tables/`, `results/genomic_context/` |
-| Fig 3 | `figures/ideogram_main.{pdf,png}` | `scripts/make_ideogram_heatmap.R` (`build_main_figure()`, `make_chr8_svbyeye_grob()`) | `resources/benchmarksets/`, `results/svbyeye/GRCh38/` |
+| Fig 3 | `figures/ideogram_main.{pdf,png}` | `scripts/make_ideogram_heatmap.R` (`build_main_figure()`, `make_chr8_svbyeye_grob()`); hand-finished in `figures/manual/ideogram_main_modified.af` | `resources/benchmarksets/`, `results/svbyeye/GRCh38/` |
 | Fig S1 | `figures/ideogram_genomewide_grch38.{pdf,png}` | `scripts/make_ideogram_heatmap.R` | as Fig 3 |
 | Fig 4A | `figures/vector/SULT1A1.events.white.{svg,pdf}` | `scripts/pangene_gfa_to_svg.js --layout event-tracks`; hand-finished in `figures/manual/fig4a_SULT1A1.events.af` | `data/pangene/SULT1A1.gfa` |
 | Fig 4B | `figures/vector/PMS2.events.white.{svg,pdf}` | `scripts/pangene_gfa_to_svg.js --layout pms2-events`; hand-finished in `figures/manual/fig4b_PMS2.events.af` | `data/pangene/PMS2.gfa` |
@@ -111,7 +111,7 @@ analysis/        Quarto analysis notebooks
 scripts/         Figure scripts and utilities (+ envs/ for non-Snakemake tools)
 figures/         Manuscript figures (PDF + PNG)
   vector/        Pangene SVG/PDF exports (Fig 4)
-  manual/        Hand-edited figure sources (Fig 1, Fig 4)
+  manual/        Hand-edited figure sources (Fig 1, Fig 3, Fig 4)
 data/pangene/    Fig 4 input GFAs (rest of data/ is from the data release)
 tables/          Manuscript value verification records
 docs/            Architecture, outputs, data dictionary, troubleshooting
